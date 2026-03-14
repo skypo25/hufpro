@@ -43,6 +43,8 @@ export type InvoicePdfItem = {
 }
 
 export type InvoicePdfData = {
+  /** Kundennummer (formatiert), über der Rechnungsnummer angezeigt */
+  customerNumberDisplay?: string | null
   invoiceNumber: string
   invoiceDate: string
   serviceDateFrom: string | null

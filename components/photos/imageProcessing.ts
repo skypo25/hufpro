@@ -132,15 +132,19 @@ export async function processHoofImage(
   })
 }
 
+/** Ganzkörper: feste Ausgabe 1000×750 px */
+const WHOLE_BODY_WIDTH = 1000
+const WHOLE_BODY_HEIGHT = 750
+
 /**
- * Ganzkörper: Querformat 16:9
+ * Ganzkörper: exakt 1000×750 px (Seitenverhältnis 4:3)
  */
 export async function processWholeBodyImage(
   file: File
 ): Promise<{ blob: Blob; width: number; height: number }> {
   return processImage(file, {
-    aspectRatio: 16 / 9,
-    maxDimension: 1440,
+    aspectRatio: WHOLE_BODY_WIDTH / WHOLE_BODY_HEIGHT,
+    maxDimension: WHOLE_BODY_WIDTH,
     quality: 0.88,
   })
 }

@@ -47,7 +47,7 @@ type RecordCreateFormProps = {
   defaultRecordType: string
   lastRecord?: LastRecord
   textBlocks?: TextBlock[]
-  saveAction: (formData: FormData) => Promise<{ recordId: string } | void>
+  saveAction: (formData: FormData) => Promise<{ recordId: string } | { error: string } | void>
   erstterminBodyPhotos?: ErstterminBodyPhoto[]
   erstterminRecordDate?: string | null
   /** Edit mode: show same form with initial values and update action instead of create */
@@ -675,6 +675,7 @@ export default function RecordCreateForm({
   const [annotationsBySlot, setAnnotationsBySlot] = useState<Partial<Record<PhotoSlotKey, AnnotationsData>>>({})
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
   const router = useRouter()
 
   const workBlocks = useMemo(
@@ -764,8 +765,13 @@ export default function RecordCreateForm({
       return
     }
     setSubmitting(true)
+    setMessage('')
     try {
       const result = await saveAction(fd)
+      if (result && 'error' in result) {
+        setMessage(result.error)
+        return
+      }
       const recordId = result?.recordId
       if (!recordId) return
       const staged = Object.entries(stagedPhotos) as [PhotoSlotKey, StagedPhoto][]
@@ -853,6 +859,11 @@ export default function RecordCreateForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid w-full gap-7 xl:grid-cols-[minmax(0,1fr)_340px]">
+      {message && (
+        <div className="xl:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {message}
+        </div>
+      )}
       <input type="hidden" name="record_type" value={defaultRecordType} />
       {isEdit ? (
         <input type="hidden" name="record_date" value={recordDate} />

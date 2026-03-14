@@ -10,6 +10,7 @@ import {
 import RevenueChart from '@/components/dashboard/RevenueChart'
 import DashboardSearchBar from '@/components/dashboard/DashboardSearchBar'
 import DashboardStats from '@/components/dashboard/DashboardStats'
+import DashboardAnimatedSection from '@/components/dashboard/DashboardAnimatedSection'
 
 type CustomerRelation =
   | {
@@ -362,157 +363,167 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {quickActions.map((item) => (
-          <Link
-            key={item.title}
-            href={item.href}
-            className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#154226] hover:shadow-md"
-          >
-            <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
-              <FontAwesomeIcon icon={item.icon} className="text-[18px]" />
-            </div>
-            <div className="text-[14px] font-medium text-[#1B1F23]">{item.title}</div>
-          </Link>
-        ))}
-      </div>
+      <DashboardAnimatedSection>
+        <div className="grid gap-3 md:grid-cols-3">
+          {quickActions.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#154226] hover:shadow-md"
+            >
+              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
+                <FontAwesomeIcon icon={item.icon} className="text-[18px]" />
+              </div>
+              <div className="text-[14px] font-medium text-[#1B1F23]">{item.title}</div>
+            </Link>
+          ))}
+        </div>
+      </DashboardAnimatedSection>
 
       <DashboardStats stats={stats} />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-7">
-          <section className="huf-card">
-            <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
-                Heutige Termine
-              </h3>
-              <Link href="/calendar" className="text-[13px] font-medium text-[#154226] hover:underline">
-                Alle Termine →
-              </Link>
-            </div>
+          <DashboardAnimatedSection delay={0}>
+            <section className="huf-card">
+              <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
+                <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
+                  Heutige Termine
+                </h3>
+                <Link href="/calendar" className="text-[13px] font-medium text-[#154226] hover:underline">
+                  Alle Termine →
+                </Link>
+              </div>
 
-            <div>
-              {todayAppointments.length === 0 && (
-                <div className="px-[22px] py-8 text-sm text-[#6B7280]">
-                  Für heute sind keine Termine vorhanden.
-                </div>
-              )}
-
-              {todayAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex flex-col gap-4 border-b border-[#E5E2DC] px-[22px] py-[14px] hover:bg-[rgba(21,66,38,0.03)] md:flex-row md:items-center"
-                >
-                  <div className="min-w-[52px] text-[13px] font-semibold tabular-nums text-[#1B1F23]">
-                    {formatTime(appointment.appointment_date)}
+              <div>
+                {todayAppointments.length === 0 && (
+                  <div className="px-[22px] py-8 text-sm text-[#6B7280]">
+                    Für heute sind keine Termine vorhanden.
                   </div>
+                )}
 
-                  <div className="flex-1">
-                    <div className="text-[14px] font-medium text-[#1B1F23]">
-                      {appointment.customerName}
-                    </div>
-                    <div className="text-[12px] text-[#6B7280]">
-                      {appointment.horseLabel}
-                      {appointment.notes ? ` · ${appointment.notes}` : ''}
-                    </div>
-                  </div>
-
-                  <span
-                    className={`inline-flex rounded-full px-[10px] py-1 text-[11px] font-semibold uppercase tracking-[0.04em] ${getStatusBadgeClass(
-                      appointment.status
-                    )}`}
+                {todayAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex flex-col gap-4 border-b border-[#E5E2DC] px-[22px] py-[14px] hover:bg-[rgba(21,66,38,0.03)] md:flex-row md:items-center"
                   >
-                    {appointment.status || 'Bestätigt'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="huf-card">
-            <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
-                Umsatz 2026
-              </h3>
-              <Link href="/invoices" className="text-[13px] font-medium text-[#154226] hover:underline">
-                Details →
-              </Link>
-            </div>
-
-            <RevenueChart monthlyCents={monthlyRevenueCents} totalCents={totalRevenueCents} />
-          </section>
-        </div>
-
-        <div className="space-y-7">
-          <section className="huf-card">
-            <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
-                Nächste Termine
-              </h3>
-              <Link href="/calendar" className="text-[13px] font-medium text-[#154226] hover:underline">
-                Kalender →
-              </Link>
-            </div>
-
-            <div>
-              {upcomingAppointments.length === 0 && (
-                <div className="px-[22px] py-8 text-sm text-[#6B7280]">
-                  Keine kommenden Termine vorhanden.
-                </div>
-              )}
-
-              {upcomingAppointments.slice(0, 4).map((appointment) => {
-                const parts = formatGermanDateShort(appointment.appointment_date).split(' ')
-
-                return (
-                  <div key={appointment.id} className="flex gap-[14px] border-b border-[#E5E2DC] px-[22px] py-[14px]">
-                    <div className="min-w-[44px] text-center">
-                      <div className="dashboard-serif text-[22px] font-medium leading-none text-[#154226]">
-                        {parts[0] || ''}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-[0.08em] text-[#6B7280]">
-                        {parts[1] || ''}
-                      </div>
+                    <div className="min-w-[52px] text-[13px] font-semibold tabular-nums text-[#1B1F23]">
+                      {formatTime(appointment.appointment_date)}
                     </div>
 
                     <div className="flex-1">
                       <div className="text-[14px] font-medium text-[#1B1F23]">
                         {appointment.customerName}
-                        {appointment.horseLabel ? ` · ${appointment.horseLabel}` : ''}
                       </div>
                       <div className="text-[12px] text-[#6B7280]">
-                        {formatTime(appointment.appointment_date)}
+                        {appointment.horseLabel}
                         {appointment.notes ? ` · ${appointment.notes}` : ''}
                       </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
 
-          <section className="huf-card">
-            <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
-                Letzte Aktivitäten
-              </h3>
-            </div>
-
-            <div className="px-[22px] py-3">
-              {[
-                { dot: 'bg-[#154226]', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
-                { dot: 'bg-[#34A853]', text: 'Die Box ist vorbereitet und kann später mit echten Aktivitäten befüllt werden.' },
-                { dot: 'bg-[#6366F1]', text: 'Dashboard-Stil wurde an dein Wunschlayout angepasst.' },
-              ].map((item, index) => (
-                <div key={index} className="flex gap-3 border-b border-[rgba(0,0,0,0.04)] py-3 last:border-b-0">
-                  <span className={`mt-[6px] h-2 w-2 rounded-full ${item.dot}`} />
-                  <div className="text-[13px] leading-[1.5] text-[#1B1F23]">
-                    {item.text}
+                    <span
+                      className={`inline-flex rounded-full px-[10px] py-1 text-[11px] font-semibold uppercase tracking-[0.04em] ${getStatusBadgeClass(
+                        appointment.status
+                      )}`}
+                    >
+                      {appointment.status || 'Bestätigt'}
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          </DashboardAnimatedSection>
+
+          <DashboardAnimatedSection delay={80}>
+            <section className="huf-card">
+              <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
+                <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
+                  Umsatz 2026
+                </h3>
+                <Link href="/invoices" className="text-[13px] font-medium text-[#154226] hover:underline">
+                  Details →
+                </Link>
+              </div>
+
+              <RevenueChart monthlyCents={monthlyRevenueCents} totalCents={totalRevenueCents} />
+            </section>
+          </DashboardAnimatedSection>
+        </div>
+
+        <div className="space-y-7">
+          <DashboardAnimatedSection delay={0}>
+            <section className="huf-card">
+              <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
+                <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
+                  Nächste Termine
+                </h3>
+                <Link href="/calendar" className="text-[13px] font-medium text-[#154226] hover:underline">
+                  Kalender →
+                </Link>
+              </div>
+
+              <div>
+                {upcomingAppointments.length === 0 && (
+                  <div className="px-[22px] py-8 text-sm text-[#6B7280]">
+                    Keine kommenden Termine vorhanden.
+                  </div>
+                )}
+
+                {upcomingAppointments.slice(0, 4).map((appointment) => {
+                  const parts = formatGermanDateShort(appointment.appointment_date).split(' ')
+
+                  return (
+                    <div key={appointment.id} className="flex gap-[14px] border-b border-[#E5E2DC] px-[22px] py-[14px]">
+                      <div className="min-w-[44px] text-center">
+                        <div className="dashboard-serif text-[22px] font-medium leading-none text-[#154226]">
+                          {parts[0] || ''}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-[0.08em] text-[#6B7280]">
+                          {parts[1] || ''}
+                        </div>
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="text-[14px] font-medium text-[#1B1F23]">
+                          {appointment.customerName}
+                          {appointment.horseLabel ? ` · ${appointment.horseLabel}` : ''}
+                        </div>
+                        <div className="text-[12px] text-[#6B7280]">
+                          {formatTime(appointment.appointment_date)}
+                          {appointment.notes ? ` · ${appointment.notes}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </DashboardAnimatedSection>
+
+          <DashboardAnimatedSection delay={80}>
+            <section className="huf-card">
+              <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
+                <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
+                  Letzte Aktivitäten
+                </h3>
+              </div>
+
+              <div className="px-[22px] py-3">
+                {[
+                  { dot: 'bg-[#154226]', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
+                  { dot: 'bg-[#34A853]', text: 'Die Box ist vorbereitet und kann später mit echten Aktivitäten befüllt werden.' },
+                  { dot: 'bg-[#6366F1]', text: 'Dashboard-Stil wurde an dein Wunschlayout angepasst.' },
+                ].map((item, index) => (
+                  <div key={index} className="flex gap-3 border-b border-[rgba(0,0,0,0.04)] py-3 last:border-b-0">
+                    <span className={`mt-[6px] h-2 w-2 rounded-full ${item.dot}`} />
+                    <div className="text-[13px] leading-[1.5] text-[#1B1F23]">
+                      {item.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </DashboardAnimatedSection>
         </div>
       </div>
     </div>

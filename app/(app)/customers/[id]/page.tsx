@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import ActionButton from '@/components/ui/ActionButton'
+import { formatCustomerNumber } from '@/lib/format'
 
 type CustomerPageProps = {
   params: Promise<{
@@ -11,6 +12,7 @@ type CustomerPageProps = {
 
 type Customer = {
   id: string
+  customer_number?: number | null
   name: string | null
   phone: string | null
   email: string | null
@@ -153,7 +155,7 @@ export default async function CustomerDetailPage({
 
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select('id, name, phone, email, city, stable_name, stable_city, salutation, created_at')
+    .select('id, customer_number, name, phone, email, city, stable_name, stable_city, salutation, created_at')
     .eq('id', id)
     .eq('user_id', user.id)
     .single<Customer>()
@@ -296,6 +298,9 @@ export default async function CustomerDetailPage({
             </h1>
 
             <div className="mt-2 flex flex-wrap gap-4 text-[13px] text-[#6B7280]">
+              <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#154226]">
+                {formatCustomerNumber(customer.customer_number)}
+              </span>
               <span className="inline-flex items-center gap-1.5">
                 <i className="bi bi-geo-alt text-[14px]" />
                 {customer.city || customer.stable_city || '-'}

@@ -110,12 +110,14 @@ export async function runSeed(
   const result: SeedResult = { customers: 0, horses: 0, appointments: 0, hoofRecords: 0, invoices: 0 }
 
   const customerIds: string[] = []
-  for (const c of CUSTOMERS) {
+  for (let i = 0; i < CUSTOMERS.length; i++) {
+    const c = CUSTOMERS[i]
     const name = `${c.first_name} ${c.last_name}`
     const { data, error } = await supabase
       .from("customers")
       .insert({
         user_id: userId,
+        customer_number: i + 1,
         name,
         first_name: c.first_name,
         last_name: c.last_name,

@@ -5,7 +5,9 @@ import DeleteRecordForm from './DeleteRecordForm'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import DocumentPhotoGrid from '@/components/photos/DocumentPhotoGrid'
+import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
 import type { DocumentPhotoItem } from '@/components/photos/DocumentPhotoViewer'
+import { formatCustomerNumber } from '@/lib/format'
 
 type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
@@ -40,8 +42,8 @@ type Horse = {
   care_interval: string | null
   customer_id: string | null
   customers?:
-    | { id?: string; name: string | null; stable_name: string | null; city: string | null }
-    | { id?: string; name: string | null; stable_name: string | null; city: string | null }[]
+    | { id?: string; customer_number?: number | null; name: string | null; stable_name: string | null; city: string | null }
+    | { id?: string; customer_number?: number | null; name: string | null; stable_name: string | null; city: string | null }[]
     | null
 }
 
@@ -97,7 +99,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     .from('horses')
     .select(`
       id, name, breed, sex, birth_year, usage, hoof_status, care_interval,
-      customer_id, customers (id, name, stable_name, city)
+      customer_id, customers (id, customer_number, name, stable_name, city)
     `)
     .eq('id', horseId)
     .eq('user_id', user.id)
@@ -165,6 +167,13 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     }
   }
 
+  const wholeBodyPhotoItems = photoItems.filter((i) => i.isWholeBody)
+  const otherPhotoItems = photoItems.filter((i) => !i.isWholeBody)
+  const wholeBodySwitcherItems = wholeBodyPhotoItems
+    .slice(0, 2)
+    .sort((a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1))
+    .map((item) => ({ id: item.id, imageUrl: item.imageUrl, label: item.label }))
+
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       {/* Breadcrumb */}
@@ -194,7 +203,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
               <span>{formatGermanDateLong(record.record_date)}</span>
               <span>Pferd: <Link href={`/horses/${horseId}`} className="font-medium text-[#154226] hover:underline">{horse.name || '–'}</Link>{horseMeta ? ` (${horseMeta})` : ''}</span>
               {customer?.name && (
-                <span>Kunde: <Link href={customer.id ? `/customers/${customer.id}` : '#'} className="font-medium text-[#154226] hover:underline">{customer.name}</Link></span>
+                <span>Kunde: <Link href={customer.id ? `/customers/${customer.id}` : '#'} className="font-medium text-[#154226] hover:underline">{customer.customer_number != null ? `${formatCustomerNumber(customer.customer_number)} · ` : ''}{customer.name}</Link></span>
               )}
             </div>
             <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3.5 py-1.5 text-xs font-semibold text-[#166534]">
@@ -293,19 +302,19 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
             </div>
           </div>
 
-          {/* Fotodokumentation */}
+          {/* Fotodokumentation (ohne Ganzkörperfotos) */}
           <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-5 py-4">
               <h3 className="font-serif text-base font-medium text-[#1B1F23]">
-                Fotodokumentation{photoItems.length > 0 ? ` (${photoItems.length} ${photoItems.length === 1 ? 'Foto' : 'Fotos'})` : ''}
+                Fotodokumentation{otherPhotoItems.length > 0 ? ` (${otherPhotoItems.length} ${otherPhotoItems.length === 1 ? 'Foto' : 'Fotos'})` : ''}
               </h3>
               <Link href={`/horses/${horseId}/records/${recordId}/photos/new`} className="text-[13px] font-medium text-[#154226] hover:underline">Fotos bearbeiten</Link>
             </div>
             <div className="p-5">
-              {photoItems.length > 0 ? (
+              {otherPhotoItems.length > 0 ? (
                 <>
                   <div className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-[#6B7280]">Aufnahmen</div>
-                  <DocumentPhotoGrid items={photoItems} />
+                  <DocumentPhotoGrid items={otherPhotoItems} />
                 </>
               ) : (
                 <p className="text-[13px] text-[#9CA3AF]">Noch keine Fotos. Über „Fotos bearbeiten“ Fotos hinzufügen.</p>
@@ -316,6 +325,18 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
 
         {/* Right sidebar */}
         <div className="space-y-6">
+          {/* Ganzkörperfotos (wie auf Pferdeseite) */}
+          {wholeBodySwitcherItems.length > 0 && (
+            <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
+              <div className="border-b border-[#E5E2DC] px-5 py-4">
+                <h3 className="font-serif text-base font-medium text-[#1B1F23]">Ganzkörperfotos</h3>
+              </div>
+              <div className="p-5">
+                <WholeBodyPhotoSwitcher items={wholeBodySwitcherItems} />
+              </div>
+            </div>
+          )}
+
           {/* Termindetails */}
           <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
             <div className="border-b border-[#E5E2DC] px-5 py-4">
@@ -337,7 +358,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
               <InfoRow label="Rasse / Alter" value={horseMeta || '–'} />
               <InfoRow label="Nutzung" value={horse.usage || '–'} />
               <InfoRow label="Beschlag" value={horse.hoof_status || '–'} />
-              <InfoRow label="Besitzer" value={customer?.name || '–'} link={customer?.id ? `/customers/${customer.id}` : undefined} />
+              <InfoRow label="Besitzer" value={customer ? (customer.customer_number != null ? `${formatCustomerNumber(customer.customer_number)} · ${customer.name || '–'}` : customer.name || '–') : '–'} link={customer?.id ? `/customers/${customer.id}` : undefined} />
               <InfoRow label="Intervall" value={horse.care_interval || '–'} />
             </div>
           </div>

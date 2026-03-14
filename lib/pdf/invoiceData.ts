@@ -39,6 +39,7 @@ type CustomerRow = {
   postal_code: string | null
   city: string | null
   country: string | null
+  customer_number: number | null
 }
 
 function formatDate(d: string | null | undefined): string | null {
@@ -115,6 +116,7 @@ export async function fetchInvoicePdfData(
   const seller = sellerFromSettings(settingsRow?.settings ?? null)
 
   let buyer: InvoicePdfBuyer = { name: "Kunde / Kundin", company: null, street: null, zip: null, city: null, country: null }
+  let customerNumberDisplay: string | null = null
   const hasBuyerSnapshot = inv.buyer_name?.trim()
   if (hasBuyerSnapshot) {
     buyer = {
@@ -128,11 +130,16 @@ export async function fetchInvoicePdfData(
   } else if (inv.customer_id) {
     const { data: cust } = await supabase
       .from("customers")
-      .select("name, first_name, last_name, company, street, postal_code, city, country")
+      .select("name, first_name, last_name, company, street, postal_code, city, country, customer_number")
       .eq("id", inv.customer_id)
       .eq("user_id", userId)
       .single<CustomerRow>()
     buyer = buyerFromCustomer(cust ?? null, "Kunde / Kundin")
+    if (cust?.customer_number != null) {
+      const prefix = (settingsRow?.settings as Record<string, unknown>)?.customerNumberPrefix as string | undefined
+      const { formatCustomerNumber } = await import("@/lib/format")
+      customerNumberDisplay = formatCustomerNumber(cust.customer_number, prefix ?? "K-")
+    }
   }
 
   const { data: itemRows } = await supabase
@@ -154,6 +161,7 @@ export async function fetchInvoicePdfData(
   const currency = (settingsRow?.settings as Record<string, unknown>)?.currency ?? "EUR (€)"
 
   return {
+    customerNumberDisplay: customerNumberDisplay ?? undefined,
     invoiceNumber: inv.invoice_number,
     invoiceDate: inv.invoice_date,
     serviceDateFrom: inv.service_date_from,

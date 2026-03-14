@@ -72,7 +72,7 @@ export default async function EditHorsePage({
 
   const { data: customers, error: customersError } = await supabase
     .from('customers')
-    .select('id, name')
+    .select('id, customer_number, name')
     .eq('user_id', user.id)
     .order('name', { ascending: true })
 

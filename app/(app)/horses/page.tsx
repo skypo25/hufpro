@@ -30,6 +30,7 @@ type Horse = {
 
 type Customer = {
   id: string
+  customer_number?: number | null
   name: string | null
   city: string | null
   stable_name?: string | null
@@ -181,7 +182,7 @@ export default async function HorsesPage({
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
       .from('customers')
-      .select('id, name, city, stable_name, stable_city, interval_weeks')
+      .select('id, customer_number, name, city, stable_name, stable_city, interval_weeks')
       .eq('user_id', user.id)
       .in('id', customerIds)
       .returns<Customer[]>()
@@ -509,7 +510,7 @@ export default async function HorsesPage({
 
                 <div className="pointer-events-none z-10 min-w-0">
                   <div className="truncate text-[13px] font-medium text-[#154226]">
-                    {row.customer?.name || '-'}
+                    {row.customer?.name ?? '-'}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-[#9CA3AF]">
                     <i className="bi bi-geo-alt text-[11px]" />

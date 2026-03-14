@@ -157,6 +157,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
                 Rechnungsdaten
               </div>
               <div className="text-[14px] leading-relaxed text-[#1B1F23]">
+                {data.customerNumberDisplay && <><strong>Kundennummer:</strong> {data.customerNumberDisplay}<br /></>}
                 <strong>Rechnungsnummer:</strong> {data.invoiceNumber}<br />
                 <strong>Rechnungsdatum:</strong> {formatDate(data.invoiceDate)}<br />
                 {(data.serviceDateFrom || data.serviceDateTo) && (

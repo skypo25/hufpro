@@ -4,20 +4,109 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faFileInvoice } from '@fortawesome/free-solid-svg-icons'
 import InvoiceListRowWithMenu from '@/components/invoices/InvoiceListRowWithMenu'
+import InvoicesListSearchForm from '@/components/invoices/InvoicesListSearchForm'
 
-export default async function InvoicesPage() {
+type InvoicesPageProps = {
+  searchParams: Promise<{ q?: string; status?: string }>
+}
+
+function formatOpenSum(cents: number): string {
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+}
+
+export default async function InvoicesPage({ searchParams }: InvoicesPageProps) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: invoices } = await supabase
-    .from('invoices')
-    .select('id, invoice_number, invoice_date, status, customer_id')
-    .eq('user_id', user.id)
-    .order('invoice_date', { ascending: false })
-    .limit(50)
+  const { q = '', status } = await searchParams
+  const qTrim = (typeof q === 'string' ? q : '').trim()
 
-  const customerIds = [...new Set((invoices ?? []).map((i) => i.customer_id).filter(Boolean))]
+  // Summe offener Rechnungen (Entwurf + Versendet)
+  const { data: openInvoices } = await supabase
+    .from('invoices')
+    .select('id')
+    .eq('user_id', user.id)
+    .in('status', ['draft', 'sent'])
+  const openIds = (openInvoices ?? []).map((r) => r.id)
+  let openTotalCents = 0
+  if (openIds.length > 0) {
+    const { data: items } = await supabase
+      .from('invoice_items')
+      .select('amount_cents')
+      .in('invoice_id', openIds)
+    openTotalCents = (items ?? []).reduce((sum, row) => sum + (row.amount_cents ?? 0), 0)
+  }
+
+  let invoices: { id: string; invoice_number: string; invoice_date: string; status: string; customer_id: string | null }[] | null = null
+
+  if (qTrim) {
+    const qPattern = `%${qTrim}%`
+    const byNumberRes = await supabase
+      .from('invoices')
+      .select('id, invoice_number, invoice_date, status, customer_id')
+      .eq('user_id', user.id)
+      .ilike('invoice_number', qPattern)
+      .order('invoice_date', { ascending: false })
+      .limit(100)
+    const byNumber = byNumberRes.data ?? []
+    const custIdSet = new Set<string>()
+    const textQ = qTrim.replace(/%/g, '')
+    if (textQ) {
+      const { data: custByText } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .or(`name.ilike.%${textQ}%,first_name.ilike.%${textQ}%,last_name.ilike.%${textQ}%,company.ilike.%${textQ}%`)
+      for (const c of custByText ?? []) custIdSet.add(c.id)
+    }
+    if (/^\d+$/.test(qTrim)) {
+      const num = parseInt(qTrim, 10)
+      const { data: custByNum } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('customer_number', num)
+      for (const c of custByNum ?? []) custIdSet.add(c.id)
+    }
+    const custIds = [...custIdSet]
+    let byCustomer: typeof byNumber = []
+    if (custIds.length > 0) {
+      const { data } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, invoice_date, status, customer_id')
+        .eq('user_id', user.id)
+        .in('customer_id', custIds)
+        .order('invoice_date', { ascending: false })
+        .limit(100)
+      byCustomer = data ?? []
+    }
+    const seen = new Set<string>()
+    invoices = [...byNumber, ...byCustomer].filter((inv) => {
+      if (seen.has(inv.id)) return false
+      seen.add(inv.id)
+      return true
+    })
+    invoices.sort((a, b) => (b.invoice_date > a.invoice_date ? 1 : -1))
+  } else {
+    let query = supabase
+      .from('invoices')
+      .select('id, invoice_number, invoice_date, status, customer_id')
+      .eq('user_id', user.id)
+      .order('invoice_date', { ascending: false })
+      .limit(100)
+    if (status === 'open') query = query.in('status', ['draft', 'sent'])
+    else if (status === 'paid') query = query.eq('status', 'paid')
+    const { data } = await query
+    invoices = data
+  }
+
+  if (invoices && status && status !== 'all') {
+    if (status === 'open') invoices = invoices.filter((i) => i.status === 'draft' || i.status === 'sent')
+    else if (status === 'paid') invoices = invoices.filter((i) => i.status === 'paid')
+  }
+
+  const customerIds = [...new Set((invoices ?? []).map((i) => i.customer_id).filter(Boolean) as string[])]
   let customerNames: Record<string, string> = {}
   if (customerIds.length > 0) {
     const { data: customers } = await supabase
@@ -41,7 +130,7 @@ export default async function InvoicesPage() {
       <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Rechnungen</h1>
-          <p className="mt-1 text-[14px] text-[#6B7280]">Rechnungen erstellen und verwalten</p>
+          <p className="mt-1 text-[14px] text-[#6B7280]">Offene Rechnungen: {formatOpenSum(openTotalCents)}</p>
         </div>
         <Link
           href="/invoices/new"
@@ -51,6 +140,8 @@ export default async function InvoicesPage() {
           Neue Rechnung
         </Link>
       </div>
+
+      <InvoicesListSearchForm q={qTrim} status={status ?? 'all'} />
 
       <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
         {!invoices?.length ? (

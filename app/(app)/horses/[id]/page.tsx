@@ -2,6 +2,16 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import DeleteHorseForm from './DeleteHorseForm'
+import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
+import { SLOT_LABELS } from '@/lib/photos/photoTypes'
+
+function HorseIconSvg() {
+  return (
+    <svg width="25" height="22" viewBox="0 0 576 512" fill="currentColor" className="max-w-[25px] shrink-0" aria-hidden>
+      <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
+    </svg>
+  )
+}
 
 type HorsePageProps = {
   params: Promise<{ id: string }>
@@ -45,6 +55,13 @@ type HoofRecord = {
 type HoofPhoto = {
   id: string
   hoof_record_id: string | null
+  photo_type?: string | null
+}
+
+type HoofPhotoWithPath = {
+  id: string
+  file_path: string | null
+  photo_type: string | null
 }
 
 type Appointment = {
@@ -262,20 +279,54 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
     (records || []).map(async (record) => {
       const { data: photos } = await supabase
         .from('hoof_photos')
-        .select('id')
+        .select('id, photo_type')
         .eq('hoof_record_id', record.id)
         .eq('user_id', user.id)
         .returns<HoofPhoto[]>()
 
+      const count =
+        photos?.filter(
+          (p) => p.photo_type !== 'whole_left' && p.photo_type !== 'whole_right'
+        ).length ?? 0
       return {
         record,
-        photoCount: photos?.length || 0,
+        photoCount: count,
       }
     })
   )
 
   const deleteHorseForId = deleteHorse.bind(null, id)
   const age = getAgeFromBirthYear(horse.birth_year)
+
+  let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
+  const latestRecordId = records?.[0]?.id
+  if (latestRecordId) {
+    const { data: wholePhotos } = await supabase
+      .from('hoof_photos')
+      .select('id, file_path, photo_type')
+      .eq('hoof_record_id', latestRecordId)
+      .eq('user_id', user.id)
+      .in('photo_type', ['whole_left', 'whole_right'])
+      .returns<HoofPhotoWithPath[]>()
+    if (wholePhotos?.length) {
+      const withUrls = await Promise.all(
+        (wholePhotos || []).map(async (p) => {
+          if (!p.file_path) return null
+          const { data: signed } = await supabase.storage
+            .from('hoof-photos')
+            .createSignedUrl(p.file_path, 60 * 60)
+          if (!signed?.signedUrl) return null
+          return {
+            id: p.id,
+            imageUrl: signed.signedUrl,
+            label: (p.photo_type && SLOT_LABELS[p.photo_type]) ?? p.photo_type ?? 'Ganzkörper',
+          }
+        })
+      )
+      wholeBodyPhotos = withUrls.filter((x): x is { id: string; imageUrl: string; label: string } => x != null)
+      wholeBodyPhotos.sort((a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1))
+    }
+  }
 
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
@@ -293,8 +344,8 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[#edf3ef] text-[36px]">
-            🐴
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[#edf3ef] text-[#154226]">
+            <HorseIconSvg />
           </div>
 
           <div>
@@ -340,8 +391,8 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
             href={`/horses/${horse.id}/records/new`}
             className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
           >
-            <i className="bi bi-image text-[15px]" />
-            Fotos hinzufügen
+            <i className="bi bi-plus-square-fill text-[15px]" />
+            Dokumentation
           </Link>
         </div>
       </div>
@@ -351,9 +402,12 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           <span className="border-b-2 border-[#154226] px-5 py-3 text-[14px] font-medium text-[#154226]">
             Übersicht
           </span>
-          <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Fotodokumentation</span>
-          <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Verlauf</span>
-          <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Berichte</span>
+          <Link
+            href={`/horses/${horse.id}#dokumentationen`}
+            className="border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-[#6B7280] hover:text-[#1B1F23]"
+          >
+            Alle Dokumentationen
+          </Link>
         </div>
       </div>
 
@@ -404,10 +458,10 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
             </div>
           </section>
 
-          <section className="huf-card mb-6">
+          <section id="dokumentationen" className="huf-card mb-6">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
-                Hufdokumentationen
+                Dokumentationen
               </h2>
               <Link href={`/horses/${horse.id}/records/new`} className="text-[13px] font-medium text-[#154226] hover:underline">
                 Neue Dokumentation →
@@ -427,13 +481,13 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 <tbody>
                   {recordRows.map(({ record, photoCount }) => (
                     <tr key={record.id}>
-                      <td className="font-medium text-[#1B1F23]">
+                      <td className="font-bold text-[#1B1F23]">
                         {formatGermanDate(record.record_date)}
                       </td>
 
                       <td>
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[#F3F4F6] px-3 py-1.5 text-[12px] font-medium text-[#4B5563]">
-                          <i className="bi bi-camera text-[13px]" />
+                        <span className="inline-flex items-center gap-2 text-[14px] font-medium text-[#1B1F23]">
+                          <i className="bi bi-images text-[14px]" />
                           {photoCount}
                         </span>
                       </td>
@@ -442,10 +496,10 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                         <div className="flex justify-end">
                           <Link
                             href={`/horses/${horse.id}/records/${record.id}`}
-                            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#2A2F35]"
+                            className="group inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#edf3ef] text-[#154226] transition-colors hover:bg-[#154226]"
+                            aria-label="Dokumentation öffnen"
                           >
-                            <i className="bi bi-folder2-open text-[14px]" />
-                            Dokumentation öffnen
+                            <i className="bi bi-file-earmark-richtext-fill text-[18px] group-hover:text-white" />
                           </Link>
                         </div>
                       </td>
@@ -455,7 +509,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                   {recordRows.length === 0 && (
                     <tr>
                       <td colSpan={3} className="py-10 text-center text-sm text-[#6B7280]">
-                        Noch keine Hufdokumentationen vorhanden.
+                        Noch keine Dokumentationen vorhanden.
                       </td>
                     </tr>
                   )}
@@ -466,6 +520,22 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
         </div>
 
         <div>
+          {wholeBodyPhotos.length > 0 && (
+            <section className="huf-card mb-6">
+              <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
+                <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
+                  Ganzkörperfotos
+                </h2>
+              </div>
+              <div className="p-[22px]">
+                <WholeBodyPhotoSwitcher
+                  items={wholeBodyPhotos}
+                  dateLabel={latestRecordId && records?.[0]?.record_date ? formatGermanDate(records[0].record_date) : undefined}
+                />
+              </div>
+            </section>
+          )}
+
           <section className="huf-card huf-card--accent-left mb-6">
             <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">

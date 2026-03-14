@@ -156,7 +156,11 @@ export default function RecordPdfDocument({
           )}
           <View style={styles.row}>
             <Text style={styles.label}>Kunde</Text>
-            <Text style={styles.value}>{customer.name}</Text>
+            <Text style={styles.value}>
+              {customer.customerNumber != null
+                ? `K-${String(customer.customerNumber).padStart(4, "0")} · ${customer.name}`
+                : customer.name}
+            </Text>
           </View>
           {(customer.stableName || customer.city) && (
             <View style={styles.row}>

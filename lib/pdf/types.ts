@@ -12,6 +12,7 @@ export type RecordPdfHorse = {
 }
 
 export type RecordPdfCustomer = {
+  customerNumber: number | null
   name: string
   stableName: string | null
   city: string | null

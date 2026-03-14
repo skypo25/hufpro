@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { formatCustomerNumber } from '@/lib/format'
 
 type SearchPageProps = {
   searchParams: Promise<{
@@ -10,6 +11,7 @@ type SearchPageProps = {
 
 type Customer = {
   id: string
+  customer_number?: number | null
   name: string | null
   phone: string | null
   email: string | null
@@ -36,7 +38,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (searchQuery) {
     const { data: customersData } = await supabase
       .from('customers')
-      .select('id, name, phone, email')
+      .select('id, customer_number, name, phone, email')
       .eq('user_id', user.id)
       .ilike('name', `%${searchQuery}%`)
       .order('name', { ascending: true })
@@ -87,6 +89,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     }}
                   >
                     <strong>{customer.name || 'Ohne Namen'}</strong>
+                    {customer.customer_number != null && (
+                      <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{formatCustomerNumber(customer.customer_number)}</div>
+                    )}
                     <div>{customer.phone || '-'}</div>
                     <div>{customer.email || '-'}</div>
                   </div>

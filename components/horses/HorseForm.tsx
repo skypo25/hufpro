@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
 import TimePicker from '@/components/form/TimePicker'
+import { formatCustomerNumber } from '@/lib/format'
 
 type HorseFormMode = 'create' | 'edit'
 
 export type HorseFormCustomerOption = {
   id: string
+  customer_number?: number | null
   name: string | null
 }
 
@@ -356,6 +358,15 @@ export default function HorseForm({
               horse_id: data.id,
             },
           ])
+          try {
+            await fetch('/api/email/appointment-confirmed', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appointmentId: appointmentData.id }),
+            })
+          } catch {
+            // E-Mail optional; Pferd und Termin sind gespeichert
+          }
         }
       }
 
@@ -415,7 +426,7 @@ export default function HorseForm({
               <option value="">Bitte wählen</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name || '-'}
+                  {customer.customer_number != null ? `${formatCustomerNumber(customer.customer_number)} · ` : ''}{customer.name || '-'}
                 </option>
               ))}
             </select>
@@ -428,7 +439,7 @@ export default function HorseForm({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[15px] font-semibold text-[#1B1F23]">
-                  {selectedCustomer.name}
+                  {selectedCustomer.customer_number != null ? `${formatCustomerNumber(selectedCustomer.customer_number)} · ` : ''}{selectedCustomer.name}
                 </div>
                 <div className="text-[12px] text-[#6B7280]">
                   Kunde ist zugeordnet.

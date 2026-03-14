@@ -19,6 +19,7 @@ type NewAppointmentPageProps = {
 
 type CustomerRow = {
   id: string
+  customer_number?: number | null
   name: string | null
   city: string | null
   phone?: string | null
@@ -108,7 +109,7 @@ export default async function NewAppointmentPage({
   const { data: customersData, error: customersError } = await supabase
     .from('customers')
     .select(
-      'id, name, city, phone, street, postal_code, country, stable_differs, stable_name, stable_city, stable_street, stable_zip, stable_country, directions'
+      'id, customer_number, name, city, phone, street, postal_code, country, stable_differs, stable_name, stable_city, stable_street, stable_zip, stable_country, directions'
     )
     .eq('user_id', user.id)
     .order('name', { ascending: true })
@@ -149,6 +150,7 @@ export default async function NewAppointmentPage({
 
   const customers: AppointmentCustomer[] = (customersData || []).map((customer) => ({
     id: customer.id,
+    customer_number: customer.customer_number,
     name: customer.name,
     city: customer.city,
     phone: customer.phone,

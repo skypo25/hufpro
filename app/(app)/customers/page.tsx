@@ -8,8 +8,9 @@ import {
 } from '@/lib/format'
 import { getCurrentWeekRange } from '@/lib/date'
 import PageHeader from '@/components/ui/PageHeader'
-import StatCard from '@/components/ui/StatCard'
 import EmptyState from '@/components/ui/EmptyState'
+import CustomersStatsCards from '@/components/customers/CustomersStatsCards'
+import CustomersCardsAnimated from '@/components/customers/CustomersCardsAnimated'
 
 type CustomersPageProps = {
   searchParams: Promise<{
@@ -46,6 +47,7 @@ function buildPageHref({
 
 type Customer = {
   id: string
+  customer_number?: number | null
   name: string | null
   first_name?: string | null
   last_name?: string | null
@@ -104,7 +106,7 @@ export default async function CustomersPage({
   const { q, sort, view, page, perPage } = await searchParams
   const searchQuery = q?.trim() || ''
   const currentSort = sort || 'name_asc'
-  const currentView = view === 'cards' ? 'cards' : 'list'
+  const currentView = view === 'list' ? 'list' : 'cards'
 
   const currentPerPageRaw = Number(perPage || '10')
   const currentPerPage = [10, 20, 50].includes(currentPerPageRaw)
@@ -116,26 +118,60 @@ export default async function CustomersPage({
     ? currentPageRaw
     : 1
 
+  let customerIdsFromSearch: string[] = []
+  let customerIdsFromHorses: string[] = []
+
+  if (searchQuery) {
+    const textMatchQuery = supabase
+      .from('customers')
+      .select('id')
+      .eq('user_id', user.id)
+      .or(
+        [
+          `name.ilike.%${searchQuery}%`,
+          `first_name.ilike.%${searchQuery}%`,
+          `last_name.ilike.%${searchQuery}%`,
+          `city.ilike.%${searchQuery}%`,
+          `stable_name.ilike.%${searchQuery}%`,
+          `stable_city.ilike.%${searchQuery}%`,
+          `email.ilike.%${searchQuery}%`,
+          `phone.ilike.%${searchQuery}%`,
+          ...(Number.isInteger(Number(searchQuery)) ? [`customer_number.eq.${Number(searchQuery)}`] : []),
+        ].join(',')
+      )
+    const { data: textMatch } = await textMatchQuery.returns<{ id: string }[]>()
+    customerIdsFromSearch = (textMatch || []).map((r) => r.id)
+
+    const { data: horsesMatch } = await supabase
+      .from('horses')
+      .select('customer_id')
+      .eq('user_id', user.id)
+      .not('customer_id', 'is', null)
+      .ilike('name', `%${searchQuery}%`)
+      .returns<{ customer_id: string | null }[]>()
+    customerIdsFromHorses = (horsesMatch || [])
+      .map((r) => r.customer_id)
+      .filter((id): id is string => Boolean(id))
+  }
+
+  const allFilteredIds =
+    searchQuery.length > 0
+      ? [...new Set([...customerIdsFromSearch, ...customerIdsFromHorses])]
+      : null
+
   let query = supabase
     .from('customers')
     .select(
-      'id, name, first_name, last_name, phone, email, city, stable_name, stable_city, created_at'
+      'id, customer_number, name, first_name, last_name, phone, email, city, stable_name, stable_city, created_at'
     )
     .eq('user_id', user.id)
 
-  if (searchQuery) {
-    query = query.or(
-      [
-        `name.ilike.%${searchQuery}%`,
-        `first_name.ilike.%${searchQuery}%`,
-        `last_name.ilike.%${searchQuery}%`,
-        `city.ilike.%${searchQuery}%`,
-        `stable_name.ilike.%${searchQuery}%`,
-        `stable_city.ilike.%${searchQuery}%`,
-        `email.ilike.%${searchQuery}%`,
-        `phone.ilike.%${searchQuery}%`,
-      ].join(',')
-    )
+  if (allFilteredIds !== null) {
+    if (allFilteredIds.length === 0) {
+      query = query.eq('id', '__none__')
+    } else {
+      query = query.in('id', allFilteredIds)
+    }
   }
 
   const { data: customers, error } = await query.returns<Customer[]>()
@@ -295,38 +331,19 @@ export default async function CustomersPage({
             href="/customers/new"
             className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
           >
-            <i className="bi bi-person-plus text-[15px]" />
+            <i className="bi bi-person-fill-add text-[15px]" />
             Kunde anlegen
           </Link>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Kunden gesamt"
-          value={customerCount}
-          subtext="alle Kunden"
-        />
-
-        <StatCard
-          label="Pferde in Betreuung"
-          value={horseCount}
-          subtext={`Ø ${avgHorsesPerCustomer} pro Kunde`}
-        />
-
-        <StatCard
-          label="Termine diese Woche"
-          value={appointmentsThisWeek}
-          valueClassName="text-[#154226]"
-          subtext="geplante Termine"
-        />
-
-        <StatCard
-          label="Suche / Ansicht"
-          value={currentView === 'cards' ? 'Karten' : 'Liste'}
-          subtext="aktive Darstellung"
-        />
-      </div>
+      <CustomersStatsCards
+        customerCount={customerCount}
+        horseCount={horseCount}
+        appointmentsThisWeek={appointmentsThisWeek}
+        currentView={currentView}
+        avgHorsesPerCustomer={avgHorsesPerCustomer}
+      />
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
@@ -428,7 +445,7 @@ export default async function CustomersPage({
 
       {currentView === 'list' ? (
         <div className="huf-card">
-          <div className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(3)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(4)]:hidden">
+          <div className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden">
             <div></div>
             <div>Kunde</div>
             <div>Kontakt</div>
@@ -444,7 +461,7 @@ export default async function CustomersPage({
               return (
                 <div
                   key={row.customer.id}
-                  className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(3)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(4)]:hidden"
+                  className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden"
                 >
                   <div
                     className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#154227] text-[12px] font-semibold text-white"
@@ -523,83 +540,10 @@ export default async function CustomersPage({
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {pagedRows.map((row, index) => {
-            const location = getCustomerLocation(row.customer)
-
-            return (
-              <Link
-                key={row.customer.id}
-                href={`/customers/${row.customer.id}`}
-                className="huf-card transition hover:-translate-y-[2px] hover:border-[#154226] hover:shadow-md"
-              >
-                <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-5">
-                  <div
-                    className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#154227] text-[12px] font-semibold text-white"
-                  >
-                    {getInitials(row.customer.name)}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[16px] font-semibold text-[#1B1F23]">
-                      {row.customer.name || '-'}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[12px] text-[#6B7280]">
-                      <i className="bi bi-geo-alt text-[12px]" />
-                      <span className="truncate">{location}</span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg bg-[#edf3ef] px-3 py-1 text-[12px] font-semibold text-[#0f301b]">
-                    {row.horseCount} {row.horseCount === 1 ? 'Pferd' : 'Pferde'}
-                  </div>
-                </div>
-
-                <div className="space-y-2 px-[22px] py-4">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#6B7280]">Nächster Termin</span>
-                    <span className="font-medium text-[#1B1F23]">
-                      {row.nextAppointment
-                        ? formatShortGermanDate(row.nextAppointment)
-                        : '-'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#6B7280]">Telefon</span>
-                    <span className="font-medium text-[#1B1F23]">
-                      {row.customer.phone || '-'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#6B7280]">E-Mail</span>
-                    <span className="max-w-[180px] truncate font-medium text-[#1B1F23]">
-                      {row.customer.email || '-'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-[#E5E2DC] bg-[rgba(0,0,0,0.015)] px-[22px] py-3">
-                  <span className="truncate text-[12px] text-[#6B7280]">
-                    {row.horseNames.length > 0
-                      ? row.horseNames.join(' · ')
-                      : 'Keine Pferde'}
-                  </span>
-                  <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#154226]">
-                    Details →
-                  </span>
-                </div>
-              </Link>
-            )
-          })}
-
-          {pagedRows.length === 0 && (
-            <div className="col-span-full">
-              <EmptyState description="Keine Kunden gefunden." />
-            </div>
-          )}
-        </div>
+        <CustomersCardsAnimated
+          rows={pagedRows}
+          emptyDescription="Keine Kunden gefunden."
+        />
       )}
 
       {totalRows > currentPerPage ? (

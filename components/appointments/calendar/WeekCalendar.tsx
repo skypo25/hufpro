@@ -51,7 +51,23 @@ function formatTimeLabel(dateString: string) {
   }).format(date)
 }
 
-function getAppointmentColor(type: string, status: string) {
+function isAppointmentInPast(appointment: WeekAppointment) {
+  return new Date(appointment.end).getTime() < Date.now()
+}
+
+function getAppointmentColor(
+  type: string,
+  status: string,
+  isPast: boolean
+) {
+  if (isPast) {
+    return {
+      wrapper: 'bg-[#F3F4F6] border-l-[#9CA3AF] text-[#4B5563]',
+      sub: 'text-[#9CA3AF]',
+      hover: 'hover:opacity-90',
+    }
+  }
+
   const typeValue = (type || '').toLowerCase()
   const statusValue = (status || '').toLowerCase()
 
@@ -59,6 +75,7 @@ function getAppointmentColor(type: string, status: string) {
     return {
       wrapper: 'bg-[#EDE9FE] border-l-[#7C3AED] text-[#5B21B6]',
       sub: 'text-[#6D59B3]',
+      hover: 'hover:scale-[1.02] hover:shadow-md',
     }
   }
 
@@ -71,12 +88,14 @@ function getAppointmentColor(type: string, status: string) {
     return {
       wrapper: 'bg-[#FEF9EE] border-l-[#F59E0B] text-[#92400E]',
       sub: 'text-[#A46A2C]',
+      hover: 'hover:scale-[1.02] hover:shadow-md',
     }
   }
 
   return {
     wrapper: 'bg-[#EBF5EE] border-l-[#34A853] text-[#166534]',
     sub: 'text-[#4B7D5E]',
+    hover: 'hover:scale-[1.02] hover:shadow-md',
   }
 }
 
@@ -198,7 +217,12 @@ export default function WeekCalendar({
               ))}
 
               {dayAppointments.map((appointment) => {
-                const colors = getAppointmentColor(appointment.type, appointment.status)
+                const isPast = isAppointmentInPast(appointment)
+                const colors = getAppointmentColor(
+                  appointment.type,
+                  appointment.status,
+                  isPast
+                )
 
                 return (
                   <button
@@ -208,8 +232,9 @@ export default function WeekCalendar({
                       onAppointmentClick(appointment.id, appointment.customerId)
                     }
                     className={[
-                      'absolute left-[3px] right-[3px] z-[2] overflow-hidden rounded-[8px] border-l-[3px] px-[10px] py-2 text-left transition hover:scale-[1.02] hover:shadow-md',
+                      'absolute left-[3px] right-[3px] z-[2] overflow-hidden rounded-[8px] border-l-[3px] px-[10px] py-2 text-left transition',
                       colors.wrapper,
+                      colors.hover,
                     ].join(' ')}
                     style={getBlockStyle(appointment)}
                   >
@@ -219,7 +244,13 @@ export default function WeekCalendar({
                     <div className="truncate text-[12px] font-semibold">
                       {appointment.customerName}
                     </div>
-                    <div className="truncate text-[11px] opacity-90">
+                    <div
+                      className={
+                        isPast
+                          ? 'truncate text-[11px] font-normal text-[#6B7280]'
+                          : 'truncate text-[11px] opacity-90'
+                      }
+                    >
                       {appointment.horseLabel}
                     </div>
                     <div className={`mt-0.5 truncate text-[10px] ${colors.sub}`}>

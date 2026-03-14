@@ -1,13 +1,9 @@
-import { supabase } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-export default function Home() {
-  console.log('Supabase Client:', supabase)
-
-  return (
-    <main style={{ padding: '40px', fontFamily: 'Arial' }}>
-      <h1>🐎 Hufpflege Software</h1>
-      <p>Phase 1 läuft.</p>
-      <p>Next.js und Supabase sind verbunden.</p>
-    </main>
-  )
+export default async function Home() {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) redirect('/dashboard')
+  redirect('/login')
 }

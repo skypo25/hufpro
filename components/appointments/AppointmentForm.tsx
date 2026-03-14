@@ -137,6 +137,7 @@ export default function AppointmentForm({
 
     const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`
     const durationMinutes = durationLabelToMinutes(duration)
+    let appointmentIdToNotify: string | null = null
 
     if (mode === 'create') {
       const { data: appointment, error: appointmentError } = await supabase
@@ -180,6 +181,7 @@ export default function AppointmentForm({
         setLoading(false)
         return
       }
+      appointmentIdToNotify = appointment.id
     } else {
       if (!initialData.appointmentId) {
         setMessage('Die Termin-ID fehlt.')
@@ -236,6 +238,47 @@ export default function AppointmentForm({
         )
         setLoading(false)
         return
+      }
+      appointmentIdToNotify = initialData.appointmentId ?? null
+    }
+
+    const sendConfirmationEmail =
+      status === 'Bestätigt' &&
+      appointmentIdToNotify &&
+      (mode === 'create' || initialData.status !== 'Bestätigt')
+    if (sendConfirmationEmail) {
+      try {
+        const res = await fetch('/api/email/appointment-confirmed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: appointmentIdToNotify }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok && data.error) {
+          setMessage(`Termin gespeichert. E-Mail an den Kunden konnte nicht versendet werden: ${data.error}`)
+        }
+      } catch {
+        setMessage('Termin gespeichert. E-Mail-Benachrichtigung konnte nicht gesendet werden.')
+      }
+    }
+
+    const sendProposedEmail =
+      status === 'Vorgeschlagen' &&
+      appointmentIdToNotify &&
+      (mode === 'create' || initialData.status !== 'Vorgeschlagen')
+    if (sendProposedEmail) {
+      try {
+        const res = await fetch('/api/email/appointment-proposed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ appointmentId: appointmentIdToNotify }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok && data.error) {
+          setMessage(`Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht versendet werden: ${data.error}`)
+        }
+      } catch {
+        setMessage('Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht gesendet werden.')
       }
     }
 

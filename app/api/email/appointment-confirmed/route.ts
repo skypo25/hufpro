@@ -1,0 +1,240 @@
+import { NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { sendMail } from '@/lib/email'
+
+type SettingsSmtp = {
+  smtpHost?: string
+  smtpPort?: number
+  smtpSecure?: boolean
+  smtpUser?: string
+  smtpPassword?: string
+  smtpFromEmail?: string
+  smtpFromName?: string
+  firstName?: string
+  lastName?: string
+  companyName?: string
+}
+
+function formatDate(d: string | null | undefined): string {
+  if (!d) return '–'
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return d
+  return new Intl.DateTimeFormat('de-DE', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+}
+
+function formatTime(d: string | null | undefined): string {
+  if (!d) return '–'
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return '–'
+  return new Intl.DateTimeFormat('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+export async function POST(request: Request) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+  }
+
+  let body: { appointmentId?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
+  }
+
+  const appointmentId = body.appointmentId?.trim()
+  if (!appointmentId) {
+    return NextResponse.json(
+      { error: 'appointmentId fehlt.' },
+      { status: 400 }
+    )
+  }
+
+  const { data: appointment, error: appErr } = await supabase
+    .from('appointments')
+    .select('id, customer_id, appointment_date, type, status, duration_minutes, notes')
+    .eq('id', appointmentId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (appErr || !appointment) {
+    return NextResponse.json(
+      { error: 'Termin nicht gefunden oder keine Berechtigung.' },
+      { status: 404 }
+    )
+  }
+
+  if (appointment.status !== 'Bestätigt') {
+    return NextResponse.json(
+      { error: 'E-Mail wird nur bei Status „Bestätigt“ versendet.' },
+      { status: 400 }
+    )
+  }
+
+  const customerId = appointment.customer_id
+  if (!customerId) {
+    return NextResponse.json(
+      { error: 'Zum Termin ist kein Kunde zugeordnet.' },
+      { status: 400 }
+    )
+  }
+
+  const { data: customer, error: custErr } = await supabase
+    .from('customers')
+    .select('id, name, first_name, last_name, email')
+    .eq('id', customerId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (custErr || !customer) {
+    return NextResponse.json(
+      { error: 'Kunde nicht gefunden.' },
+      { status: 404 }
+    )
+  }
+
+  const toEmail = (customer.email ?? '').toString().trim()
+  if (!toEmail) {
+    return NextResponse.json(
+      {
+        error:
+          'Beim Kunden ist keine E-Mail-Adresse hinterlegt. Bitte unter dem Kunden eine E-Mail eintragen.',
+      },
+      { status: 400 }
+    )
+  }
+
+  const { data: links } = await supabase
+    .from('appointment_horses')
+    .select('horse_id')
+    .eq('appointment_id', appointmentId)
+    .eq('user_id', user.id)
+
+  const horseIds = (links ?? []).map((r) => r.horse_id).filter(Boolean)
+  let horseNames: string[] = []
+  if (horseIds.length > 0) {
+    const { data: horses } = await supabase
+      .from('horses')
+      .select('name')
+      .in('id', horseIds)
+      .eq('user_id', user.id)
+    horseNames = (horses ?? []).map((h) => h.name?.trim() || 'Pferd').filter(Boolean)
+  }
+
+  const { data: row } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const settings = (row?.settings ?? {}) as SettingsSmtp
+  const host = (settings.smtpHost ?? '').toString().trim()
+  const port = Number(settings.smtpPort) || 587
+  const secure = Boolean(settings.smtpSecure)
+  const smtpUser = (settings.smtpUser ?? '').toString().trim()
+  const smtpPassword = (settings.smtpPassword ?? '').toString().trim()
+
+  if (!host || !smtpUser || !smtpPassword) {
+    return NextResponse.json(
+      {
+        error:
+          'SMTP-Einstellungen unvollständig. Bitte unter Einstellungen → Benachrichtigungen Host, Benutzer und Passwort eintragen.',
+      },
+      { status: 400 }
+    )
+  }
+
+  const fromEmail =
+    (settings.smtpFromEmail ?? '').toString().trim() ||
+    (user.email ?? '').toString().trim()
+  const fromName =
+    (settings.smtpFromName ?? '').toString().trim() ||
+    [settings.firstName, settings.lastName].filter(Boolean).join(' ') ||
+    (settings.companyName ?? 'HufPro').toString().trim()
+
+  const customerName =
+    customer.name?.trim() ||
+    [customer.first_name, customer.last_name].filter(Boolean).join(' ') ||
+    'Kunde/Kundin'
+  const dateStr = formatDate(appointment.appointment_date)
+  const timeStr = formatTime(appointment.appointment_date)
+  const typeLabel = (appointment.type ?? 'Termin').toString()
+  const duration =
+    appointment.duration_minutes != null
+      ? `${appointment.duration_minutes} Min.`
+      : ''
+  const horseList =
+    horseNames.length > 0
+      ? horseNames.join(', ')
+      : '–'
+
+  const subject = `Termin bestätigt – ${dateStr}, ${timeStr}`
+  const text = [
+    'Guten Tag,',
+    '',
+    'Ihr Termin ist bestätigt.',
+    '',
+    `Datum: ${dateStr}`,
+    `Uhrzeit: ${timeStr}`,
+    `Art: ${typeLabel}`,
+    duration ? `Dauer: ${duration}` : null,
+    horseNames.length > 0 ? `Pferd(e): ${horseList}` : null,
+    appointment.notes ? `Notizen: ${appointment.notes}` : null,
+    '',
+    'Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const html = [
+    '<p>Guten Tag,</p>',
+    '<p>Ihr Termin ist bestätigt.</p>',
+    '<ul>',
+    `<li>Datum: ${dateStr}</li>`,
+    `<li>Uhrzeit: ${timeStr}</li>`,
+    `<li>Art: ${typeLabel}</li>`,
+    duration ? `<li>Dauer: ${duration}</li>` : '',
+    horseNames.length > 0 ? `<li>Pferd(e): ${horseList}</li>` : '',
+    '</ul>',
+    appointment.notes ? `<p><strong>Notizen:</strong> ${appointment.notes}</p>` : '',
+    '<p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>',
+  ]
+    .filter(Boolean)
+    .join('')
+
+  try {
+    await sendMail(
+      {
+        host,
+        port,
+        secure,
+        user: smtpUser,
+        password: smtpPassword,
+        fromEmail,
+        fromName,
+      },
+      {
+        to: toEmail,
+        subject,
+        text,
+        html,
+      }
+    )
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}

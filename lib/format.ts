@@ -62,3 +62,13 @@ export function getInitials(name: string | null) {
 export function joinMeta(parts: Array<string | null | undefined>) {
   return parts.filter(Boolean).join(' · ')
 }
+
+/** Kundennummer anzeigen, z. B. K-0001. Optional Präfix aus Einstellungen (z. B. "KU-"). */
+export function formatCustomerNumber(
+  customerNumber: number | null | undefined,
+  prefix: string = 'K-'
+): string {
+  if (customerNumber == null) return '–'
+  const p = (prefix ?? 'K-').trim() || 'K-'
+  return `${p}${String(customerNumber).padStart(4, '0')}`
+}

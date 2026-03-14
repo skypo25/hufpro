@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import CustomerForm from '@/components/customers/CustomerForm'
+import { formatCustomerNumber } from '@/lib/format'
 
 type EditCustomerPageProps = {
   params: Promise<{
@@ -11,6 +12,7 @@ type EditCustomerPageProps = {
 
 type CustomerRow = {
   id: string
+  customer_number?: number | null
   salutation?: string | null
   first_name?: string | null
   last_name?: string | null
@@ -64,6 +66,7 @@ export default async function EditCustomerPage({
     .from('customers')
     .select(`
       id,
+      customer_number,
       salutation,
       first_name,
       last_name,
@@ -133,6 +136,12 @@ export default async function EditCustomerPage({
           Kunde bearbeiten
         </h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">
+          {customer.customer_number != null ? (
+            <>
+              <span className="font-medium tabular-nums text-[#154226]">{formatCustomerNumber(customer.customer_number)}</span>
+              {' · '}
+            </>
+          ) : null}
           Änderungen werden direkt auf den bestehenden Kundendatensatz gespeichert
         </p>
       </div>

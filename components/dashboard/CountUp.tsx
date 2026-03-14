@@ -12,6 +12,8 @@ type CountUpProps = {
   duration?: number
   delay?: number
   startOnView?: boolean
+  /** Element ID for IntersectionObserver when startOnView is true; default "dashboard-stats-grid" */
+  observerId?: string
 }
 
 export default function CountUp({
@@ -19,6 +21,7 @@ export default function CountUp({
   duration = 1400,
   delay = 0,
   startOnView = true,
+  observerId = 'dashboard-stats-grid',
 }: CountUpProps) {
   const [displayValue, setDisplayValue] = useState(0)
   const [hasStarted, setHasStarted] = useState(!startOnView)
@@ -29,7 +32,7 @@ export default function CountUp({
       return
     }
 
-    const el = document.getElementById('dashboard-stats-grid')
+    const el = document.getElementById(observerId)
     if (!el) {
       setHasStarted(true)
       return
@@ -43,7 +46,7 @@ export default function CountUp({
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [startOnView])
+  }, [startOnView, observerId])
 
   useEffect(() => {
     if (!hasStarted) return

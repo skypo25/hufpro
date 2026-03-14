@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-export async function createRecord(formData: FormData): Promise<{ recordId: string } | void> {
+export type CreateRecordResult = { recordId: string } | { error: string }
+
+export async function createRecord(formData: FormData): Promise<CreateRecordResult> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -26,33 +28,63 @@ export async function createRecord(formData: FormData): Promise<{ recordId: stri
   const checklist_json = checklist_jsonRaw ? (() => { try { return JSON.parse(checklist_jsonRaw) } catch { return null } })() : null
 
   if (!horseId) {
-    redirect('/dashboard')
+    return { error: 'Pferd fehlt. Bitte die Seite neu laden und erneut versuchen.' }
   }
 
-  const { data, error } = await supabase
+  const fullPayload = {
+    user_id: user.id,
+    horse_id: horseId,
+    record_date: record_date || null,
+    hoof_condition: summary_notes || null,
+    treatment: recommendation_notes || null,
+    notes: null,
+    general_condition,
+    gait,
+    handling_behavior,
+    horn_quality,
+    hoofs_json,
+    checklist_json,
+  }
+
+  const basePayload = {
+    user_id: user.id,
+    horse_id: horseId,
+    record_date: record_date || null,
+    hoof_condition: summary_notes || null,
+    treatment: recommendation_notes || null,
+    notes: null,
+  }
+
+  let result = await supabase
     .from('hoof_records')
-    .insert([
-      {
-        user_id: user.id,
-        horse_id: horseId,
-        record_date: record_date || null,
-        hoof_condition: summary_notes || null,
-        treatment: recommendation_notes || null,
-        notes: null,
-        general_condition,
-        gait,
-        handling_behavior,
-        horn_quality,
-        hoofs_json,
-        checklist_json,
-      },
-    ])
+    .insert([fullPayload])
     .select('id')
     .single<{ id: string }>()
 
-  if (error || !data?.id) {
-    redirect(`/horses/${horseId}`)
+  if (result.error) {
+    const isSchemaError =
+      /hoofs_json|checklist_json|general_condition|gait|handling_behavior|horn_quality|schema cache|column.*does not exist/i.test(
+        result.error.message
+      )
+    if (isSchemaError) {
+      result = await supabase
+        .from('hoof_records')
+        .insert([basePayload])
+        .select('id')
+        .single<{ id: string }>()
+    }
   }
+
+  const { data, error } = result
+  if (error) {
+    return { error: `Speichern fehlgeschlagen: ${error.message}` }
+  }
+  if (!data?.id) {
+    return { error: 'Speichern fehlgeschlagen: Keine ID vom Server erhalten.' }
+  }
+
+  revalidatePath(`/horses/${horseId}`)
+  revalidatePath(`/horses/${horseId}/records/${data.id}`)
   return { recordId: data.id }
 }
 

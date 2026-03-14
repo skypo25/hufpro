@@ -14,8 +14,8 @@ type HorseRow = {
   birth_year: number | null
   customer_id: string | null
   customers?:
-    | { name: string | null; stable_name: string | null; city: string | null }
-    | { name: string | null; stable_name: string | null; city: string | null }[]
+    | { customer_number: number | null; name: string | null; stable_name: string | null; city: string | null }
+    | { customer_number: number | null; name: string | null; stable_name: string | null; city: string | null }[]
     | null
 }
 
@@ -63,7 +63,7 @@ export async function fetchRecordPdfData(
   const { data: horseRow } = await supabase
     .from("horses")
     .select(
-      "id, name, breed, sex, birth_year, customer_id, customers(name, stable_name, city)"
+      "id, name, breed, sex, birth_year, customer_id, customers(customer_number, name, stable_name, city)"
     )
     .eq("id", horseId)
     .eq("user_id", userId)
@@ -116,6 +116,7 @@ export async function fetchRecordPdfData(
       ageYears,
     },
     customer: {
+      customerNumber: customer?.customer_number ?? null,
       name: customer?.name ?? "–",
       stableName: customer?.stable_name ?? null,
       city: customer?.city ?? null,

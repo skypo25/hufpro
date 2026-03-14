@@ -35,7 +35,9 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   const isLoginPage = pathname.startsWith('/login')
+  const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
   const isProtectedPage =
+    pathname === '/' ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/customers') ||
     pathname.startsWith('/horses') ||
@@ -45,7 +47,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/settings') ||
     pathname.startsWith('/appointments')
 
-  if (!user && isProtectedPage) {
+  if (!user && isProtectedPage && !isPublicConfirm) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -62,6 +64,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/login',
     '/dashboard/:path*',
     '/customers/:path*',
@@ -71,5 +74,6 @@ export const config = {
     '/invoices/:path*',
     '/settings/:path*',
     '/appointments/:path*',
+    '/termin-bestaetigen/:path*',
   ],
 }

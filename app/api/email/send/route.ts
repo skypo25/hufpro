@@ -23,7 +23,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   }
 
-  let body: { to?: string; subject?: string; text?: string; html?: string; test?: boolean }
+  let body: {
+    to?: string
+    subject?: string
+    text?: string
+    html?: string
+    test?: boolean
+    smtpHost?: string
+    smtpPort?: number
+    smtpSecure?: boolean
+    smtpUser?: string
+    smtpPassword?: string
+    smtpFromEmail?: string
+    smtpFromName?: string
+    email?: string
+    firstName?: string
+    lastName?: string
+    companyName?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -37,11 +54,13 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   const settings = (row?.settings ?? {}) as SettingsSmtp
-  const host = (settings.smtpHost ?? '').trim()
-  const port = Number(settings.smtpPort) || 587
-  const secure = Boolean(settings.smtpSecure)
-  const smtpUser = (settings.smtpUser ?? '').trim()
-  const smtpPassword = (settings.smtpPassword ?? '').trim()
+  // Beim Test-Versand können die aktuellen Formularwerte mitgeschickt werden (Passwort wird nie zurückgegeben)
+  const useBody = body.test === true
+  const host = (useBody ? body.smtpHost ?? settings.smtpHost : settings.smtpHost ?? '').toString().trim()
+  const port = Number(useBody ? body.smtpPort ?? settings.smtpPort : settings.smtpPort) || 587
+  const secure = Boolean(useBody ? body.smtpSecure ?? settings.smtpSecure : settings.smtpSecure)
+  const smtpUser = (useBody ? body.smtpUser ?? settings.smtpUser : settings.smtpUser ?? '').toString().trim()
+  const smtpPassword = (useBody ? body.smtpPassword ?? settings.smtpPassword : settings.smtpPassword ?? '').toString().trim()
 
   if (!host || !smtpUser || !smtpPassword) {
     return NextResponse.json(
@@ -50,11 +69,13 @@ export async function POST(request: Request) {
     )
   }
 
-  const fromEmail = (settings.smtpFromEmail || settings.email || smtpUser).trim()
-  const fromName = (settings.smtpFromName || [settings.firstName, settings.lastName].filter(Boolean).join(' ') || settings.companyName || 'HufPro').trim()
+  const fromEmail = (useBody ? body.smtpFromEmail ?? settings.smtpFromEmail : settings.smtpFromEmail) || (useBody ? body.email ?? settings.email : settings.email) || smtpUser
+  const fromName = (useBody ? body.smtpFromName ?? settings.smtpFromName : settings.smtpFromName) || (useBody ? [body.firstName, body.lastName].filter(Boolean).join(' ') : [settings.firstName, settings.lastName].filter(Boolean).join(' ')) || (useBody ? body.companyName : settings.companyName) || 'HufPro'
+  const fromEmailTrim = (fromEmail ?? '').toString().trim()
+  const fromNameTrim = (fromName ?? '').toString().trim()
 
   if (body.test === true) {
-    const to = (settings.email || user.email || '').trim()
+    const to = ((useBody ? body.email ?? settings.email : settings.email) || user.email || '').toString().trim()
     if (!to) {
       return NextResponse.json(
         { error: 'Keine E-Mail-Adresse hinterlegt. Bitte unter Einstellungen → Mein Betrieb deine E-Mail eintragen.' },
@@ -69,8 +90,8 @@ export async function POST(request: Request) {
           secure,
           user: smtpUser,
           password: smtpPassword,
-          fromEmail,
-          fromName,
+          fromEmail: fromEmailTrim,
+          fromName: fromNameTrim,
         },
         {
           to,
@@ -105,8 +126,8 @@ export async function POST(request: Request) {
         secure,
         user: smtpUser,
         password: smtpPassword,
-        fromEmail,
-        fromName,
+        fromEmail: fromEmailTrim,
+        fromName: fromNameTrim,
       },
       { to, subject, text, html }
     )

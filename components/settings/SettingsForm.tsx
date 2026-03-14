@@ -36,6 +36,9 @@ export type SettingsData = {
   bic?: string
   paypal?: string
   paymentTerms?: string
+  // Kundennummer (selbst aufgebaut wie Rechnungsnummer)
+  customerNumberPrefix?: string
+  nextCustomerNumber?: number
   // Rechnung
   invoicePrefix?: string
   nextInvoiceNumber?: string
@@ -85,6 +88,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   bic: '',
   paypal: '',
   paymentTerms: '7 Tage',
+  customerNumberPrefix: 'K-',
+  nextCustomerNumber: 1,
   invoicePrefix: 'HUF-',
   nextInvoiceNumber: '2026-0001',
   currency: 'EUR (€)',
@@ -287,7 +292,20 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test: true }),
+        body: JSON.stringify({
+          test: true,
+          smtpHost: s.smtpHost,
+          smtpPort: s.smtpPort,
+          smtpSecure: s.smtpSecure,
+          smtpUser: s.smtpUser,
+          smtpPassword: s.smtpPassword,
+          smtpFromEmail: s.smtpFromEmail,
+          smtpFromName: s.smtpFromName,
+          email: s.email,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          companyName: s.companyName,
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
@@ -584,6 +602,17 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             </div>
           </FormSection>
 
+          <FormSection icon="👤" iconBg="bg-[#E0E7FF] text-[#3730A3]" title="Kundennummer">
+            <FormRow>
+              <FormGroup label="Präfix" hint="z. B. K- oder KU-">
+                <input type="text" className={inputClass()} placeholder="z. B. K-" value={s.customerNumberPrefix ?? 'K-'} onChange={(e) => update('customerNumberPrefix', e.target.value)} />
+              </FormGroup>
+              <FormGroup label="Nächste Kundennummer" hint="Wird beim Anlegen eines Kunden automatisch hochgezählt">
+                <input type="number" min={1} className={inputClass()} value={s.nextCustomerNumber ?? 1} onChange={(e) => update('nextCustomerNumber', Math.max(1, parseInt(e.target.value, 10) || 1))} />
+              </FormGroup>
+            </FormRow>
+          </FormSection>
+
           <FormSection icon="📄" iconBg="bg-[#FEF3C7] text-[#D97706]" title="Rechnungs-Voreinstellungen">
             <FormRow>
               <FormGroup label="Rechnungsnummer-Präfix" hint="z. B. HUF-2026-0001">
@@ -712,7 +741,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
           <FormSection icon="📧" iconBg="bg-[#DBEAFE] text-[#2563EB]" title="E-Mail-Versand (SMTP)" badge="Für Rechnungsversand & Benachrichtigungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
               <span className="shrink-0 text-lg">ℹ️</span>
-              <p>Trage hier die Zugangsdaten deines E-Mail-Anbieters ein (z. B. GMX, Web.de, Strato, oder dein Provider). Rechnungen und Benachrichtigungen werden dann über deinen Account versendet. Nutze „TLS/SSL“ bei den meisten Anbietern (Port 587 oder 465).</p>
+              <p>Trage hier die Zugangsdaten deines E-Mail-Anbieters ein (z. B. GMX, Web.de, Strato, Mailtrap). <strong>Wichtig:</strong> Port 587 = „TLS/SSL: Nein“ (STARTTLS). Port 465 = „TLS/SSL: Ja“ (direkte SSL-Verbindung). Falsche Kombination führt zu Verbindungsfehlern.</p>
             </div>
             <FormRow>
               <FormGroup label="SMTP-Server (Host)" hint="z. B. smtp.gmx.net, smtp.web.de">
@@ -723,10 +752,19 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
               </FormGroup>
             </FormRow>
             <FormRow>
-              <FormGroup label="TLS/SSL (sichere Verbindung)">
+              <FormGroup label="TLS/SSL (sichere Verbindung)" hint="Port 587 → Nein (STARTTLS). Port 465 → Ja (SSL).">
                 <button
                   type="button"
-                  onClick={() => update('smtpSecure', !s.smtpSecure)}
+                  onClick={() => {
+                    const next = !s.smtpSecure
+                    const port = s.smtpPort ?? 587
+                    setS((prev) => ({
+                      ...prev,
+                      smtpSecure: next,
+                      smtpPort: next && port === 587 ? 465 : !next && port === 465 ? 587 : port,
+                    }))
+                    setSaved(false)
+                  }}
                   className="flex w-full items-center gap-3"
                 >
                   <div className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.smtpSecure ? 'bg-[#154226]' : 'bg-[#E5E2DC]'}`}>

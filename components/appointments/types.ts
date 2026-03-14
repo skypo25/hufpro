@@ -2,6 +2,7 @@ export type AppointmentFormMode = 'create' | 'edit'
 
 export type AppointmentCustomer = {
   id: string
+  customer_number?: number | null
   name: string | null
   city: string | null
   phone?: string | null

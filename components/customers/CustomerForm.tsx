@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { reserveNextCustomerNumber } from '@/app/(app)/customers/actions'
 import { supabase } from '@/lib/supabase-client'
 
 const dayOptions = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
@@ -246,9 +247,17 @@ export default function CustomerForm({
     }
 
     if (mode === 'create') {
+      const reserved = await reserveNextCustomerNumber()
+      if ('error' in reserved) {
+        setMessage(reserved.error)
+        setLoading(false)
+        return
+      }
+      const payloadWithNumber = { ...payload, customer_number: reserved.customerNumber }
+
       const { data: customer, error: customerError } = await supabase
         .from('customers')
-        .insert([payload])
+        .insert([payloadWithNumber])
         .select('id')
         .single()
 

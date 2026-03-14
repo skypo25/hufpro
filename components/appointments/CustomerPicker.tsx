@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { AppointmentCustomer } from './types'
-import { getInitials } from '@/lib/format'
+import { formatCustomerNumber, getInitials } from '@/lib/format'
 
 type CustomerPickerProps = {
   customers: AppointmentCustomer[]
@@ -41,6 +41,8 @@ export default function CustomerPicker({
           customer.city,
           customer.stable_name,
           customer.stable_city,
+          customer.customer_number != null ? String(customer.customer_number) : null,
+          customer.customer_number != null ? formatCustomerNumber(customer.customer_number) : null,
         ]
           .filter(Boolean)
           .join(' ')
@@ -60,8 +62,15 @@ export default function CustomerPicker({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[14px] font-semibold text-[#1B1F23]">
-              {selectedCustomer.name || '-'}
+            <div className="flex items-center gap-2">
+              {selectedCustomer.customer_number != null && (
+                <span className="tabular-nums text-[12px] font-medium text-[#6B7280]">
+                  {formatCustomerNumber(selectedCustomer.customer_number)}
+                </span>
+              )}
+              <div className="truncate text-[14px] font-semibold text-[#1B1F23]">
+                {selectedCustomer.name || '-'}
+              </div>
             </div>
             <div className="truncate text-[12px] text-[#6B7280]">
               {getCustomerDetail(selectedCustomer)}
@@ -109,8 +118,15 @@ export default function CustomerPicker({
               </div>
 
               <div className="min-w-0">
-                <div className="truncate text-[14px] font-semibold text-[#1B1F23]">
-                  {customer.name || '-'}
+                <div className="flex items-center gap-2">
+                  {customer.customer_number != null && (
+                    <span className="tabular-nums text-[12px] font-medium text-[#6B7280]">
+                      {formatCustomerNumber(customer.customer_number)}
+                    </span>
+                  )}
+                  <div className="truncate text-[14px] font-semibold text-[#1B1F23]">
+                    {customer.name || '-'}
+                  </div>
                 </div>
                 <div className="truncate text-[12px] text-[#6B7280]">
                   {getCustomerDetail(customer)}
