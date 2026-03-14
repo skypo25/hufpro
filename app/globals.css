@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #f7f6f3;
+  --foreground: #1b1f23;
+  --card: #ffffff;
+  --sidebar: #1b1f23;
+  --sidebar-hover: #2a2f35;
+
+  --accent: #154226;
+  --accent-light: #edf3ef;
+  --accent-dark: #0f301b;
+
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
+  --border: #e5e2dc;
+
+  --success: #34a853;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+
+  --color-primary: var(--accent);
+  --color-primary-light: var(--accent-light);
+  --color-primary-dark: var(--accent-dark);
+
+  --color-text-secondary: var(--text-secondary);
+  --color-text-light: var(--text-light);
+  --color-border: var(--border);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --radius-app: var(--radius);
+
+  --font-sans: "DM Sans", Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--accent);
+  --color-primary-light: var(--accent-light);
+  --color-primary-dark: var(--accent-dark);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-light: var(--text-light);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "DM Sans", Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+.dashboard-serif {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 14px;
+}
+
+::selection {
+  background: rgba(21, 66, 38, 0.18);
+}
+
+/* Dunkle Buttons (Akzent / Primary): Schrift immer weiß */
+.huf-btn-dark,
+a.huf-btn-dark,
+button.huf-btn-dark {
+  color: #fff !important;
+}
+
+/* ========== HufPro zentrale UI-Klassen (Layout/Design) ========== */
+
+/* Cards: Standard-Karte (12px Radius wie rounded-xl), ohne Border */
+.huf-card {
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+/* Cards: Große Karte (14px Radius, z. B. Dokumentation) */
+.huf-card--lg {
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+/* Card mit Akzent-Border links (z. B. Merke, Behandlungsstatus) */
+.huf-card--accent-left {
+  border-left: 3px solid var(--accent);
+}
+.huf-card--accent-left-warning {
+  border-left: 3px solid var(--warning);
+}
+
+/* Tabellen-Container + Tabelle (optisch wie Pferd-Detail Hufdokumentationen) */
+.huf-table-wrap {
+  overflow-x: auto;
+}
+.huf-table {
+  min-width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+.huf-table thead {
+  border-bottom: 1px solid var(--border);
+  background: #faf8f5;
+}
+.huf-table thead th {
+  padding: 1rem 1.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.huf-table tbody {
+  border-collapse: collapse;
+}
+.huf-table tbody tr {
+  border-bottom: 1px solid #f1ebe3;
+}
+.huf-table tbody tr:hover {
+  background: #fcfaf7;
+}
+.huf-table tbody tr:last-child {
+  border-bottom: none;
+}
+.huf-table tbody td {
+  padding: 1.25rem 1.5rem;
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+/* Formularfelder: Input / Textarea */
+.huf-input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  background: var(--card);
+  color: var(--foreground);
+  font-family: inherit;
+}
+.huf-input::placeholder {
+  color: var(--text-light);
+}
+.huf-input:focus {
+  border-color: var(--accent);
+}
+.huf-input--multiline {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+/* Buttons: Basis */
+.huf-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.huf-button:hover {
+  border-color: var(--text-light);
+}
+.huf-button:active {
+  transform: scale(0.97);
+}
+
+/* Button: Outline (Standard-Sekundär) */
+.huf-button--outline {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.huf-button--outline:hover {
+  border-color: var(--text-light);
+}
+
+/* Button: Primär (z. B. Abschließen) */
+.huf-button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  padding: 1rem 2.25rem;
+  font-size: 16px;
+  border-radius: 12px;
+}
+.huf-button--primary:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+/* Button: Ghost (nur Text, z. B. Abbrechen) */
+.huf-button--ghost {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.75rem 1rem;
+}
+.huf-button--ghost:hover {
+  color: var(--foreground);
+}
+
+/* Button: Disabled */
+.huf-button:disabled,
+.huf-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
