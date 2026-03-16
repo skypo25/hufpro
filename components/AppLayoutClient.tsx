@@ -2,6 +2,9 @@
 
 import Sidebar from '@/components/Sidebar'
 import { SidebarProvider, useSidebarContext } from '@/context/SidebarContext'
+import { useIsMobile } from '@/components/mobile/useIsMobile'
+import { useMobileContent } from '@/components/mobile/mobileRouteMap'
+import MobileShell from '@/components/mobile/MobileShell'
 
 function MainWithMargin({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebarContext()
@@ -16,7 +19,7 @@ function MainWithMargin({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
+function DesktopLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div
@@ -29,7 +32,6 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
           backgroundAttachment: 'fixed',
         }}
       >
-        {/* Leichter Overlay für bessere Lesbarkeit des Inhalts */}
         <div
           className="pointer-events-none fixed inset-0 z-0"
           style={{ background: 'rgba(247, 246, 243, 0.82)' }}
@@ -42,4 +44,19 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
       </div>
     </SidebarProvider>
   )
+}
+
+export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
+  const isMobile = useIsMobile()
+  const mobileContent = useMobileContent()
+
+  if (isMobile) {
+    return (
+      <MobileShell>
+        {mobileContent}
+      </MobileShell>
+    )
+  }
+
+  return <DesktopLayout>{children}</DesktopLayout>
 }

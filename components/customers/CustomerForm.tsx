@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { reserveNextCustomerNumber } from '@/app/(app)/customers/actions'
 import { supabase } from '@/lib/supabase-client'
+import AddressAutocomplete, { type AddressSuggestion } from './AddressAutocomplete'
 
 const dayOptions = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const countryOptions = ['Deutschland', 'Österreich', 'Schweiz']
@@ -142,7 +143,6 @@ export default function CustomerForm({
   const [stableCountry, setStableCountry] = useState(initialData.stableCountry)
   const [stableContact, setStableContact] = useState(initialData.stableContact)
   const [stablePhone, setStablePhone] = useState(initialData.stablePhone)
-  const [driveTime, setDriveTime] = useState(initialData.driveTime)
   const [directions, setDirections] = useState(initialData.directions)
 
   const [preferredDays, setPreferredDays] = useState<string[]>(
@@ -163,6 +163,42 @@ export default function CustomerForm({
   const [horseUsage, setHorseUsage] = useState('')
   const [horseShoeing, setHorseShoeing] = useState('Barhuf')
   const [horseSpecialNotes, setHorseSpecialNotes] = useState('')
+
+  const [billingDistanceText, setBillingDistanceText] = useState<string | null>(null)
+  const [stableDistanceText, setStableDistanceText] = useState<string | null>(null)
+
+  async function fetchDistanceFromOrigin(destLat: number, destLon: number): Promise<string | null> {
+    try {
+      const res = await fetch('/api/user/origin', { credentials: 'include' })
+      const origin = await res.json()
+      const lat = origin?.lat ?? null
+      const lon = origin?.lon ?? null
+      if (typeof lat !== 'number' || typeof lon !== 'number') return null
+      const params = new URLSearchParams({
+        originLon: String(lon),
+        originLat: String(lat),
+        destLon: String(destLon),
+        destLat: String(destLat),
+      })
+      const routeRes = await fetch(`/api/route-distance?${params}`)
+      const data = await routeRes.json()
+      const km = data?.distanceKm
+      const min = data?.durationMin
+      if (typeof km !== 'number') return null
+      return min != null ? `Ca. ${km} km, ~${min} Min` : `Ca. ${km} km`
+    } catch {
+      return null
+    }
+  }
+
+  useEffect(() => {
+    if (!initialData.driveTime) return
+    if (initialData.stableDiffers) {
+      setStableDistanceText(initialData.driveTime)
+    } else {
+      setBillingDistanceText(initialData.driveTime)
+    }
+  }, [initialData.driveTime, initialData.stableDiffers])
 
   function togglePreferredDay(day: string) {
     setPreferredDays((prev) =>
@@ -234,7 +270,7 @@ export default function CustomerForm({
       stable_country: stableDiffers ? stableCountry || null : null,
       stable_contact: stableDiffers ? stableContact.trim() || null : null,
       stable_phone: stableDiffers ? stablePhone.trim() || null : null,
-      drive_time: stableDiffers ? driveTime.trim() || null : null,
+      drive_time: stableDiffers ? (stableDistanceText || null) : (billingDistanceText || null),
       directions: stableDiffers ? directions.trim() || null : null,
 
       preferred_days: preferredDays.length > 0 ? preferredDays : null,
@@ -247,19 +283,41 @@ export default function CustomerForm({
     }
 
     if (mode === 'create') {
-      const reserved = await reserveNextCustomerNumber()
+      let reserved = await reserveNextCustomerNumber()
       if ('error' in reserved) {
         setMessage(reserved.error)
         setLoading(false)
         return
       }
-      const payloadWithNumber = { ...payload, customer_number: reserved.customerNumber }
+      let payloadWithNumber = { ...payload, customer_number: reserved.customerNumber }
 
-      const { data: customer, error: customerError } = await supabase
+      let insertResult = await supabase
         .from('customers')
         .insert([payloadWithNumber])
         .select('id')
         .single()
+      let customer = insertResult.data
+      let customerError = insertResult.error
+
+      const isDuplicateCustomerNumber =
+        customerError?.code === '23505' ||
+        (customerError?.message?.includes('customer_number') ?? false)
+      if (customerError && isDuplicateCustomerNumber) {
+        reserved = await reserveNextCustomerNumber()
+        if ('error' in reserved) {
+          setMessage(reserved.error)
+          setLoading(false)
+          return
+        }
+        payloadWithNumber = { ...payload, customer_number: reserved.customerNumber }
+        insertResult = await supabase
+          .from('customers')
+          .insert([payloadWithNumber])
+          .select('id')
+          .single()
+        customer = insertResult.data
+        customerError = insertResult.error
+      }
 
       if (customerError || !customer) {
         setMessage(`Fehler beim Speichern des Kunden: ${customerError?.message || 'Unbekannter Fehler'}`)
@@ -421,6 +479,24 @@ export default function CustomerForm({
       </Section>
 
       <Section title="Rechnungsanschrift" icon={<i className="bi bi-file-earmark-text-fill" />} badge="Für Rechnungen & Korrespondenz">
+        <Field label="Adresse suchen" hint="Straße, PLZ, Ort oder Firmenname (z. B. Reiterhof) – Vorschläge füllen die Felder darunter">
+          <AddressAutocomplete
+            placeholder="z. B. Hauptstraße 42, 53567 Asbach"
+            onSelect={(a: AddressSuggestion) => {
+              setBillingStreet(a.street)
+              setBillingZip(a.zip)
+              setBillingCity(a.city)
+              if (a.country) setBillingCountry(a.country)
+              setBillingDistanceText(null)
+              if (a.lat != null && a.lon != null) {
+                fetchDistanceFromOrigin(a.lat, a.lon).then(setBillingDistanceText)
+              }
+            }}
+          />
+        </Field>
+        {billingDistanceText && (
+          <p className="text-[13px] text-[#154226]">Entfernung von deinem Betrieb: {billingDistanceText}</p>
+        )}
         <div className="grid gap-5">
           <Field label="Straße & Hausnummer" required>
             <input
@@ -508,6 +584,24 @@ export default function CustomerForm({
 
         {stableDiffers && (
           <>
+            <Field label="Stalladresse suchen" hint="Ort, Adresse oder Name des Stalls/Hofs – Vorschläge füllen die Felder darunter">
+              <AddressAutocomplete
+                placeholder="z. B. Am Waldrand 7, 53567 Asbach"
+                onSelect={(a: AddressSuggestion) => {
+                  setStableStreet(a.street)
+                  setStableZip(a.zip)
+                  setStableCity(a.city)
+                  if (a.country) setStableCountry(a.country)
+                  setStableDistanceText(null)
+                  if (a.lat != null && a.lon != null) {
+                    fetchDistanceFromOrigin(a.lat, a.lon).then(setStableDistanceText)
+                  }
+                }}
+              />
+            </Field>
+            {stableDistanceText && (
+              <p className="text-[13px] text-[#154226]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+            )}
             <Field
               label="Name des Stalls / Hofs"
               hint="So findest du den Stall schnell wieder"
@@ -591,16 +685,6 @@ export default function CustomerForm({
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Geschätzte Anfahrtszeit" hint="Hilft bei der Tourenplanung">
-                <input
-                  value={driveTime}
-                  onChange={(e) => setDriveTime(e.target.value)}
-                  type="text"
-                  placeholder="z. B. 12 Min."
-                  className="huf-input"
-                />
-              </Field>
-
               <Field label="Anfahrtshinweis" hint="Besondere Hinweise zur Anfahrt">
                 <input
                   value={directions}

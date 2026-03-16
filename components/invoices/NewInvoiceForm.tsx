@@ -116,22 +116,22 @@ export default function NewInvoiceForm({
     if (isEdit && editMode?.initialLineItems?.length) {
       return editMode.initialLineItems.map((i) => ({ ...i, id: i.id || crypto.randomUUID() }))
     }
-    const first = services[0]
-    const cents = first ? priceStringToCents(first.price) : 6500
     return [
       {
         id: crypto.randomUUID(),
-        description: first?.label ?? 'Barhufbearbeitung (1 Pferd, 4 Hufe)',
+        description: '',
         optionalSuffix: '',
         horseId: '',
         quantity: 1,
-        unitPriceCents: cents,
-        amountCents: cents,
+        unitPriceCents: 0,
+        amountCents: 0,
       },
     ]
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Beim Bearbeiten des Betragsfelds: Zeile + aktueller Text (damit Eingabe nicht sofort zu "6,00" wird) */
+  const [editingAmount, setEditingAmount] = useState<{ rowId: string; text: string } | null>(null)
 
   const paymentDueDate = (() => {
     const d = new Date(invoiceDate)
@@ -161,21 +161,19 @@ export default function NewInvoiceForm({
   )
 
   const addLineItem = useCallback(() => {
-    const first = services[0]
-    const cents = first ? priceStringToCents(first.price) : 6500
     setLineItems((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
-        description: first?.label ?? 'Barhufbearbeitung (1 Pferd, 4 Hufe)',
+        description: '',
         optionalSuffix: '',
         horseId: '',
         quantity: 1,
-        unitPriceCents: cents,
-        amountCents: cents,
+        unitPriceCents: 0,
+        amountCents: 0,
       },
     ])
-  }, [services])
+  }, [])
 
   const updateLineItem = useCallback((id: string, upd: Partial<LineItem>) => {
     setLineItems((prev) =>
@@ -191,7 +189,7 @@ export default function NewInvoiceForm({
   }, [])
 
   const removeLineItem = useCallback((id: string) => {
-    setLineItems((prev) => (prev.length <= 1 ? prev : prev.filter((r) => r.id !== id)))
+    setLineItems((prev) => prev.filter((r) => r.id !== id))
   }, [])
 
   const setLineItemFromService = useCallback(
@@ -212,6 +210,10 @@ export default function NewInvoiceForm({
   const handleSaveDraft = async () => {
     if (!selectedCustomer) {
       setError('Bitte einen Kunden auswählen.')
+      return
+    }
+    if (lineItems.length === 0) {
+      setError('Bitte mindestens eine Position anlegen.')
       return
     }
     if (lineItems.some((i) => !i.description.trim() || i.amountCents <= 0)) {
@@ -265,6 +267,10 @@ export default function NewInvoiceForm({
 
   const handleSaveAsSent = async () => {
     if (!selectedCustomer || !isEdit || !editMode) return
+    if (lineItems.length === 0) {
+      setError('Bitte mindestens eine Position anlegen.')
+      return
+    }
     if (lineItems.some((i) => !i.description.trim() || i.amountCents <= 0)) {
       setError('Bitte alle Positionen ausfüllen und Beträge prüfen.')
       return
@@ -442,21 +448,23 @@ export default function NewInvoiceForm({
             </div>
 
             <div className="overflow-hidden rounded-xl border border-[#E5E2DC]">
-              <div className="grid grid-cols-[1fr_120px_70px_90px_44px] gap-3 border-b border-[#E5E2DC] bg-black/[0.02] px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
+              <div className="grid grid-cols-[1fr_120px_70px_100px_44px] gap-3 border-b border-[#E5E2DC] bg-black/[0.02] px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">
                 <div>Leistung</div>
                 <div>Pferd</div>
                 <div className="text-center">Anz.</div>
                 <div className="text-right">Betrag</div>
                 <div />
               </div>
-              {lineItems.map((row) => (
+              {lineItems.map((row) => {
+                const isFreeInput = !services.some((s) => s.label === row.description)
+                return (
                 <div
                   key={row.id}
-                  className="grid grid-cols-[1fr_120px_70px_90px_44px] gap-3 border-b border-[#E5E2DC] px-4 py-3 last:border-b-0"
+                  className="grid grid-cols-[1fr_120px_70px_100px_44px] gap-3 border-b border-[#E5E2DC] px-4 py-3 last:border-b-0"
                 >
                   <div className="space-y-2">
                     <select
-                      value={services.some((s) => s.label === row.description) ? row.description : '__free__'}
+                      value={isFreeInput ? '__free__' : row.description}
                       onChange={(e) => {
                         const opt = e.target.value
                         const svc = services.find((s) => s.label === opt)
@@ -464,32 +472,45 @@ export default function NewInvoiceForm({
                           const cents = priceStringToCents(svc.price)
                           updateLineItem(row.id, { description: svc.label, unitPriceCents: cents, amountCents: cents })
                         } else {
-                          updateLineItem(row.id, { description: '' })
+                          updateLineItem(row.id, { description: '', optionalSuffix: '' })
                         }
                       }}
                       className={selectClass + ' text-[14px]'}
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")` }}
                     >
+                      <option value="__free__">Freier Text</option>
                       {services.map((s) => (
                         <option key={s.label} value={s.label}>
                           {s.label}
                         </option>
                       ))}
-                      <option value="__free__">— Freie Eingabe —</option>
                     </select>
-                    <input
-                      type="text"
-                      placeholder="Optionale Beschreibung…"
-                      value={services.some((s) => s.label === row.description) ? row.optionalSuffix : row.description}
-                      onChange={(e) => {
-                        if (services.some((s) => s.label === row.description)) {
-                          updateLineItem(row.id, { optionalSuffix: e.target.value })
-                        } else {
-                          updateLineItem(row.id, { description: e.target.value })
-                        }
-                      }}
-                      className={inputClass + ' text-[14px]'}
-                    />
+                    {isFreeInput ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Leistung oder Beschreibung eingeben"
+                          value={row.description}
+                          onChange={(e) => updateLineItem(row.id, { description: e.target.value })}
+                          className={inputClass + ' text-[14px]'}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Optionale Beschreibung…"
+                          value={row.optionalSuffix}
+                          onChange={(e) => updateLineItem(row.id, { optionalSuffix: e.target.value })}
+                          className={inputClass + ' text-[14px]'}
+                        />
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Optionale Beschreibung…"
+                        value={row.optionalSuffix}
+                        onChange={(e) => updateLineItem(row.id, { optionalSuffix: e.target.value })}
+                        className={inputClass + ' text-[14px]'}
+                      />
+                    )}
                   </div>
                   <div>
                     <select
@@ -506,7 +527,7 @@ export default function NewInvoiceForm({
                       ))}
                     </select>
                   </div>
-                  <div>
+                  <div className="flex items-start">
                     <input
                       type="number"
                       min={1}
@@ -515,10 +536,57 @@ export default function NewInvoiceForm({
                       className={inputClass + ' text-center font-semibold'}
                     />
                   </div>
-                  <div className="flex items-center justify-end font-serif text-[17px] font-semibold text-[#154226] tabular-nums">
-                    {formatCurrency(row.amountCents)}
+                  <div className="flex items-start justify-end">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={
+                        editingAmount?.rowId === row.id
+                          ? editingAmount.text
+                          : row.amountCents === 0
+                            ? ''
+                            : (row.amountCents / 100).toFixed(2).replace('.', ',')
+                      }
+                      onFocus={() =>
+                        setEditingAmount({
+                          rowId: row.id,
+                          text: row.amountCents === 0 ? '' : (row.amountCents / 100).toFixed(2).replace('.', ','),
+                        })
+                      }
+                      onChange={(e) =>
+                        setEditingAmount((prev) =>
+                          prev?.rowId === row.id ? { rowId: row.id, text: e.target.value } : prev
+                        )
+                      }
+                      onBlur={() => {
+                        const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
+                        const cents = priceStringToCents(text)
+                        const q = Math.max(1, row.quantity)
+                        updateLineItem(row.id, {
+                          amountCents: cents,
+                          unitPriceCents: q > 0 ? Math.round(cents / q) : 0,
+                        })
+                        setEditingAmount(null)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
+                          const cents = priceStringToCents(text)
+                          const q = Math.max(1, row.quantity)
+                          updateLineItem(row.id, {
+                            amountCents: cents,
+                            unitPriceCents: q > 0 ? Math.round(cents / q) : 0,
+                          })
+                          setEditingAmount(null)
+                          ;(e.target as HTMLInputElement).blur()
+                        }
+                      }}
+                      placeholder="0,00"
+                      className={inputClass + ' w-full text-right font-serif text-[17px] font-semibold text-[#154226] tabular-nums'}
+                    />
                   </div>
-                  <div className="flex items-center justify-center">
+                  <div className="flex items-end justify-center">
                     <button
                       type="button"
                       onClick={() => removeLineItem(row.id)}
@@ -529,7 +597,8 @@ export default function NewInvoiceForm({
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+              })}
               <div className="p-3 text-center">
                 <button
                   type="button"
@@ -677,7 +746,7 @@ export default function NewInvoiceForm({
             </div>
             <div className="flex justify-between border-t-2 border-[#1B1F23] pt-4 mt-2 text-[15px] font-bold">
               <span className="text-[#1B1F23]">Gesamtbetrag</span>
-              <span className="font-serif text-[22px] text-[#154226] tabular-nums">{formatCurrency(totalCents)}</span>
+              <span className="font-serif text-[24px] text-[#154226] tabular-nums">{formatCurrency(totalCents)}</span>
             </div>
           </div>
         </div>

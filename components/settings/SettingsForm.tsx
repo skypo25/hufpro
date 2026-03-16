@@ -58,6 +58,8 @@ export type SettingsData = {
   smtpPassword?: string
   smtpFromEmail?: string
   smtpFromName?: string
+  // Navigation (PWA: welche App für „Route“ zu Terminen)
+  preferredNavApp?: 'apple' | 'google' | 'waze' | ''
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -103,6 +105,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   smtpPassword: '',
   smtpFromEmail: '',
   smtpFromName: '',
+  preferredNavApp: '',
   services: [
     { label: 'Barhufbearbeitung (1 Pferd, 4 Hufe)', price: '65,00 €' },
     { label: 'Bearbeitung 2 Pferde (Paketpreis)', price: '120,00 €' },
@@ -471,6 +474,19 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                   <option>Deutschland</option>
                   <option>Österreich</option>
                   <option>Schweiz</option>
+                </select>
+              </FormGroup>
+            </FormRow>
+          </FormSection>
+
+          <FormSection icon="🧭" iconBg="bg-[#E0E7FF] text-[#4F46E5]" title="Navigation">
+            <FormRow>
+              <FormGroup label="Bevorzugte Navigations-App" hint="Wenn nichts gewählt wird, wird Google Maps verwendet.">
+                <select className={inputClass()} value={s.preferredNavApp ?? ''} onChange={(e) => update('preferredNavApp', e.target.value as SettingsData['preferredNavApp'])}>
+                  <option value="">Google Maps (Standard)</option>
+                  <option value="google">Google Maps</option>
+                  <option value="apple">Apple Karten</option>
+                  <option value="waze">Waze</option>
                 </select>
               </FormGroup>
             </FormRow>

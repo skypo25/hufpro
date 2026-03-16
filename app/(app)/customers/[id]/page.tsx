@@ -14,11 +14,27 @@ type Customer = {
   id: string
   customer_number?: number | null
   name: string | null
+  first_name?: string | null
+  last_name?: string | null
   phone: string | null
   email: string | null
+  street?: string | null
+  postal_code?: string | null
   city: string | null
+  country?: string | null
+  company?: string | null
+  stable_differs?: boolean | null
   stable_name?: string | null
+  stable_street?: string | null
   stable_city?: string | null
+  stable_zip?: string | null
+  stable_country?: string | null
+  stable_contact?: string | null
+  stable_phone?: string | null
+  drive_time?: string | null
+  preferred_days?: string[] | null
+  directions?: string | null
+  notes?: string | null
   salutation?: string | null
   created_at?: string | null
 }
@@ -155,7 +171,7 @@ export default async function CustomerDetailPage({
 
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select('id, customer_number, name, phone, email, city, stable_name, stable_city, salutation, created_at')
+    .select('id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, stable_differs, stable_name, stable_street, stable_city, stable_zip, stable_country, stable_contact, stable_phone, drive_time, preferred_days, directions, notes, salutation, created_at')
     .eq('id', id)
     .eq('user_id', user.id)
     .single<Customer>()
@@ -375,6 +391,24 @@ export default async function CustomerDetailPage({
             <div className="grid gap-5 p-[22px] md:grid-cols-2">
               <div>
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Vorname & Nachname
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {[customer.first_name, customer.last_name].filter(Boolean).join(' ').trim() || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Firma
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.company?.trim() || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
                   Telefon
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
@@ -408,21 +442,77 @@ export default async function CustomerDetailPage({
 
               <div>
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Ort
+                  Straße & Hausnummer
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.city || '-'}
+                  {customer.street?.trim() || '-'}
                 </div>
               </div>
 
               <div>
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Stallort
+                  Ort
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.stable_name
-                    ? `${customer.stable_name}${customer.stable_city ? `, ${customer.stable_city}` : ''}`
-                    : customer.stable_city || '-'}
+                  {[customer.postal_code, customer.city].filter(Boolean).join(' ') || customer.city || '-'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="huf-card">
+            <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
+              <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
+                Stalldaten
+              </h3>
+              <Link
+                href={`/customers/${customer.id}/edit`}
+                className="text-[13px] font-medium text-[#154226] hover:underline"
+              >
+                Bearbeiten
+              </Link>
+            </div>
+
+            <div className="grid gap-5 p-[22px] md:grid-cols-2">
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Stallname
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.stable_name?.trim() || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Adresse
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {[customer.stable_street?.trim(), [customer.stable_zip, customer.stable_city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Ansprechpartner vor Ort
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.stable_contact?.trim() || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Telefon vor Ort
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.stable_phone ? (
+                    <a href={`tel:${customer.stable_phone}`} className="text-[#154226] hover:underline">
+                      {customer.stable_phone}
+                    </a>
+                  ) : (
+                    '-'
+                  )}
                 </div>
               </div>
 
@@ -430,14 +520,27 @@ export default async function CustomerDetailPage({
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
                   Anfahrtszeit
                 </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">-</div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.drive_time || '-'}
+                </div>
               </div>
 
               <div>
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
                   Bevorzugte Tage
                 </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">-</div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.preferred_days?.length ? customer.preferred_days.join(', ') : '-'}
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Anfahrtshinweis
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {customer.directions?.trim() || '-'}
+                </div>
               </div>
             </div>
           </div>
@@ -621,8 +724,8 @@ export default async function CustomerDetailPage({
               <span className="text-[13px] font-medium text-[#154226]">+ Notiz</span>
             </div>
 
-            <div className="p-[22px] text-[13px] leading-7 text-[#6B7280]">
-              Noch keine Kundennotizen hinterlegt.
+            <div className="p-[22px] text-[13px] leading-7 text-[#6B7280] whitespace-pre-line">
+              {customer.notes?.trim() || 'Noch keine Kundennotizen hinterlegt.'}
             </div>
           </div>
 

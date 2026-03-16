@@ -1,0 +1,25 @@
+{
+  "name": "Hufpflege Software",
+  "short_name": "HufPro",
+  "description": "Hufpflege Software für Kunden, Pferde und Dokumentationen",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#1b1f23",
+  "theme_color": "#1b1f23",
+  "orientation": "portrait-primary",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

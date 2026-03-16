@@ -38,7 +38,8 @@ function buildPageHref({
   const params = new URLSearchParams()
   if (q) params.set('q', q)
   if (sort) params.set('sort', sort)
-  if (view === 'cards') params.set('view', 'cards')
+  // Default ist "cards" (wenn view fehlt). Für Listenansicht muss der Queryparam gesetzt werden.
+  if (view === 'list') params.set('view', 'list')
   if (page > 1) params.set('page', String(page))
   if (perPage !== 10) params.set('perPage', String(perPage))
   const query = params.toString()
