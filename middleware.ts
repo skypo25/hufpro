@@ -34,7 +34,8 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  const isLoginPage = pathname.startsWith('/login')
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
   const isProtectedPage =
     pathname === '/' ||
@@ -47,13 +48,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/settings') ||
     pathname.startsWith('/appointments')
 
-  if (!user && isProtectedPage && !isPublicConfirm) {
+  // Unauthenticated → send to login
+  if (!user && (isProtectedPage || isOnboarding) && !isPublicConfirm) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isLoginPage) {
+  // Authenticated on auth pages → send to dashboard
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
@@ -66,6 +69,8 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/register',
+    '/onboarding',
     '/dashboard/:path*',
     '/customers/:path*',
     '/horses/:path*',

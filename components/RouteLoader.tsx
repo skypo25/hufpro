@@ -33,7 +33,7 @@ export default function RouteLoader() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f6f5f3',
+        background: '#f7f7f7',
         opacity: fading ? 0 : 1,
         transition: 'opacity 0.35s ease',
         pointerEvents: fading ? 'none' : 'all',

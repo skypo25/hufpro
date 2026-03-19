@@ -124,11 +124,17 @@ async function deleteHorse(horseId: string) {
       .eq('user_id', user.id)
   }
 
-  await supabase
-    .from('appointments')
-    .delete()
-    .eq('horse_id', horseId)
+  // Termine, in denen dieses Pferd war, komplett löschen (kein Nachrutschen anderer Pferde)
+  const { data: links } = await supabase
+    .from('appointment_horses')
+    .select('appointment_id')
     .eq('user_id', user.id)
+    .eq('horse_id', horseId)
+  const aptIds = [...new Set((links ?? []).map((l) => l.appointment_id))]
+  if (aptIds.length) {
+    await supabase.from('appointment_horses').delete().in('appointment_id', aptIds)
+    await supabase.from('appointments').delete().eq('user_id', user.id).in('id', aptIds)
+  }
 
   const { error } = await supabase
     .from('horses')

@@ -2,31 +2,37 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [agb, setAgb] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const oauthError = searchParams.get('error')
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
+    if (!agb) { setError('Bitte akzeptiere die AGB und Datenschutzerklärung.'); return }
+    if (password.length < 8) { setError('Das Passwort muss mindestens 8 Zeichen lang sein.'); return }
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(translateAuthError(error.message))
-      setLoading(false)
-      return
-    }
-    router.push('/dashboard')
-    router.refresh()
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { first_name: firstName, last_name: lastName },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+      },
+    })
+    if (error) { setError(translateAuthError(error.message)); setLoading(false); return }
+    router.push('/onboarding')
   }
 
   async function handleOAuth(provider: 'google' | 'apple') {
@@ -39,55 +45,91 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell>
-      {oauthError && (
-        <div style={{
-          fontSize: 13, color: '#dc2626', padding: '8px 12px',
-          background: '#fef2f2', borderRadius: 8, marginBottom: 12,
-        }}>
-          Anmeldung fehlgeschlagen. Bitte erneut versuchen.
-        </div>
-      )}
-
+    <AuthShell step={1} totalSteps={3}>
       {/* Social */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 4 }}>
         <SocialBtn onClick={() => handleOAuth('google')} icon={<GoogleIcon />}>
-          Mit Google anmelden
+          Mit Google registrieren
         </SocialBtn>
         <SocialBtn onClick={() => handleOAuth('apple')} icon={<AppleIcon />}>
-          Mit Apple anmelden
+          Mit Apple registrieren
         </SocialBtn>
       </div>
 
       <Divider />
 
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <h2 style={{
+        fontFamily: 'var(--font-outfit, "Outfit", sans-serif)',
+        fontSize: 22, fontWeight: 700, color: '#111',
+        margin: '0 0 4px', letterSpacing: '-0.3px',
+      }}>
+        Konto erstellen
+      </h2>
+      <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 20px', lineHeight: 1.5 }}>
+        Teste AniDocs 14 Tage kostenlos – ohne Risiko.
+      </p>
+
+      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Name row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Field label="Vorname">
+            <AuthInput
+              type="text" placeholder="Jessica" autoComplete="given-name" required
+              value={firstName} onChange={e => setFirstName(e.target.value)}
+            />
+          </Field>
+          <Field label="Nachname">
+            <AuthInput
+              type="text" placeholder="Renner" autoComplete="family-name" required
+              value={lastName} onChange={e => setLastName(e.target.value)}
+            />
+          </Field>
+        </div>
+
         <Field label="E-Mail">
           <AuthInput
-            type="email" placeholder="name@beispiel.de" autoComplete="email"
-            value={email} onChange={e => setEmail(e.target.value)} required
+            type="email" placeholder="name@beispiel.de" autoComplete="email" required
+            value={email} onChange={e => setEmail(e.target.value)}
           />
         </Field>
-        <Field label="Passwort">
+
+        <Field label="Passwort" hint="Mind. 8 Zeichen, ein Großbuchstabe, eine Zahl">
           <AuthInput
-            type="password" placeholder="Dein Passwort" autoComplete="current-password"
-            value={password} onChange={e => setPassword(e.target.value)} required
+            type="password" placeholder="Mindestens 8 Zeichen" autoComplete="new-password" required
+            value={password} onChange={e => setPassword(e.target.value)}
           />
         </Field>
+
+        {/* AGB */}
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          fontSize: 13, color: '#374151', lineHeight: 1.5, cursor: 'pointer',
+        }}>
+          <input
+            type="checkbox" checked={agb} onChange={e => setAgb(e.target.checked)}
+            style={{ width: 18, height: 18, marginTop: 1, accentColor: '#52b788', cursor: 'pointer', flexShrink: 0 }}
+          />
+          <span>
+            Ich akzeptiere die{' '}
+            <a href="/agb" target="_blank" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>AGB</a>
+            {' '}und{' '}
+            <a href="/datenschutz" target="_blank" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>Datenschutzerklärung</a>
+          </span>
+        </label>
 
         {error && <ErrorMsg>{error}</ErrorMsg>}
 
         <PrimaryBtn type="submit" disabled={loading}>
-          {loading ? 'Anmelden…' : 'Anmelden'}
+          {loading ? 'Konto wird erstellt…' : 'Jetzt kostenlos starten'}
         </PrimaryBtn>
       </form>
 
-      <FooterText>
-        Noch kein Konto?{' '}
-        <Link href="/register" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
-          Kostenlos registrieren
+      <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '16px 0 0' }}>
+        Bereits ein Konto?{' '}
+        <Link href="/login" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
+          Anmelden
         </Link>
-      </FooterText>
+      </p>
     </AuthShell>
   )
 }
@@ -102,8 +144,7 @@ function SocialBtn({ children, icon, onClick }: { children: React.ReactNode; ico
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         gap: 10, width: '100%', padding: '13px 16px',
         border: '1.5px solid #cdcdd0', borderRadius: 12, background: '#fff',
-        fontSize: 15, fontWeight: 500, color: '#111', cursor: 'pointer',
-        fontFamily: 'inherit',
+        fontSize: 15, fontWeight: 500, color: '#111', cursor: 'pointer', fontFamily: 'inherit',
       }}
     >
       {icon}{children}
@@ -113,10 +154,7 @@ function SocialBtn({ children, icon, onClick }: { children: React.ReactNode; ico
 
 function Divider() {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      margin: '16px 0', color: '#9ca3af', fontSize: 13,
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0', color: '#9ca3af', fontSize: 13 }}>
       <div style={{ flex: 1, height: 1, background: '#e5e2dc' }} />
       <span>oder mit E-Mail</span>
       <div style={{ flex: 1, height: 1, background: '#e5e2dc' }} />
@@ -124,11 +162,12 @@ function Divider() {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</label>
       {children}
+      {hint && <span style={{ fontSize: 12, color: '#9ca3af' }}>{hint}</span>}
     </div>
   )
 }
@@ -162,20 +201,12 @@ function PrimaryBtn({ children, ...props }: React.ButtonHTMLAttributes<HTMLButto
       style={{
         width: '100%', padding: '14px 16px', border: 'none', borderRadius: 12,
         background: props.disabled ? '#555' : '#111', color: '#fff',
-        fontSize: 15, fontWeight: 600, fontFamily: 'inherit', cursor: props.disabled ? 'not-allowed' : 'pointer',
-        opacity: props.disabled ? 0.5 : 1,
+        fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
+        cursor: props.disabled ? 'not-allowed' : 'pointer', opacity: props.disabled ? 0.5 : 1,
       }}
     >
       {children}
     </button>
-  )
-}
-
-function FooterText({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '16px 0 0' }}>
-      {children}
-    </p>
   )
 }
 

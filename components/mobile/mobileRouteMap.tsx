@@ -3,11 +3,13 @@
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import MobilePlaceholder from './MobilePlaceholder'
+import MobileSettings from './MobileSettings'
 import MobileDashboard from './MobileDashboard'
 import MobileCustomers from './MobileCustomers'
 import MobileHorses from './MobileHorses'
 import MobileHorseDetail from './MobileHorseDetail'
 import MobileCustomerDetail from './MobileCustomerDetail'
+import MobileCustomerEdit from './MobileCustomerEdit'
 import MobileRecordForm from './MobileRecordForm'
 import MobileRecordDetail from './MobileRecordDetail'
 
@@ -41,6 +43,12 @@ export function useMobileContent(): ReactNode {
     return <MobileHorseDetail horseId={horseIdMatch[1]} />
   }
 
+  // Kunden bearbeiten: /customers/[id]/edit
+  const editCustomerMatch = pathname?.match(/^\/customers\/([^/?#]+)\/edit$/)
+  if (editCustomerMatch?.[1]) {
+    return <MobileCustomerEdit customerId={editCustomerMatch[1]} />
+  }
+
   const customerIdMatch = pathname?.match(/^\/customers\/([^/?#]+)/)
   if (customerIdMatch?.[1]) {
     return <MobileCustomerDetail customerId={customerIdMatch[1]} />
@@ -52,7 +60,7 @@ export function useMobileContent(): ReactNode {
   if (pathname === '/horses') return <MobileHorses />
 
   if (pathname === '/invoices') return <MobilePlaceholder />
-  if (pathname === '/settings') return <MobilePlaceholder />
+  if (pathname === '/settings') return <MobileSettings />
   if (pathname === '/suche') return <MobilePlaceholder />
 
   return <MobilePlaceholder />

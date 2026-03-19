@@ -60,9 +60,13 @@ export type SettingsData = {
   smtpFromName?: string
   // Navigation (PWA: welche App für „Route“ zu Terminen)
   preferredNavApp?: 'apple' | 'google' | 'waze' | ''
+  // Benachrichtigungen (PWA)
+  emailReminders?: boolean
+  pushNotifications?: boolean
+  dailySummary?: boolean
 }
 
-const DEFAULT_SETTINGS: SettingsData = {
+export const DEFAULT_SETTINGS: SettingsData = {
   salutation: 'Herr',
   firstName: '',
   lastName: '',
@@ -106,6 +110,9 @@ const DEFAULT_SETTINGS: SettingsData = {
   smtpFromEmail: '',
   smtpFromName: '',
   preferredNavApp: '',
+  emailReminders: true,
+  pushNotifications: true,
+  dailySummary: false,
   services: [
     { label: 'Barhufbearbeitung (1 Pferd, 4 Hufe)', price: '65,00 €' },
     { label: 'Bearbeitung 2 Pferde (Paketpreis)', price: '120,00 €' },
@@ -370,8 +377,9 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
 
   return (
     <>
-      <div className="mb-7 flex gap-0 border-b-2 border-[#E5E2DC] overflow-x-auto">
-        {TABS.map((tab) => (
+      <div className="mb-7 overflow-hidden">
+        <div className="flex gap-0 border-b-2 border-[#E5E2DC] overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar:vertical]:hidden">
+          {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -385,6 +393,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             {tab.label}
           </button>
         ))}
+      </div>
       </div>
 
       {activeTab === 'betrieb' && (

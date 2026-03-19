@@ -25,7 +25,7 @@ function DesktopLayout({ children }: { children: React.ReactNode }) {
       <div
         className="relative min-h-screen text-slate-900"
         style={{
-          backgroundColor: '#F7F6F3',
+          backgroundColor: '#f7f7f7',
           backgroundImage: 'url(/background.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -34,7 +34,7 @@ function DesktopLayout({ children }: { children: React.ReactNode }) {
       >
         <div
           className="pointer-events-none fixed inset-0 z-0"
-          style={{ background: 'rgba(247, 246, 243, 0.82)' }}
+          style={{ background: 'rgba(247, 247, 247, 0.82)' }}
           aria-hidden
         />
         <Sidebar />
