@@ -143,7 +143,7 @@ export default function TimePicker({
         id={id}
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`flex w-full items-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-left text-[14px] text-[#1B1F23] outline-none transition focus:border-[#154226] focus:ring-2 focus:ring-[#154226]/20 disabled:opacity-50 ${className}`}
+        className={`flex w-full items-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-left text-[14px] text-[#1B1F23] outline-none transition focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/20 disabled:opacity-50 ${className}`}
       >
         <span className={value ? '' : 'text-[#9CA3AF]'}>{display || placeholder}</span>
       </button>
@@ -178,7 +178,7 @@ export default function TimePicker({
                     commit(h, minute)
                   }}
                   className={`flex w-full items-center justify-center rounded-lg text-[14px] font-medium transition ${
-                    h === hour ? 'bg-[#154226] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
+                    h === hour ? 'bg-[#52b788] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
                   }`}
                   style={{ height: ROW_HEIGHT, minHeight: ROW_HEIGHT }}
                 >
@@ -202,7 +202,7 @@ export default function TimePicker({
                     commit(hour, m)
                   }}
                   className={`flex w-full items-center justify-center rounded-lg text-[14px] font-medium transition ${
-                    m === minute ? 'bg-[#154226] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
+                    m === minute ? 'bg-[#52b788] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
                   }`}
                   style={{ height: ROW_HEIGHT, minHeight: ROW_HEIGHT }}
                 >

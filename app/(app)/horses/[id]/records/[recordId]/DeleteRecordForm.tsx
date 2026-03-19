@@ -21,10 +21,10 @@ export default function DeleteRecordForm({ action }: DeleteRecordFormProps) {
     >
       <button
         type="submit"
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#FECACA] bg-white px-4 py-2.5 text-[13px] font-medium text-[#DC2626] transition hover:border-[#FCA5A5] hover:bg-[#FEF2F2]"
       >
-        <i className="bi bi-trash"></i>
-        Dokumentation löschen
+        <i className="bi bi-trash text-[14px]" aria-hidden />
+        Löschen
       </button>
     </form>
   )

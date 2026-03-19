@@ -18,7 +18,7 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
         return (
           <div key={`${item.label}-${index}`} className="flex items-center gap-2">
             {item.href && !isLast ? (
-              <Link href={item.href} className="text-[#154226] hover:underline">
+              <Link href={item.href} className="text-[#52b788] hover:underline">
                 {item.label}
               </Link>
             ) : (

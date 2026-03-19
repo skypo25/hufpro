@@ -367,7 +367,7 @@ export default async function HorsesPage({
 
             <Link
               href="/horses/new"
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
             >
               <i className="bi bi-plus-lg text-[14px]" />
               Pferd anlegen
@@ -381,7 +381,7 @@ export default async function HorsesPage({
         <StatCard
           label="Barhuf"
           value={barhufCount}
-          valueClassName="text-[#154226]"
+          valueClassName="text-[#52b788]"
           subtext="ohne festen Beschlag"
         />
         <StatCard label="Hufschutz" value={hoofschutzCount} subtext="z. B. Hufschuhe" />
@@ -403,7 +403,7 @@ export default async function HorsesPage({
             <input type="hidden" name="sort" value={currentSort} />
             <input type="hidden" name="perPage" value={currentPerPage} />
 
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#154226] bg-white px-4 py-2 text-[12px]">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#52b788] bg-white px-4 py-2 text-[12px]">
               <i className="bi bi-search text-[14px] text-[#9CA3AF]" />
               <input
                 type="text"
@@ -416,14 +416,14 @@ export default async function HorsesPage({
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#1B1F23] hover:border-[#154226]"
+              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#1B1F23] hover:border-[#52b788]"
             >
               Suchen
             </button>
           </form>
 
           <div className="flex gap-2">
-            <span className="rounded-full bg-[#154226] px-4 py-2 text-[12px] font-medium text-white">
+            <span className="rounded-full bg-[#52b788] px-4 py-2 text-[12px] font-medium text-white">
               Alle ({horseCount})
             </span>
             <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
@@ -494,7 +494,7 @@ export default async function HorsesPage({
                 />
 
                 <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef]">
-                  <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#154226]" aria-hidden>
+                  <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#52b788]" aria-hidden>
                     <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
                   </svg>
                 </div>
@@ -509,7 +509,7 @@ export default async function HorsesPage({
                 </div>
 
                 <div className="pointer-events-none z-10 min-w-0">
-                  <div className="truncate text-[13px] font-medium text-[#154226]">
+                  <div className="truncate text-[13px] font-medium text-[#52b788]">
                     {row.customer?.name ?? '-'}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-[#9CA3AF]">
@@ -529,7 +529,7 @@ export default async function HorsesPage({
                 <div className="pointer-events-none z-10">
                   {row.nextAppointment ? (
                     <>
-                      <div className="text-[13px] font-medium text-[#154226]">
+                      <div className="text-[13px] font-medium text-[#52b788]">
                         {formatGermanDate(row.nextAppointment)}
                       </div>
                       <div className="text-[11px] text-[#9CA3AF]">
@@ -547,7 +547,7 @@ export default async function HorsesPage({
                   className={[
                     'pointer-events-none z-10 flex items-center gap-1.5 text-[13px]',
                     row.documentationCount > 0
-                      ? 'font-medium text-[#154226]'
+                      ? 'font-medium text-[#52b788]'
                       : 'text-[#9CA3AF]',
                   ].join(' ')}
                 >
@@ -558,7 +558,7 @@ export default async function HorsesPage({
                 <div className="z-20 flex justify-end">
                   <Link
                     href={`/appointments/new?horseId=${row.horse.id}`}
-                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#154226] hover:text-[#154226]"
+                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788]"
                     title="Termin anlegen"
                   >
                     <i className="bi bi-calendar-plus text-[14px]" />
@@ -618,7 +618,7 @@ export default async function HorsesPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[12px]',
                   safePage === 1
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-left" />
@@ -639,8 +639,8 @@ export default async function HorsesPage({
                     className={[
                       'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-[12px] font-medium',
                       pageNumber === safePage
-                        ? 'border-[#154226] bg-[#154226] text-white'
-                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                        ? 'border-[#52b788] bg-[#52b788] text-white'
+                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                     ].join(' ')}
                   >
                     {pageNumber}
@@ -659,7 +659,7 @@ export default async function HorsesPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[12px]',
                   safePage === totalPages
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-right" />

@@ -69,7 +69,7 @@ function Section({
     <section className="huf-card">
       <div className="flex items-center justify-between border-b border-[#E5E2DC] px-6 py-[18px]">
         <h3 className="dashboard-serif flex items-center gap-3 text-[16px] font-medium text-[#1B1F23]">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
             {icon}
           </span>
           {title}
@@ -495,7 +495,7 @@ export default function CustomerForm({
           />
         </Field>
         {billingDistanceText && (
-          <p className="text-[13px] text-[#154226]">Entfernung von deinem Betrieb: {billingDistanceText}</p>
+          <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {billingDistanceText}</p>
         )}
         <div className="grid gap-5">
           <Field label="Straße & Hausnummer" required>
@@ -570,12 +570,12 @@ export default function CustomerForm({
       </Section>
 
       <Section title="Stalladresse / Standort der Pferde" icon={<i className="bi bi-pin-map-fill" />} badge="Wo stehen die Pferde?">
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent bg-[rgba(21,66,38,0.06)] px-4 py-3 hover:border-[#154226]">
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent bg-[rgba(21,66,38,0.06)] px-4 py-3 hover:border-[#52b788]">
           <input
             type="checkbox"
             checked={stableDiffers}
             onChange={(e) => setStableDiffers(e.target.checked)}
-            className="h-4 w-4 accent-[#154226]"
+            className="h-4 w-4 accent-[#52b788]"
           />
           <span className="text-[13px] text-[#1B1F23]">
             <strong>Stalladresse weicht ab</strong> – Pferde stehen an einem anderen Ort als die Rechnungsanschrift
@@ -600,7 +600,7 @@ export default function CustomerForm({
               />
             </Field>
             {stableDistanceText && (
-              <p className="text-[13px] text-[#154226]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+              <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
             )}
             <Field
               label="Name des Stalls / Hofs"
@@ -717,8 +717,8 @@ export default function CustomerForm({
                     className={[
                       'rounded-lg border px-3 py-2 text-[12px] font-medium transition',
                       active
-                        ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                        : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226]',
+                        ? 'border-[#52b788] bg-[#edf3ef] text-[#0f301b]'
+                        : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788]',
                     ].join(' ')}
                   >
                     {day}
@@ -815,7 +815,7 @@ export default function CustomerForm({
               type="checkbox"
               checked={addHorseNow}
               onChange={(e) => setAddHorseNow(e.target.checked)}
-              className="h-4 w-4 accent-[#154226]"
+              className="h-4 w-4 accent-[#52b788]"
             />
             <span className="text-[14px] text-[#1B1F23]">
               Optional – du kannst das erste Pferd direkt mit anlegen
@@ -825,7 +825,7 @@ export default function CustomerForm({
           {addHorseNow && (
             <div className="rounded-xl border border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] p-6">
               <h4 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-[#1B1F23]">
-                <i className="bi bi-plus-circle text-[16px] text-[#154226]" aria-hidden />
+                <i className="bi bi-plus-circle text-[16px] text-[#52b788]" aria-hidden />
                 Pferd 1
               </h4>
 
@@ -956,7 +956,7 @@ export default function CustomerForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#154226] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

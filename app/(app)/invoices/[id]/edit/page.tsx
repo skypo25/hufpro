@@ -111,9 +111,9 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
   return (
     <div className="mx-auto max-w-[1220px]">
       <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/invoices" className="text-[#154226] hover:underline">Rechnungen</Link>
+        <Link href="/invoices" className="text-[#52b788] hover:underline">Rechnungen</Link>
         <span aria-hidden>›</span>
-        <Link href={`/invoices/${invoiceId}`} className="text-[#154226] hover:underline">{inv.invoice_number}</Link>
+        <Link href={`/invoices/${invoiceId}`} className="text-[#52b788] hover:underline">{inv.invoice_number}</Link>
         <span aria-hidden>›</span>
         <span className="text-[#6B7280]">Bearbeiten</span>
       </div>

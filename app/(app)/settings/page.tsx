@@ -44,7 +44,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">
           Dashboard
         </Link>
         <span aria-hidden>›</span>

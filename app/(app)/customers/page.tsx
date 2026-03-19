@@ -330,7 +330,7 @@ export default async function CustomersPage({
         actions={
           <Link
             href="/customers/new"
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
           >
             <i className="bi bi-person-fill-add text-[15px]" />
             Kunde anlegen
@@ -370,7 +370,7 @@ export default async function CustomersPage({
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#154226]"
+              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
             >
               Suchen
             </button>
@@ -416,7 +416,7 @@ export default async function CustomersPage({
               className={[
                 'px-4 py-2.5 text-[14px] font-medium',
                 currentView === 'list'
-                  ? 'huf-btn-dark bg-[#154226] text-white'
+                  ? 'huf-btn-dark bg-[#52b788] text-white'
                   : 'bg-white text-[#6B7280]',
               ].join(' ')}
             >
@@ -434,7 +434,7 @@ export default async function CustomersPage({
               className={[
                 'border-l border-[#E5E2DC] px-4 py-2.5 text-[14px] font-medium',
                 currentView === 'cards'
-                  ? 'huf-btn-dark bg-[#154226] text-white'
+                  ? 'huf-btn-dark bg-[#52b788] text-white'
                   : 'bg-white text-[#6B7280]',
               ].join(' ')}
             >
@@ -501,7 +501,7 @@ export default async function CustomersPage({
                   <div>
                     {row.nextAppointment ? (
                       <>
-                        <div className="text-[13px] font-medium text-[#154226]">
+                        <div className="text-[13px] font-medium text-[#52b788]">
                           {formatGermanDate(row.nextAppointment)}
                         </div>
                         <div className="text-[11px] text-[#9CA3AF]">
@@ -522,7 +522,7 @@ export default async function CustomersPage({
                   <div className="flex justify-end">
                     <Link
                       href={`/appointments/new?customerId=${row.customer.id}`}
-                      className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#154226] hover:text-[#154226]"
+                      className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
                       title="Termin anlegen"
                     >
                       <i className="bi bi-calendar-plus text-[14px]" />
@@ -591,7 +591,7 @@ export default async function CustomersPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[14px]',
                   safePage === 1
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-left" />
@@ -612,8 +612,8 @@ export default async function CustomersPage({
                     className={[
                       'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-[14px] font-medium',
                       pageNumber === safePage
-                        ? 'huf-btn-dark border-[#154226] bg-[#154226] text-white'
-                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                        ? 'huf-btn-dark border-[#52b788] bg-[#52b788] text-white'
+                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                     ].join(' ')}
                   >
                     {pageNumber}
@@ -633,7 +633,7 @@ export default async function CustomersPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[14px]',
                   safePage === totalPages
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-right" />

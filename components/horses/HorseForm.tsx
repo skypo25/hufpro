@@ -59,7 +59,7 @@ function Section({
   return (
     <section className="huf-card">
       <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
           {icon}
         </span>
         <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
@@ -433,8 +433,8 @@ export default function HorseForm({
           </Field>
 
           {selectedCustomer && (
-            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#154226] bg-[rgba(21,66,38,0.04)] px-[18px] py-[14px]">
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#154226] text-[14px] font-semibold text-white">
+            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#52b788] bg-[rgba(21,66,38,0.04)] px-[18px] py-[14px]">
+              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#52b788] text-[14px] font-semibold text-white">
                 {customerInitials}
               </div>
               <div className="min-w-0 flex-1">
@@ -627,7 +627,7 @@ export default function HorseForm({
             ].join(' ')}
             onClick={() => setPlanFirstAppointment((prev) => !prev)}
           >
-            <div className={`relative h-6 w-11 rounded-full transition ${planFirstAppointment ? 'bg-[#154226]' : 'bg-[#E5E2DC]'}`}>
+            <div className={`relative h-6 w-11 rounded-full transition ${planFirstAppointment ? 'bg-[#52b788]' : 'bg-[#E5E2DC]'}`}>
               <div
                 className={`absolute top-[2px] h-5 w-5 rounded-full bg-white shadow transition ${planFirstAppointment ? 'left-[22px]' : 'left-[2px]'}`}
               />
@@ -704,7 +704,7 @@ export default function HorseForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#154226] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

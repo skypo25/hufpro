@@ -57,7 +57,7 @@ export default function ErstterminBodyPhotosCard(props: ErstterminBodyPhotosCard
                 key={photo.url}
                 type="button"
                 onClick={() => setEnlargeUrl(photo.url)}
-                className="relative block w-full overflow-hidden rounded-xl border-0 bg-[#E5E2DC] transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#154226] focus:ring-offset-2"
+                className="relative block w-full overflow-hidden rounded-xl border-0 bg-[#E5E2DC] transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#52b788] focus:ring-offset-2"
               >
                 <img
                   src={photo.url}

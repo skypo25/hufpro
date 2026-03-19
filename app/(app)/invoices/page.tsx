@@ -122,7 +122,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   return (
     <div className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">Dashboard</Link>
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">Dashboard</Link>
         <span aria-hidden>›</span>
         <span className="text-[#6B7280]">Rechnungen</span>
       </div>
@@ -134,7 +134,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
         </div>
         <Link
           href="/invoices/new"
-          className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#0f301b]"
+          className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#0f301b]"
         >
           <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
           Neue Rechnung
@@ -146,14 +146,14 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
       <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
         {!invoices?.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf3ef] text-2xl text-[#154226]">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf3ef] text-2xl text-[#52b788]">
               <FontAwesomeIcon icon={faFileInvoice} />
             </div>
             <p className="text-[15px] font-medium text-[#1B1F23]">Noch keine Rechnungen</p>
             <p className="mt-1 text-[14px] text-[#6B7280]">Erstelle deine erste Rechnung für einen Kunden.</p>
             <Link
               href="/invoices/new"
-              className="huf-btn-dark mt-6 inline-flex items-center gap-2 rounded-lg bg-[#154226] px-4 py-2.5 text-[14px] font-medium text-white hover:bg-[#0f301b]"
+              className="huf-btn-dark mt-6 inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[14px] font-medium text-white hover:bg-[#0f301b]"
             >
               <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
               Neue Rechnung erstellen

@@ -40,11 +40,11 @@ export default function AppointmentTypePicker({
             className={[
               'rounded-[10px] border px-4 py-4 text-center transition',
               selected
-                ? 'border-[#154226] bg-[#f4f5f4]'
-                : 'border-[#E5E2DC] bg-white hover:border-[#154226] hover:bg-[#f4f5f4]',
+                ? 'border-[#52b788] bg-[#f4f5f4]'
+                : 'border-[#E5E2DC] bg-white hover:border-[#52b788] hover:bg-[#f4f5f4]',
             ].join(' ')}
           >
-            <div className="mb-2 text-[22px] text-[#154226]">
+            <div className="mb-2 text-[22px] text-[#52b788]">
               <i className={`bi ${type.iconClass}`} />
             </div>
             <div className="text-[13px] font-semibold text-[#1B1F23]">{type.label}</div>

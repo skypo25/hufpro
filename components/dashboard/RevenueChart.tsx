@@ -38,7 +38,7 @@ export default function RevenueChart({ monthlyCents, totalCents }: RevenueChartP
             style={{
               height: animated ? `${barHeightPercent(cents)}%` : '0%',
               minHeight: 4,
-              backgroundColor: i === new Date().getMonth() ? '#154226' : undefined,
+              backgroundColor: i === new Date().getMonth() ? '#52b788' : undefined,
               transitionDelay: `${i * 50}ms`,
             }}
             title={formatEuro(cents)}

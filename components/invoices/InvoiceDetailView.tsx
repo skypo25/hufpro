@@ -63,7 +63,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
         <div className="flex flex-1 flex-wrap items-center gap-3">
           <Link
             href={backHref}
-            className="flex items-center gap-1.5 text-[13px] font-medium text-[#154226] hover:underline"
+            className="flex items-center gap-1.5 text-[13px] font-medium text-[#52b788] hover:underline"
           >
             <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
             Zurück
@@ -79,7 +79,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-[#154226] hover:text-[#154226]"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-[#52b788] hover:text-[#52b788]"
           >
             <FontAwesomeIcon icon={faPrint} className="h-4 w-4" />
             Drucken
@@ -88,14 +88,14 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
             href={`/invoices/${invoiceId}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-[#154226] hover:text-[#154226]"
+            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-[#52b788] hover:text-[#52b788]"
           >
             <FontAwesomeIcon icon={faFilePdf} className="h-4 w-4" />
             PDF herunterladen
           </a>
           <button
             type="button"
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
           >
             <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
             Per E-Mail senden
@@ -106,7 +106,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
       {/* Invoice card */}
       <div className="w-full max-w-[820px] overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
         {/* Accent bar */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#154226] via-[#edf3ef] to-[#154226]" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#52b788] via-[#edf3ef] to-[#52b788]" />
 
         <div className="p-10 md:p-12">
           {/* Header */}
@@ -120,7 +120,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
                 />
               ) : (
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-dashed border-[#E5E2DC] bg-black/[0.01]">
-                  <span className="font-serif text-2xl font-bold text-[#154226]">
+                  <span className="font-serif text-2xl font-bold text-[#52b788]">
                     {(sellerName || seller.name).slice(0, 2).toUpperCase()}
                   </span>
                 </div>
@@ -134,7 +134,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
               </div>
             </div>
             <div className="text-left md:text-right">
-              <div className="font-serif text-[32px] font-semibold tracking-tight text-[#154226]">Rechnung</div>
+              <div className="font-serif text-[32px] font-semibold tracking-tight text-[#52b788]">Rechnung</div>
               <div className="mt-0.5 text-[14px] font-medium text-[#6B7280]">{data.invoiceNumber}</div>
             </div>
           </div>
@@ -205,14 +205,14 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
               </div>
               <div className="mt-2 flex justify-between border-t-2 border-[#1B1F23] pt-4 text-[18px] font-bold">
                 <span>Gesamtbetrag</span>
-                <span className="text-[22px] text-[#154226]">{formatCurrency(totalCents)}</span>
+                <span className="text-[22px] text-[#52b788]">{formatCurrency(totalCents)}</span>
               </div>
             </div>
           </div>
 
           {/* Kleinunternehmer */}
           {seller.kleinunternehmer && seller.kleinunternehmerText && (
-            <div className="mt-6 flex items-center gap-3 rounded-xl border border-[#154226]/20 bg-gradient-to-br from-[#154226]/10 to-[#154226]/5 px-5 py-3.5 text-[13px] text-[#0f301b]">
+            <div className="mt-6 flex items-center gap-3 rounded-xl border border-[#52b788]/20 bg-gradient-to-br from-[#52b788]/10 to-[#52b788]/5 px-5 py-3.5 text-[13px] text-[#0f301b]">
               {seller.kleinunternehmerText}
             </div>
           )}
@@ -247,7 +247,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
               {seller.taxNumber && <>Steuernummer: {seller.taxNumber}{seller.taxOffice ? ` · ${seller.taxOffice}` : ''}<br /></>}
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-[#9CA3AF]">Erstellt mit <span className="font-serif font-semibold text-[#154226]">HufPro</span></div>
+              <div className="text-[10px] text-[#9CA3AF]">Erstellt mit <span className="font-serif font-semibold text-[#52b788]">HufPro</span></div>
             </div>
           </div>
         </div>

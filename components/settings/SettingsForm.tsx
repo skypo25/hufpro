@@ -193,7 +193,7 @@ function FormGroup({ label, required, hint, children }: { label: string; require
 }
 
 function inputClass() {
-  return 'w-full rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2.5 text-sm text-[#1B1F23] outline-none transition-colors placeholder:text-[#9CA3AF] focus:border-[#154226] focus:ring-2 focus:ring-[#154226]/10'
+  return 'w-full rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2.5 text-sm text-[#1B1F23] outline-none transition-colors placeholder:text-[#9CA3AF] focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10'
 }
 
 export default function SettingsForm({ initialSettings, userEmail, customers = [] }: SettingsFormProps) {
@@ -378,7 +378,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             onClick={() => setActiveTab(tab.id)}
             className={`shrink-0 border-b-2 px-5 py-3 text-sm font-medium transition-colors -mb-0.5 ${
               activeTab === tab.id
-                ? 'border-[#154226] text-[#154226]'
+                ? 'border-[#52b788] text-[#52b788]'
                 : 'border-transparent text-[#6B7280] hover:text-[#1B1F23]'
             }`}
           >
@@ -389,7 +389,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
 
       {activeTab === 'betrieb' && (
         <>
-          <FormSection icon="👤" iconBg="bg-[#edf3ef] text-[#154226]" title="Persönliche Daten" badge="Pflichtfelder" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
+          <FormSection icon="👤" iconBg="bg-[#edf3ef] text-[#52b788]" title="Persönliche Daten" badge="Pflichtfelder" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
             <FormRow className="md:grid-cols-3">
               <FormGroup label="Anrede">
                 <select className={inputClass()} value={s.salutation ?? ''} onChange={(e) => update('salutation', e.target.value)}>
@@ -511,7 +511,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                 onClick={() => update('kleinunternehmer', !s.kleinunternehmer)}
                 className="flex w-full items-center gap-3"
               >
-                <div className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.kleinunternehmer ? 'bg-[#154226]' : 'bg-[#E5E2DC]'}`}>
+                <div className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.kleinunternehmer ? 'bg-[#52b788]' : 'bg-[#E5E2DC]'}`}>
                   <div className={`mt-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${s.kleinunternehmer ? 'translate-x-6' : 'translate-x-0.5'}`} />
                 </div>
                 <div className="text-left">
@@ -583,7 +583,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                 tabIndex={0}
                 onClick={() => logoInputRef.current?.click()}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') logoInputRef.current?.click() }}
-                className="flex h-[100px] w-[100px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[14px] border-2 border-dashed border-[#E5E2DC] bg-black/[0.01] transition-colors hover:border-[#154226] hover:bg-[#154226]/5"
+                className="flex h-[100px] w-[100px] shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[14px] border-2 border-dashed border-[#E5E2DC] bg-black/[0.01] transition-colors hover:border-[#52b788] hover:bg-[#52b788]/5"
               >
                 {s.logoUrl ? (
                   <img src={s.logoUrl} alt="Logo" className="h-full w-full object-contain" />
@@ -665,7 +665,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             </FormRow>
           </FormSection>
 
-          <FormSection icon="✂️" iconBg="bg-[#edf3ef] text-[#154226]" title="Leistungen & Preise" badge="Für Schnell-Abrechnung" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon="✂️" iconBg="bg-[#edf3ef] text-[#52b788]" title="Leistungen & Preise" badge="Für Schnell-Abrechnung" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-3 text-[13px] text-[#1E40AF]">
               <span>ℹ️</span>
               <p>Definiere hier deine Standardleistungen mit Preisen. Diese erscheinen bei der Abrechnung als Schnellauswahl.</p>
@@ -706,7 +706,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                 </tbody>
               </table>
             </div>
-            <button type="button" onClick={addService} className="mt-3 w-full rounded-lg border-2 border-dashed border-[#E5E2DC] py-2.5 text-sm font-semibold text-[#154226] transition-colors hover:border-[#154226]">
+            <button type="button" onClick={addService} className="mt-3 w-full rounded-lg border-2 border-dashed border-[#E5E2DC] py-2.5 text-sm font-semibold text-[#52b788] transition-colors hover:border-[#52b788]">
               + Weitere Leistung hinzufügen
             </button>
           </FormSection>
@@ -714,7 +714,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
           <FormSection icon="👁" iconBg="bg-[#F3F4F6] text-[#6B7280]" title="Rechnungsvorschau" badge="So sehen deine Rechnungen aus" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="rounded-xl border border-[#E5E2DC] bg-black/[0.01] p-6 text-[13px] leading-relaxed">
               <div className="mb-4 flex justify-between border-b border-[#E5E2DC] pb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf3ef] font-serif text-lg font-bold text-[#154226]">H</div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf3ef] font-serif text-lg font-bold text-[#52b788]">H</div>
                 <div className="text-right text-xs text-[#6B7280]">
                   <strong className="text-[13px] text-[#1B1F23]">{s.companyName || `${s.firstName} ${s.lastName}`.trim() || 'Betriebsname'}</strong><br />
                   {[s.firstName, s.lastName].filter(Boolean).join(' ')} {s.qualification && `· ${s.qualification}`}<br />
@@ -731,7 +731,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
               </div>
               <div className="flex justify-between pt-2 font-bold">
                 <span>Gesamtbetrag</span>
-                <span className="text-[#154226]">65,00 €</span>
+                <span className="text-[#52b788]">65,00 €</span>
               </div>
               {s.kleinunternehmer && (
                 <div className="mt-2 rounded-md bg-[#F0FDF4] px-3 py-2 text-[11px] text-[#166534]">
@@ -783,7 +783,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                   }}
                   className="flex w-full items-center gap-3"
                 >
-                  <div className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.smtpSecure ? 'bg-[#154226]' : 'bg-[#E5E2DC]'}`}>
+                  <div className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.smtpSecure ? 'bg-[#52b788]' : 'bg-[#E5E2DC]'}`}>
                     <div className={`mt-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${s.smtpSecure ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-sm text-[#1B1F23]">{s.smtpSecure ? 'Ja (Port 465)' : 'Nein (Port 587)'}</span>
@@ -844,7 +844,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
         <div className="flex flex-wrap items-center gap-3">
           {testInvoiceError && <span className="w-full text-sm text-[#EF4444]">{testInvoiceError}</span>}
           {customers.length === 0 ? (
-            <p className="text-sm text-[#6B7280]">Zum Erstellen einer Test-Rechnung zuerst unter <Link href="/customers" className="text-[#154226] hover:underline">Kunden</Link> mindestens einen anlegen.</p>
+            <p className="text-sm text-[#6B7280]">Zum Erstellen einer Test-Rechnung zuerst unter <Link href="/customers" className="text-[#52b788] hover:underline">Kunden</Link> mindestens einen anlegen.</p>
           ) : (
             <div className="flex items-center gap-2">
               <label htmlFor="test-invoice-customer" className="text-sm font-medium text-[#6B7280]">
@@ -854,7 +854,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                 id="test-invoice-customer"
                 value={testInvoiceCustomerId}
                 onChange={(e) => { setTestInvoiceCustomerId(e.target.value); setTestInvoiceError(null); }}
-                className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-sm text-[#1B1F23] focus:border-[#154226] focus:outline-none focus:ring-2 focus:ring-[#154226]/10 min-w-[200px]"
+                className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-sm text-[#1B1F23] focus:border-[#52b788] focus:outline-none focus:ring-2 focus:ring-[#52b788]/10 min-w-[200px]"
               >
                 <option value="">Kunde wählen …</option>
                 {customers.map((c) => (
@@ -876,7 +876,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
           >
             {saving ? 'Speichern …' : '✓ Speichern'}
           </button>

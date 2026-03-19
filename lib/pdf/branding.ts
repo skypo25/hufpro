@@ -11,7 +11,7 @@ export type PdfBranding = {
 
 export const DEFAULT_PDF_BRANDING: PdfBranding = {
   logoUrl: null,
-  primaryColor: "#154226",
+  primaryColor: "#52b788",
   secondaryColor: "#1B1F23",
 }
 

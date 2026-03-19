@@ -31,7 +31,7 @@ export default function InfoItem({
       <div
         className={[
           accent
-            ? 'text-[14px] font-medium text-[#154226]'
+            ? 'text-[14px] font-medium text-[#52b788]'
             : 'text-[14px] font-medium text-[#1B1F23]',
           valueClassName,
         ].join(' ')}

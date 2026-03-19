@@ -40,7 +40,7 @@ export default function DocumentPhotoViewer({ item }: DocumentPhotoViewerProps) 
       <button
         type="button"
         onClick={openModal}
-        className={`group relative w-full overflow-hidden rounded-[10px] border border-[#E5E2DC] text-left transition hover:border-[#154226] hover:shadow-md ${aspectClass}`}
+        className={`group relative w-full overflow-hidden rounded-[10px] border border-[#E5E2DC] text-left transition hover:border-[#52b788] hover:shadow-md ${aspectClass}`}
       >
         <div className="absolute inset-0 flex items-center justify-center bg-[#E5E2DC]">
           <PhotoAnnotator

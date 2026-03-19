@@ -33,8 +33,8 @@ export default function TerminConfirmForm({ token }: { token: string }) {
 
   if (success) {
     return (
-      <div className="mt-8 rounded-xl border border-[#154226]/30 bg-[#edf3ef] p-5">
-        <p className="font-medium text-[#154226]">
+      <div className="mt-8 rounded-xl border border-[#52b788]/30 bg-[#edf3ef] p-5">
+        <p className="font-medium text-[#52b788]">
           Sie haben den Termin bestätigt. Vielen Dank.
         </p>
         <p className="mt-2 text-[14px] text-[#0f301b]">
@@ -49,7 +49,7 @@ export default function TerminConfirmForm({ token }: { token: string }) {
       <button
         type="submit"
         disabled={loading}
-        className="huf-btn-dark w-full rounded-lg bg-[#154226] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
+        className="huf-btn-dark w-full rounded-lg bg-[#52b788] px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
       >
         {loading ? 'Wird bestätigt…' : 'Termin bestätigen'}
       </button>

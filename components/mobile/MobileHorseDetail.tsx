@@ -410,7 +410,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                 <button
                   type="button"
                   onClick={() => setTab('docs')}
-                  className="text-[13px] font-medium text-[#154226]"
+                  className="text-[13px] font-medium text-[#52b788]"
                 >
                   Alle anzeigen →
                 </button>

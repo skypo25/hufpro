@@ -55,9 +55,9 @@ export default function CustomerPicker({
 
   if (selectedCustomer) {
     return (
-      <div className="rounded-[12px] border-2 border-[#154226] bg-[rgba(21,66,38,0.04)] px-4 py-3">
+      <div className="rounded-[12px] border-2 border-[#52b788] bg-[rgba(21,66,38,0.04)] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#154226] text-[13px] font-semibold text-white">
+          <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#52b788] text-[13px] font-semibold text-white">
             {getInitials(selectedCustomer.name)}
           </div>
 
@@ -80,7 +80,7 @@ export default function CustomerPicker({
           <button
             type="button"
             onClick={onResetCustomer}
-            className="text-[12px] font-semibold text-[#154226] hover:underline"
+            className="text-[12px] font-semibold text-[#52b788] hover:underline"
           >
             Ändern
           </button>
@@ -111,9 +111,9 @@ export default function CustomerPicker({
               key={customer.id}
               type="button"
               onClick={() => onSelectCustomer(customer.id)}
-              className="flex w-full items-center gap-3 rounded-[10px] border border-[#E5E2DC] bg-white px-4 py-3 text-left transition hover:border-[#154226] hover:bg-[rgba(21,66,38,0.02)]"
+              className="flex w-full items-center gap-3 rounded-[10px] border border-[#E5E2DC] bg-white px-4 py-3 text-left transition hover:border-[#52b788] hover:bg-[rgba(21,66,38,0.02)]"
             >
-              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-[#154226] text-[12px] font-semibold text-white">
+              <div className="flex h-[36px] w-[36px] items-center justify-center rounded-full bg-[#52b788] text-[12px] font-semibold text-white">
                 {getInitials(customer.name)}
               </div>
 

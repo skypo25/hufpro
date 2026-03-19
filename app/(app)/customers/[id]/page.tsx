@@ -155,6 +155,13 @@ function getStatusClass(status?: string | null) {
   return 'bg-[#edf3ef] text-[#0f301b]'
 }
 
+const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+
+function formatEuro(cents: number): string {
+  if (cents === 0) return '0,00 €'
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+}
+
 export default async function CustomerDetailPage({
   params,
 }: CustomerPageProps) {
@@ -263,7 +270,7 @@ export default async function CustomerDetailPage({
         new Date(b.appointment_date || '').getTime() -
         new Date(a.appointment_date || '').getTime()
     )
-    .slice(0, 4)
+    .slice(0, 5)
 
   const nextAppointment = futureAppointments[0] || null
 
@@ -288,14 +295,41 @@ export default async function CustomerDetailPage({
     ? firstHorseIdByAppointment.get(nextAppointment.id)
     : null
 
+  const revenueYear = new Date().getFullYear()
+  const monthlyRevenueCents: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  const { data: revenueInvoices } = await supabase
+    .from('invoices')
+    .select('id, invoice_date')
+    .eq('user_id', user.id)
+    .eq('customer_id', customer.id)
+    .in('status', ['paid', 'sent'])
+    .gte('invoice_date', `${revenueYear}-01-01`)
+    .lt('invoice_date', `${revenueYear + 1}-01-01`)
+  const revenueInvoiceIds = (revenueInvoices ?? []).map((r) => r.id)
+  if (revenueInvoiceIds.length > 0) {
+    const { data: revenueItems } = await supabase
+      .from('invoice_items')
+      .select('invoice_id, amount_cents')
+      .in('invoice_id', revenueInvoiceIds)
+    const sumByInvoice = new Map<string, number>()
+    for (const row of revenueItems ?? []) {
+      sumByInvoice.set(row.invoice_id, (sumByInvoice.get(row.invoice_id) ?? 0) + (row.amount_cents ?? 0))
+    }
+    for (const inv of revenueInvoices ?? []) {
+      const month = new Date(inv.invoice_date).getMonth()
+      monthlyRevenueCents[month] = (monthlyRevenueCents[month] ?? 0) + (sumByInvoice.get(inv.id) ?? 0)
+    }
+  }
+  const totalRevenueCents = monthlyRevenueCents.reduce((a, b) => a + b, 0)
+
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#154226] hover:underline">
+        <Link href="/customers" className="text-[#52b788] hover:underline">
           Kunden
         </Link>
         <span>›</span>
@@ -304,7 +338,7 @@ export default async function CustomerDetailPage({
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#154226] font-serif text-[24px] font-bold text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#52b788] font-serif text-[24px] font-bold text-white">
             {getInitials(customer.name)}
           </div>
 
@@ -314,7 +348,7 @@ export default async function CustomerDetailPage({
             </h1>
 
             <div className="mt-2 flex flex-wrap gap-4 text-[13px] text-[#6B7280]">
-              <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#154226]">
+              <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#52b788]">
                 {formatCustomerNumber(customer.customer_number)}
               </span>
               <span className="inline-flex items-center gap-1.5">
@@ -355,7 +389,7 @@ export default async function CustomerDetailPage({
       <div className="flex gap-0 border-b-2 border-[#E5E2DC]">
         <Link
           href={`/customers/${customer.id}`}
-          className="border-b-2 border-[#154226] px-5 py-3 text-[14px] font-medium text-[#154226]"
+          className="border-b-2 border-[#52b788] px-5 py-3 text-[14px] font-medium text-[#52b788]"
         >
           Übersicht
         </Link>
@@ -382,7 +416,7 @@ export default async function CustomerDetailPage({
               </h3>
               <Link
                 href={`/customers/${customer.id}/edit`}
-                className="text-[13px] font-medium text-[#154226] hover:underline"
+                className="text-[13px] font-medium text-[#52b788] hover:underline"
               >
                 Bearbeiten
               </Link>
@@ -413,7 +447,7 @@ export default async function CustomerDetailPage({
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
                   {customer.phone ? (
-                    <a href={`tel:${customer.phone}`} className="text-[#154226] hover:underline">
+                    <a href={`tel:${customer.phone}`} className="text-[#52b788] hover:underline">
                       {customer.phone}
                     </a>
                   ) : (
@@ -430,7 +464,7 @@ export default async function CustomerDetailPage({
                   {customer.email ? (
                     <a
                       href={`mailto:${customer.email}`}
-                      className="text-[#154226] hover:underline"
+                      className="text-[#52b788] hover:underline"
                     >
                       {customer.email}
                     </a>
@@ -467,7 +501,7 @@ export default async function CustomerDetailPage({
               </h3>
               <Link
                 href={`/customers/${customer.id}/edit`}
-                className="text-[13px] font-medium text-[#154226] hover:underline"
+                className="text-[13px] font-medium text-[#52b788] hover:underline"
               >
                 Bearbeiten
               </Link>
@@ -485,10 +519,19 @@ export default async function CustomerDetailPage({
 
               <div>
                 <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Adresse
+                  Straße & Hausnummer
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {[customer.stable_street?.trim(), [customer.stable_zip, customer.stable_city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '-'}
+                  {customer.stable_street?.trim() || '-'}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Ort
+                </div>
+                <div className="text-[14px] font-medium text-[#1B1F23]">
+                  {[customer.stable_zip, customer.stable_city].filter(Boolean).join(' ') || '-'}
                 </div>
               </div>
 
@@ -507,7 +550,7 @@ export default async function CustomerDetailPage({
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
                   {customer.stable_phone ? (
-                    <a href={`tel:${customer.stable_phone}`} className="text-[#154226] hover:underline">
+                    <a href={`tel:${customer.stable_phone}`} className="text-[#52b788] hover:underline">
                       {customer.stable_phone}
                     </a>
                   ) : (
@@ -524,24 +567,6 @@ export default async function CustomerDetailPage({
                   {customer.drive_time || '-'}
                 </div>
               </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Bevorzugte Tage
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.preferred_days?.length ? customer.preferred_days.join(', ') : '-'}
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Anfahrtshinweis
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.directions?.trim() || '-'}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -552,7 +577,7 @@ export default async function CustomerDetailPage({
               </h3>
               <Link
                 href={`/horses/new?customerId=${customer.id}`}
-                className="text-[13px] font-medium text-[#154226] hover:underline"
+                className="text-[13px] font-medium text-[#52b788] hover:underline"
               >
                 + Pferd hinzufügen
               </Link>
@@ -574,7 +599,7 @@ export default async function CustomerDetailPage({
                       className="flex items-center gap-4 border-b border-[#E5E2DC] px-[22px] py-4 transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0"
                     >
                       <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef]">
-                        <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#154226]" aria-hidden>
+                        <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#52b788]" aria-hidden>
                           <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
                         </svg>
                       </div>
@@ -590,7 +615,7 @@ export default async function CustomerDetailPage({
 
                       <div className="text-right">
                         <div className="text-[11px] text-[#9CA3AF]">Nächster Termin</div>
-                        <div className="text-[13px] font-medium text-[#154226]">
+                        <div className="text-[13px] font-medium text-[#52b788]">
                           {nextDate ? formatGermanDate(nextDate) : '-'}
                         </div>
                       </div>
@@ -608,7 +633,7 @@ export default async function CustomerDetailPage({
               </h3>
               <Link
                 href={`/calendar?customerId=${customer.id}`}
-                className="text-[13px] font-medium text-[#154226] hover:underline"
+                className="text-[13px] font-medium text-[#52b788] hover:underline"
               >
                 Alle anzeigen
               </Link>
@@ -676,7 +701,7 @@ export default async function CustomerDetailPage({
             <div className="p-[22px]">
               {nextAppointment ? (
                 <>
-                  <div className="mb-1 font-serif text-[22px] font-medium text-[#154226]">
+                  <div className="mb-1 font-serif text-[22px] font-medium text-[#52b788]">
                     {formatLongGermanDate(nextAppointment.appointment_date)}
                   </div>
 
@@ -721,31 +746,53 @@ export default async function CustomerDetailPage({
           <div className="huf-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Notizen</h3>
-              <span className="text-[13px] font-medium text-[#154226]">+ Notiz</span>
+              <span className="text-[13px] font-medium text-[#52b788]">+ Notiz</span>
             </div>
 
-            <div className="p-[22px] text-[13px] leading-7 text-[#6B7280] whitespace-pre-line">
-              {customer.notes?.trim() || 'Noch keine Kundennotizen hinterlegt.'}
+            <div className="p-[22px] text-[13px] leading-7 text-[#6B7280] whitespace-pre-line space-y-3">
+              {customer.notes?.trim() ? (
+                <p>{customer.notes.trim()}</p>
+              ) : null}
+              {customer.preferred_days?.length ? (
+                <p>
+                  <span className="font-medium text-[#1B1F23]">Bevorzugte Tage: </span>
+                  {customer.preferred_days.join(', ')}
+                </p>
+              ) : null}
+              {customer.directions?.trim() ? (
+                <p>
+                  <span className="font-medium text-[#1B1F23]">Anfahrtshinweis: </span>
+                  {customer.directions.trim()}
+                </p>
+              ) : null}
+              {!customer.notes?.trim() && !customer.preferred_days?.length && !customer.directions?.trim() && (
+                <p>Noch keine Kundennotizen hinterlegt.</p>
+              )}
             </div>
           </div>
 
           <div className="huf-card">
             <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Umsatz 2026</h3>
+              <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Umsatz {revenueYear}</h3>
             </div>
 
-            <div className="flex justify-between border-b border-[#E5E2DC] px-[22px] py-3 text-[14px]">
-              <span>Januar</span>
-              <span className="tabular-nums">-</span>
-            </div>
-            <div className="flex justify-between border-b border-[#E5E2DC] px-[22px] py-3 text-[14px]">
-              <span>Februar</span>
-              <span className="tabular-nums">-</span>
-            </div>
+            {MONTH_NAMES.map((monthName, index) => ({ monthName, cents: monthlyRevenueCents[index] ?? 0 }))
+              .filter(({ cents }) => cents > 0)
+              .map(({ monthName, cents }) => (
+                <div key={monthName} className="flex justify-between border-b border-[#E5E2DC] px-[22px] py-3 text-[14px]">
+                  <span>{monthName}</span>
+                  <span className="tabular-nums">{formatEuro(cents)}</span>
+                </div>
+              ))}
             <div className="flex justify-between bg-[rgba(0,0,0,0.015)] px-[22px] py-3 text-[14px] font-semibold">
-              <span>Gesamt 2026</span>
-              <span className="tabular-nums">-</span>
+              <span>Gesamt {revenueYear}</span>
+              <span className="tabular-nums">{formatEuro(totalRevenueCents)}</span>
             </div>
+            {totalRevenueCents === 0 && (
+              <div className="px-[22px] py-3 text-[13px] text-[#6B7280]">
+                Noch kein Umsatz in {revenueYear}.
+              </div>
+            )}
           </div>
         </div>
       </div>

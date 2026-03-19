@@ -61,7 +61,7 @@ export default function InvoiceListRowWithMenu({
   return (
     <li className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-[#FAF9F7]">
       <Link href={status === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`} className="flex flex-1 flex-wrap items-center gap-4 min-w-0">
-        <span className="font-mono text-[14px] font-semibold text-[#154226]">{invoiceNumber}</span>
+        <span className="font-mono text-[14px] font-semibold text-[#52b788]">{invoiceNumber}</span>
         <span className="text-[14px] text-[#1B1F23]">{customerName}</span>
       </Link>
       <div className="flex items-center gap-4">
@@ -75,7 +75,7 @@ export default function InvoiceListRowWithMenu({
             data-invoice-menu-toggle
             onClick={(e) => { e.preventDefault(); setOpen((v) => !v) }}
             disabled={pending}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#154226] hover:text-[#154226] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
             title="Status ändern"
             aria-expanded={open}
             aria-haspopup="true"

@@ -240,7 +240,7 @@ export async function POST(request: Request) {
     horseNames.length > 0 ? `<li>Pferd(e): ${horseList}</li>` : '',
     '</ul>',
     appointment.notes ? `<p><strong>Notizen:</strong> ${appointment.notes}</p>` : '',
-    `<p><a href="${confirmUrl}" style="display:inline-block;background:#154226;color:white;padding:10px 18px;text-decoration:none;border-radius:8px;font-weight:600;">Termin bestätigen</a></p>`,
+    `<p><a href="${confirmUrl}" style="display:inline-block;background:#52b788;color:white;padding:10px 18px;text-decoration:none;border-radius:8px;font-weight:600;">Termin bestätigen</a></p>`,
     `<p style="color:#6B7280;font-size:13px;">Oder kopieren Sie diesen Link in Ihren Browser:<br/><a href="${confirmUrl}">${confirmUrl}</a></p>`,
     `<p style="color:#6B7280;font-size:12px;">Der Link ist ${TOKEN_EXPIRY_DAYS} Tage gültig.</p>`,
     '<p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>',

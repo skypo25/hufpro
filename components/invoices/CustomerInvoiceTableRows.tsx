@@ -98,14 +98,14 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
               <div className={`h-3 w-3 rounded-full ${inv.overdue ? 'bg-[#EF4444]' : inv.status === 'paid' ? 'bg-[#34A853]' : 'bg-[#9CA3AF]'}`} />
             </div>
             <div>
-              <div className="text-[13px] font-semibold tabular-nums text-[#154226] group-hover:underline">{inv.invoice_number}</div>
+              <div className="text-[13px] font-semibold tabular-nums text-[#52b788] group-hover:underline">{inv.invoice_number}</div>
               <div className="text-[11px] text-[#9CA3AF]">{formatDate(inv.invoice_date)}</div>
             </div>
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium text-[#1B1F23]">{inv.firstDesc}</div>
               {horseNames ? <div className="truncate text-[12px] text-[#6B7280]">🐴 {horseNames}</div> : null}
             </div>
-            <div className="text-right font-serif text-[17px] font-semibold tabular-nums text-[#154226]">{formatCurrency(inv.totalCents)}</div>
+            <div className="text-right font-serif text-[17px] font-semibold tabular-nums text-[#52b788]">{formatCurrency(inv.totalCents)}</div>
             <div className="flex items-center justify-center">
               <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ${inv.statusClass}`}>{inv.statusLabel}</span>
             </div>
@@ -118,7 +118,7 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
                 e.stopPropagation()
                 window.open(`/invoices/${inv.id}/pdf`, '_blank')
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#154226] hover:text-[#154226]"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788]"
               title="PDF"
             >
               <FontAwesomeIcon icon={faFilePdf} className="h-3.5 w-3.5" />
@@ -134,7 +134,7 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
                   setOpenMenuId(openMenuId === inv.id ? null : inv.id)
                 }}
                 disabled={pendingId === inv.id}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#154226] hover:text-[#154226] disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
                 title="Optionen"
                 aria-expanded={openMenuId === inv.id}
                 aria-haspopup="true"

@@ -68,7 +68,7 @@ export default function DashboardSearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Kunden, Pferde …"
-          className="h-[42px] w-[260px] rounded-l-lg border border-r-0 border-[#E5E2DC] bg-white pl-4 pr-3 text-[14px] text-[#1B1F23] outline-none placeholder:text-[#9CA3AF] focus:border-[#154226]"
+          className="h-[42px] w-[260px] rounded-l-lg border border-r-0 border-[#E5E2DC] bg-white pl-4 pr-3 text-[14px] text-[#1B1F23] outline-none placeholder:text-[#9CA3AF] focus:border-[#52b788]"
           aria-label="Suche"
         />
       </div>
@@ -76,7 +76,7 @@ export default function DashboardSearchBar() {
         <div className="flex items-center rounded-r-lg border border-[#E5E2DC] border-l-0 bg-white shadow-sm">
           <button
             type="submit"
-            className="flex h-[42px] w-[42px] items-center justify-center text-[#154226] hover:bg-[#edf3ef]"
+            className="flex h-[42px] w-[42px] items-center justify-center text-[#52b788] hover:bg-[#edf3ef]"
             aria-label="Suchen"
           >
             <i className="bi bi-search text-[16px]" />

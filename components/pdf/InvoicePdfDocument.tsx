@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 5,
-    backgroundColor: "#154226",
+    backgroundColor: "#52b788",
   },
   header: {
     marginTop: 8,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 700,
-    color: "#154226",
+    color: "#52b788",
   },
   invNr: {
     fontSize: 10,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   tdLeistung: { flex: 1, fontWeight: 700, color: "#1B1F23", fontSize: 11 },
   tdAnzahl: { width: 50, textAlign: "center", color: "#374151", fontSize: 11 },
   tdEinzel: { width: 75, textAlign: "right", fontSize: 11 },
-  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: "#154226", fontSize: 11 },
+  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: "#52b788", fontSize: 11 },
   summaryWrap: {
     alignItems: "flex-end",
     marginBottom: 16,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   summaryTotalAmount: {
-    color: "#154226",
+    color: "#52b788",
     fontSize: 14,
   },
   taxNotice: {
@@ -184,14 +184,14 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: "#154226",
+    borderColor: "#52b788",
     alignItems: "center",
     justifyContent: "center",
   },
   taxNoticeIconText: {
     fontSize: 10,
     fontWeight: 700,
-    color: "#154226",
+    color: "#52b788",
   },
   taxNoticeText: {
     flex: 1,
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   footerHufPro: {
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
-    color: "#154226",
+    color: "#52b788",
   },
 })
 

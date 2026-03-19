@@ -1,8 +1,17 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Fraunces } from 'next/font/google'
+import { Outfit, DM_Sans } from 'next/font/google'
 import './globals.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import RegisterSw from '@/components/RegisterSw'
+import Preloader from '@/components/Preloader'
+import RouteLoader from '@/components/RouteLoader'
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-outfit',
+  display: 'swap',
+})
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -11,12 +20,6 @@ const dmSans = DM_Sans({
   display: 'swap',
 })
 
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  weight: ['300', '500', '700'],
-  variable: '--font-fraunces',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Hufpflege Software',
@@ -40,8 +43,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="de" className={`${dmSans.variable} ${fraunces.variable}`}>
+    <html lang="de" className={`${dmSans.variable} ${outfit.variable}`}>
       <body>
+        <Preloader />
+        <RouteLoader />
         {children}
         <RegisterSw />
       </body>

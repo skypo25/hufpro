@@ -180,7 +180,7 @@ export default function WeekCalendar({
               <div
                 className={[
                   'mt-0.5 font-serif text-[20px] font-medium',
-                  isToday ? 'text-[#154226]' : 'text-[#1B1F23]',
+                  isToday ? 'text-[#52b788]' : 'text-[#1B1F23]',
                 ].join(' ')}
               >
                 {dayDate.getDate()}

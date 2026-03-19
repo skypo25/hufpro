@@ -111,6 +111,27 @@ export async function uploadProcessedPhoto(
 }
 
 /**
+ * Saves (only) the annotations_json for an already-uploaded photo row.
+ * Ignores errors caused by missing columns.
+ */
+export async function saveAnnotationsForExistingPhoto(params: {
+  recordId: string
+  slot: string
+  annotationsJson: unknown
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('hoof_photos')
+    .update({ annotations_json: params.annotationsJson })
+    .eq('hoof_record_id', params.recordId)
+    .eq('photo_type', params.slot)
+    .eq('user_id', user.id)
+  // errors (e.g. missing column) are intentionally ignored
+}
+
+/**
  * Hook: Datei wählen → verarbeiten (Huf oder Ganzkörper) → optional sofort hochladen
  * oder nur als Staged zurückgeben.
  */

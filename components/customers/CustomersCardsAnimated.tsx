@@ -70,7 +70,7 @@ export default function CustomersCardsAnimated({
           <Link
             key={row.customer.id}
             href={`/customers/${row.customer.id}`}
-            className="huf-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 hover:-translate-y-[2px] hover:border-[#154226] hover:shadow-md"
+            className="huf-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 hover:-translate-y-[2px] hover:border-[#52b788] hover:shadow-md"
             style={{ transitionDelay: `${index * 60}ms` }}
           >
             <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-5">
@@ -126,7 +126,7 @@ export default function CustomersCardsAnimated({
                   ? row.horseNames.join(' · ')
                   : 'Keine Pferde'}
               </span>
-              <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#154226]">
+              <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#52b788]">
                 Details →
               </span>
             </div>

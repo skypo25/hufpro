@@ -149,7 +149,7 @@ export default function NewAppointmentForm({
               setSelectedHorseIds([])
             }}
             required
-            className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none focus:border-[#154226]"
+            className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none focus:border-[#52b788]"
           >
             <option value="">Kunde auswählen</option>
             {customers.map((customer) => (
@@ -184,7 +184,7 @@ export default function NewAppointmentForm({
                     className={[
                       'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition',
                       checked
-                        ? 'border-[#154226] bg-[#f0f7f2]'
+                        ? 'border-[#52b788] bg-[#f0f7f2]'
                         : 'border-[#E5E7EB] bg-white hover:border-[#CBD5E1]',
                     ].join(' ')}
                   >
@@ -192,7 +192,7 @@ export default function NewAppointmentForm({
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleHorse(horse.id)}
-                      className="h-4 w-4 accent-[#154226]"
+                      className="h-4 w-4 accent-[#52b788]"
                     />
                     <span className="text-[15px] font-medium text-[#0F172A]">
                       {horse.name || '-'}
@@ -214,7 +214,7 @@ export default function NewAppointmentForm({
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               required
-              className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none focus:border-[#154226]"
+              className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none focus:border-[#52b788]"
             />
           </div>
 
@@ -239,7 +239,7 @@ export default function NewAppointmentForm({
             onChange={(e) => setNotes(e.target.value)}
             rows={6}
             placeholder="z. B. Kontrolle, Barhufbearbeitung, Rücksprache mit Besitzer"
-            className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#8A94A6] focus:border-[#154226]"
+            className="w-full rounded-[16px] border border-[#D7DEE8] bg-white px-6 py-5 text-[16px] text-[#0F172A] outline-none placeholder:text-[#8A94A6] focus:border-[#52b788]"
           />
         </div>
 

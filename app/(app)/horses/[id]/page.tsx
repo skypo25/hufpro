@@ -186,7 +186,7 @@ function InfoItem({
       <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
         {label}
       </div>
-      <div className={accent ? 'text-[14px] font-medium text-[#154226]' : 'text-[14px] font-medium text-[#1B1F23]'}>
+      <div className={accent ? 'text-[14px] font-medium text-[#52b788]' : 'text-[14px] font-medium text-[#1B1F23]'}>
         {value || '-'}
       </div>
     </div>
@@ -331,11 +331,11 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/horses" className="text-[#154226] hover:underline">
+        <Link href="/horses" className="text-[#52b788] hover:underline">
           Pferde
         </Link>
         <span>›</span>
@@ -344,7 +344,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[#edf3ef] text-[#154226]">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[#edf3ef] text-[#52b788]">
             <HorseIconSvg />
           </div>
 
@@ -367,7 +367,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               {owner?.name && (
                 <span className="inline-flex items-center gap-1.5">
                   <i className="bi bi-person text-[14px]" />
-                  <Link href={`/customers/${owner.id}`} className="text-[#154226] hover:underline">
+                  <Link href={`/customers/${owner.id}`} className="text-[#52b788] hover:underline">
                     {owner.name}
                   </Link>
                 </span>
@@ -389,7 +389,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
           <Link
             href={`/horses/${horse.id}/records/new`}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
           >
             <i className="bi bi-plus-square-fill text-[15px]" />
             Dokumentation
@@ -399,7 +399,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="border-b-2 border-[#E5E2DC]">
         <div className="flex flex-wrap gap-0">
-          <span className="border-b-2 border-[#154226] px-5 py-3 text-[14px] font-medium text-[#154226]">
+          <span className="border-b-2 border-[#52b788] px-5 py-3 text-[14px] font-medium text-[#52b788]">
             Übersicht
           </span>
           <Link
@@ -418,7 +418,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                 Stammdaten
               </h2>
-              <Link href={`/horses/${horse.id}/edit`} className="text-[13px] font-medium text-[#154226] hover:underline">
+              <Link href={`/horses/${horse.id}/edit`} className="text-[13px] font-medium text-[#52b788] hover:underline">
                 Bearbeiten
               </Link>
             </div>
@@ -463,7 +463,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                 Dokumentationen
               </h2>
-              <Link href={`/horses/${horse.id}/records/new`} className="text-[13px] font-medium text-[#154226] hover:underline">
+              <Link href={`/horses/${horse.id}/records/new`} className="text-[13px] font-medium text-[#52b788] hover:underline">
                 Neue Dokumentation →
               </Link>
             </div>
@@ -496,7 +496,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                         <div className="flex justify-end">
                           <Link
                             href={`/horses/${horse.id}/records/${record.id}`}
-                            className="group inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#edf3ef] text-[#154226] transition-colors hover:bg-[#154226]"
+                            className="group inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#edf3ef] text-[#52b788] transition-colors hover:bg-[#52b788]"
                             aria-label="Dokumentation öffnen"
                           >
                             <i className="bi bi-file-earmark-richtext-fill text-[18px] group-hover:text-white" />
@@ -558,7 +558,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                   <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
                     Nächster Termin
                   </div>
-                  <div className="dashboard-serif text-[18px] font-medium text-[#154226]">
+                  <div className="dashboard-serif text-[18px] font-medium text-[#52b788]">
                     {formatGermanDate(nextAppointment)}
                   </div>
                 </div>

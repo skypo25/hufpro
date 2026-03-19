@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { fetchRecordPdfData } from "@/lib/pdf/recordData"
-import { getPdfBranding } from "@/lib/pdf/branding"
 import RecordPdfDocument from "@/components/pdf/RecordPdfDocument"
 import { renderToBuffer } from "@react-pdf/renderer"
 import React from "react"
@@ -37,12 +36,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     )
   }
 
-  const branding = getPdfBranding()
-
-  const element = React.createElement(RecordPdfDocument, {
-    data,
-    branding,
-  })
+  const element = React.createElement(RecordPdfDocument, { data })
 
   const pdfBuffer = await renderToBuffer(element)
   const pdfUint8 = new Uint8Array(pdfBuffer)
@@ -50,7 +44,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const url = new URL(request.url)
   const isPreview = url.searchParams.get("preview") === "1"
   const disposition = isPreview ? "inline" : "attachment"
-  const filename = `Hufdokumentation-${data.horse.name}-${data.record.recordDate ?? "ohne-Datum"}.pdf`
+  const filename = `Befundbericht-${data.horse.name}-${data.record.recordDate ?? "ohne-Datum"}.pdf`
 
   return new NextResponse(pdfUint8, {
     status: 200,

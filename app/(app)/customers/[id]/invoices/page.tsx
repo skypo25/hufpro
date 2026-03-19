@@ -100,11 +100,11 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">Dashboard</Link>
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">Dashboard</Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#154226] hover:underline">Kunden</Link>
+        <Link href="/customers" className="text-[#52b788] hover:underline">Kunden</Link>
         <span>›</span>
-        <Link href={`/customers/${customerId}`} className="text-[#154226] hover:underline">{customerName}</Link>
+        <Link href={`/customers/${customerId}`} className="text-[#52b788] hover:underline">{customerName}</Link>
         <span>›</span>
         <span className="text-[#6B7280]">Rechnungen</span>
       </div>
@@ -117,7 +117,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         <div className="flex gap-2">
           <Link
             href={`/invoices/new?customerId=${customerId}`}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
           >
             <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
             Neue Rechnung
@@ -130,7 +130,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         <Link href={`/customers/${customerId}`} className="border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-[#6B7280] hover:text-[#1B1F23]">Übersicht</Link>
         <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Termine</span>
         <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Dokumentation</span>
-        <span className="border-b-2 border-[#154226] px-5 py-3 text-[14px] font-medium text-[#154226]">Rechnungen</span>
+        <span className="border-b-2 border-[#52b788] px-5 py-3 text-[14px] font-medium text-[#52b788]">Rechnungen</span>
       </div>
 
       {/* Stats */}
@@ -141,7 +141,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Bezahlt</div>
-          <div className="font-serif text-[24px] font-medium text-[#154226]">{formatCurrency(totalPaidCents)}</div>
+          <div className="font-serif text-[24px] font-medium text-[#52b788]">{formatCurrency(totalPaidCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status === 'paid').length} Rechnungen</div>
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
@@ -180,7 +180,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         </div>
         {(invoices ?? []).length === 0 ? (
           <div className="px-6 py-16 text-center text-[14px] text-[#6B7280]">
-            Noch keine Rechnungen für diesen Kunden. <Link href={`/invoices/new?customerId=${customerId}`} className="text-[#154226] hover:underline">Neue Rechnung anlegen</Link>
+            Noch keine Rechnungen für diesen Kunden. <Link href={`/invoices/new?customerId=${customerId}`} className="text-[#52b788] hover:underline">Neue Rechnung anlegen</Link>
           </div>
         ) : (
           <CustomerInvoiceTableRows

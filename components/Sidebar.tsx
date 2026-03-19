@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import LogoutButton from './LogoutButton'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -66,13 +67,10 @@ export default function Sidebar() {
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 pb-4 pt-5">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#154226] text-[18px] font-bold text-white shadow-sm">
-            H
-          </div>
-          {!isCollapsed && (
-            <span className="dashboard-serif truncate text-[20px] font-medium tracking-[-0.02em] text-white">
-              HufPro
-            </span>
+          {isCollapsed ? (
+            <Image src="/logo-white.svg" alt="Logo" width={32} height={32} className="shrink-0" />
+          ) : (
+            <Image src="/logo-white.svg" alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
           )}
         </div>
         {!isCollapsed && (
@@ -154,13 +152,13 @@ export default function Sidebar() {
       <div className="shrink-0 border-t border-white/10 p-2">
         <div className={isCollapsed ? 'flex flex-col items-center gap-2' : 'rounded-lg px-3 py-2'}>
           <div className={isCollapsed ? 'flex flex-col items-center' : 'mb-3 flex items-center gap-3'}>
-            <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#154226] text-[13px] font-semibold text-white shadow-sm">
-              HP
+            <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white/15">
+              <Image src="/logo-white.svg" alt="Logo" width={22} height={22} className="h-5 w-auto object-contain" />
             </div>
 
             {!isCollapsed && (
               <div className="min-w-0">
-                <div className="truncate text-[13px] font-medium text-white">HufPro</div>
+                <Image src="/logo-white.svg" alt="Logo" width={70} height={20} className="h-4 w-auto object-contain" />
                 <div className="text-[11px] text-white/45">Angemeldet</div>
               </div>
             )}

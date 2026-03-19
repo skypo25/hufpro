@@ -89,15 +89,15 @@ export default async function EditHorsePage({
   return (
     <main className="mx-auto max-w-[920px] space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/horses" className="text-[#154226] hover:underline">
+        <Link href="/horses" className="text-[#52b788] hover:underline">
           Pferde
         </Link>
         <span>›</span>
-        <Link href={`/horses/${horse.id}`} className="text-[#154226] hover:underline">
+        <Link href={`/horses/${horse.id}`} className="text-[#52b788] hover:underline">
           {horse.name || 'Pferd'}
         </Link>
         <span>›</span>

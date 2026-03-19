@@ -3,13 +3,17 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoGrid from '@/components/photos/PhotoGrid'
-import { uploadProcessedPhoto } from '@/components/photos/usePhotoUpload'
+import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
 import { deleteRecordPhotos } from '@/app/(app)/horses/[id]/records/actions'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import type { StagedPhoto } from '@/components/photos/usePhotoUpload'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import type { ExistingPhoto } from '@/components/photos/PhotoSlot'
 import ErstterminBodyPhotosCard from '@/components/records/ErstterminBodyPhotosCard'
+import VoiceRecorder from '@/components/VoiceRecorder'
+import ImproveTextButton from '@/components/ImproveTextButton'
+import MinimalRichEditor from '@/components/records/MinimalRichEditor'
+import { processVoiceCommand, applyVoiceCommand } from '@/lib/voiceCommands'
 
 type TextBlock = {
   id: string
@@ -82,10 +86,47 @@ type HoofState = {
   notes: string | null
 }
 
-const GENERAL_CONDITION_OPTIONS = ['Gut', 'Unauffällig', 'Reduziert', 'Auffällig']
-const GAIT_OPTIONS = ['Frei / gleichmäßig', 'Leicht ungleichmäßig', 'Lahm', 'Nicht beurteilt']
-const HANDLING_OPTIONS = ['Kooperativ', 'Unruhig', 'Widersetzlich', 'Probleme HL', 'Probleme HR']
-const HORN_OPTIONS = ['Gut', 'Mittel', 'Spröde / brüchig', 'Weich']
+const GENERAL_CONDITION_OPTIONS = ['Unauffällig', 'Auffällig']
+const GAIT_OPTIONS = ['Taktrein', 'Leicht ungleichmäßig', 'Lahm']
+const HANDLING_OPTIONS = ['Kooperativ', 'Unruhig', 'Widersetzlich']
+const HORN_OPTIONS = ['Stabil', 'Mittel', 'Brüchig', 'Weich']
+
+function mapLegacyGeneralCondition(v: string | null | undefined): string | null {
+  if (!v) return null
+  const u = v.trim()
+  if (GENERAL_CONDITION_OPTIONS.includes(u)) return u
+  if (['Gut', 'Unauffällig'].includes(u)) return 'Unauffällig'
+  if (['Reduziert', 'Auffällig'].includes(u)) return 'Auffällig'
+  return null
+}
+
+function mapLegacyGait(v: string | null | undefined): string | null {
+  if (!v) return null
+  const u = v.trim()
+  if (GAIT_OPTIONS.includes(u)) return u
+  if (['Frei / gleichmäßig', 'Nicht beurteilt'].includes(u)) return 'Taktrein'
+  if (u === 'Leicht ungleichmäßig') return 'Leicht ungleichmäßig'
+  if (u === 'Lahm') return 'Lahm'
+  return null
+}
+
+function mapLegacyHandling(v: string | null | undefined): string | null {
+  if (!v) return null
+  const u = v.trim()
+  if (HANDLING_OPTIONS.includes(u)) return u
+  if (['Probleme HL', 'Probleme HR'].includes(u)) return 'Unruhig'
+  return null
+}
+
+function mapLegacyHornQuality(v: string | null | undefined): string | null {
+  if (!v) return null
+  const u = v.trim()
+  if (HORN_OPTIONS.includes(u)) return u
+  if (u === 'Gut') return 'Stabil'
+  if (u === 'Spröde / brüchig') return 'Brüchig'
+  if (['Mittel', 'Weich'].includes(u)) return u
+  return null
+}
 
 const CHECKLIST_ITEMS = [
   'Gangbild beurteilt',
@@ -110,6 +151,27 @@ function formatHorseMeta(horse: HorseContext) {
   ]
     .filter(Boolean)
     .join(' · ')
+}
+
+/** Strips HTML tags and decodes basic entities for plain-text use (e.g. AI improvement). */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/** Wraps improved plain text (paragraphs separated by double newline) back into HTML. */
+function wrapAsHtml(text: string): string {
+  const paras = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+  if (!paras.length) return ''
+  return paras.map((p) => `<p>${p}</p>`).join('')
 }
 
 function formatGermanDate(dateString: string | null) {
@@ -166,27 +228,98 @@ function createInitialHoofs(): Record<HoofKey, HoofState> {
   }
 }
 
+function mapLegacyHeelBalance(v: string | null | undefined): string | null {
+  if (!v) return null
+  if (v === 'ausgeglichen') return 'normal'
+  if (['med. kürzer', 'lat. kürzer'].includes(v)) return 'ungleich'
+  if (v === 'untergeschoben') return 'untergeschoben'
+  if (v === 'normal' || v === 'ungleich') return v
+  return null
+}
+
+function mapLegacyFrogCondition(v: string | null | undefined): string | null {
+  if (!v) return null
+  if (v === 'faulig') return 'faulig'
+  return 'gesund' // eng, rissig, gesund → gesund
+}
+
+function mapLegacySoleCondition(v: string | null | undefined): string | null {
+  if (!v) return null
+  if (v === 'dünn') return 'dünn'
+  return 'stabil' // stabil, flach, gewölbt → stabil
+}
+
+function mapLegacyToeAlignment(v: string | null | undefined): string | null {
+  if (!v) return null
+  if (v === 'bessernd') return 'gerade'
+  if (['gerade', 'medial', 'lateral'].includes(v)) return v
+  return null
+}
+
 function parseHoofsFromJson(json: unknown): Record<HoofKey, HoofState> {
   const base = createInitialHoofs()
   if (!json || !Array.isArray(json)) return base
-  const keys: HoofKey[] = ['vl', 'vr', 'hl', 'hr']
   for (const item of json) {
     if (!item || typeof item !== 'object' || !('hoof_position' in item)) continue
     const pos = (item as { hoof_position?: string }).hoof_position
     if (pos !== 'vl' && pos !== 'vr' && pos !== 'hl' && pos !== 'hr') continue
+    const raw = item as HoofState
     base[pos] = {
       ...base[pos],
       hoof_position: pos,
-      work_status: (item as HoofState).work_status ?? null,
-      angle_deg: (item as HoofState).angle_deg ?? null,
-      toe_alignment: (item as HoofState).toe_alignment ?? null,
-      heel_balance: (item as HoofState).heel_balance ?? null,
-      sole_condition: (item as HoofState).sole_condition ?? null,
-      frog_condition: (item as HoofState).frog_condition ?? null,
-      notes: (item as HoofState).notes ?? null,
+      work_status: raw.work_status ?? null,
+      angle_deg: raw.angle_deg ?? null,
+      toe_alignment: mapLegacyToeAlignment(raw.toe_alignment) ?? raw.toe_alignment,
+      heel_balance: mapLegacyHeelBalance(raw.heel_balance) ?? raw.heel_balance,
+      sole_condition: mapLegacySoleCondition(raw.sole_condition) ?? raw.sole_condition,
+      frog_condition: mapLegacyFrogCondition(raw.frog_condition) ?? raw.frog_condition,
+      notes: raw.notes ?? null,
     }
   }
   return base
+}
+
+/** Standardwerte für „Unauffällig“: Zehe gerade, Trachten normal, Sohle stabil, Strahl gesund */
+const HOOF_STANDARD = {
+  toe_alignment: 'gerade' as const,
+  heel_balance: 'normal' as const,
+  sole_condition: 'stabil' as const,
+  frog_condition: 'gesund' as const,
+}
+
+type HoofOverallStatus = 'unauffaellig' | 'behandlungsbeduerftig' | 'problematisch'
+
+/**
+ * Berechnet den Gesamtstatus aus allen vier Hufen.
+ * - Problematisch: mindestens ein Huf mit Strahl = faulig (kritisch).
+ * - Behandlungsbedürftig: Abweichungen (z. B. Zehe medial/lateral, Trachten untergeschoben/ungleich, Sohle dünn), aber nichts Kritisches.
+ * - Unauffällig: alle Hufe auf Standardwerten (oder keine Befunde gesetzt).
+ */
+function computeHoofOverallStatus(hoofs: Record<HoofKey, HoofState>): HoofOverallStatus {
+  const arr = [hoofs.vl, hoofs.vr, hoofs.hl, hoofs.hr]
+  for (const h of arr) {
+    if (h.frog_condition === 'faulig') return 'problematisch'
+  }
+  let hasDeviation = false
+  for (const h of arr) {
+    if (h.toe_alignment && h.toe_alignment !== HOOF_STANDARD.toe_alignment) hasDeviation = true
+    const heelStandard = h.heel_balance === HOOF_STANDARD.heel_balance || h.heel_balance === 'ausgeglichen'
+    if (h.heel_balance && !heelStandard) hasDeviation = true
+    if (h.sole_condition && h.sole_condition !== HOOF_STANDARD.sole_condition) hasDeviation = true
+    if (h.frog_condition && h.frog_condition !== HOOF_STANDARD.frog_condition) hasDeviation = true
+  }
+  return hasDeviation ? 'behandlungsbeduerftig' : 'unauffaellig'
+}
+
+function singleHoofStatus(hoof: HoofState): HoofOverallStatus {
+  if (hoof.frog_condition === 'faulig') return 'problematisch'
+  const heelStandard = hoof.heel_balance === HOOF_STANDARD.heel_balance || hoof.heel_balance === 'ausgeglichen'
+  const hasDeviation =
+    (hoof.toe_alignment && hoof.toe_alignment !== HOOF_STANDARD.toe_alignment) ||
+    (hoof.heel_balance && !heelStandard) ||
+    (hoof.sole_condition && hoof.sole_condition !== HOOF_STANDARD.sole_condition) ||
+    (hoof.frog_condition && hoof.frog_condition !== HOOF_STANDARD.frog_condition)
+  return hasDeviation ? 'behandlungsbeduerftig' : 'unauffaellig'
 }
 
 function parseChecklistFromJson(json: unknown): string[] {
@@ -200,7 +333,7 @@ function SectionHeader({
   hint,
   iconClassName,
 }: {
-  icon: string
+  icon: React.ReactNode
   title: string
   hint?: string
   iconClassName: string
@@ -216,30 +349,32 @@ function SectionHeader({
   )
 }
 
+const CHIP_COLOR_CLASSES: Record<string, string> = {
+  green: 'border-[#86EFAC] bg-[#DCFCE7] text-[#166534]',
+  yellow: 'border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]',
+  red: 'border-[#FECACA] bg-[#FEE2E2] text-[#991B1B]',
+}
+
 function SingleChoiceChips({
   options,
   value,
   onChange,
   color = 'green',
+  optionColors,
 }: {
   options: string[]
   value: string
   onChange: (value: string) => void
   color?: 'green' | 'yellow' | 'red' | 'default'
+  /** Farbe pro Option wenn ausgewählt (z. B. Taktrein=grün, Lahm=rot) */
+  optionColors?: Record<string, 'green' | 'yellow' | 'red'>
 }) {
-  const selectedClass =
-    color === 'green'
-      ? 'border-[#86EFAC] bg-[#DCFCE7] text-[#166534]'
-      : color === 'yellow'
-        ? 'border-[#FDE68A] bg-[#FEF3C7] text-[#92400E]'
-        : color === 'red'
-          ? 'border-[#FECACA] bg-[#FEE2E2] text-[#991B1B]'
-          : 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const active = value === option
+        const colorKey = active && optionColors?.[option] ? optionColors[option] : active ? color : null
+        const selectedClass = colorKey ? CHIP_COLOR_CLASSES[colorKey] : CHIP_COLOR_CLASSES.green
 
         return (
           <button
@@ -247,10 +382,10 @@ function SingleChoiceChips({
             type="button"
             onClick={() => onChange(option)}
             className={[
-              'rounded-[20px] border-[1.5px] px-4 py-2 text-[13px] font-medium transition',
+              'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-medium transition',
               active
                 ? selectedClass
-                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226] hover:text-[#154226]',
+                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
             ].join(' ')}
           >
             {option}
@@ -281,10 +416,10 @@ function TogglePhraseRow({
             type="button"
             onClick={() => onToggle(phrase.label)}
             className={[
-              'rounded-lg border px-3.5 py-1.5 text-[12px] font-medium transition',
+              'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-medium transition',
               active
-                ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#154226] hover:text-[#154226]',
+                ? CHIP_COLOR_CLASSES.green
+                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
             ].join(' ')}
           >
             {phrase.label}
@@ -306,183 +441,90 @@ function HoofCard({
   hoof: HoofState
   onChange: (next: Partial<HoofState>) => void
 }) {
+  const dotStatus = singleHoofStatus(hoof)
+  const [badge, fullTitle] = title.includes(' – ') ? title.split(' – ') : [title.slice(0, 2), title]
+  const titleText = fullTitle ? fullTitle.toUpperCase() : title.toUpperCase()
   return (
     <div className="rounded-[14px] border-2 border-[#E5E2DC] p-4 transition hover:border-[rgba(21,66,38,0.4)]">
-      <div className="mb-3 flex items-center justify-between">
-        <span className={`text-[13px] font-bold uppercase tracking-[0.06em] ${colorClass}`}>
-          {title}
-        </span>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="shrink-0 rounded-md bg-[#edf3ef] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#52b788]">
+            {badge.trim()}
+          </span>
+          <span className="truncate text-[13px] font-bold uppercase tracking-[0.06em] text-[#1B1F23]">
+            {titleText}
+          </span>
+        </div>
         <span
           className={[
             'h-2.5 w-2.5 rounded-full',
-            hoof.work_status === 'problem'
+            dotStatus === 'problematisch'
               ? 'bg-[#EF4444]'
-              : hoof.work_status === 'korrektur'
-                ? 'bg-[#F59E0B]'
-                : hoof.work_status === 'bearbeitet'
-                  ? 'bg-[#34A853]'
-                  : 'bg-[#E5E2DC]',
+              : dotStatus === 'behandlungsbeduerftig'
+                ? 'bg-[#EAB308]'
+                : 'bg-[#22C55E]',
           ].join(' ')}
+          aria-hidden
         />
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        {[
-          { label: '✓ bearbeitet', value: 'bearbeitet', className: 'bg-[#DCFCE7] text-[#166534] border-[#86EFAC]' },
-          { label: '⚠ Korrektur', value: 'korrektur', className: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]' },
-          { label: '✗ Problem', value: 'problem', className: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]' },
-        ].map((item) => {
-          const active = hoof.work_status === item.value
-          return (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() =>
-                onChange({
-                  work_status: active ? null : item.value,
-                })
-              }
-              className={[
-                'rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition',
-                active
-                  ? item.className
-                  : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#154226]',
-              ].join(' ')}
-            >
-              {item.label}
-            </button>
-          )
-        })}
-      </div>
-
       <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <span className="min-w-[55px] text-[11px] font-medium text-[#6B7280]">Winkel</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            value={hoof.angle_deg ?? ''}
-            onChange={(e) =>
-              onChange({
-                angle_deg: e.target.value ? Number(e.target.value) : null,
-              })
-            }
-            className="w-[52px] rounded-[6px] border border-[#E5E2DC] px-1.5 py-1 text-center text-[13px] font-semibold text-[#154226] outline-none focus:border-[#154226] focus:ring-2 focus:ring-[#154226]/15"
-            placeholder="°"
-          />
-        </div>
-
-        <div className="flex items-start gap-3">
-          <span className="min-w-[55px] pt-1 text-[11px] font-medium text-[#6B7280]">Zehe</span>
-          <div className="flex flex-wrap gap-1.5">
-            {['gerade', 'lateral', 'medial', 'bessernd'].map((option) => {
-              const active = hoof.toe_alignment === option
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      toe_alignment: active ? null : option,
-                    })
-                  }
-                  className={[
-                    'rounded-[6px] border px-2 py-[3px] text-[10px] font-semibold transition',
-                    active
-                      ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                      : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#154226]',
-                  ].join(' ')}
-                >
-                  {option}
-                </button>
-              )
-            })}
+        {[
+          {
+            label: 'Zehe',
+            value: hoof.toe_alignment,
+            options: ['gerade', 'medial', 'lateral'],
+            optionColors: { gerade: 'green', medial: 'yellow', lateral: 'yellow' },
+            set: (v: string | null) => onChange({ toe_alignment: v }),
+          },
+          {
+            label: 'Trachten',
+            value: hoof.heel_balance,
+            options: ['normal', 'untergeschoben', 'ungleich'],
+            optionColors: { normal: 'green', untergeschoben: 'yellow', ungleich: 'yellow' },
+            set: (v: string | null) => onChange({ heel_balance: v }),
+          },
+          {
+            label: 'Strahl',
+            value: hoof.frog_condition,
+            options: ['gesund', 'faulig'],
+            optionColors: { gesund: 'green', faulig: 'red' },
+            set: (v: string | null) => onChange({ frog_condition: v }),
+          },
+          {
+            label: 'Sohle',
+            value: hoof.sole_condition,
+            options: ['stabil', 'dünn'],
+            optionColors: { stabil: 'green', dünn: 'yellow' },
+            set: (v: string | null) => onChange({ sole_condition: v }),
+          },
+        ].map(({ label, value, options, optionColors, set }) => (
+          <div key={label} className="flex items-start gap-3">
+            <span className="min-w-[55px] pt-1 text-[11px] font-medium text-[#6B7280]">{label}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {options.map((option) => {
+                const active = value === option
+                const colorKey = active ? ((optionColors as unknown as Record<string, string> | undefined)?.[option] ?? 'green') : null
+                const activeClass = colorKey ? CHIP_COLOR_CLASSES[colorKey] : ''
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => set(active ? null : option)}
+                    className={[
+                      'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-semibold transition',
+                      active
+                        ? activeClass
+                        : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#52b788]',
+                    ].join(' ')}
+                  >
+                    {option}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <span className="min-w-[55px] pt-1 text-[11px] font-medium text-[#6B7280]">Trachten</span>
-          <div className="flex flex-wrap gap-1.5">
-            {['ausgeglichen', 'med. kürzer', 'lat. kürzer', 'untergeschoben'].map((option) => {
-              const active = hoof.heel_balance === option
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      heel_balance: active ? null : option,
-                    })
-                  }
-                  className={[
-                    'rounded-[6px] border px-2 py-[3px] text-[10px] font-semibold transition',
-                    active
-                      ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                      : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#154226]',
-                  ].join(' ')}
-                >
-                  {option}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <span className="min-w-[55px] pt-1 text-[11px] font-medium text-[#6B7280]">Sohle</span>
-          <div className="flex flex-wrap gap-1.5">
-            {['stabil', 'dünn', 'flach', 'gewölbt'].map((option) => {
-              const active = hoof.sole_condition === option
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      sole_condition: active ? null : option,
-                    })
-                  }
-                  className={[
-                    'rounded-[6px] border px-2 py-[3px] text-[10px] font-semibold transition',
-                    active
-                      ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                      : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#154226]',
-                  ].join(' ')}
-                >
-                  {option}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="flex items-start gap-3">
-          <span className="min-w-[55px] pt-1 text-[11px] font-medium text-[#6B7280]">Strahl</span>
-          <div className="flex flex-wrap gap-1.5">
-            {['gesund', 'eng', 'faulig', 'rissig'].map((option) => {
-              const active = hoof.frog_condition === option
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      frog_condition: active ? null : option,
-                    })
-                  }
-                  className={[
-                    'rounded-[6px] border px-2 py-[3px] text-[10px] font-semibold transition',
-                    active
-                      ? 'border-[#154226] bg-[#edf3ef] text-[#0f301b]'
-                      : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#154226]',
-                  ].join(' ')}
-                >
-                  {option}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )
@@ -546,22 +588,22 @@ function ProgressSidebar({
                 <div
                   className={[
                     'absolute left-[15px] top-[38px] bottom-[-2px] w-[2px]',
-                    step.done ? 'bg-[#34A853]' : 'bg-[#E5E2DC]',
+                    step.done ? 'bg-[#52b788]' : 'bg-[#E5E2DC]',
                   ].join(' ')}
                 />
               )}
 
               <div
                 className={[
-                  'z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[12px]',
+                  'z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[12px] font-semibold',
                   step.done
-                    ? 'border-[#34A853] bg-[#34A853] text-white'
+                    ? 'border-[#52b788] bg-[#52b788] text-white'
                     : step.current
-                      ? 'border-[#154226] bg-[#edf3ef] text-[#154226]'
-                      : 'border-[#E5E2DC] bg-white text-[#6B7280]',
+                      ? 'border-[#52b788] bg-[#edf3ef] text-[#52b788]'
+                      : 'border-[#E5E2DC] bg-[#F9FAFB] text-[#6B7280]',
                 ].join(' ')}
               >
-                {step.done ? '✓' : index + 1}
+                {step.done ? <i className="bi bi-check text-[16px]" aria-hidden /> : index + 1}
               </div>
 
               <div className="flex-1">
@@ -569,9 +611,9 @@ function ProgressSidebar({
                   className={[
                     'text-[13px] font-medium',
                     step.done
-                      ? 'text-[#34A853]'
+                      ? 'text-[#52b788]'
                       : step.current
-                        ? 'text-[#154226]'
+                        ? 'text-[#52b788]'
                         : 'text-[#1B1F23]',
                   ].join(' ')}
                 >
@@ -650,10 +692,14 @@ export default function RecordCreateForm({
   const isEdit = mode === 'edit'
 
   const [recordDate, setRecordDate] = useState(isEdit && initialRecordDate ? initialRecordDate.slice(0, 10) : defaultRecordDate)
-  const [generalCondition, setGeneralCondition] = useState(initialGeneralCondition ?? 'Gut')
-  const [gait, setGait] = useState(initialGait ?? 'Frei / gleichmäßig')
-  const [handlingBehavior, setHandlingBehavior] = useState(initialHandlingBehavior ?? 'Kooperativ')
-  const [hornQuality, setHornQuality] = useState(initialHornQuality ?? 'Gut')
+  const [generalCondition, setGeneralCondition] = useState(
+    mapLegacyGeneralCondition(initialGeneralCondition) ?? GENERAL_CONDITION_OPTIONS[0]
+  )
+  const [gait, setGait] = useState(mapLegacyGait(initialGait) ?? GAIT_OPTIONS[0])
+  const [handlingBehavior, setHandlingBehavior] = useState(
+    mapLegacyHandling(initialHandlingBehavior) ?? HANDLING_OPTIONS[0]
+  )
+  const [hornQuality, setHornQuality] = useState(mapLegacyHornQuality(initialHornQuality) ?? HORN_OPTIONS[0])
 
   const [hoofs, setHoofs] = useState<Record<HoofKey, HoofState>>(
     isEdit && initialHoofsJson ? parseHoofsFromJson(initialHoofsJson) : createInitialHoofs()
@@ -758,6 +804,12 @@ export default function RecordCreateForm({
             annotationsJson: annotationsBySlot[slot] ?? undefined,
           })
         }
+        // Save annotations for existing photos that were annotated but not re-uploaded
+        const stagedSlots = new Set(staged.filter(([, p]) => !!p).map(([s]) => s))
+        for (const [slot, annotations] of Object.entries(annotationsBySlot) as [PhotoSlotKey, import('@/lib/photos/annotations').AnnotationsData][]) {
+          if (stagedSlots.has(slot)) continue // already saved above via uploadProcessedPhoto
+          await saveAnnotationsForExistingPhoto({ recordId: editRecordId, slot, annotationsJson: annotations })
+        }
         router.push(`/horses/${horse.id}/records/${editRecordId}`)
       } finally {
         setSubmitting(false)
@@ -804,8 +856,9 @@ export default function RecordCreateForm({
   }
 
   const combinedSummary = useMemo(() => {
+    // phrases UI is removed – always empty; just pass the HTML content through
     const phrases = [...selectedWorkPhrases, ...selectedFindingPhrases].join(' ')
-    return [phrases, summaryText.trim()].filter(Boolean).join(' ').trim()
+    return [phrases, (summaryText ?? '').trim()].filter(Boolean).join(' ').trim()
   }, [selectedWorkPhrases, selectedFindingPhrases, summaryText])
 
   const combinedRecommendation = useMemo(() => {
@@ -814,6 +867,25 @@ export default function RecordCreateForm({
   }, [selectedRecommendationPhrases, recommendationText])
 
   const hoofArray = useMemo(() => Object.values(hoofs), [hoofs])
+
+  const hoofOverallStatus = useMemo(() => computeHoofOverallStatus(hoofs), [hoofs])
+
+  function setAllHoofsUnauffaellig() {
+    setHoofs((prev) => {
+      const next = { ...prev }
+      const keys: HoofKey[] = ['vl', 'vr', 'hl', 'hr']
+      for (const k of keys) {
+        next[k] = {
+          ...prev[k],
+          toe_alignment: HOOF_STANDARD.toe_alignment,
+          heel_balance: HOOF_STANDARD.heel_balance,
+          sole_condition: HOOF_STANDARD.sole_condition,
+          frog_condition: HOOF_STANDARD.frog_condition,
+        }
+      }
+      return next
+    })
+  }
 
   const filteredExistingPhotos = useMemo(() => {
     if (!isEdit || removedPhotoIds.length === 0) return existingPhotos
@@ -886,11 +958,11 @@ export default function RecordCreateForm({
         <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
           {isEdit ? (
             <>
-              <a href={`/horses/${horse.id}`} className="text-[#154226] hover:underline">
+              <a href={`/horses/${horse.id}`} className="text-[#52b788] hover:underline">
                 {horse.name}
               </a>
               <span>›</span>
-              <a href={`/horses/${horse.id}/records/${editRecordId}`} className="text-[#154226] hover:underline">
+              <a href={`/horses/${horse.id}/records/${editRecordId}`} className="text-[#52b788] hover:underline">
                 {formatGermanDate(recordDate)}
               </a>
               <span>›</span>
@@ -898,9 +970,9 @@ export default function RecordCreateForm({
             </>
           ) : (
             <>
-              <span className="text-[#154226]">Termine</span>
+              <span className="text-[#52b788]">Termine</span>
               <span>›</span>
-              <span className="text-[#154226]">
+              <span className="text-[#52b788]">
                 {formatGermanDate(defaultRecordDate)} · {horse.customerName}
               </span>
               <span>›</span>
@@ -912,8 +984,10 @@ export default function RecordCreateForm({
         <section className="huf-card huf-card--lg">
           <div className="flex flex-wrap items-center gap-5 px-6 py-5">
             <div className="flex min-w-0 flex-1 items-center gap-3.5">
-              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] bg-[#edf3ef] text-[28px]">
-                🐴
+              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] bg-[#edf3ef] text-[#52b788]">
+                <svg width="28" height="28" viewBox="0 0 576 512" fill="currentColor" className="shrink-0" aria-hidden>
+                  <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
+                </svg>
               </div>
               <div className="min-w-0">
                 <div className="dashboard-serif truncate text-[22px] font-semibold text-[#1B1F23]">
@@ -935,7 +1009,7 @@ export default function RecordCreateForm({
                     type="date"
                     value={recordDate}
                     onChange={(e) => setRecordDate(e.target.value)}
-                    className="mt-1 rounded-lg border border-[#E5E2DC] px-3 py-2 text-[14px] font-semibold text-[#1B1F23] focus:border-[#154226] focus:outline-none focus:ring-2 focus:ring-[#154226]/20"
+                    className="mt-1 rounded-lg border border-[#E5E2DC] px-3 py-2 text-[14px] font-semibold text-[#1B1F23] focus:border-[#52b788] focus:outline-none focus:ring-2 focus:ring-[#52b788]/20"
                   />
                 ) : (
                   <div className="mt-1 text-[14px] font-semibold text-[#1B1F23]">
@@ -950,7 +1024,7 @@ export default function RecordCreateForm({
                 <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#9CA3AF]">
                   Terminart
                 </div>
-                <div className="mt-1 text-[14px] font-semibold text-[#154226]">
+                <div className="mt-1 text-[14px] font-semibold text-[#52b788]">
                   {defaultRecordType}
                 </div>
               </div>
@@ -971,74 +1045,109 @@ export default function RecordCreateForm({
 
         <section className="huf-card huf-card--lg">
           <SectionHeader
-            icon="👁"
+            icon={<i className="bi bi-eye-fill text-[14px]" aria-hidden />}
             title="Allgemeiner Eindruck"
-            hint="Antippen statt tippen"
-            iconClassName="bg-[#DCFCE7] text-[#166534]"
+            hint="~30 Sek. pro Pferd"
+            iconClassName="bg-[#edf3ef] text-[#166534]"
           />
 
-          <div className="space-y-4 px-[22px] py-5">
-            <div className="mb-4 last:mb-0">
-              <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Allgemeinzustand
+          <div className="px-[22px] py-5">
+            <div className="flex flex-col">
+              <div className="flex flex-col gap-2 border-b border-[#E5E2DC] py-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-[13px] font-medium text-[#1B1F23]">Allgemeinzustand</span>
+                <SingleChoiceChips
+                  options={GENERAL_CONDITION_OPTIONS}
+                  value={generalCondition}
+                  onChange={setGeneralCondition}
+                  optionColors={{ Unauffällig: 'green', Auffällig: 'red' }}
+                />
               </div>
-              <SingleChoiceChips
-                options={GENERAL_CONDITION_OPTIONS}
-                value={generalCondition}
-                onChange={setGeneralCondition}
-                color="green"
-              />
-            </div>
-
-            <div className="mb-4 last:mb-0">
-              <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Gangbild
+              <div className="flex flex-col gap-2 border-b border-[#E5E2DC] py-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-[13px] font-medium text-[#1B1F23]">Gangbild</span>
+                <SingleChoiceChips
+                  options={GAIT_OPTIONS}
+                  value={gait}
+                  onChange={setGait}
+                  optionColors={{
+                    Taktrein: 'green',
+                    'Leicht ungleichmäßig': 'yellow',
+                    Lahm: 'red',
+                  }}
+                />
               </div>
-              <SingleChoiceChips
-                options={GAIT_OPTIONS}
-                value={gait}
-                onChange={setGait}
-                color="green"
-              />
-            </div>
-
-            <div className="mb-4 last:mb-0">
-              <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Verhalten beim Aufheben
+              <div className="flex flex-col gap-2 border-b border-[#E5E2DC] py-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-[13px] font-medium text-[#1B1F23]">Verhalten</span>
+                <SingleChoiceChips
+                  options={HANDLING_OPTIONS}
+                  value={handlingBehavior}
+                  onChange={setHandlingBehavior}
+                  optionColors={{
+                    Kooperativ: 'green',
+                    Unruhig: 'yellow',
+                    Widersetzlich: 'red',
+                  }}
+                />
               </div>
-              <SingleChoiceChips
-                options={HANDLING_OPTIONS}
-                value={handlingBehavior}
-                onChange={setHandlingBehavior}
-                color="green"
-              />
-            </div>
-
-            <div className="mb-4 last:mb-0">
-              <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Hornqualität insgesamt
+              <div className="flex flex-col gap-2 border-b border-[#E5E2DC] py-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-[13px] font-medium text-[#1B1F23]">Hornqualität</span>
+                <SingleChoiceChips
+                  options={HORN_OPTIONS}
+                  value={hornQuality}
+                  onChange={setHornQuality}
+                  optionColors={{
+                    Stabil: 'green',
+                    Mittel: 'yellow',
+                    Brüchig: 'yellow',
+                    Weich: 'yellow',
+                  }}
+                />
               </div>
-              <SingleChoiceChips
-                options={HORN_OPTIONS}
-                value={hornQuality}
-                onChange={setHornQuality}
-                color="green"
-              />
             </div>
           </div>
         </section>
 
         <section className="huf-card huf-card--lg">
           <SectionHeader
-            icon="🦶"
+            icon={<i className="bi bi-search text-[14px]" aria-hidden />}
             title="Hufbefund pro Huf"
-            hint="Tippe den Huf an zum Ausfüllen"
-            iconClassName="bg-[#edf3ef] text-[#154226]"
+            hint="Nur Abweichungen ändern"
+            iconClassName="bg-[#edf3ef] text-[#52b788]"
           />
 
           <div className="space-y-5 px-[22px] py-5">
+            <button
+              type="button"
+              onClick={setAllHoofsUnauffaellig}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#52b788] bg-[#edf3ef] px-4 py-3 text-[14px] font-semibold text-[#52b788] transition hover:bg-[#d1e7d8]"
+            >
+              <i className="bi bi-check text-[18px]" aria-hidden />
+              Alle Hufe unauffällig
+            </button>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#E5E2DC] bg-[#FAFAF9] px-4 py-3">
+              <span
+                className={[
+                  'inline-flex h-3 w-3 shrink-0 rounded-full',
+                  hoofOverallStatus === 'unauffaellig'
+                    ? 'bg-[#22C55E]'
+                    : hoofOverallStatus === 'behandlungsbeduerftig'
+                      ? 'bg-[#EAB308]'
+                      : 'bg-[#EF4444]',
+                ].join(' ')}
+                aria-hidden
+              />
+              <span className="text-[13px] font-semibold text-[#1B1F23]">
+                {hoofOverallStatus === 'unauffaellig'
+                  ? 'Unauffällig'
+                  : hoofOverallStatus === 'behandlungsbeduerftig'
+                    ? 'Behandlungsbedürftig'
+                    : 'Problematisch'}
+              </span>
+              <span className="text-[11px] text-[#6B7280]">· Automatisch erkannt</span>
+            </div>
+
             <div className="text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-              — Vorne —
+              — VORNE —
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1057,7 +1166,7 @@ export default function RecordCreateForm({
             </div>
 
             <div className="pt-1 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-              — Hinten —
+              — HINTEN —
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1074,15 +1183,19 @@ export default function RecordCreateForm({
                 onChange={(next) => updateHoof('hr', next)}
               />
             </div>
+
+            <p className="text-center text-[11px] text-[#9CA3AF]">
+              © Nur Abweichungen antippen – Standard ist bereits gesetzt
+            </p>
           </div>
         </section>
 
         <section className="huf-card huf-card--lg">
           <SectionHeader
-            icon="📷"
+            icon={<i className="bi bi-camera-fill text-[14px]" aria-hidden />}
             title={isEdit ? 'Fotos' : 'Fotos aufnehmen'}
             hint={isEdit ? 'Bestehende anzeigen oder neue hochladen' : 'Tippe einen Slot an zum Hochladen'}
-            iconClassName="bg-[#EDE9FE] text-[#7C3AED]"
+            iconClassName="bg-[#edf3ef] text-[#52b788]"
           />
 
           <div className="space-y-5 px-[22px] py-5">
@@ -1104,79 +1217,45 @@ export default function RecordCreateForm({
 
         <section className="huf-card huf-card--lg">
           <SectionHeader
-            icon="✂️"
+            icon={<i className="bi bi-file-earmark-richtext-fill text-[14px]" aria-hidden />}
             title="Maßnahmen & Beobachtungen"
-            hint="Textbausteine antippen"
-            iconClassName="bg-[#FEF3C7] text-[#D97706]"
+            hint="Text eingeben oder Diktat"
+            iconClassName="bg-[#edf3ef] text-[#52b788]"
           />
 
-          <div className="space-y-5 px-[22px] py-5">
-            <div>
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Beobachtungen / Verlauf
-              </label>
-              <textarea
-                value={summaryText}
-                onChange={(e) => setSummaryText(e.target.value)}
-                rows={4}
-                className="huf-input huf-input--multiline leading-6"
-                placeholder="Beobachtungen, Verlauf, Besonderheiten …"
-              />
-            </div>
-
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Bearbeitung
-              </div>
-              <TogglePhraseRow
-                phrases={workBlocks}
-                selected={selectedWorkPhrases}
-                onToggle={(label) =>
-                  togglePhrase(label, selectedWorkPhrases, setSelectedWorkPhrases)
-                }
-              />
-            </div>
-
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Befund / Beobachtung
-              </div>
-              <TogglePhraseRow
-                phrases={findingBlocks}
-                selected={selectedFindingPhrases}
-                onToggle={(label) =>
-                  togglePhrase(label, selectedFindingPhrases, setSelectedFindingPhrases)
-                }
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Empfehlung / Nächste Schritte
-              </label>
-              <textarea
-                value={recommendationText}
-                onChange={(e) => setRecommendationText(e.target.value)}
-                rows={3}
-                className="huf-input huf-input--multiline leading-6"
-                placeholder="Empfehlungen, Intervall, Hinweise …"
-              />
-            </div>
-
-            <div>
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Empfehlung
-              </div>
-              <TogglePhraseRow
-                phrases={recommendationBlocks}
-                selected={selectedRecommendationPhrases}
-                onToggle={(label) =>
-                  togglePhrase(
-                    label,
-                    selectedRecommendationPhrases,
-                    setSelectedRecommendationPhrases
+          <div className="space-y-4 px-[22px] py-5">
+            <MinimalRichEditor
+              value={summaryText ?? ''}
+              onChange={setSummaryText}
+              placeholder="Text eingeben oder per Diktierfunktion aufnehmen. Fettschrift mit Strg+B oder dem B-Button markieren."
+              minRows={5}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <VoiceRecorder
+                therapyType="huf"
+                animalName={horse?.name ?? undefined}
+                onResult={(text) => {
+                  const cmd = processVoiceCommand(text, summaryText ?? '')
+                  applyVoiceCommand(
+                    cmd,
+                    summaryText ?? '',
+                    setSummaryText,
+                    (plain) => setSummaryText((prev) => {
+                      const para = `<p>${plain}</p>`
+                      return prev ? `${prev}${para}` : para
+                    })
                   )
-                }
+                }}
+                className="w-full"
+                buttonLabel="Sprachnotiz aufnehmen"
+                buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-3 text-[13px] font-semibold text-[#1B1F23] transition hover:border-[#9CA3AF] active:scale-[0.98] disabled:opacity-60"
+              />
+              <ImproveTextButton
+                value={stripHtml(summaryText ?? '')}
+                animalName={horse?.name ?? undefined}
+                onImproved={(improved) => setSummaryText(wrapAsHtml(improved))}
+                className="w-full"
+                buttonClassName="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-3 text-[13px] font-semibold text-[#1B1F23] transition hover:border-[#9CA3AF] active:scale-[0.98] disabled:opacity-50"
               />
             </div>
           </div>
@@ -1223,7 +1302,7 @@ export default function RecordCreateForm({
                     'flex items-center gap-2.5 rounded-[10px] border-[1.5px] px-3.5 py-3 text-left transition',
                     active
                       ? 'border-[#34A853] bg-[rgba(52,168,83,0.04)]'
-                      : 'border-[#E5E2DC] bg-white hover:border-[#154226]',
+                      : 'border-[#E5E2DC] bg-white hover:border-[#52b788]',
                   ].join(' ')}
                 >
                   <div
@@ -1234,7 +1313,7 @@ export default function RecordCreateForm({
                         : 'border-[#E5E2DC] bg-white text-transparent',
                     ].join(' ')}
                   >
-                    ✓
+                    <i className="bi bi-check text-[14px]" aria-hidden />
                   </div>
                   <span className="text-[13px] font-medium text-[#1B1F23]">{item}</span>
                 </button>
@@ -1288,7 +1367,7 @@ export default function RecordCreateForm({
                   disabled={submitting}
                   className="huf-button huf-button--primary bg-[#34A853] border-[#34A853] hover:bg-[#2E9148] hover:border-[#2E9148]"
                 >
-                  ✓ Dokumentation abschließen
+                  <i className="bi bi-check text-[18px]" aria-hidden /> Dokumentation abschließen
                 </button>
               </>
             )}

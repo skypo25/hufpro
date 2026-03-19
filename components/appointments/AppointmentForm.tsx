@@ -294,7 +294,7 @@ export default function AppointmentForm({
       <div className="space-y-6">
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
               <i className="bi bi-person-fill-check" />
             </div>
             <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Kunde auswählen</h3>
@@ -313,7 +313,7 @@ export default function AppointmentForm({
 
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
               <FontAwesomeIcon icon={faHorse} className="text-[14px]" />
             </div>
             <h3 className="dashboard-serif flex-1 text-[16px] text-[#1B1F23]">
@@ -340,7 +340,7 @@ export default function AppointmentForm({
 
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
               <i className="bi bi-calendar2-heart-fill" />
             </div>
             <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Terminart</h3>
@@ -355,7 +355,7 @@ export default function AppointmentForm({
 
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
               <i className="bi bi-clock-fill" />
             </div>
             <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Datum & Uhrzeit</h3>
@@ -370,7 +370,7 @@ export default function AppointmentForm({
                   type="date"
                   value={appointmentDate}
                   onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#154226]"
+                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
                 />
               </div>
 
@@ -392,7 +392,7 @@ export default function AppointmentForm({
                 <select
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#154226]"
+                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
                 >
                   <option>30 Minuten</option>
                   <option>45 Minuten</option>
@@ -407,7 +407,7 @@ export default function AppointmentForm({
 
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
               <i className="bi bi-chat-quote-fill" />
             </div>
             <h3 className="dashboard-serif flex-1 text-[16px] text-[#1B1F23]">
@@ -428,7 +428,7 @@ export default function AppointmentForm({
                       e.target.value as 'Bestätigt' | 'Vorgeschlagen' | 'Warteliste'
                     )
                   }
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#154226]"
+                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
                 >
                   <option value="Bestätigt">Bestätigt</option>
                   <option value="Vorgeschlagen">Vorgeschlagen</option>
@@ -445,7 +445,7 @@ export default function AppointmentForm({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-[#E5E2DC] px-4 py-3 text-[14px] outline-none focus:border-[#154226]"
+                className="w-full rounded-lg border border-[#E5E2DC] px-4 py-3 text-[14px] outline-none focus:border-[#52b788]"
                 placeholder="z. B. Bitte Scoot Boots mitbringen…"
               />
             </div>
@@ -478,7 +478,7 @@ export default function AppointmentForm({
             <button
               type="submit"
               disabled={loading}
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
             >
               <i className="bi bi-check-lg text-[15px]" />
               {loading

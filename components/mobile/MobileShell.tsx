@@ -28,7 +28,8 @@ export default function MobileShell({ children }: { children: React.ReactNode })
       {/* Hauptinhalt – Header kommt von der jeweiligen Seite (z. B. MobileDashboard) */}
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
 
-      <MobileFab />
+      {/* FAB nur auf Nicht-Formular-Seiten zeigen */}
+      {!/\/records\/(new|[^/]+\/edit)$/.test(pathname ?? '') && <MobileFab />}
 
       <nav className="mobile-tab-bar" aria-label="Hauptnavigation">
         {NAV_ITEMS.map(({ href, label, icon, badge }) => {

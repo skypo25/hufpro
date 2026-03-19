@@ -456,7 +456,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={() => router.push('/appointments/new')}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-[18px] py-[10px] text-[14px] font-medium text-white transition hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[14px] font-medium text-white transition hover:bg-[#0f301b]"
           >
             <i className="bi bi-plus-lg text-[14px]" />
             Neuer Termin
@@ -477,7 +477,7 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={handlePrevious}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#154226] hover:text-[#154226]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#52b788] hover:text-[#52b788]"
               >
                 <i className="bi bi-chevron-left text-[14px]" />
               </button>
@@ -489,7 +489,7 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#154226] hover:text-[#154226]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#52b788] hover:text-[#52b788]"
               >
                 <i className="bi bi-chevron-right text-[14px]" />
               </button>
@@ -499,7 +499,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={goToToday}
-            className="rounded-md border border-[#154226] bg-transparent px-3 py-1.5 text-[14px] font-semibold text-[#154226] transition hover:bg-[#154226] hover:text-white"
+            className="rounded-md border border-[#52b788] bg-transparent px-3 py-1.5 text-[14px] font-semibold text-[#52b788] transition hover:bg-[#52b788] hover:text-white"
           >
             Heute
           </button>
@@ -513,8 +513,8 @@ export default function CalendarPage() {
               className={[
                 'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
                 activeFilter === 'all'
-                  ? 'huf-btn-dark border-[#154226] bg-[#154226] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226] hover:text-[#154226]',
+                  ? 'huf-btn-dark border-[#52b788] bg-[#52b788] text-white'
+                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
               ].join(' ')}
             >
               Alle ({getStatusFilterCount(appointments, 'all')})
@@ -526,8 +526,8 @@ export default function CalendarPage() {
               className={[
                 'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
                 activeFilter === 'confirmed'
-                  ? 'huf-btn-dark border-[#154226] bg-[#154226] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226] hover:text-[#154226]',
+                  ? 'huf-btn-dark border-[#52b788] bg-[#52b788] text-white'
+                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
               ].join(' ')}
             >
               Bestätigt ({getStatusFilterCount(appointments, 'confirmed')})
@@ -539,8 +539,8 @@ export default function CalendarPage() {
               className={[
                 'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
                 activeFilter === 'open'
-                  ? 'huf-btn-dark border-[#154226] bg-[#154226] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226] hover:text-[#154226]',
+                  ? 'huf-btn-dark border-[#52b788] bg-[#52b788] text-white'
+                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
               ].join(' ')}
             >
               Offen ({getStatusFilterCount(appointments, 'open')})
@@ -552,8 +552,8 @@ export default function CalendarPage() {
               className={[
                 'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
                 activeFilter === 'firstvisit'
-                  ? 'huf-btn-dark border-[#154226] bg-[#154226] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#154226] hover:text-[#154226]',
+                  ? 'huf-btn-dark border-[#52b788] bg-[#52b788] text-white'
+                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
               ].join(' ')}
             >
               Ersttermin ({getStatusFilterCount(appointments, 'firstvisit')})
@@ -567,7 +567,7 @@ export default function CalendarPage() {
               className={[
                 'border-r border-[#E5E2DC] px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'week'
-                  ? 'huf-btn-dark bg-[#154226] text-white'
+                  ? 'huf-btn-dark bg-[#52b788] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -579,7 +579,7 @@ export default function CalendarPage() {
               className={[
                 'border-r border-[#E5E2DC] px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'month'
-                  ? 'huf-btn-dark bg-[#154226] text-white'
+                  ? 'huf-btn-dark bg-[#52b788] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -591,7 +591,7 @@ export default function CalendarPage() {
               className={[
                 'px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'list'
-                  ? 'huf-btn-dark bg-[#154226] text-white'
+                  ? 'huf-btn-dark bg-[#52b788] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -684,7 +684,7 @@ export default function CalendarPage() {
                           key={a.id}
                           type="button"
                           onClick={() => handleAppointmentClick(a.id, a.customerId)}
-                          className="flex w-full items-center gap-4 rounded-lg border border-[#E5E2DC] px-4 py-3 text-left transition hover:border-[#154226] hover:bg-[#edf3ef]"
+                          className="flex w-full items-center gap-4 rounded-lg border border-[#E5E2DC] px-4 py-3 text-left transition hover:border-[#52b788] hover:bg-[#edf3ef]"
                         >
                           <span className="min-w-[52px] text-[13px] font-semibold tabular-nums text-[#1B1F23]">
                             {new Intl.DateTimeFormat('de-DE', {

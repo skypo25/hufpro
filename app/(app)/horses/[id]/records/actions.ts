@@ -83,6 +83,17 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
     return { error: 'Speichern fehlgeschlagen: Keine ID vom Server erhalten.' }
   }
 
+  // Save doc_number once after insert (ignore if column doesn't exist yet)
+  const year = record_date ? new Date(record_date).getFullYear() : new Date().getFullYear()
+  const suffix = data.id.replace(/-/g, '').slice(-4).toUpperCase()
+  const docNumber = `DOK-${year}-${suffix}`
+  await supabase
+    .from('hoof_records')
+    .update({ doc_number: docNumber })
+    .eq('id', data.id)
+    .eq('user_id', user.id)
+  // error intentionally ignored – column may not exist in all environments
+
   revalidatePath(`/horses/${horseId}`)
   revalidatePath(`/horses/${horseId}/records/${data.id}`)
   return { recordId: data.id }
@@ -124,6 +135,7 @@ export async function updateRecord(
     horn_quality,
     hoofs_json,
     checklist_json,
+    updated_at: new Date().toISOString(),
   }
 
   const { error } = await supabase

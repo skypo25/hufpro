@@ -60,7 +60,7 @@ type CustomerStats = {
 }
 
 const inputClass =
-  'w-full rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2.5 text-sm text-[#1B1F23] outline-none focus:border-[#154226] focus:ring-2 focus:ring-[#154226]/10'
+  'w-full rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2.5 text-sm text-[#1B1F23] outline-none focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10'
 const selectClass = inputClass + ' appearance-none bg-[right_14px_center] bg-no-repeat pr-10 cursor-pointer'
 
 export default function NewInvoiceForm({
@@ -319,7 +319,7 @@ export default function NewInvoiceForm({
         {/* 1. Rechnungsempfänger */}
         <section className="overflow-hidden rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
           <div className="flex items-center gap-2.5 border-b border-[#E5E2DC] px-5 py-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[#154226]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[#52b788]">
               <FontAwesomeIcon icon={faUser} className="h-4 w-4" />
             </span>
             <h3 className="font-serif text-[15px] font-medium text-[#1B1F23]">Rechnungsempfänger</h3>
@@ -327,9 +327,9 @@ export default function NewInvoiceForm({
           <div className="p-5">
             {selectedCustomer ? (
               <>
-                <div className="flex items-center justify-between gap-4 rounded-xl border-2 border-[#154226] bg-[#154226]/[0.04] p-4">
+                <div className="flex items-center justify-between gap-4 rounded-xl border-2 border-[#52b788] bg-[#52b788]/[0.04] p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#154226] text-sm font-semibold text-white">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#52b788] text-sm font-semibold text-white">
                       {selectedCustomer.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -343,7 +343,7 @@ export default function NewInvoiceForm({
                   <button
                     type="button"
                     onClick={() => setSelectedCustomer(null)}
-                    className="text-sm font-semibold text-[#154226] hover:underline"
+                    className="text-sm font-semibold text-[#52b788] hover:underline"
                   >
                     Ändern
                   </button>
@@ -374,7 +374,7 @@ export default function NewInvoiceForm({
                 </select>
                 {customers.length === 0 && (
                   <p className="mt-2 text-sm text-[#6B7280]">
-                    <Link href="/customers" className="text-[#154226] hover:underline">
+                    <Link href="/customers" className="text-[#52b788] hover:underline">
                       Kunden anlegen
                     </Link>
                     , um eine Rechnung zu erstellen.
@@ -397,7 +397,7 @@ export default function NewInvoiceForm({
           <div className="grid gap-5 p-5 md:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Rechnungsnummer</label>
-              <input type="text" value={invoiceNumber} readOnly className={inputClass + ' bg-[#FAF9F7] font-semibold text-[#154226]'} />
+              <input type="text" value={invoiceNumber} readOnly className={inputClass + ' bg-[#FAF9F7] font-semibold text-[#52b788]'} />
               <p className="mt-1 text-[11px] text-[#9CA3AF]">Wird automatisch hochgezählt</p>
             </div>
             <div>
@@ -440,7 +440,7 @@ export default function NewInvoiceForm({
                   key={idx}
                   type="button"
                   onClick={() => setLineItemFromService(0, svc)}
-                  className="rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2 text-xs font-medium text-[#6B7280] transition-colors hover:border-[#154226] hover:text-[#154226]"
+                  className="rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2 text-xs font-medium text-[#6B7280] transition-colors hover:border-[#52b788] hover:text-[#52b788]"
                 >
                   {svc.label} · {svc.price}
                 </button>
@@ -583,7 +583,7 @@ export default function NewInvoiceForm({
                         }
                       }}
                       placeholder="0,00"
-                      className={inputClass + ' w-full text-right font-serif text-[17px] font-semibold text-[#154226] tabular-nums'}
+                      className={inputClass + ' w-full text-right font-serif text-[17px] font-semibold text-[#52b788] tabular-nums'}
                     />
                   </div>
                   <div className="flex items-end justify-center">
@@ -603,7 +603,7 @@ export default function NewInvoiceForm({
                 <button
                   type="button"
                   onClick={addLineItem}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5E2DC] py-2.5 text-[13px] font-semibold text-[#154226] transition-colors hover:border-[#154226] hover:bg-[#154226]/5"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5E2DC] py-2.5 text-[13px] font-semibold text-[#52b788] transition-colors hover:border-[#52b788] hover:bg-[#52b788]/5"
                 >
                   <FontAwesomeIcon icon={faPlus} className="h-4 w-4" /> Position hinzufügen
                 </button>
@@ -622,11 +622,11 @@ export default function NewInvoiceForm({
                 </div>
                 <div className="flex justify-between border-t-2 border-[#1B1F23] py-3 text-[18px] font-bold">
                   <span>Gesamtbetrag</span>
-                  <span className="font-serif text-[24px] text-[#154226] tabular-nums">{formatCurrency(totalCents)}</span>
+                  <span className="font-serif text-[24px] text-[#52b788] tabular-nums">{formatCurrency(totalCents)}</span>
                 </div>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#154226]/20 bg-[#154226]/5 p-3 text-[12px] text-[#0f301b]">
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#52b788]/20 bg-[#52b788]/5 p-3 text-[12px] text-[#0f301b]">
               <span className="shrink-0">ℹ️</span>
               Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
             </div>
@@ -666,20 +666,20 @@ export default function NewInvoiceForm({
       {/* Right sidebar */}
       <div className="space-y-5">
         {/* Vorschau */}
-        <div className="overflow-hidden rounded-xl border-l-4 border-l-[#154226] border-[#E5E2DC] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border-l-4 border-l-[#52b788] border-[#E5E2DC] bg-white shadow-sm">
           <div className="border-b border-[#E5E2DC] px-5 py-4">
             <h4 className="font-serif text-[15px] font-medium text-[#1B1F23]">Vorschau</h4>
           </div>
           <div className="p-4">
             <div className="overflow-hidden rounded-xl border border-[#E5E2DC] text-[12px]">
-              <div className="h-1 bg-gradient-to-r from-[#154226] to-[#edf3ef]" />
+              <div className="h-1 bg-gradient-to-r from-[#52b788] to-[#edf3ef]" />
               <div className="p-4">
                 <div className="mb-3 flex justify-between border-b border-[#E5E2DC] pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#edf3ef] font-serif text-[14px] font-bold text-[#154226]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#edf3ef] font-serif text-[14px] font-bold text-[#52b788]">
                       {sellerName.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="font-serif font-semibold text-[#154226]">Rechnung</span>
+                    <span className="font-serif font-semibold text-[#52b788]">Rechnung</span>
                   </div>
                   <div className="text-right text-[10px] text-[#6B7280]">
                     <strong className="text-[11px] text-[#1B1F23]">{sellerName}</strong>
@@ -706,7 +706,7 @@ export default function NewInvoiceForm({
                 </div>
                 <div className="mt-2 flex justify-between border-t-2 border-[#1B1F23] py-2 font-bold text-[13px]">
                   <span>Gesamt</span>
-                  <span className="font-serif text-[16px] text-[#154226] tabular-nums">{formatCurrency(totalCents)}</span>
+                  <span className="font-serif text-[16px] text-[#52b788] tabular-nums">{formatCurrency(totalCents)}</span>
                 </div>
                 <div className="mt-2 rounded bg-[#edf3ef] px-2 py-1 text-center text-[9px] text-[#0f301b]">
                   Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
@@ -729,7 +729,7 @@ export default function NewInvoiceForm({
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6B7280]">Rechnung Nr.</span>
-                <span className="font-semibold text-[#154226]">{invoiceNumber}</span>
+                <span className="font-semibold text-[#52b788]">{invoiceNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6B7280]">Datum</span>
@@ -746,7 +746,7 @@ export default function NewInvoiceForm({
             </div>
             <div className="flex justify-between border-t-2 border-[#1B1F23] pt-4 mt-2 text-[15px] font-bold">
               <span className="text-[#1B1F23]">Gesamtbetrag</span>
-              <span className="font-serif text-[24px] text-[#154226] tabular-nums">{formatCurrency(totalCents)}</span>
+              <span className="font-serif text-[24px] text-[#52b788] tabular-nums">{formatCurrency(totalCents)}</span>
             </div>
           </div>
         </div>
@@ -764,7 +764,7 @@ export default function NewInvoiceForm({
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6B7280]">Umsatz gesamt</span>
-                <span className="text-[#154226]">{formatCurrency(customerStats.totalCents)}</span>
+                <span className="text-[#52b788]">{formatCurrency(customerStats.totalCents)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6B7280]">Offene Beträge</span>
@@ -809,7 +809,7 @@ export default function NewInvoiceForm({
             type="button"
             onClick={isEdit ? handleSaveAsSent : handleSaveDraft}
             disabled={saving || !selectedCustomer}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#154226] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
           >
             <FontAwesomeIcon icon={faCheck} className="h-4 w-4" /> {isEdit ? 'Speichern & als versendet markieren' : 'Rechnung erstellen'}
           </button>

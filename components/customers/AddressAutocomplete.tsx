@@ -209,7 +209,7 @@ export default function AddressAutocomplete({
                 role="option"
                 aria-selected={i === activeIndex}
                 className={`cursor-pointer px-3 py-2 text-[13px] ${
-                  i === activeIndex ? 'bg-[#edf3ef] text-[#154226]' : 'text-[#1B1F23] hover:bg-[#f7f6f3]'
+                  i === activeIndex ? 'bg-[#edf3ef] text-[#52b788]' : 'text-[#1B1F23] hover:bg-[#f7f6f3]'
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault()

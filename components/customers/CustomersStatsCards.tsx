@@ -52,7 +52,7 @@ export default function CustomersStatsCards({
       label: 'Termine diese Woche',
       value: appointmentsThisWeek,
       subtext: 'geplante Termine',
-      valueClassName: 'text-[#154226]',
+      valueClassName: 'text-[#52b788]',
     },
     {
       label: 'Suche / Ansicht',

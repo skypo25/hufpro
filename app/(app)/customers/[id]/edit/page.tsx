@@ -114,15 +114,15 @@ export default async function EditCustomerPage({
   return (
     <main className="mx-auto max-w-[920px] space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#154226] hover:underline">
+        <Link href="/dashboard" className="text-[#52b788] hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#154226] hover:underline">
+        <Link href="/customers" className="text-[#52b788] hover:underline">
           Kunden
         </Link>
         <span>›</span>
-        <Link href={`/customers/${id}`} className="text-[#154226] hover:underline">
+        <Link href={`/customers/${id}`} className="text-[#52b788] hover:underline">
           {customer.first_name || customer.last_name
             ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
             : 'Kundendetail'}
@@ -138,7 +138,7 @@ export default async function EditCustomerPage({
         <p className="mt-1 text-[14px] text-[#6B7280]">
           {customer.customer_number != null ? (
             <>
-              <span className="font-medium tabular-nums text-[#154226]">{formatCustomerNumber(customer.customer_number)}</span>
+              <span className="font-medium tabular-nums text-[#52b788]">{formatCustomerNumber(customer.customer_number)}</span>
               {' · '}
             </>
           ) : null}
