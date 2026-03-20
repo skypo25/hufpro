@@ -143,27 +143,36 @@ export default function OnboardingPage() {
     setTrialEnd(d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }))
   }, [router])
 
-  async function finishOnboarding() {
-    if (!profession || !animalFocus) return
+  async function finishOnboarding(professionOverride?: Profession, animalFocusOverride?: AnimalFocus) {
+    const p = professionOverride ?? profession
+    const a = animalFocusOverride ?? animalFocus
+    if (!p || !a) return
     setSaving(true)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(false); return }
 
-    const { preferredTerminology, enabledModules } = deriveProfile(profession, animalFocus)
+    const { preferredTerminology, enabledModules } = deriveProfile(p, a)
+
+    const { data: existingRow } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const existingSettings = (existingRow?.settings ?? {}) as Record<string, unknown>
+
+    const mergedSettings = {
+      ...existingSettings,
+      profession: p,
+      animal_focus: a,
+      preferred_terminology: preferredTerminology,
+      enabled_modules: enabledModules,
+      onboarding_complete: true,
+      trial_started_at: new Date().toISOString(),
+    }
 
     await supabase.from('user_settings').upsert(
-      {
-        user_id: user.id,
-        settings: {
-          profession,
-          animal_focus: animalFocus,
-          preferred_terminology: preferredTerminology,
-          enabled_modules: enabledModules,
-          onboarding_complete: true,
-          trial_started_at: new Date().toISOString(),
-        },
-      },
+      { user_id: user.id, settings: mergedSettings },
       { onConflict: 'user_id' }
     )
 
@@ -182,7 +191,13 @@ export default function OnboardingPage() {
         <StepProfession
           selected={profession}
           onSelect={setProfession}
-          onNext={() => setStep(2)}
+          onNext={() => {
+            if (profession === 'hufbearbeiter') {
+              finishOnboarding(profession, 'nur_pferde')
+            } else {
+              setStep(2)
+            }
+          }}
           onBack={() => router.push('/register')}
         />
       )}

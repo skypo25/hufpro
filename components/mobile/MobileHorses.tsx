@@ -379,77 +379,83 @@ export default function MobileHorses() {
             <div className="horse-card-list">
               {horses.map((h) => (
                 <article key={h.id} className="horse-card">
-                  <div className="horse-card-top">
-                    <div className="horse-card-icon" aria-hidden>
-                      <IconHorse />
-                    </div>
-                    <div className="horse-card-info">
-                      <div className="horse-card-name">{h.name || '–'}</div>
-                      <div className="horse-card-breed">{getBreedSex(h)}</div>
-                    </div>
-                    <div className="horse-card-right">
-                      <div className="horse-card-age">{h.age != null ? `${h.age} J.` : '–'}</div>
-                      <div className="horse-card-age-label">Alter</div>
-                    </div>
-                  </div>
-                  <div className="horse-card-owner">
-                    <IconUser />
-                    <span className="horse-card-owner-name">{h.customerName ?? '–'}</span>
-                    {h.customerStable && <span className="horse-card-stall">· {h.customerStable}</span>}
-                  </div>
-                  <div className="horse-card-details">
-                    <div className="horse-card-detail">
-                      <div className={`horse-card-detail-value ${!h.usage ? 'none' : ''}`}>
-                        {h.usage || '–'}
+                  <Link
+                    href={`/horses/${h.id}`}
+                    className="horse-card-clickable"
+                    aria-label={`Pferd ${h.name || ''} öffnen`}
+                  >
+                    <div className="horse-card-top">
+                      <div className="horse-card-icon" aria-hidden>
+                        <IconHorse />
                       </div>
-                      <div className="horse-card-detail-label">Nutzung</div>
-                    </div>
-                    <div className="horse-card-detail">
-                      <div className="horse-card-detail-value">{h.documentationCount}</div>
-                      <div className="horse-card-detail-label">Dokus</div>
-                    </div>
-                    <div className="horse-card-detail">
-                      <div className={`horse-card-detail-value ${!h.intervalWeeks ? 'none' : ''}`}>
-                        {h.intervalWeeks || '–'}
+                      <div className="horse-card-info">
+                        <div className="horse-card-name">{h.name || '–'}</div>
+                        <div className="horse-card-breed">{getBreedSex(h)}</div>
                       </div>
-                      <div className="horse-card-detail-label">Intervall</div>
+                      <div className="horse-card-right">
+                        <div className="horse-card-age">{h.age != null ? `${h.age} J.` : '–'}</div>
+                        <div className="horse-card-age-label">Alter</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="horse-card-footer">
-                    <div className={h.nextAppointment ? 'horse-card-termin' : 'horse-card-termin none'}>
-                      {h.nextAppointment ? (
-                        <>
-                          <strong>
+                    <div className="horse-card-owner">
+                      <IconUser />
+                      <span className="horse-card-owner-name">{h.customerName ?? '–'}</span>
+                      {h.customerStable && <span className="horse-card-stall">· {h.customerStable}</span>}
+                    </div>
+                    <div className="horse-card-details">
+                      <div className="horse-card-detail">
+                        <div className={`horse-card-detail-value ${!h.usage ? 'none' : ''}`}>
+                          {h.usage || '–'}
+                        </div>
+                        <div className="horse-card-detail-label">Nutzung</div>
+                      </div>
+                      <div className="horse-card-detail">
+                        <div className="horse-card-detail-value">{h.documentationCount}</div>
+                        <div className="horse-card-detail-label">Dokus</div>
+                      </div>
+                      <div className="horse-card-detail">
+                        <div className={`horse-card-detail-value ${!h.intervalWeeks ? 'none' : ''}`}>
+                          {h.intervalWeeks || '–'}
+                        </div>
+                        <div className="horse-card-detail-label">Intervall</div>
+                      </div>
+                    </div>
+                    <div className="horse-card-footer">
+                      <div className={h.nextAppointment ? 'horse-card-termin' : 'horse-card-termin none'}>
+                        {h.nextAppointment ? (
+                          <>
+                            <strong>
+                              {new Intl.DateTimeFormat('de-DE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                              }).format(new Date(h.nextAppointment))}
+                            </strong>
+                            {' · '}
                             {new Intl.DateTimeFormat('de-DE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
                             }).format(new Date(h.nextAppointment))}
-                          </strong>
-                          {' · '}
-                          {new Intl.DateTimeFormat('de-DE', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }).format(new Date(h.nextAppointment))}
-                        </>
-                      ) : (
-                        'kein Termin'
-                      )}
+                          </>
+                        ) : (
+                          'kein Termin'
+                        )}
+                      </div>
+                      <div className="horse-card-dokus">
+                        <IconDoc />
+                        {h.documentationCount}
+                      </div>
                     </div>
-                    <div className="horse-card-dokus">
-                      <IconDoc />
-                      {h.documentationCount}
-                    </div>
-                  </div>
+                  </Link>
                   <div className="horse-card-actions">
                     {h.customerId ? (
                       <Link href={`/customers/${h.customerId}`} className="horse-card-act">
-                        <IconPhone /> Besitzer
+                        <IconUser /> Besitzer
                       </Link>
                     ) : (
-                      <span className="horse-card-act disabled"><IconPhone /> Besitzer</span>
+                      <span className="horse-card-act disabled"><IconUser /> Besitzer</span>
                     )}
-                    <Link href={`/horses/${h.id}/records`} className="horse-card-act">
+                    <Link href={`/horses/${h.id}/records/new`} className="horse-card-act">
                       <IconDoc /> Doku
                     </Link>
                     <Link href={`/appointments/new?horseId=${h.id}`} className="horse-card-act">

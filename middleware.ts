@@ -55,11 +55,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Authenticated on auth pages → send to dashboard
-  if (user && isAuthPage) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  // Authenticated: check onboarding status
+  if (user) {
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
+
+    // Authenticated on auth pages → send to onboarding or dashboard
+    if (isAuthPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = onboardingComplete ? '/dashboard' : '/onboarding'
+      return NextResponse.redirect(url)
+    }
+
+    // Authenticated on protected page but onboarding not complete → send to onboarding
+    if (isProtectedPage && !onboardingComplete) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/onboarding'
+      return NextResponse.redirect(url)
+    }
   }
 
   return response

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
   }
 
-  const merged = { ...body } as Record<string, unknown>
+  const merged = { ...(typeof body === 'object' && body !== null ? body : {}) } as Record<string, unknown>
   if (merged.smtpPassword === '' || merged.smtpPassword === undefined) {
     const { data: existing } = await supabase
       .from('user_settings')

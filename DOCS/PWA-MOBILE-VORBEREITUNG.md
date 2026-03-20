@@ -2,7 +2,7 @@
 
 ## Erledigt
 
-- **PWA:** `public/manifest.json` (Name, Start-URL, Theme-Farbe, Icon-Pfade), Theme-Color im Root-Layout, minimaler Service Worker `public/sw.js` mit Registrierung.
+- **PWA:** `public/manifest.json` (Name, Start-URL, Theme-Farbe, Icon-Pfade), Theme-Color im Root-Layout. **Offline-Support** via Serwist (Service Worker unter `/serwist/sw.js`). Siehe `DOCS/PWA-OFFLINE.md`.
 - **Mobile-Umschaltung:** Unter 768px wird die **Mobile-Ansicht** gezeigt, ab 768px unverändert die **Desktop-Ansicht** (Sidebar + bestehender Inhalt).
 - **Mobile-Shell:** `components/mobile/MobileShell.tsx` – Bottom-Navigation (Start, Termine, Pferde, Kunden, Mehr) und Bereich für dein Header-/Seiten-Layout.
 - **Routen-Map:** `components/mobile/mobileRouteMap.tsx` – hier werden pro Route die Mobile-Seiten eingetragen. Aktuell liefern alle Routen einen Platzhalter („Mobile-Ansicht folgt“).
@@ -30,9 +30,10 @@
 | Datei | Zweck |
 |-------|--------|
 | `public/manifest.json` | PWA-Metadaten, Start-URL, Icons, Theme |
-| `public/sw.js` | Service Worker (für Installation) |
-| `app/layout.tsx` | Manifest-Link, Theme-Color, SW-Registrierung |
-| `components/RegisterSw.tsx` | Registriert den Service Worker im Browser |
+| `app/serwist/[path]/route.ts` | Liefert Service Worker unter `/serwist/sw.js` |
+| `app/sw.ts` | Service-Worker-Quelle (Serwist) |
+| `app/serwist-provider.tsx` | SerwistProvider – registriert SW, cached bei Navigation |
+| `app/~offline/page.tsx` | Offline-Fallback-Seite |
 | `components/mobile/useIsMobile.ts` | Hook: `true` wenn Viewport &lt; 768px |
 | `components/mobile/MobileShell.tsx` | Bottom-Nav + Platz für dein Layout |
 | `components/mobile/mobileRouteMap.tsx` | Route → Mobile-Komponente (hier Platzhalter ersetzen) |

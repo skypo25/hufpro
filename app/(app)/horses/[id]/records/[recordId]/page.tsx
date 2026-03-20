@@ -358,14 +358,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     .maybeSingle<Partial<HoofRecord>>()
   if (extRow) extRecord = extRow
 
-  // doc_number – separate query so a missing column doesn't break extended fields
-  const { data: docRow } = await supabase
-    .from('hoof_records')
-    .select('doc_number')
-    .eq('id', recordId)
-    .eq('user_id', user.id)
-    .maybeSingle<{ doc_number?: string | null }>()
-  if (docRow?.doc_number) extRecord = { ...extRecord, doc_number: docRow.doc_number }
+  // doc_number – Spalte kann fehlen; Fallback aus recordId + record_date
 
   const record: HoofRecord = { ...recordBase, ...extRecord }
 

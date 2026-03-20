@@ -36,6 +36,20 @@ export const SLOT_LABELS: Record<string, string> = {
   whole_right: 'Ganzkörper rechts',
 }
 
+/** Legacy mobile keys (solar_vl, lateral_vl) → canonical (VL_solar, VL_lateral). Für Rückwärtskompatibilität. */
+const LEGACY_TO_CANONICAL: Record<string, PhotoSlotKey> = {
+  solar_vl: 'VL_solar', solar_vr: 'VR_solar', solar_hl: 'HL_solar', solar_hr: 'HR_solar',
+  lateral_vl: 'VL_lateral', lateral_vr: 'VR_lateral', lateral_hl: 'HL_lateral', lateral_hr: 'HR_lateral',
+}
+
+/** photo_type aus DB → kanonischer Slot-Key. Mapped legacy (solar_vl) und akzeptiert bereits kanonische (VL_solar). */
+export function toCanonicalPhotoSlot(photoType: string | null): PhotoSlotKey | null {
+  if (!photoType) return null
+  const canonical = LEGACY_TO_CANONICAL[photoType] ?? (photoType as PhotoSlotKey)
+  const valid = [...SLOT_SOLAR, ...SLOT_LATERAL, ...SLOT_WHOLE_BODY]
+  return valid.includes(canonical) ? canonical : null
+}
+
 /** Zielseitenverhältnis: Hufbilder hochkant 9:16 */
 export const ASPECT_HOOF = 9 / 16
 /** Ganzkörper Querformat 16:9 */

@@ -504,7 +504,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
           <FormSection icon="📊" iconBg="bg-[#FEF3C7] text-[#D97706]" title="Steuerliche Angaben" badge="Wichtig für korrekte Rechnungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
               <span className="shrink-0 text-lg">ℹ️</span>
-              <p><strong>Hinweis:</strong> Diese Angaben sind entscheidend dafür, wie deine Rechnungen aussehen. Als Kleinunternehmer nach §19 UStG darfst du keine Umsatzsteuer ausweisen. HufPro erledigt das automatisch für dich.</p>
+              <p><strong>Hinweis:</strong> Diese Angaben sind entscheidend dafür, wie deine Rechnungen aussehen. Als Kleinunternehmer nach §19 UStG darfst du keine Umsatzsteuer ausweisen. AniDocs erledigt das automatisch für dich.</p>
             </div>
             <FormRow>
               <FormGroup label="Steuernummer" required hint="Vom Finanzamt zugewiesen — erscheint auf jeder Rechnung">
@@ -724,7 +724,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
             <div className="rounded-xl border border-[#E5E2DC] bg-black/[0.01] p-6 text-[13px] leading-relaxed">
               <div className="mb-4 flex justify-between border-b border-[#E5E2DC] pb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf3ef] font-serif text-lg font-bold text-[#52b788]">H</div>
-                <div className="text-right text-xs text-[#6B7280]">
+                <div className="text-right text-xs text-[#6B7280]" suppressHydrationWarning>
                   <strong className="text-[13px] text-[#1B1F23]">{s.companyName || `${s.firstName} ${s.lastName}`.trim() || 'Betriebsname'}</strong><br />
                   {[s.firstName, s.lastName].filter(Boolean).join(' ')} {s.qualification && `· ${s.qualification}`}<br />
                   {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
@@ -747,7 +747,7 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                   {s.kleinunternehmerText ?? 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.'}
                 </div>
               )}
-              <div className="mt-4 border-t border-[#E5E2DC] pt-3 text-center text-[11px] text-[#9CA3AF] leading-relaxed">
+              <div className="mt-4 border-t border-[#E5E2DC] pt-3 text-center text-[11px] text-[#9CA3AF] leading-relaxed" suppressHydrationWarning>
                 {s.companyName || [s.firstName, s.lastName].filter(Boolean).join(' ')} · {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
                 StNr: {s.taxNumber || '…'} · IBAN: {s.iban ? `${s.iban.slice(0, 8)}…` : '…'}
               </div>

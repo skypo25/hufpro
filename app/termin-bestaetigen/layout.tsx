@@ -8,10 +8,6 @@ export default function TerminBestaetigenLayout({
       className="min-h-screen py-10 px-4"
       style={{
         backgroundColor: '#F7F6F3',
-        backgroundImage: 'url(/background.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
       }}
     >
       <div

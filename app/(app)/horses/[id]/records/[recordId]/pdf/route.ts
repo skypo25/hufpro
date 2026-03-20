@@ -38,7 +38,8 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const element = React.createElement(RecordPdfDocument, { data })
 
-  const pdfBuffer = await renderToBuffer(element)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfBuffer = await renderToBuffer(element as any)
   const pdfUint8 = new Uint8Array(pdfBuffer)
 
   const url = new URL(request.url)

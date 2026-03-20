@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -66,15 +66,6 @@ function formatDateTime(iso: string | null): string {
   }).format(d)
 }
 
-function IconEdit() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={18} height={18}>
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  )
-}
-
 function IconCalendar() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
@@ -133,6 +124,8 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const fromPath = pathname ? getHorseIdFromPath(pathname) : ''
   const horseId = (horseIdProp && horseIdProp !== 'undefined' ? horseIdProp : fromPath) || ''
 
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<ViewTab>('overview')
@@ -141,6 +134,16 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [lastTreatment, setLastTreatment] = useState<string | null>(null)
   const [nextAppointment, setNextAppointment] = useState<string | null>(null)
   const [dokus, setDokus] = useState<DokuRow[]>([])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node
+      if (menuRef.current && !menuRef.current.contains(target)) setMenuOpen(false)
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [menuOpen])
 
   useEffect(() => {
     const idFromUrl =
@@ -220,39 +223,57 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
     <>
       <div className="status-bar" aria-hidden />
       <header className="mobile-header">
-        <div className="ah-top">
-          <div className="flex gap-2 justify-end">
-            <Link
-              href={`/horses/${horse.id}/edit`}
-              className="ah-btn"
-              aria-label="Pferd bearbeiten"
-            >
-              <IconEdit />
-            </Link>
-          </div>
-        </div>
-        <div className="horse-hero">
-          <div className="hh-info">
-            <div className="hh-name">{horse.name || 'Pferd'}</div>
-            <div className="hh-meta">
-              {metaLine && <span>{metaLine}</span>}
+        <div className="cd-hero flex items-center gap-3">
+          <div className="cd-info min-w-0 flex-1">
+            <div className="cd-name">{horse.name || 'Pferd'}</div>
+            <div className="cd-meta flex flex-wrap items-center gap-x-1 gap-y-0.5">
+              {metaLine && <span className="whitespace-nowrap">{metaLine}</span>}
             </div>
+          </div>
+          <div className="relative shrink-0" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              className="cd-edit cd-edit--no-bg flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-white active:bg-white/10"
+              aria-label="Menü"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+            >
+              <i className="bi bi-three-dots-vertical text-[20px]" aria-hidden />
+            </button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-[#f2f2f3] bg-white py-1 shadow-lg"
+                style={{ marginTop: 4 }}
+              >
+                <Link
+                  href={`/horses/${horse.id}/edit`}
+                  role="menuitem"
+                  className="flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:bg-[#f7f7f7] active:bg-[#f0f0f0]"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <i className="bi bi-pencil-square text-[14px] text-[#52b788]" />
+                  Pferd bearbeiten
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="mobile-content">
-        <div className="horse-detail-actions">
-          <Link href={`/appointments/new?horseId=${horse.id}`} className="horse-detail-act">
-            <IconCalendar />
-            Termin
-          </Link>
-          <Link href={`/horses/${horse.id}/records/new`} className="horse-detail-act primary">
-            <IconDoc />
-            Dokumentation
-          </Link>
-        </div>
+      <div className="cd-action-row flex gap-2">
+        <Link href={`/appointments/new?horseId=${horse.id}`} className="cd-action-btn flex flex-1 items-center justify-center gap-1.5">
+          <IconCalendar />
+          Termin anlegen
+        </Link>
+        <Link href={`/horses/${horse.id}/records/new`} className="cd-action-btn primary flex flex-1 items-center justify-center gap-1.5">
+          <IconDoc />
+          Dokumentation
+        </Link>
+      </div>
 
+      <div className="mobile-content">
         <div className="horse-detail-tabs">
           <button
             type="button"

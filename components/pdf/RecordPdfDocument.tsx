@@ -614,7 +614,7 @@ function PageFooter({
         <Text style={s.footerText}>Erstellt am {formatGermanDate(recordDate)} · {pageLabel}</Text>
         <Text>
           <Text style={s.footerText}>Erstellt mit </Text>
-          <Text style={s.footerPowered}>HufPro</Text>
+          <Text style={s.footerPowered}>AniDocs</Text>
         </Text>
       </View>
     </View>
@@ -683,7 +683,7 @@ export default function RecordPdfDocument({ data }: Props) {
             <LogoBlock logoUrl={seller.logoUrl} />
             {!seller.logoUrl && (
               <View>
-                <Text style={s.headerBrandName}>HufPro</Text>
+                <Text style={s.headerBrandName}>AniDocs</Text>
                 <Text style={s.headerBrandSub}>Dokumentationsbericht</Text>
               </View>
             )}
@@ -835,7 +835,7 @@ export default function RecordPdfDocument({ data }: Props) {
           <View style={s.headerCompact}>
             <View style={s.headerCompactLogoRow}>
               <LogoBlock logoUrl={seller.logoUrl} compact />
-              {!seller.logoUrl && <Text style={s.headerCompactName}>HufPro</Text>}
+              {!seller.logoUrl && <Text style={s.headerCompactName}>AniDocs</Text>}
             </View>
             <View style={{ textAlign: "right" }}>
               <Text style={s.headerMetaBold}>
@@ -864,7 +864,7 @@ export default function RecordPdfDocument({ data }: Props) {
         <View style={s.headerCompact}>
           <View style={s.headerCompactLogoRow}>
             <LogoBlock logoUrl={seller.logoUrl} compact />
-            {!seller.logoUrl && <Text style={s.headerCompactName}>HufPro</Text>}
+            {!seller.logoUrl && <Text style={s.headerCompactName}>AniDocs</Text>}
           </View>
           <View style={{ textAlign: "right" }}>
             <Text style={s.headerMetaBold}>

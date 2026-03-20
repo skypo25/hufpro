@@ -1,4 +1,4 @@
-# Kontext & Architektur (Hufpflege-App)
+# Kontext & Architektur (AniDocs)
 
 ## Produktziel (Domain)
 
@@ -111,7 +111,7 @@ Es gibt aktuell **kein globales State-Management** (kein Redux/Zustand/Jotai). D
 - `LoginPage` nutzt Browser Client (`supabase.auth.signInWithPassword`, `signUp`)
 - Protected Pages sind zusätzlich über Middleware abgesichert.
 
-## Kern-Komponenten in `/components` (für die Hufpflege-App relevant)
+## Kern-Komponenten in `/components` (für die AniDocs relevant)
 
 ### Navigation / Layout
 

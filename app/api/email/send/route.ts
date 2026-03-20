@@ -56,11 +56,11 @@ export async function POST(request: Request) {
   const settings = (row?.settings ?? {}) as SettingsSmtp
   // Beim Test-Versand können die aktuellen Formularwerte mitgeschickt werden (Passwort wird nie zurückgegeben)
   const useBody = body.test === true
-  const host = (useBody ? body.smtpHost ?? settings.smtpHost : settings.smtpHost ?? '').toString().trim()
+  const host = ((useBody ? body.smtpHost ?? settings.smtpHost : settings.smtpHost) ?? '').toString().trim()
   const port = Number(useBody ? body.smtpPort ?? settings.smtpPort : settings.smtpPort) || 587
   const secure = Boolean(useBody ? body.smtpSecure ?? settings.smtpSecure : settings.smtpSecure)
-  const smtpUser = (useBody ? body.smtpUser ?? settings.smtpUser : settings.smtpUser ?? '').toString().trim()
-  const smtpPassword = (useBody ? body.smtpPassword ?? settings.smtpPassword : settings.smtpPassword ?? '').toString().trim()
+  const smtpUser = ((useBody ? body.smtpUser ?? settings.smtpUser : settings.smtpUser) ?? '').toString().trim()
+  const smtpPassword = ((useBody ? body.smtpPassword ?? settings.smtpPassword : settings.smtpPassword) ?? '').toString().trim()
 
   if (!host || !smtpUser || !smtpPassword) {
     return NextResponse.json(
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   }
 
   const fromEmail = (useBody ? body.smtpFromEmail ?? settings.smtpFromEmail : settings.smtpFromEmail) || (useBody ? body.email ?? settings.email : settings.email) || smtpUser
-  const fromName = (useBody ? body.smtpFromName ?? settings.smtpFromName : settings.smtpFromName) || (useBody ? [body.firstName, body.lastName].filter(Boolean).join(' ') : [settings.firstName, settings.lastName].filter(Boolean).join(' ')) || (useBody ? body.companyName : settings.companyName) || 'HufPro'
+  const fromName = (useBody ? body.smtpFromName ?? settings.smtpFromName : settings.smtpFromName) || (useBody ? [body.firstName, body.lastName].filter(Boolean).join(' ') : [settings.firstName, settings.lastName].filter(Boolean).join(' ')) || (useBody ? body.companyName : settings.companyName) || 'AniDocs'
   const fromEmailTrim = (fromEmail ?? '').toString().trim()
   const fromNameTrim = (fromName ?? '').toString().trim()
 
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         },
         {
           to,
-          subject: 'HufPro – Test-E-Mail',
+          subject: 'AniDocs – Test-E-Mail',
           text: 'Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.',
           html: '<p>Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.</p>',
         }

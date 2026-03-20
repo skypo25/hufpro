@@ -1,7 +1,7 @@
 {
-  "name": "Hufpflege Software",
-  "short_name": "HufPro",
-  "description": "Hufpflege Software für Kunden, Pferde und Dokumentationen",
+  "name": "AniDocs",
+  "short_name": "AniDocs",
+  "description": "AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#1b1f23",

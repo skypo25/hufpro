@@ -462,21 +462,23 @@ export default async function CustomersPage({
               return (
                 <div
                   key={row.customer.id}
-                  className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden"
+                  className="relative grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden"
                 >
+                  <Link
+                    href={`/customers/${row.customer.id}`}
+                    className="absolute inset-0 z-0"
+                    aria-label={`Kunde ${row.customer.name || ''} öffnen`}
+                  />
                   <div
-                    className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#154227] text-[12px] font-semibold text-white"
+                    className="pointer-events-none flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#154227] text-[12px] font-semibold text-white"
                   >
                     {getInitials(row.customer.name)}
                   </div>
 
-                  <div className="min-w-0">
-                    <Link
-                      href={`/customers/${row.customer.id}`}
-                      className="block truncate text-[14px] font-semibold text-[#1B1F23] hover:text-[#0f301b]"
-                    >
+                  <div className="pointer-events-none min-w-0">
+                    <div className="block truncate text-[14px] font-semibold text-[#1B1F23]">
                       {row.customer.name || '-'}
-                    </Link>
+                    </div>
 
                     <div className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-[#6B7280]">
                       <i className="bi bi-geo-alt text-[12px]" />
@@ -484,7 +486,7 @@ export default async function CustomersPage({
                     </div>
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="pointer-events-none min-w-0">
                     <div className="truncate text-[13px] tabular-nums text-[#1B1F23]">
                       {row.customer.phone || '-'}
                     </div>
@@ -493,12 +495,12 @@ export default async function CustomersPage({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-[14px] font-semibold text-[#1B1F23]">
+                  <div className="pointer-events-none flex items-center gap-1.5 text-[14px] font-semibold text-[#1B1F23]">
                     <span className="text-[16px]">🐴</span>
                     {row.horseCount}
                   </div>
 
-                  <div>
+                  <div className="pointer-events-none">
                     {row.nextAppointment ? (
                       <>
                         <div className="text-[13px] font-medium text-[#52b788]">
@@ -519,10 +521,10 @@ export default async function CustomersPage({
                     )}
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="relative z-20 flex justify-end">
                     <Link
                       href={`/appointments/new?customerId=${row.customer.id}`}
-                      className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
+                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
                       title="Termin anlegen"
                     >
                       <i className="bi bi-calendar-plus text-[14px]" />

@@ -88,7 +88,13 @@ export async function processImage(
   options: ProcessOptions
 ): Promise<{ blob: Blob; width: number; height: number }> {
   const quality = Math.min(1, Math.max(0, options.quality ?? 0.88))
-  const img = await loadImage(URL.createObjectURL(file))
+  const objectUrl = URL.createObjectURL(file)
+  let img: HTMLImageElement
+  try {
+    img = await loadImage(objectUrl)
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
 
   const crop = getCropAndOutputSize(
     img,

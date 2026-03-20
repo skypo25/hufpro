@@ -114,7 +114,9 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
     .eq('horse_id', horseId)
     .eq('user_id', user.id)
     .maybeSingle()
-  if (extendedRow) extended = extendedRow as typeof extended
+  if (extendedRow) {
+    extended = extendedRow as Pick<HoofRecordRow, 'general_condition' | 'gait' | 'handling_behavior' | 'horn_quality' | 'hoofs_json' | 'checklist_json'>
+  }
 
   const customer = getRelation(horseRow?.customers ?? null)
 

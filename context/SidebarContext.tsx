@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
-const STORAGE_KEY = 'hufpro-sidebar-collapsed'
+const STORAGE_KEY = 'anidocs-sidebar-collapsed'
 
 type SidebarContextType = {
   isCollapsed: boolean

@@ -50,6 +50,9 @@ type HoofRecord = {
   id: string
   horse_id: string
   record_date: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  doc_number?: string | null
 }
 
 type HoofPhoto = {
@@ -160,6 +163,32 @@ function formatGermanDate(dateString: string | null) {
     month: '2-digit',
     year: 'numeric',
   }).format(date)
+}
+
+function formatGermanTime(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(d)
+}
+
+function formatGermanDatetime(iso: string | null): string {
+  if (!iso) return '–'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '–'
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
+}
+
+function buildDocNumber(recordId: string, recordDate: string | null): string {
+  const year = recordDate ? new Date(recordDate).getFullYear() : new Date().getFullYear()
+  const suffix = recordId.replace(/-/g, '').slice(-4).toUpperCase()
+  return `DOK-${year}-${suffix}`
 }
 
 function getAgeFromBirthYear(birthYear: number | null) {
@@ -273,9 +302,10 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   const lastTreatment = lastRecords?.[0]?.record_date || null
 
+  // id, horse_id, record_date, created_at, updated_at – doc_number wird berechnet
   const { data: records } = await supabase
     .from('hoof_records')
-    .select('id, horse_id, record_date')
+    .select('id, horse_id, record_date, created_at, updated_at')
     .eq('horse_id', id)
     .eq('user_id', user.id)
     .order('record_date', { ascending: false })
@@ -355,7 +385,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           </div>
 
           <div>
-            <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
+            <h1 className="dashboard-serif text-[26px] font-medium tracking-[-0.02em] text-[#1B1F23]">
               {horse.name || 'Pferd'}
             </h1>
 
@@ -478,8 +508,9 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               <table className="huf-table">
                 <thead>
                   <tr>
-                    <th>Datum</th>
+                    <th>Datum und Uhrzeit</th>
                     <th>Fotos</th>
+                    <th>Geändert</th>
                     <th className="text-right">Aktion</th>
                   </tr>
                 </thead>
@@ -488,7 +519,15 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                   {recordRows.map(({ record, photoCount }) => (
                     <tr key={record.id}>
                       <td className="font-bold text-[#1B1F23]">
-                        {formatGermanDate(record.record_date)}
+                        <div className="flex flex-col gap-0.5">
+                          <span>{formatGermanDate(record.record_date)}</span>
+                          <span className="text-[12px] font-normal text-[#6B7280]">
+                            {[
+                              record.created_at && formatGermanTime(record.created_at),
+                              buildDocNumber(record.id, record.record_date),
+                            ].filter(Boolean).join(' · ')}
+                          </span>
+                        </div>
                       </td>
 
                       <td>
@@ -496,6 +535,12 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                           <i className="bi bi-images text-[14px]" />
                           {photoCount}
                         </span>
+                      </td>
+
+                      <td className="text-[13px] text-[#6B7280]">
+                        {record.updated_at && record.created_at && record.updated_at !== record.created_at
+                          ? formatGermanDatetime(record.updated_at)
+                          : '–'}
                       </td>
 
                       <td>
@@ -514,7 +559,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
                   {recordRows.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="py-10 text-center text-sm text-[#6B7280]">
+                      <td colSpan={4} className="py-10 text-center text-sm text-[#6B7280]">
                         Noch keine Dokumentationen vorhanden.
                       </td>
                     </tr>

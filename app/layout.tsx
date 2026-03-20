@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from 'next'
 import { Outfit, DM_Sans } from 'next/font/google'
 import './globals.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import RegisterSw from '@/components/RegisterSw'
 import Preloader from '@/components/Preloader'
 import RouteLoader from '@/components/RouteLoader'
+import { SerwistProvider } from './serwist-provider'
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -22,10 +22,10 @@ const dmSans = DM_Sans({
 
 
 export const metadata: Metadata = {
-  title: 'Hufpflege Software',
-  description: 'Hufpflege Software für Kunden, Pferde und Dokumentationen',
+  title: 'AniDocs',
+  description: 'AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'HufPro', statusBarStyle: 'black-translucent' },
+  appleWebApp: { capable: true, title: 'AniDocs', statusBarStyle: 'black-translucent' },
 }
 
 export const viewport: Viewport = {
@@ -45,10 +45,11 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${dmSans.variable} ${outfit.variable}`}>
       <body>
-        <Preloader />
-        <RouteLoader />
-        {children}
-        <RegisterSw />
+        <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
+          <Preloader />
+          <RouteLoader />
+          {children}
+        </SerwistProvider>
       </body>
     </html>
   )

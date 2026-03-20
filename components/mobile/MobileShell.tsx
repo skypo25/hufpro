@@ -24,7 +24,7 @@ const NAV_LINK_ITEMS: { href: string; label: string; icon: typeof faTableCellsLa
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [moreSheetOpen, setMoreSheetOpen] = useState(false)
-  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/[^/]+\/edit)$/.test(pathname ?? '')
+  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|horses\/new)$/.test(pathname ?? '')
   const isMoreActive = pathname?.startsWith('/settings') ?? false
 
   return (

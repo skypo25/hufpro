@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase-client'
 import { createRecord, updateRecord } from '@/app/(app)/horses/[id]/records/actions'
 import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
 import { processHoofImage } from '@/components/photos/imageProcessing'
-import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
+import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot, type PhotoSlotKey } from '@/lib/photos/photoTypes'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { parseAnnotationsJson, DEFAULT_ANNOTATIONS } from '@/lib/photos/annotations'
 import MinimalRichEditor from '@/components/records/MinimalRichEditor'
@@ -88,12 +88,7 @@ const HOOF_KEYS = ['vl', 'vr', 'hl', 'hr'] as const
 type HoofKey = typeof HOOF_KEYS[number]
 const HOOF_LABELS: Record<HoofKey, string> = { vl: 'VL — Vorne Links', vr: 'VR — Vorne Rechts', hl: 'HL — Hinten Links', hr: 'HR — Hinten Rechts' }
 
-const SLOT_SOLAR: PhotoSlotKey[] = ['solar_vl', 'solar_vr', 'solar_hl', 'solar_hr']
-const SLOT_LATERAL: PhotoSlotKey[] = ['lateral_vl', 'lateral_vr', 'lateral_hl', 'lateral_hr']
-const SLOT_LABELS: Record<string, string> = {
-  solar_vl: 'VL Sohle', solar_vr: 'VR Sohle', solar_hl: 'HL Sohle', solar_hr: 'HR Sohle',
-  lateral_vl: 'VL Lateral', lateral_vr: 'VR Lateral', lateral_hl: 'HL Lateral', lateral_hr: 'HR Lateral',
-}
+// Slot-Keys aus photoTypes – müssen mit Desktop/Detail übereinstimmen (VL_solar, VL_lateral, …)
 
 function hoofStatus(h: HoofState): 'ok' | 'warn' | 'critical' | 'empty' {
   const isEmpty = !h.toe_alignment && !h.heel_balance && !h.frog_condition && !h.sole_condition
@@ -135,7 +130,7 @@ function HoofAccordionItem({
   const st = hoofStatus(state)
   const badgeCls = st === 'critical' ? 'ha-badge crit' : st === 'warn' ? 'ha-badge warn' : st === 'empty' ? 'ha-badge empty' : 'ha-badge ok'
   const badgeTxt = st === 'critical' ? 'Problematisch' : st === 'warn' ? 'Abweichung' : st === 'empty' ? 'Keine Angabe' : 'Unauffällig'
-  const dotCls = st === 'critical' ? 'ha-dot crit' : st === 'warn' ? 'ha-dot warn' : 'ha-dot'
+  const dotCls = st === 'critical' ? 'ha-dot crit' : st === 'warn' ? 'ha-dot warn' : st === 'empty' ? 'ha-dot empty' : 'ha-dot ok'
 
   function mini(field: keyof HoofState, value: string, isDefault: boolean) {
     const active = state[field] === value
@@ -414,6 +409,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
   // ── Photos ──
   const [stagedPhotos, setStagedPhotos] = useState<Partial<Record<PhotoSlotKey, StagedPhoto>>>({})
+  const stagedPhotosRef = useRef(stagedPhotos)
+  stagedPhotosRef.current = stagedPhotos
   const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>([])
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
   const [uploadingSlot, setUploadingSlot] = useState<PhotoSlotKey | null>(null)
@@ -496,11 +493,11 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
           const loadedAnnotations: Partial<Record<PhotoSlotKey, AnnotationsData>> = {}
           for (const p of photos) {
             if (!p.file_path || !p.photo_type) continue
+            const slot = toCanonicalPhotoSlot(p.photo_type)
+            if (!slot) continue
             const { data: s } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-            if (s?.signedUrl) urls[p.photo_type] = s.signedUrl
-            if (p.annotations_json) {
-              loadedAnnotations[p.photo_type as PhotoSlotKey] = parseAnnotationsJson(p.annotations_json)
-            }
+            if (s?.signedUrl) urls[slot] = s.signedUrl
+            if (p.annotations_json) loadedAnnotations[slot] = parseAnnotationsJson(p.annotations_json)
           }
           setPhotoUrls(urls)
           if (Object.keys(loadedAnnotations).length > 0) {
@@ -515,6 +512,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   // ── Computed hoof status ──
   const overallStatus = useMemo(() => {
     const statuses = HOOF_KEYS.map((k) => hoofStatus(hoofs[k]))
+    if (statuses.includes('empty')) return 'empty'
     if (statuses.includes('critical')) return 'critical'
     if (statuses.includes('warn')) return 'warn'
     return 'ok'
@@ -526,6 +524,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   // ── Photo upload ──
   const handlePhotoSelect = useCallback(async (slot: PhotoSlotKey, file: File) => {
     setUploadingSlot(slot)
+    setError('')
     try {
       const result = await processHoofImage(file)
       const previewUrl = URL.createObjectURL(result.blob)
@@ -533,8 +532,37 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         ...prev,
         [slot]: { slot, blob: result.blob, width: result.width, height: result.height, previewUrl },
       }))
-    } catch {
-      // ignore processing error
+    } catch (e) {
+      // Fallback: Original-Datei ohne Verarbeitung (z.B. wenn processHoofImage auf manchen Mobilgeräten scheitert)
+      try {
+        const url = URL.createObjectURL(file)
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const i = new Image()
+          i.onload = () => resolve(i)
+          i.onerror = () => reject(new Error('Bild konnte nicht geladen werden'))
+          i.src = url
+        })
+        URL.revokeObjectURL(url)
+        const blob = file
+        const previewUrl = URL.createObjectURL(blob)
+        setStagedPhotos((prev) => ({
+          ...prev,
+          [slot]: { slot, blob, width: img.naturalWidth, height: img.naturalHeight, previewUrl },
+        }))
+      } catch (fallbackErr) {
+        // Letzter Fallback: Datei ohne Maße (Upload funktioniert trotzdem)
+        try {
+          const blob = file.size > 0 ? file : await file.arrayBuffer().then((ab) => new Blob([ab], { type: file.type || 'image/jpeg' }))
+          const previewUrl = URL.createObjectURL(blob)
+          setStagedPhotos((prev) => ({
+            ...prev,
+            [slot]: { slot, blob, width: 1080, height: 1920, previewUrl },
+          }))
+        } catch (lastErr) {
+          console.error('Foto-Verarbeitung fehlgeschlagen:', e, fallbackErr, lastErr)
+          setError('Bild konnte nicht verarbeitet werden. Bitte erneut aufnehmen oder anderes Foto wählen.')
+        }
+      }
     } finally {
       setUploadingSlot(null)
     }
@@ -569,8 +597,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         targetRecordId = result.recordId
       }
 
-      // Upload staged photos
-      const staged = Object.entries(stagedPhotos) as [PhotoSlotKey, StagedPhoto][]
+      // Upload staged photos (Ref für aktuellste Fotos, falls Nutzer schnell speichert)
+      const staged = Object.entries(stagedPhotosRef.current) as [PhotoSlotKey, StagedPhoto][]
       const stagedSlots = new Set<PhotoSlotKey>()
       for (const [slot, photo] of staged) {
         if (!photo) continue
@@ -592,6 +620,11 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         await saveAnnotationsForExistingPhoto({ recordId: targetRecordId, slot, annotationsJson: annotations })
       }
 
+      // Warten, damit Storage und DB nach Foto-Upload bereit sind (Detail-Anzeige lädt sonst evtl. zu früh)
+      if (staged.length > 0) {
+        await new Promise((r) => setTimeout(r, 1200))
+      }
+      router.refresh()
       router.push(`/horses/${horseId}/records/${targetRecordId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
@@ -610,7 +643,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
   // Progress steps
   const gcDone = !!(generalCondition || gait || handlingBehavior || hornQuality)
-  const hoofDone = HOOF_KEYS.some((k) => hoofStatus(hoofs[k]) !== 'ok') || allDefault
+  const hoofDone = HOOF_KEYS.every((k) => hoofStatus(hoofs[k]) !== 'empty')
   const photoDone = Object.keys(stagedPhotos).length > 0 || existingPhotos.length > 0
   const summaryDone = !!summaryText.trim()
   const steps = [
@@ -642,7 +675,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         </div>
       </header>
 
-      {/* ACTION ROW – scrollt mit; wird per IntersectionObserver beobachtet */}
+      {/* ACTION ROW – wie Erstellungsseite */}
       <div ref={actionRowRef} className="cd-action-row flex gap-2">
         <button
           type="button"
@@ -775,12 +808,12 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
             </button>
 
             {/* Auto status */}
-            <div className={`auto-status ${overallStatus === 'critical' ? 'red' : overallStatus === 'warn' ? 'yellow' : 'green'}`}>
+            <div className={`auto-status ${overallStatus === 'critical' ? 'red' : overallStatus === 'warn' ? 'yellow' : overallStatus === 'empty' ? 'gray' : 'green'}`}>
               <span className="as-dot" />
               <span>
-                {overallStatus === 'critical' ? 'Problematisch' : overallStatus === 'warn' ? 'Behandlungsbedürftig' : 'Unauffällig'}
+                {overallStatus === 'critical' ? 'Problematisch' : overallStatus === 'warn' ? 'Behandlungsbedürftig' : overallStatus === 'empty' ? 'Noch nicht erfasst' : 'Unauffällig'}
               </span>
-              <span className="as-hint">· Automatisch erkannt</span>
+              {overallStatus !== 'empty' && <span className="as-hint">· Automatisch erkannt</span>}
             </div>
 
             {/* Accordion */}

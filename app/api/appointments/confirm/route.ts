@@ -214,7 +214,7 @@ export async function POST(request: Request) {
         const fromName =
           (settings.smtpFromName ?? '').toString().trim() ||
           [settings.firstName, settings.lastName].filter(Boolean).join(' ') ||
-          (settings.companyName ?? 'HufPro').toString().trim()
+          (settings.companyName ?? 'AniDocs').toString().trim()
 
         const customerName =
           customer?.name?.trim() ||

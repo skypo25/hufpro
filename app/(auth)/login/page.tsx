@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
@@ -19,13 +19,22 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(translateAuthError(error.message))
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+    let onboardingComplete = false
+    if (user) {
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('settings')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
+    }
+    router.push(onboardingComplete ? '/dashboard' : '/onboarding')
     router.refresh()
   }
 
@@ -89,6 +98,14 @@ export default function LoginPage() {
         </Link>
       </FooterText>
     </AuthShell>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<AuthShell><div className="animate-pulse text-[#6b7280]">Laden…</div></AuthShell>}>
+      <LoginContent />
+    </Suspense>
   )
 }
 

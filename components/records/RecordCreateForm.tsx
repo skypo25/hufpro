@@ -810,6 +810,7 @@ export default function RecordCreateForm({
           if (stagedSlots.has(slot)) continue // already saved above via uploadProcessedPhoto
           await saveAnnotationsForExistingPhoto({ recordId: editRecordId, slot, annotationsJson: annotations })
         }
+        router.refresh()
         router.push(`/horses/${horse.id}/records/${editRecordId}`)
       } finally {
         setSubmitting(false)
@@ -839,6 +840,7 @@ export default function RecordCreateForm({
           annotationsJson: annotationsBySlot[slot] ?? undefined,
         })
       }
+      router.refresh()
       router.push(`/horses/${horse.id}/records/${recordId}`)
     } finally {
       setSubmitting(false)

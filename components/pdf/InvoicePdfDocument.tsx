@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   footerRight: {
     textAlign: "right",
   },
-  footerHufPro: {
+  footerAniDocs: {
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
     color: "#52b788",
@@ -424,7 +424,7 @@ export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
           </View>
         </View>
 
-        {/* Footer: Links Firmendaten, rechts HufPro */}
+        {/* Footer: Links Firmendaten, rechts AniDocs */}
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
             <Text>
@@ -439,7 +439,7 @@ export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
             </Text>
           </View>
           <View style={styles.footerRight}>
-            <Text>Erstellt mit <Text style={styles.footerHufPro}>HufPro</Text></Text>
+            <Text>Erstellt mit <Text style={styles.footerAniDocs}>AniDocs</Text></Text>
           </View>
         </View>
       </Page>

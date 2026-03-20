@@ -1,4 +1,4 @@
-# Sicherheits- und DSGVO-Bericht – Hufpflege-App
+# Sicherheits- und DSGVO-Bericht – AniDocs
 
 **Stand:** Vollständige Prüfung des Projekts  
 **Datum:** März 2025

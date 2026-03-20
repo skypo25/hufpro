@@ -12,6 +12,8 @@ import MobileCustomerDetail from './MobileCustomerDetail'
 import MobileCustomerEdit from './MobileCustomerEdit'
 import MobileRecordForm from './MobileRecordForm'
 import MobileRecordDetail from './MobileRecordDetail'
+import MobileHorseForm from './MobileHorseForm'
+import MobileCustomerForm from './MobileCustomerForm'
 
 /**
  * Hier werden die Mobile-Seiten pro Route eingetragen.
@@ -32,15 +34,23 @@ export function useMobileContent(): ReactNode {
     return <MobileRecordForm horseId={editRecordMatch[1]} recordId={editRecordMatch[2]} mode="edit" />
   }
 
-  // Dokumentation Detail: /horses/[id]/records/[recordId]
-  const recordDetailMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/([^/?#]+)$/)
+  // Dokumentation Detail: /horses/[id]/records/[recordId] (optional trailing slash)
+  const recordDetailMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/([^/?#]+)\/?$/)
   if (recordDetailMatch?.[1] && recordDetailMatch?.[2]) {
     return <MobileRecordDetail horseId={recordDetailMatch[1]} recordId={recordDetailMatch[2]} />
+  }
+
+  if (pathname === '/horses/new') {
+    return <MobileHorseForm />
   }
 
   const horseIdMatch = pathname?.match(/^\/horses\/([^/?#]+)/)
   if (horseIdMatch?.[1]) {
     return <MobileHorseDetail horseId={horseIdMatch[1]} />
+  }
+
+  if (pathname === '/customers/new') {
+    return <MobileCustomerForm />
   }
 
   // Kunden bearbeiten: /customers/[id]/edit

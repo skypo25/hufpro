@@ -381,9 +381,14 @@ export default function MobileCustomers() {
           <>
             <div className="customer-card-list">
               {customers.map((c) => (
-                <article key={c.id} className="customer-card">
+                <article key={c.id} className="customer-card relative">
+                  <Link
+                    href={`/customers/${c.id}`}
+                    className="absolute inset-0 z-0"
+                    aria-label={`Kunde ${c.name || ''} öffnen`}
+                  />
                   {/* Wie Desktop: Header mit Avatar, Name, Ort, Pferde-Badge */}
-                  <div className="customer-card-header">
+                  <div className="customer-card-header pointer-events-none">
                     <div className="customer-card-avatar" aria-hidden>
                       {getInitials(c.name)}
                     </div>
@@ -399,7 +404,7 @@ export default function MobileCustomers() {
                     </div>
                   </div>
                   {/* Wie Desktop: Nächster Termin, Telefon, E-Mail – ohne Trennlinien dazwischen */}
-                  <div className="customer-card-details">
+                  <div className="customer-card-details pointer-events-none">
                     <div className="customer-card-detail-row-inner">
                       <span className="customer-card-contact-label">Nächster Termin</span>
                       <span className="customer-card-contact-value">{formatNextAppointment(c.nextAppointment)}</span>
@@ -407,7 +412,7 @@ export default function MobileCustomers() {
                     <div className="customer-card-detail-row-inner">
                       <span className="customer-card-contact-label">Telefon</span>
                       {c.phone ? (
-                        <a href={`tel:${c.phone}`} className="customer-card-contact-value customer-card-contact-link">
+                        <a href={`tel:${c.phone}`} className="customer-card-contact-value customer-card-contact-link pointer-events-auto">
                           {c.phone}
                         </a>
                       ) : (
@@ -420,16 +425,16 @@ export default function MobileCustomers() {
                     </div>
                   </div>
                   {/* Wie Desktop: Pferdenamen + Details → mit hellem Hintergrund */}
-                  <div className="customer-card-footer">
+                  <div className="customer-card-footer pointer-events-none">
                     <span className="customer-card-horsenames">
                       {c.horseNames.length > 0 ? c.horseNames.join(' · ') : 'Keine Pferde'}
                     </span>
-                    <Link href={`/customers/${c.id}`} className="customer-card-detail-link">
+                    <Link href={`/customers/${c.id}`} className="customer-card-detail-link pointer-events-auto">
                       Details →
                     </Link>
                   </div>
                   {/* Nur Mobile: Buttons darunter */}
-                  <div className="customer-card-actions">
+                  <div className="customer-card-actions relative z-10 pointer-events-auto">
                     {c.phone ? (
                       <a href={`tel:${c.phone}`} className="customer-card-act">
                         <span className="customer-card-act-icon"><IconPhone /></span>

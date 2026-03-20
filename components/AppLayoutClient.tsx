@@ -26,10 +26,6 @@ function DesktopLayout({ children }: { children: React.ReactNode }) {
         className="relative min-h-screen text-slate-900"
         style={{
           backgroundColor: '#f7f7f7',
-          backgroundImage: 'url(/background.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
         }}
       >
         <div

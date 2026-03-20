@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
-import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS } from '@/lib/photos/photoTypes'
+import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot } from '@/lib/photos/photoTypes'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import type { AnnotationsData } from '@/lib/photos/annotations'
@@ -91,6 +91,15 @@ function overallStatus(hoofs: HoofEntry[]): 'ok' | 'warn' | 'critical' {
   if (statuses.includes('critical')) return 'critical'
   if (statuses.includes('warn')) return 'warn'
   return 'ok'
+}
+
+/** Basic HTML sanitiser – strips script/style tags but keeps bold/italic/p/br (XSS-Schutz) */
+function sanitiseHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+='[^']*'/gi, '')
 }
 
 function gcColor(v: string | null): 'green' | 'yellow' | 'red' | 'neutral' {
@@ -307,24 +316,31 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   const [photoMeta, setPhotoMeta] = useState<Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>>>({})
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const [{ data: horseData }, { data: rec }] = await Promise.all([
-      supabase.from('horses').select('id,name,breed,sex,birth_year,customers(name,stable_name)').eq('id', horseId).eq('user_id', user.id).maybeSingle(),
-      supabase.from('hoof_records').select('id,record_date,record_type,general_condition,gait,handling_behavior,horn_quality,hoofs_json,summary_notes,notes,created_at,updated_at').eq('id', recordId).eq('user_id', user.id).maybeSingle(),
-    ])
-
-    if (horseData) setHorse(horseData as Horse)
-    if (rec) {
-      // fetch doc_number separately
-      const { data: docRow } = await supabase.from('hoof_records').select('doc_number').eq('id', recordId).maybeSingle()
-      setRecord({ ...(rec as Record), doc_number: docRow?.doc_number ?? null })
+    if (!user) {
+      setLoading(false)
+      return
     }
 
-    // Photos
+    const [{ data: horseData }, { data: rec }] = await Promise.all([
+      supabase.from('horses').select('id,name,breed,sex,birth_year,customer_id').eq('id', horseId).eq('user_id', user.id).maybeSingle(),
+      supabase.from('hoof_records').select('id,record_date,record_type,general_condition,gait,handling_behavior,horn_quality,hoofs_json,hoof_condition,notes,created_at,updated_at').eq('id', recordId).eq('user_id', user.id).maybeSingle(),
+    ])
+
+    let horseWithCustomer = horseData
+    if (horseData && (horseData as { customer_id?: string | null }).customer_id) {
+      const { data: cust } = await supabase.from('customers').select('name,stable_name').eq('id', (horseData as { customer_id: string }).customer_id).eq('user_id', user.id).maybeSingle()
+      horseWithCustomer = { ...horseData, customers: cust ?? null } as Horse
+    }
+    if (horseWithCustomer) setHorse(horseWithCustomer as Horse)
+    if (rec) {
+      const r = rec as Record & { hoof_condition?: string | null }
+      setRecord({ ...r, summary_notes: r.hoof_condition ?? null } as Record)
+    }
+
     const { data: photos } = await supabase
       .from('hoof_photos')
       .select('id,file_path,photo_type,annotations_json,width,height')
@@ -336,10 +352,13 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
       const meta: typeof photoMeta = {}
       for (const p of photos as HoofPhoto[]) {
         if (!p.file_path || !p.photo_type) continue
-        const { data: s } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-        if (s?.signedUrl) urls[p.photo_type as PhotoSlotKey] = s.signedUrl
-        if (p.annotations_json) {
-          meta[p.photo_type as PhotoSlotKey] = {
+        const slot = toCanonicalPhotoSlot(p.photo_type)
+        if (!slot) continue
+        const { data: s, error: urlErr } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
+        if (urlErr) console.warn('[Fotos] Signed URL fehlgeschlagen:', p.file_path, urlErr.message)
+        if (s?.signedUrl) urls[slot] = s.signedUrl
+        if (p.annotations_json && slot) {
+          meta[slot] = {
             annotations: parseAnnotationsJson(p.annotations_json),
             width: p.width ?? 900,
             height: p.height ?? 1600,
@@ -348,12 +367,51 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
       }
       setPhotoUrls(urls)
       setPhotoMeta(meta)
+    } else {
+      retryTimerRef.current = setTimeout(async () => {
+        const { data: { user: u } } = await supabase.auth.getUser()
+        if (!u) return
+        const { data: retryPhotos } = await supabase
+          .from('hoof_photos')
+          .select('id,file_path,photo_type,annotations_json,width,height')
+          .eq('hoof_record_id', recordId)
+          .eq('user_id', u.id)
+        if (retryPhotos?.length) {
+          const urls: Partial<Record<PhotoSlotKey, string>> = {}
+          const meta: Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>> = {}
+          for (const p of retryPhotos as HoofPhoto[]) {
+            if (!p.file_path || !p.photo_type) continue
+            const slot = toCanonicalPhotoSlot(p.photo_type)
+            if (!slot) continue
+            const { data: s, error: urlErr } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
+            if (urlErr) console.warn('[Fotos] createSignedUrl (Retry) fehlgeschlagen:', p.file_path, urlErr.message)
+            if (s?.signedUrl) urls[slot] = s.signedUrl
+            if (p.annotations_json) {
+              meta[slot] = {
+                annotations: parseAnnotationsJson(p.annotations_json),
+                width: p.width ?? 900,
+                height: p.height ?? 1600,
+              }
+            }
+          }
+          setPhotoUrls(urls)
+          setPhotoMeta(meta)
+        }
+      }, 2000)
     }
 
     setLoading(false)
   }, [horseId, recordId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current)
+        retryTimerRef.current = null
+      }
+    }
+  }, [load])
 
   async function handleDelete() {
     if (!confirm('Dokumentation wirklich löschen?')) return
@@ -409,56 +467,60 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
 
   return (
     <div className="mrd-root">
-
-      {/* HEADER */}
-      <header className="mrd-header">
-        <div className="mrd-horse-hero">
-          <div className="mrd-horse-info">
-            <div className="mrd-horse-name">{horse?.name ?? '–'}</div>
-            <div className="mrd-horse-meta">
+      <div className="status-bar" aria-hidden />
+      {/* HEADER – wie Dokumentations-Erstellungsseite */}
+      <header className="mobile-header">
+        <div className="cd-hero">
+          <div className="cd-info min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="cd-name">{horse?.name ?? '–'}</div>
+              <span className="mrd-done-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={12} height={12} style={{ flexShrink: 0 }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Fertig dokumentiert
+              </span>
+            </div>
+            <div className="cd-meta">
               {[horse?.breed, horse?.sex === 'male' ? 'Hengst' : horse?.sex === 'female' ? 'Stute' : horse?.sex === 'gelding' ? 'Wallach' : horse?.sex, horse?.birth_year ? `${new Date().getFullYear() - horse.birth_year} J.` : null, customer?.name, customer?.stable_name].filter(Boolean).join(' · ')}
             </div>
           </div>
         </div>
       </header>
 
-      {/* DONE BANNER */}
-      <div className="mrd-done-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={18} height={18} style={{ flexShrink: 0 }}>
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        Dokumentation abgeschlossen · {fmtDatetime(record.created_at)}
-      </div>
-
-      {/* ACTIONS */}
-      <div className="mrd-actions">
-        <button type="button" className="mrd-act-btn primary" onClick={handlePdfDownload}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-          PDF herunterladen
-        </button>
-        <button type="button" className="mrd-act-btn" onClick={handleEmail}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Per E-Mail
-        </button>
-        <button type="button" className="mrd-act-btn" onClick={() => router.push(`/horses/${horseId}/records/${recordId}/edit`)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
+      {/* ACTION ROW – wie Erstellungsseite (Bearbeiten + Löschen) */}
+      <div className="cd-action-row flex gap-2">
+        <button type="button" className="cd-action-btn flex flex-1 items-center justify-center gap-1.5" onClick={() => router.push(`/horses/${horseId}/records/${recordId}/edit`)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}>
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
           Bearbeiten
         </button>
-        <button type="button" className="mrd-act-btn danger" onClick={handleDelete} disabled={deleting}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
+        <button type="button" className="cd-action-btn flex flex-1 items-center justify-center gap-1.5 cd-action-btn--danger" onClick={handleDelete} disabled={deleting}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}>
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
           {deleting ? 'Löschen…' : 'Löschen'}
+        </button>
+      </div>
+
+      {/* Weißer Bereich: Per E-Mail + PDF */}
+      <div className="mrd-actions-light">
+        <button type="button" className="mrd-act-light" onClick={handleEmail}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Per E-Mail senden
+        </button>
+        <button type="button" className="mrd-act-light primary" onClick={handlePdfDownload}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          PDF herunterladen
         </button>
       </div>
 
@@ -523,7 +585,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
             <div className="mrd-s-body">
               <div
                 className="mrd-rich-text"
-                dangerouslySetInnerHTML={{ __html: record.summary_notes! }}
+                dangerouslySetInnerHTML={{ __html: sanitiseHtml(record.summary_notes!) }}
               />
             </div>
           </div>
@@ -534,6 +596,16 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
           <div className="mrd-s-header">
             <h3>4. Fotodokumentation</h3>
             <span className="mrd-s-badge">{photoCount} von 8</span>
+            {photoCount === 0 && (
+              <button
+                type="button"
+                onClick={() => load()}
+                className="mrd-refresh-photos"
+                style={{ marginLeft: 'auto', fontSize: 12, color: '#52b788', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Fotos aktualisieren
+              </button>
+            )}
           </div>
           <div className="mrd-s-body">
             <div className="photo-label">Sohlenansicht (Solar)</div>

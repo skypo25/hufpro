@@ -1,4 +1,4 @@
-# Sicherheitsbericht – Hufpflege-App
+# Sicherheitsbericht – AniDocs
 
 Stand: Prüfung des gesamten Projekts auf Sicherheit. Wichtige Punkte und umgesetzte Maßnahmen.
 

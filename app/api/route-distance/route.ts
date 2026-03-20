@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 const OSRM_URL = 'https://router.project-osrm.org/route/v1/driving'
 
 /**
  * Proxiert eine OSRM-Routenabfrage (Entfernung + Dauer zwischen zwei Punkten).
  * GET /api/route-distance?originLon=7.0&originLat=50.5&destLon=7.1&destLat=50.6
+ * Erfordert Authentifizierung.
  */
 export async function GET(request: Request) {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const originLon = searchParams.get('originLon')
   const originLat = searchParams.get('originLat')

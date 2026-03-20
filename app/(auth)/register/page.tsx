@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [agb, setAgb] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -23,7 +24,7 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -32,7 +33,13 @@ export default function RegisterPage() {
       },
     })
     if (error) { setError(translateAuthError(error.message)); setLoading(false); return }
-    router.push('/onboarding')
+    setSuccess('')
+    if (data.session) {
+      router.push('/onboarding')
+    } else {
+      setSuccess('Bitte bestätige deine E-Mail. Wir haben dir einen Link geschickt – klicke darauf, um fortzufahren.')
+    }
+    setLoading(false)
   }
 
   async function handleOAuth(provider: 'google' | 'apple') {
@@ -74,13 +81,13 @@ export default function RegisterPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Field label="Vorname">
             <AuthInput
-              type="text" placeholder="Jessica" autoComplete="given-name" required
+              type="text" placeholder="Vorname" autoComplete="given-name" required
               value={firstName} onChange={e => setFirstName(e.target.value)}
             />
           </Field>
           <Field label="Nachname">
             <AuthInput
-              type="text" placeholder="Renner" autoComplete="family-name" required
+              type="text" placeholder="Nachname" autoComplete="family-name" required
               value={lastName} onChange={e => setLastName(e.target.value)}
             />
           </Field>
@@ -118,6 +125,14 @@ export default function RegisterPage() {
         </label>
 
         {error && <ErrorMsg>{error}</ErrorMsg>}
+        {success && (
+          <p style={{
+            fontSize: 14, color: '#166534', padding: '12px 14px',
+            background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, margin: 0,
+          }}>
+            {success}
+          </p>
+        )}
 
         <PrimaryBtn type="submit" disabled={loading}>
           {loading ? 'Konto wird erstellt…' : 'Jetzt kostenlos starten'}

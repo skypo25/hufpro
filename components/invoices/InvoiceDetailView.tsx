@@ -247,7 +247,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
               {seller.taxNumber && <>Steuernummer: {seller.taxNumber}{seller.taxOffice ? ` · ${seller.taxOffice}` : ''}<br /></>}
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-[#9CA3AF]">Erstellt mit <span className="font-serif font-semibold text-[#52b788]">HufPro</span></div>
+              <div className="text-[10px] text-[#9CA3AF]">Erstellt mit <span className="font-serif font-semibold text-[#52b788]">AniDocs</span></div>
             </div>
           </div>
         </div>
