@@ -1,11 +1,7 @@
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import SearchPageContent, { type SearchFilter } from '@/components/search/SearchPageContent'
-import { Suspense } from 'react'
 
-type SearchPageProps = {
-  searchParams: Promise<{ q?: string; filter?: string }>
-}
+type SearchFilter = 'alle' | 'kunden' | 'pferde' | 'termine' | 'dokumentationen' | 'rechnungen'
 
 const VALID_FILTERS: SearchFilter[] = ['alle', 'kunden', 'pferde', 'termine', 'dokumentationen', 'rechnungen']
 
@@ -14,16 +10,15 @@ function parseFilter(raw: string | undefined): SearchFilter {
   return VALID_FILTERS.includes(f as SearchFilter) ? (f as SearchFilter) : 'alle'
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
+export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { q, filter } = await searchParams
-  const searchQuery = (q || '').trim()
-  const currentFilter = parseFilter(filter)
+  const { searchParams } = new URL(request.url)
+  const searchQuery = (searchParams.get('q') ?? '').trim()
+  const currentFilter = parseFilter(searchParams.get('filter') ?? undefined)
 
-  // Counts (always needed for filter tabs)
   const [
     { count: customerCount },
     { count: horseCount },
@@ -46,17 +41,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     invoices: invoiceCount ?? 0,
   }
 
-  let customers: SearchPageContent['customers'] = []
-  let horses: SearchPageContent['horses'] = []
-  let appointments: SearchPageContent['appointments'] = []
-  let hoofRecords: SearchPageContent['hoofRecords'] = []
-  let invoices: SearchPageContent['invoices'] = []
+  let customers: unknown[] = []
+  let horses: unknown[] = []
+  let appointments: unknown[] = []
+  let hoofRecords: unknown[] = []
+  let invoices: unknown[] = []
 
   if (searchQuery) {
     const pattern = `%${searchQuery}%`
     const numQuery = /^\d+$/.test(searchQuery) ? parseInt(searchQuery, 10) : null
 
-    // Customers
     if (currentFilter === 'alle' || currentFilter === 'kunden') {
       const orParts = [
         `name.ilike.${pattern}`,
@@ -77,10 +71,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         .or(orParts.join(','))
         .order('name', { ascending: true })
         .limit(50)
-      customers = (data || []) as SearchPageContent['customers']
+      customers = data || []
     }
 
-    // Horses (search by name, breed, or customer name)
     if (currentFilter === 'alle' || currentFilter === 'pferde') {
       const { data: byHorse } = await supabase
         .from('horses')
@@ -90,7 +83,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         .order('name', { ascending: true })
         .limit(50)
 
-      let customerIdsFromSearch: string[] = []
       const custOr = [
         `name.ilike.${pattern}`,
         `first_name.ilike.${pattern}`,
@@ -103,7 +95,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         .select('id')
         .eq('user_id', user.id)
         .or(custOr.join(','))
-      customerIdsFromSearch = (custMatch || []).map((r) => r.id)
+      const customerIdsFromSearch = (custMatch || []).map((r) => r.id)
 
       let byCustomer: typeof byHorse = []
       if (customerIdsFromSearch.length > 0) {
@@ -124,10 +116,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(h.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['horses']
+        .slice(0, 50)
     }
 
-    // Appointments (search by notes, type, or customer name)
     if (currentFilter === 'alle' || currentFilter === 'termine') {
       const { data: byNotes } = await supabase
         .from('appointments')
@@ -170,10 +161,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(a.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['appointments']
+        .slice(0, 50)
     }
 
-    // Hoof records (search by hoof_condition, treatment, notes, doc_number, horse name)
     if (currentFilter === 'alle' || currentFilter === 'dokumentationen') {
       const { data: byRecord } = await supabase
         .from('hoof_records')
@@ -215,10 +205,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(r.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['hoofRecords']
+        .slice(0, 50)
     }
 
-    // Invoices (search by invoice_number, customer name)
     if (currentFilter === 'alle' || currentFilter === 'rechnungen') {
       const { data: byNumber } = await supabase
         .from('invoices')
@@ -261,39 +250,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(inv.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['invoices']
+        .slice(0, 50)
     }
   }
 
-  return (
-    <Suspense fallback={<SearchPageSkeleton />}>
-      <SearchPageContent
-        initialQuery={searchQuery}
-        initialFilter={currentFilter}
-        counts={counts}
-        customers={customers}
-        horses={horses}
-        appointments={appointments}
-        hoofRecords={hoofRecords}
-        invoices={invoices}
-      />
-    </Suspense>
-  )
-}
-
-function SearchPageSkeleton() {
-  return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-8">
-      <div>
-        <div className="h-8 w-32 animate-pulse rounded bg-[#E5E2DC]" />
-        <div className="mt-2 h-4 w-96 animate-pulse rounded bg-[#E5E2DC]" />
-      </div>
-      <div className="h-12 w-full animate-pulse rounded-xl bg-[#E5E2DC]" />
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="h-10 w-24 animate-pulse rounded-lg bg-[#E5E2DC]" />
-        ))}
-      </div>
-    </main>
-  )
+  return NextResponse.json({
+    counts,
+    customers,
+    horses,
+    appointments,
+    hoofRecords,
+    invoices,
+  })
 }

@@ -719,7 +719,7 @@ export default async function CustomerDetailPage({
 
                   <div className="mt-4 flex gap-2">
                     <ActionButton
-                      href={`/appointments/${nextAppointment.id}/edit`}
+                      href={`/appointments/${nextAppointment.id}`}
                       variant="outline"
                       className="flex-1"
                     >

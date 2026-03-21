@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   deleteDraft,
   getDraft,
@@ -11,10 +11,9 @@ import {
 } from '@/lib/offline-drafts'
 
 export function useOnlineStatus(): boolean {
-  const [online, setOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  )
+  const [online, setOnline] = useState(true)
   useEffect(() => {
+    setOnline(navigator.onLine)
     const onOnline = () => setOnline(true)
     const onOffline = () => setOnline(false)
     window.addEventListener('online', onOnline)
@@ -27,10 +26,13 @@ export function useOnlineStatus(): boolean {
   return online
 }
 
+const PERSIST_DEBOUNCE_MS = 1500
+
 export function useOfflineDraft(horseId: string, recordId?: string) {
   const key: DraftKey = recordId ? `record:${horseId}:${recordId}` : `record:${horseId}`
   const [draft, setDraft] = useState<RecordDraft | null>(null)
   const [loading, setLoading] = useState(true)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async () => {
     const d = await getDraft(key)
@@ -43,7 +45,32 @@ export function useOfflineDraft(horseId: string, recordId?: string) {
   }, [load])
 
   const persist = useCallback(
+    (formData: Record<string, unknown>) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(async () => {
+        debounceRef.current = null
+        try {
+          await saveDraft(key, {
+            horseId,
+            recordId,
+            formData,
+            updatedAt: new Date().toISOString(),
+          })
+          setDraft({ horseId, recordId, formData, updatedAt: new Date().toISOString() })
+        } catch (e) {
+          console.warn('Offline-Draft speichern fehlgeschlagen:', e)
+        }
+      }, PERSIST_DEBOUNCE_MS)
+    },
+    [key, horseId, recordId]
+  )
+
+  const persistImmediate = useCallback(
     async (formData: Record<string, unknown>) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
       await saveDraft(key, {
         horseId,
         recordId,
@@ -56,11 +83,19 @@ export function useOfflineDraft(horseId: string, recordId?: string) {
   )
 
   const clear = useCallback(async () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
     await deleteDraft(key)
     setDraft(null)
   }, [key])
 
-  return { draft, loading, persist, clear, reload: load }
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+  }, [])
+
+  return { draft, loading, persist, persistImmediate, clear, reload: load }
 }
 
 export function usePendingDrafts() {

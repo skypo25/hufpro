@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -124,8 +124,6 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const fromPath = pathname ? getHorseIdFromPath(pathname) : ''
   const horseId = (horseIdProp && horseIdProp !== 'undefined' ? horseIdProp : fromPath) || ''
 
-  const menuRef = useRef<HTMLDivElement>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<ViewTab>('overview')
@@ -134,16 +132,6 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [lastTreatment, setLastTreatment] = useState<string | null>(null)
   const [nextAppointment, setNextAppointment] = useState<string | null>(null)
   const [dokus, setDokus] = useState<DokuRow[]>([])
-
-  useEffect(() => {
-    if (!menuOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (menuRef.current && !menuRef.current.contains(target)) setMenuOpen(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [menuOpen])
 
   useEffect(() => {
     const idFromUrl =
@@ -230,35 +218,13 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
               {metaLine && <span className="whitespace-nowrap">{metaLine}</span>}
             </div>
           </div>
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((o) => !o)}
-              className="cd-edit cd-edit--no-bg flex h-9 w-9 items-center justify-center rounded-lg bg-transparent text-white active:bg-white/10"
-              aria-label="Menü"
-              aria-expanded={menuOpen}
-              aria-haspopup="menu"
-            >
-              <i className="bi bi-three-dots-vertical text-[20px]" aria-hidden />
-            </button>
-            {menuOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-[#f2f2f3] bg-white py-1 shadow-lg"
-                style={{ marginTop: 4 }}
-              >
-                <Link
-                  href={`/horses/${horse.id}/edit`}
-                  role="menuitem"
-                  className="flex items-center gap-2 px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:bg-[#f7f7f7] active:bg-[#f0f0f0]"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <i className="bi bi-pencil-square text-[14px] text-[#52b788]" />
-                  Pferd bearbeiten
-                </Link>
-              </div>
-            )}
-          </div>
+          <Link
+            href={`/horses/${horse.id}/edit`}
+            className="cd-edit shrink-0"
+            aria-label="Bearbeiten"
+          >
+            <i className="bi bi-gear-fill" aria-hidden />
+          </Link>
         </div>
       </header>
 

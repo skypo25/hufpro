@@ -386,11 +386,11 @@ export default function CalendarPage() {
 
   function handleAppointmentClick(appointmentId: string, customerId: string | null) {
     if (customerId) {
-      router.push(`/appointments/${appointmentId}/edit`)
+      router.push(`/appointments/${appointmentId}`)
       return
     }
 
-    router.push(`/appointments/${appointmentId}/edit`)
+    router.push(`/appointments/${appointmentId}`)
   }
 
   function goToPreviousWeek() {

@@ -117,28 +117,41 @@ export async function GET(
   const owner = relationOwner(horse.customers)
   const nowIso = new Date().toISOString()
 
-  const { data: nextAppointments } = await supabase
-    .from('appointments')
-    .select('id, horse_id, appointment_date')
+  // Nächster Termin: über appointment_horses (Pferde sind über Verknüpfungstabelle zugeordnet)
+  const { data: aptLinks } = await supabase
+    .from('appointment_horses')
+    .select('appointment_id')
     .eq('horse_id', horseId)
     .eq('user_id', user.id)
-    .gte('appointment_date', nowIso)
-    .order('appointment_date', { ascending: true })
-    .limit(1)
-    .returns<Appointment[]>()
+  const aptIds = [...new Set((aptLinks ?? []).map((l: { appointment_id: string }) => l.appointment_id))]
+  let nextAppointment: string | null = null
+  if (aptIds.length > 0) {
+    const { data: nextApts } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .eq('user_id', user.id)
+      .in('id', aptIds)
+      .gte('appointment_date', nowIso)
+      .order('appointment_date', { ascending: true })
+      .limit(1)
+    const first = nextApts?.[0] as { appointment_date?: string } | undefined
+    nextAppointment = first?.appointment_date || null
+  }
 
-  const nextAppointment = nextAppointments?.[0]?.appointment_date || null
-
-  const { data: lastRecords } = await supabase
-    .from('hoof_records')
-    .select('id, horse_id, record_date')
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .order('record_date', { ascending: false })
-    .limit(1)
-    .returns<HoofRecord[]>()
-
-  const lastTreatment = lastRecords?.[0]?.record_date || null
+  // Letzte Bearbeitung: Datum des letzten vergangenen Termins (nicht Dokumentation)
+  let lastTreatment: string | null = null
+  if (aptIds.length > 0) {
+    const { data: lastApts } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .eq('user_id', user.id)
+      .in('id', aptIds)
+      .lte('appointment_date', nowIso)
+      .order('appointment_date', { ascending: false })
+      .limit(1)
+    const first = lastApts?.[0] as { appointment_date?: string } | undefined
+    lastTreatment = first?.appointment_date || null
+  }
 
   const { data: records } = await supabase
     .from('hoof_records')

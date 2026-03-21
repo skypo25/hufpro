@@ -1,8 +1,11 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import PhotoGrid from '@/components/photos/PhotoGrid'
+import { useOfflineDraft, useOnlineStatus } from '@/hooks/useOfflineDraft'
+import OfflineStatusBanner from '@/components/OfflineStatusBanner'
+import { serializeRecordForm, deserializeStagedPhotos } from '@/lib/record-draft-serializer'
 import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
 import { deleteRecordPhotos } from '@/app/(app)/horses/[id]/records/actions'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
@@ -723,6 +726,82 @@ export default function RecordCreateForm({
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const router = useRouter()
+  const isOnline = useOnlineStatus()
+  const { draft, loading: draftLoading, persist, persistImmediate, clear } = useOfflineDraft(
+    horse?.id ?? '',
+    isEdit ? editRecordId : undefined
+  )
+  const draftRestoredRef = useRef(false)
+
+  // ── Restore from offline draft (create mode only) ──
+  useEffect(() => {
+    if (!horse || isEdit || draftLoading || !draft?.formData || draftRestoredRef.current) return
+    const form = draft.formData as Record<string, unknown>
+    if (form.recordDate) setRecordDate(String(form.recordDate).slice(0, 10))
+    if (form.generalCondition) setGeneralCondition(String(form.generalCondition))
+    if (form.gait) setGait(String(form.gait))
+    if (form.handlingBehavior) setHandlingBehavior(String(form.handlingBehavior))
+    if (form.hornQuality) setHornQuality(String(form.hornQuality))
+    if (form.summaryText) setSummaryText(String(form.summaryText ?? ''))
+    if (form.recommendationText) setRecommendationText(String(form.recommendationText ?? ''))
+    if (form.notesText) setNotesText(String(form.notesText ?? ''))
+    if (form.hoofs && Array.isArray(form.hoofs)) {
+      setHoofs(parseHoofsFromJson(form.hoofs))
+    }
+    if (form.checklist && Array.isArray(form.checklist)) {
+      setChecklist(form.checklist as string[])
+    }
+    if (form.stagedPhotosBase64 && typeof form.stagedPhotosBase64 === 'object') {
+      deserializeStagedPhotos(form.stagedPhotosBase64 as Record<string, string>).then((photos) => {
+        const next: Partial<Record<PhotoSlotKey, StagedPhoto>> = {}
+        for (const [slot, p] of Object.entries(photos)) {
+          if (p && slot) {
+            next[slot as PhotoSlotKey] = { slot: slot as PhotoSlotKey, blob: p.blob, width: p.width, height: p.height, previewUrl: p.previewUrl }
+          }
+        }
+        if (Object.keys(next).length > 0) setStagedPhotos(next)
+      })
+    }
+    if (form.annotationsBySlot && typeof form.annotationsBySlot === 'object') {
+      setAnnotationsBySlot(form.annotationsBySlot as Partial<Record<PhotoSlotKey, AnnotationsData>>)
+    }
+    draftRestoredRef.current = true
+  }, [horse, isEdit, draft, draftLoading])
+
+  // ── Persist draft on form change (create mode, debounced) ──
+  const buildFormSnapshot = useCallback(() => {
+    const hoofArray = Object.values(hoofs)
+    return {
+      recordDate,
+      generalCondition,
+      gait,
+      handlingBehavior,
+      hornQuality,
+      summaryText,
+      recommendationText,
+      notesText,
+      hoofs: hoofArray,
+      checklist,
+      stagedPhotos: Object.fromEntries(
+        Object.entries(stagedPhotos).filter(([, p]) => !!p).map(([s, p]) => [s, p ? { blob: p.blob, width: p.width, height: p.height } : null])
+      ) as Record<string, { blob: Blob; width: number; height: number }>,
+      annotationsBySlot,
+    }
+  }, [recordDate, generalCondition, gait, handlingBehavior, hornQuality, summaryText, recommendationText, notesText, hoofs, checklist, stagedPhotos, annotationsBySlot])
+
+  useEffect(() => {
+    if (!horse || isEdit || draftLoading) return
+    let cancelled = false
+    const t = setTimeout(() => {
+      serializeRecordForm(buildFormSnapshot()).then((snapshot) => {
+        if (!cancelled) persist(snapshot as unknown as Record<string, unknown>)
+      })
+    }, 1500)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [horse, isEdit, draftLoading, buildFormSnapshot, persist])
 
   const workBlocks = useMemo(
     () => (textBlocks ?? []).filter((item) => item.category === 'bearbeitung'),
@@ -782,6 +861,21 @@ export default function RecordCreateForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!horse) return
+    if (!isOnline && !isEdit) {
+      setSubmitting(true)
+      setMessage('')
+      try {
+        const snapshot = await serializeRecordForm(buildFormSnapshot())
+        await persistImmediate(snapshot as unknown as Record<string, unknown>)
+        setMessage('✓ Entwurf lokal gespeichert. Wird synchronisiert, sobald du wieder online bist.')
+        setTimeout(() => setMessage(''), 4000)
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : 'Entwurf konnte nicht lokal gespeichert werden.')
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
     const form = e.currentTarget
     const fd = new FormData(form)
     if (isEdit && updateAction && editRecordId) {
@@ -840,6 +934,7 @@ export default function RecordCreateForm({
           annotationsJson: annotationsBySlot[slot] ?? undefined,
         })
       }
+      await clear()
       router.refresh()
       router.push(`/horses/${horse.id}/records/${recordId}`)
     } finally {
@@ -932,31 +1027,49 @@ export default function RecordCreateForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid w-full gap-7 xl:grid-cols-[minmax(0,1fr)_340px]">
-      {message && (
-        <div className="xl:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {message}
-        </div>
-      )}
-      <input type="hidden" name="record_type" value={defaultRecordType} />
-      {isEdit ? (
-        <input type="hidden" name="record_date" value={recordDate} />
-      ) : (
-        <>
-          <input type="hidden" name="horse_id" value={horse.id} />
-          <input type="hidden" name="record_date" value={defaultRecordDate} />
-        </>
-      )}
-      <input type="hidden" name="general_condition" value={generalCondition} />
-      <input type="hidden" name="gait" value={gait} />
-      <input type="hidden" name="handling_behavior" value={handlingBehavior} />
-      <input type="hidden" name="horn_quality" value={hornQuality} />
-      <input type="hidden" name="summary_notes" value={combinedSummary} />
-      <input type="hidden" name="recommendation_notes" value={combinedRecommendation} />
-      <input type="hidden" name="checklist_json" value={JSON.stringify(checklist)} />
-      <input type="hidden" name="hoofs_json" value={JSON.stringify(hoofArray)} />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-7 xl:grid xl:grid-cols-[1fr_340px] xl:items-start">
+      {/* Top row: Banner + Message (full width) */}
+      <div className="flex flex-col gap-4 xl:col-span-2">
+        {!isEdit && horse && (
+          <OfflineStatusBanner
+            isOnline={isOnline}
+            hasLocalDraft={!!draft}
+            compact={false}
+          />
+        )}
+        {message && (
+          <div
+            className={`rounded-xl px-4 py-3 text-sm ${
+              message.startsWith('✓')
+                ? 'border border-[#52b788]/50 bg-[#edf7f2] text-[#166534]'
+                : 'border border-red-200 bg-red-50 text-red-700'
+            }`}
+          >
+            {message}
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 xl:col-start-1 xl:row-start-2 min-w-0">
+        <div className="hidden" aria-hidden>
+          <input type="hidden" name="record_type" value={defaultRecordType} />
+          {isEdit ? (
+            <input type="hidden" name="record_date" value={recordDate} />
+          ) : (
+            <>
+              <input type="hidden" name="horse_id" value={horse.id} />
+              <input type="hidden" name="record_date" value={defaultRecordDate} />
+            </>
+          )}
+          <input type="hidden" name="general_condition" value={generalCondition} />
+          <input type="hidden" name="gait" value={gait} />
+          <input type="hidden" name="handling_behavior" value={handlingBehavior} />
+          <input type="hidden" name="horn_quality" value={hornQuality} />
+          <input type="hidden" name="summary_notes" value={combinedSummary} />
+          <input type="hidden" name="recommendation_notes" value={combinedRecommendation} />
+          <input type="hidden" name="checklist_json" value={JSON.stringify(checklist)} />
+          <input type="hidden" name="hoofs_json" value={JSON.stringify(hoofArray)} />
+        </div>
         <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
           {isEdit ? (
             <>
@@ -1377,16 +1490,18 @@ export default function RecordCreateForm({
         </div>
       </div>
 
-      <ProgressSidebar
-        generalDone={generalDone}
-        hoofDoneCount={hoofDoneCount}
-        checklistDoneCount={checklist.length}
-        totalChecklist={CHECKLIST_ITEMS.length}
-        lastRecord={lastRecord ?? null}
-        memo={horse.memo}
-        erstterminBodyPhotos={erstterminBodyPhotos}
-        erstterminRecordDate={erstterminRecordDate}
-      />
+      <div className="xl:col-start-2 xl:row-start-2 xl:row-span-1">
+        <ProgressSidebar
+          generalDone={generalDone}
+          hoofDoneCount={hoofDoneCount}
+          checklistDoneCount={checklist.length}
+          totalChecklist={CHECKLIST_ITEMS.length}
+          lastRecord={lastRecord ?? null}
+          memo={horse.memo}
+          erstterminBodyPhotos={erstterminBodyPhotos}
+          erstterminRecordDate={erstterminRecordDate}
+        />
+      </div>
     </form>
   )
 }

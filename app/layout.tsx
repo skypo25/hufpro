@@ -24,6 +24,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'AniDocs',
   description: 'AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe',
+  icons: { icon: '/icon.png' },
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'AniDocs', statusBarStyle: 'black-translucent' },
 }

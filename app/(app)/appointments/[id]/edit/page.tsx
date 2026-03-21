@@ -142,6 +142,12 @@ export default async function EditAppointmentPage({
     )
   }
 
+  const aptDate = appointment.appointment_date
+  const isPastAppointment = aptDate && new Date(aptDate) < new Date()
+  if (isPastAppointment) {
+    redirect(`/appointments/${id}`)
+  }
+
   const { data: customersData } = await supabase
     .from('customers')
     .select(

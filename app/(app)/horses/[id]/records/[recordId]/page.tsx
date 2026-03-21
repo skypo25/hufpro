@@ -414,7 +414,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
   const nextSection = () => { sectionIdx++; return sectionIdx }
 
   return (
-    <main className="mx-auto max-w-[1200px] w-full">
+    <main className="mx-auto w-full max-w-[1200px]">
       {/* Breadcrumb */}
       <div className="mb-5 flex items-center gap-2 text-[12px] text-[#9CA3AF]">
         <Link href="/dashboard" className="hover:text-[#52b788]">Dashboard</Link>

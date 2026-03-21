@@ -185,7 +185,7 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
   }
 
   return (
-    <div className="w-full max-w-[1200px]">
+    <div className="mx-auto w-full max-w-[1200px]">
       <RecordCreateForm
         horse={horse}
         defaultRecordDate={defaultRecordDate}

@@ -3,6 +3,9 @@
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import MobilePlaceholder from './MobilePlaceholder'
+import MobileSearch from './MobileSearch'
+import MobileCalendar from './MobileCalendar'
+import MobileAppointmentDetail from './MobileAppointmentDetail'
 import MobileSettings from './MobileSettings'
 import MobileDashboard from './MobileDashboard'
 import MobileCustomers from './MobileCustomers'
@@ -14,6 +17,7 @@ import MobileRecordForm from './MobileRecordForm'
 import MobileRecordDetail from './MobileRecordDetail'
 import MobileHorseForm from './MobileHorseForm'
 import MobileCustomerForm from './MobileCustomerForm'
+import MobileAppointmentForm from './MobileAppointmentForm'
 
 /**
  * Hier werden die Mobile-Seiten pro Route eingetragen.
@@ -64,14 +68,31 @@ export function useMobileContent(): ReactNode {
     return <MobileCustomerDetail customerId={customerIdMatch[1]} />
   }
 
+  // Termin anlegen: /appointments/new
+  if (pathname === '/appointments/new') {
+    return <MobileAppointmentForm mode="create" />
+  }
+
+  // Termin bearbeiten: /appointments/[id]/edit
+  const editAppointmentMatch = pathname?.match(/^\/appointments\/([^/?#]+)\/edit$/)
+  if (editAppointmentMatch?.[1]) {
+    return <MobileAppointmentForm mode="edit" appointmentId={editAppointmentMatch[1]} />
+  }
+
+  // Termin-Detail: /appointments/[id]
+  const appointmentIdMatch = pathname?.match(/^\/appointments\/([^/?#]+)\/?$/)
+  if (appointmentIdMatch?.[1]) {
+    return <MobileAppointmentDetail appointmentId={appointmentIdMatch[1]} />
+  }
+
   if (pathname === '/dashboard') return <MobileDashboard />
-  if (pathname === '/calendar') return <MobilePlaceholder />
+  if (pathname === '/calendar') return <MobileCalendar />
   if (pathname === '/customers') return <MobileCustomers />
   if (pathname === '/horses') return <MobileHorses />
 
   if (pathname === '/invoices') return <MobilePlaceholder />
   if (pathname === '/settings') return <MobileSettings />
-  if (pathname === '/suche') return <MobilePlaceholder />
+  if (pathname === '/suche') return <MobileSearch />
 
   return <MobilePlaceholder />
 }

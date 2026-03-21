@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { createRecord, updateRecord } from '@/app/(app)/horses/[id]/records/actions'
+import { useOfflineDraft, useOnlineStatus } from '@/hooks/useOfflineDraft'
+import OfflineStatusBanner from '@/components/OfflineStatusBanner'
+import { serializeRecordForm, deserializeStagedPhotos } from '@/lib/record-draft-serializer'
 import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
 import { processHoofImage } from '@/components/photos/imageProcessing'
 import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot, type PhotoSlotKey } from '@/lib/photos/photoTypes'
@@ -388,6 +391,8 @@ type Props = {
 export default function MobileRecordForm({ horseId, recordId, mode = 'create' }: Props) {
   const router = useRouter()
   const isEdit = mode === 'edit'
+  const isOnline = useOnlineStatus()
+  const { draft, loading: draftLoading, persist, persistImmediate, clear, reload: reloadDraft } = useOfflineDraft(horseId, recordId)
 
   // ── Horse data ──
   const [horse, setHorse] = useState<Horse | null>(null)
@@ -419,9 +424,86 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   // ── UI ──
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [offlineSavedMsg, setOfflineSavedMsg] = useState('')
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [progressOpen, setProgressOpen] = useState(true)
   const [photoOpen, setPhotoOpen] = useState(false)
   const actionRowRef = useRef<HTMLDivElement>(null)
+  const draftRestoredRef = useRef(false)
+
+  // ── Restore from offline draft ──
+  useEffect(() => {
+    if (draftLoading || !draft?.formData || draftRestoredRef.current) return
+    const form = draft.formData as Record<string, unknown>
+    if (form.recordDate) setRecordDate(String(form.recordDate))
+    if (form.generalCondition) setGeneralCondition(String(form.generalCondition))
+    if (form.gait) setGait(String(form.gait))
+    if (form.handlingBehavior) setHandlingBehavior(String(form.handlingBehavior))
+    if (form.hornQuality) setHornQuality(String(form.hornQuality))
+    if (form.summaryText) setSummaryText(String(form.summaryText))
+    if (form.notesText) setInternalNotes(String(form.notesText ?? ''))
+    if (form.hoofs && typeof form.hoofs === 'object') {
+      const h = form.hoofs as Record<string, HoofState>
+      const next: Record<HoofKey, HoofState> = { vl: { ...HOOF_EMPTY }, vr: { ...HOOF_EMPTY }, hl: { ...HOOF_EMPTY }, hr: { ...HOOF_EMPTY } }
+      for (const k of HOOF_KEYS) {
+        if (h[k] && typeof h[k] === 'object') {
+          next[k] = { ...HOOF_EMPTY, ...(h[k] as HoofState) }
+        }
+      }
+      setHoofs(next)
+    }
+    if (form.annotationsBySlot && typeof form.annotationsBySlot === 'object') {
+      setAnnotationsBySlot(form.annotationsBySlot as Partial<Record<PhotoSlotKey, AnnotationsData>>)
+    }
+    if (form.stagedPhotosBase64 && typeof form.stagedPhotosBase64 === 'object') {
+      deserializeStagedPhotos(form.stagedPhotosBase64 as Record<string, string>).then((photos) => {
+        const next: Partial<Record<PhotoSlotKey, StagedPhoto>> = {}
+        for (const [slot, p] of Object.entries(photos)) {
+          if (p && slot) {
+            next[slot as PhotoSlotKey] = { slot: slot as PhotoSlotKey, blob: p.blob, width: p.width, height: p.height, previewUrl: p.previewUrl }
+          }
+        }
+        if (Object.keys(next).length > 0) setStagedPhotos(next)
+      })
+    }
+    draftRestoredRef.current = true
+  }, [draft, draftLoading])
+
+  // ── Persist draft on form change (debounced) ──
+  const buildFormSnapshot = useCallback(() => {
+    const hoofsJson = HOOF_KEYS.map((k) => ({ hoof_position: k, ...hoofs[k] }))
+    return {
+      recordDate,
+      generalCondition,
+      gait,
+      handlingBehavior,
+      hornQuality,
+      summaryText,
+      recommendationText: '',
+      notesText: internalNotes,
+      hoofs: hoofsJson,
+      checklist: [],
+      stagedPhotos: Object.fromEntries(
+        Object.entries(stagedPhotos).filter(([, p]) => !!p).map(([s, p]) => [s, p ? { blob: p.blob, width: p.width, height: p.height } : null])
+      ) as Record<string, { blob: Blob; width: number; height: number }>,
+      annotationsBySlot,
+    }
+  }, [recordDate, generalCondition, gait, handlingBehavior, hornQuality, summaryText, internalNotes, hoofs, stagedPhotos, annotationsBySlot])
+
+  useEffect(() => {
+    if (draftLoading || isEdit) return
+    let cancelled = false
+    const t = setTimeout(() => {
+      serializeRecordForm(buildFormSnapshot()).then((snapshot) => {
+        if (!cancelled) persist(snapshot as unknown as Record<string, unknown>)
+      })
+    }, 1500)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [buildFormSnapshot, draftLoading, isEdit, persist])
 
   // ── Load horse + existing record ──
   useEffect(() => {
@@ -572,6 +654,22 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   async function handleSubmit() {
     setSubmitting(true)
     setError('')
+    setSyncError(null)
+    if (!isOnline) {
+      try {
+        const snapshot = await serializeRecordForm(buildFormSnapshot())
+        await persistImmediate(snapshot as unknown as Record<string, unknown>)
+        setError('')
+        setSyncError(null)
+        setOfflineSavedMsg('✓ Entwurf lokal gespeichert. Wird synchronisiert, sobald du wieder online bist.')
+        setTimeout(() => setOfflineSavedMsg(''), 4000)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Entwurf konnte nicht lokal gespeichert werden.')
+      } finally {
+        setSubmitting(false)
+      }
+      return
+    }
     try {
       const hoofsJson = HOOF_KEYS.map((k) => ({ hoof_position: k, ...hoofs[k] }))
       const fd = new FormData()
@@ -624,10 +722,12 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       if (staged.length > 0) {
         await new Promise((r) => setTimeout(r, 1200))
       }
+      await clear()
       router.refresh()
       router.push(`/horses/${horseId}/records/${targetRecordId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
+      setSyncError(e instanceof Error ? e.message : 'Synchronisierung fehlgeschlagen.')
     } finally {
       setSubmitting(false)
     }
@@ -724,6 +824,14 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       </div>
 
       <div className="mrf-content">
+        <OfflineStatusBanner
+          isOnline={isOnline}
+          hasLocalDraft={!!draft}
+          isSyncing={isSyncing}
+          syncError={syncError}
+          onRetrySync={() => { setSyncError(null); handleSubmit() }}
+          compact
+        />
 
         {/* FORTSCHRITT */}
         <div className="mrf-card">
@@ -852,6 +960,11 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
               </div>
               {photoOpen && (
                 <div className="mrf-s-body">
+                  {!isOnline && (
+                    <div className="mb-3 rounded-lg border border-[#FCD34D]/60 bg-[#FEF9C3]/50 px-3 py-2 text-[12px] text-[#92400E]">
+                      📷 Offline: Fotos werden lokal gespeichert und beim nächsten Sync hochgeladen.
+                    </div>
+                  )}
                   <div className="photo-label">Sohlenansicht (Solar)</div>
                   <div className="photo-grid">
                     {SLOT_SOLAR.map((slot) => (
@@ -954,6 +1067,11 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
         {error && (
           <div className="mrf-error">{error}</div>
+        )}
+        {offlineSavedMsg && (
+          <div className="rounded-lg border border-[#52b788]/50 bg-[#edf7f2] px-4 py-3 text-[13px] text-[#166534]">
+            {offlineSavedMsg}
+          </div>
         )}
 
         {/* SPEICHERN / ABBRECHEN */}

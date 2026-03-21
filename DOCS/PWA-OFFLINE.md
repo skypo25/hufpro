@@ -28,23 +28,22 @@ Die App nutzt **Serwist** (Turbopack) für produktionsreifen Offline-Support. De
 - **Route** `app/serwist/[path]/route.ts`: Liefert den kompilierten SW
 - **Offline-Seite** `app/~offline/page.tsx`: Zeigt „Keine Internetverbindung“ mit Reload-Button
 
-## Entwürfe lokal speichern
+## Entwürfe lokal speichern (Dokumentation)
 
-Die Hooks `useOfflineDraft` und `useOnlineStatus` ermöglichen:
+**Integriert in:** `RecordCreateForm` (Desktop) und `MobileRecordForm` (Mobile/PWA)
 
-1. **Offline**: Formulardaten in IndexedDB speichern (`persist()`)
-2. **Online**: Entwurf laden und an Server senden (manuell oder per Sync-Logik)
+### Ablauf
 
-**Beispiel-Integration** (in `RecordCreateForm` oder `MobileRecordForm`):
+1. **Automatisches Speichern:** Formulardaten werden alle 1,5 Sekunden (debounced) in IndexedDB gespeichert.
+2. **Offline:** Beim Klick auf „Speichern“ wird der Entwurf lokal gespeichert. Hinweis: „Entwurf lokal gespeichert. Wird synchronisiert, sobald du wieder online bist.“
+3. **Online:** Beim Speichern wird an den Server gesendet. Nach Erfolg wird der lokale Entwurf gelöscht.
+4. **Wiederherstellung:** Beim erneuten Öffnen der Dokumentationsseite wird ein vorhandener Entwurf automatisch geladen.
 
-```tsx
-const { draft, persist, clear } = useOfflineDraft(horseId, recordId)
-const isOnline = useOnlineStatus()
+### Bilder
 
-// Beim Ändern: wenn offline → persist(formData)
-// Beim Absenden: wenn online → Server-Action; wenn offline → persist + Hinweis
-// Nach erfolgreichem Sync → clear()
-```
+- **Offline:** Fotos werden komprimiert (max. 1200px, JPEG 75%) und als Base64 in IndexedDB gespeichert (max. 4 Fotos, ~800KB pro Foto).
+- **Hinweis im Formular:** „Offline: Fotos werden lokal gespeichert und beim nächsten Sync hochgeladen.“
+- **Grenzen:** Sehr große Bilder können übersprungen werden. Vollständiger Offline-Bildupload ist vorbereitet; bei älteren Browsern ohne `createImageBitmap`/`OffscreenCanvas` wird kein Foto gespeichert.
 
 ## Entwicklung
 
