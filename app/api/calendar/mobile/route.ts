@@ -121,7 +121,8 @@ export async function GET(request: Request) {
       .eq('user_id', user.id)
       .in('appointment_id', appointments.map((a) => a.id))
     for (const row of horseRows ?? []) {
-      const name = horseName((row as { horses: unknown }).horses)
+      const horses = (row as { horses?: { id: string; name: string | null } | { id: string; name: string | null }[] | null }).horses
+      const name = horseName(horses ?? null)
       if (!name) continue
       const existing = horsesByAppointment.get(row.appointment_id) ?? []
       horsesByAppointment.set(row.appointment_id, [...existing, name])
@@ -142,6 +143,7 @@ export async function GET(request: Request) {
     status: string
     color: 'green' | 'orange' | 'blue' | 'purple' | 'gray'
     badge: 'confirmed' | 'suggested'
+    dateKey: string
     isPast: boolean
   }
 

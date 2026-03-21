@@ -136,4 +136,37 @@
 
 ---
 
-*Bericht Ende – keine Codeänderungen vorgenommen.*
+# 5. Umsetzung aus dem Audit (März 2025)
+
+## 1. Mobile PDF-Fehler behoben ✅
+- **Problem:** `MobileRecordDetail` rief `/api/pdf/record/${recordId}` auf (Route existiert nicht).
+- **Lösung:** URL auf `/horses/${horseId}/records/${recordId}/pdf` geändert.
+- **Datei:** `components/mobile/MobileRecordDetail.tsx` (handlePdfDownload)
+- **Status:** Mobile PDF-Download funktioniert jetzt.
+
+## 2. ignoreBuildErrors
+- **Problem:** TypeScript-Fehler wurden beim Build ignoriert.
+- **Vorgehen:** Entfernt, Build ausgeführt, mehrere Fehler behoben:
+  - `app/(app)/suche/page.tsx`: `SearchPageContent` als Typ verwendet → `SearchPageContentProps` exportiert und genutzt
+  - `app/api/calendar/mobile/route.ts`: `horseName`-Typ, `MappedApt` um `dateKey` ergänzt
+  - Fehlende Dependencies installiert: `@fullcalendar/timegrid`, `@fullcalendar/interaction`, `apexcharts`, `react-apexcharts`
+- **Offener Blocker:** `@react-jvectormap/world` wird von `components/ecommerce/CountryMap.tsx` importiert, unterstützt React 19 nicht (peerDependency: react ^16–18). `ignoreBuildErrors: true` vorerst beibehalten.
+- **Dateien:** `components/search/SearchPageContent.tsx`, `app/(app)/suche/page.tsx`, `app/api/calendar/mobile/route.ts`, `next.config.ts`, `package.json`
+- **Status:** `ignoreBuildErrors` bleibt aktiv; Kommentar in `next.config.ts` verweist auf diesen Abschnitt.
+
+## 3. Sicherheits-Härtung ✅
+
+### Storage hoof-photos
+- **Problem:** INSERT (und SELECT/UPDATE/DELETE) erlaubten `anon`.
+- **Lösung:** Neue Migration `20250321000000_storage_hoof_photos_authenticated_only.sql` – alle Policies nur für `authenticated`.
+- **Hinweis:** Migration muss auf Supabase angewendet werden (`supabase db push` oder manuell im SQL Editor).
+
+### Settings API
+- **Problem:** Beliebige Keys wurden gespeichert.
+- **Lösung:** Allowlist `ALLOWED_SETTINGS_KEYS` eingebaut; nur erlaubte Keys werden übernommen.
+- **Datei:** `app/api/settings/route.ts`
+- **Status:** Beide Maßnahmen umgesetzt.
+
+---
+
+*Bericht Ende.*

@@ -12,7 +12,7 @@ const MAX_RECENT = 10
 
 export type SearchFilter = 'alle' | 'kunden' | 'pferde' | 'termine' | 'dokumentationen' | 'rechnungen'
 
-type SearchPageContentProps = {
+export type SearchPageContentProps = {
   initialQuery: string
   initialFilter: SearchFilter
   counts: {

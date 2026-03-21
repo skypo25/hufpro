@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
+/** Allowlist für Einstellungs-Keys – nur diese werden akzeptiert (Sicherheitshärtung). */
+const ALLOWED_SETTINGS_KEYS = new Set([
+  'salutation', 'firstName', 'lastName', 'jobTitle', 'qualification', 'phone', 'email', 'website', 'socialMedia',
+  'companyName', 'legalForm', 'street', 'city', 'zip', 'country',
+  'taxNumber', 'taxOffice', 'kleinunternehmer', 'kleinunternehmerText', 'ustId', 'defaultTaxRate',
+  'accountHolder', 'bank', 'iban', 'bic', 'paypal', 'paymentTerms',
+  'customerNumberPrefix', 'nextCustomerNumber',
+  'invoicePrefix', 'nextInvoiceNumber', 'currency', 'invoiceDelivery', 'invoiceTextTop', 'invoiceTextBottom',
+  'services', 'logoUrl',
+  'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPassword', 'smtpFromEmail', 'smtpFromName',
+  'preferredNavApp', 'emailReminders', 'pushNotifications', 'dailySummary',
+  'onboarding_complete',
+])
+
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,7 +29,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
   }
 
-  const merged = { ...(typeof body === 'object' && body !== null ? body : {}) } as Record<string, unknown>
+  const raw = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {}
+  const merged: Record<string, unknown> = {}
+  for (const key of Object.keys(raw)) {
+    if (ALLOWED_SETTINGS_KEYS.has(key)) merged[key] = raw[key]
+  }
+
   if (merged.smtpPassword === '' || merged.smtpPassword === undefined) {
     const { data: existing } = await supabase
       .from('user_settings')

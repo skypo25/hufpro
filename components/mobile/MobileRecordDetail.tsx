@@ -429,7 +429,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   }
 
   async function handlePdfDownload() {
-    window.open(`/api/pdf/record/${recordId}`, '_blank')
+    window.open(`/horses/${horseId}/records/${recordId}/pdf`, '_blank')
   }
 
   async function handleEmail() {

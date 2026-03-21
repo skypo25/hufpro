@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import SearchPageContent, { type SearchFilter } from '@/components/search/SearchPageContent'
+import SearchPageContent, { type SearchFilter, type SearchPageContentProps } from '@/components/search/SearchPageContent'
 import { Suspense } from 'react'
 
 type SearchPageProps = {
@@ -46,11 +46,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     invoices: invoiceCount ?? 0,
   }
 
-  let customers: SearchPageContent['customers'] = []
-  let horses: SearchPageContent['horses'] = []
-  let appointments: SearchPageContent['appointments'] = []
-  let hoofRecords: SearchPageContent['hoofRecords'] = []
-  let invoices: SearchPageContent['invoices'] = []
+  let customers: SearchPageContentProps['customers'] = []
+  let horses: SearchPageContentProps['horses'] = []
+  let appointments: SearchPageContentProps['appointments'] = []
+  let hoofRecords: SearchPageContentProps['hoofRecords'] = []
+  let invoices: SearchPageContentProps['invoices'] = []
 
   if (searchQuery) {
     const pattern = `%${searchQuery}%`
@@ -77,7 +77,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         .or(orParts.join(','))
         .order('name', { ascending: true })
         .limit(50)
-      customers = (data || []) as SearchPageContent['customers']
+      customers = (data || []) as SearchPageContentProps['customers']
     }
 
     // Horses (search by name, breed, or customer name)
@@ -124,7 +124,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(h.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['horses']
+        .slice(0, 50) as SearchPageContentProps['horses']
     }
 
     // Appointments (search by notes, type, or customer name)
@@ -170,7 +170,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(a.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['appointments']
+        .slice(0, 50) as unknown as SearchPageContentProps['appointments']
     }
 
     // Hoof records (search by hoof_condition, treatment, notes, doc_number, horse name)
@@ -215,7 +215,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(r.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['hoofRecords']
+        .slice(0, 50) as unknown as SearchPageContentProps['hoofRecords']
     }
 
     // Invoices (search by invoice_number, customer name)
@@ -261,7 +261,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           seen.add(inv.id)
           return true
         })
-        .slice(0, 50) as SearchPageContent['invoices']
+        .slice(0, 50) as unknown as SearchPageContentProps['invoices']
     }
   }
 
