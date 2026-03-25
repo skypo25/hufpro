@@ -73,6 +73,28 @@ export type LoadRecordListForHorseViewResult = {
 }
 
 /**
+ * `recordRows` wie von {@link loadRecordListForHorseView}: neueste zuerst (`sortTime` absteigend).
+ * Liefert das Datum des **direkt chronologisch vorgängigen** Besuchs (älterer Nachbar zur aktuellen `recordId`).
+ */
+export function getPreviousVisitRecordDateFromMergedList(
+  recordRows: HorseRecordListRow[],
+  currentRecordId: string
+): string | null {
+  const idx = recordRows.findIndex((r) => r.record.id === currentRecordId)
+  if (idx < 0) return null
+  return recordRows[idx + 1]?.record.record_date ?? null
+}
+
+/**
+ * Datum des jüngsten Besuchs nach Merge-Sortierung, z. B. Kontext beim Neuanlegen.
+ */
+export function getLatestVisitRecordDateFromMergedList(
+  recordRows: HorseRecordListRow[]
+): string | null {
+  return recordRows[0]?.record.record_date ?? null
+}
+
+/**
  * Lädt die Dokumentationsliste für ein Pferd: documentation_records primär,
  * hoof_records/hoof_photos für Lücken und Fallback.
  */

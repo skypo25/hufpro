@@ -17,6 +17,11 @@ import {
   type RecordDetailHoofPhoto,
   type RecordDetailHoofRecord,
 } from '@/lib/documentation/loadRecordForDetailView'
+import {
+  loadRecordListForHorseView,
+  getPreviousVisitRecordDateFromMergedList,
+  getLatestVisitRecordDateFromMergedList,
+} from '@/lib/documentation/loadRecordListForHorseView'
 import MinimalRichEditor from '@/components/records/MinimalRichEditor'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import ImproveTextButton from '@/components/ImproveTextButton'
@@ -524,16 +529,28 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         .single()
       if (h) setHorse(h as Horse)
 
-      // Previous record date
-      const { data: prev } = await supabase
-        .from('hoof_records')
-        .select('record_date')
-        .eq('horse_id', horseId)
-        .eq('user_id', user.id)
-        .order('record_date', { ascending: false })
-        .limit(isEdit ? 2 : 1)
-      const prevRow = isEdit ? prev?.[1] : prev?.[0]
-      if (prevRow?.record_date) setPrevRecordDate(prevRow.record_date)
+      try {
+        const list = await loadRecordListForHorseView(supabase, user.id, horseId)
+        if (isEdit && recordId) {
+          setPrevRecordDate(getPreviousVisitRecordDateFromMergedList(list.recordRows, recordId))
+        } else {
+          setPrevRecordDate(getLatestVisitRecordDateFromMergedList(list.recordRows))
+        }
+      } catch (e) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[mobile-record-form] prev date Fallback hoof_*', e)
+        }
+        const { data: prev } = await supabase
+          .from('hoof_records')
+          .select('record_date')
+          .eq('horse_id', horseId)
+          .eq('user_id', user.id)
+          .order('record_date', { ascending: false })
+          .limit(isEdit ? 2 : 1)
+        const prevRow = isEdit ? prev?.[1] : prev?.[0]
+        if (prevRow?.record_date) setPrevRecordDate(prevRow.record_date)
+        else setPrevRecordDate(null)
+      }
 
       if (isEdit && recordId) {
         const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)

@@ -6,6 +6,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { SLOT_LABELS } from "@/lib/photos/photoTypes"
 import { loadRecordDetailFromDocumentation, type RecordDetailHoofPhoto } from "@/lib/documentation/loadRecordForDetailView"
+import {
+  loadRecordListForHorseView,
+  getPreviousVisitRecordDateFromMergedList,
+} from "@/lib/documentation/loadRecordListForHorseView"
 import type { RecordPdfData, RecordPdfHoof, RecordPdfPhoto, RecordPdfSeller } from "./types"
 
 type HorseRow = {
@@ -160,15 +164,25 @@ async function loadSharedContext(
 
   const seller = sellerFromSettings(settingsRow?.settings ?? null)
 
-  const { data: prevRows } = await supabase
-    .from("hoof_records")
-    .select("record_date")
-    .eq("horse_id", horseId)
-    .eq("user_id", userId)
-    .neq("id", recordId)
-    .order("record_date", { ascending: false })
-    .limit(1)
-  const lastRecordDate = (prevRows as { record_date: string | null }[] | null)?.[0]?.record_date ?? null
+  let lastRecordDate: string | null = null
+  try {
+    const list = await loadRecordListForHorseView(supabase, userId, horseId)
+    lastRecordDate = getPreviousVisitRecordDateFromMergedList(list.recordRows, recordId)
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[pdf] loadSharedContext lastRecordDate Fallback hoof_*", e)
+    }
+    const { data: prevRows } = await supabase
+      .from("hoof_records")
+      .select("record_date")
+      .eq("horse_id", horseId)
+      .eq("user_id", userId)
+      .neq("id", recordId)
+      .order("record_date", { ascending: false })
+      .limit(1)
+    lastRecordDate =
+      (prevRows as { record_date: string | null }[] | null)?.[0]?.record_date ?? null
+  }
 
   const customer = getRelation(horseRow.customers ?? null)
   const birthYear = horseRow.birth_year ?? null
