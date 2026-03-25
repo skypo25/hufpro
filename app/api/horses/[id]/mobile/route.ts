@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 
 type CustomerRelation =
   | {
@@ -26,18 +27,6 @@ type Horse = {
   care_interval: string | null
   customer_id: string | null
   customers: CustomerRelation
-}
-
-type HoofRecord = {
-  id: string
-  horse_id: string
-  record_date: string | null
-}
-
-type Appointment = {
-  id: string
-  horse_id: string | null
-  appointment_date: string | null
 }
 
 type DokuRow = {
@@ -153,41 +142,17 @@ export async function GET(
     lastTreatment = first?.appointment_date || null
   }
 
-  const { data: records } = await supabase
-    .from('hoof_records')
-    .select('id, horse_id, record_date')
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .order('record_date', { ascending: false })
-    .limit(20)
-    .returns<HoofRecord[]>()
-
-  const dokuRows: DokuRow[] = []
-
-  if (records && records.length > 0) {
-    const recordIds = records.map((r) => r.id)
-
-    const { data: photos } = await supabase
-      .from('hoof_photos')
-      .select('id, hoof_record_id')
-      .eq('user_id', user.id)
-      .in('hoof_record_id', recordIds)
-
-    const countByRecord = new Map<string, number>()
-
-    for (const photo of photos || []) {
-      const rid = (photo as { hoof_record_id: string | null }).hoof_record_id
-      if (!rid) continue
-      countByRecord.set(rid, (countByRecord.get(rid) || 0) + 1)
-    }
-
-    for (const record of records) {
-      dokuRows.push({
-        id: record.id,
-        record_date: record.record_date,
-        photoCount: countByRecord.get(record.id) || 0,
-      })
-    }
+  let dokuRows: DokuRow[] = []
+  try {
+    const { recordRows } = await loadRecordListForHorseView(supabase, user.id, horseId)
+    dokuRows = recordRows.slice(0, 20).map((row) => ({
+      id: row.record.id,
+      record_date: row.record.record_date,
+      photoCount: row.photoCount,
+    }))
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Dokumentationsliste konnte nicht geladen werden.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 
   return NextResponse.json({
