@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backup:hoof-data": "tsx scripts/backup-hoof-data.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -30,6 +31,8 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.3",
     "@serwist/turbopack": "^9.5.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

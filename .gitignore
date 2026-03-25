@@ -20,6 +20,9 @@
 # production
 /build
 
+# lokale DB-JSON-Backups (keine produktiven Daten committen)
+/backups/
+
 # misc
 .DS_Store
 *.pem
