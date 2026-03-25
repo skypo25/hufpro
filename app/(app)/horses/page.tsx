@@ -14,6 +14,7 @@ import {
   statCardAllAnimalsSubtext,
 } from '@/lib/appProfile'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
 import { formatGermanDate, getAgeFromBirthYear } from '@/lib/format'
 import { getCurrentWeekRange } from '@/lib/date'
 import PageHeader from '@/components/ui/PageHeader'
@@ -59,11 +60,6 @@ type Appointment = {
 type AppointmentHorse = {
   appointment_id: string
   horse_id: string
-}
-
-type HoofRecord = {
-  id: string
-  horse_id: string | null
 }
 
 type HorseRow = {
@@ -200,7 +196,6 @@ export default async function HorsesPage({
   let customers: Customer[] = []
   let appointmentLinks: AppointmentHorse[] = []
   let appointments: Appointment[] = []
-  let hoofRecords: HoofRecord[] = []
 
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
@@ -237,14 +232,15 @@ export default async function HorsesPage({
 
       appointments = appointmentData || []
     }
+  }
 
-    const { data: recordData } = await supabase
-      .from('hoof_records')
-      .select('id, horse_id')
-      .in('horse_id', horseIds)
-      .returns<HoofRecord[]>()
-
-    hoofRecords = recordData || []
+  let documentationCountByHorse = new Map<string, number>()
+  if (horseIds.length > 0) {
+    documentationCountByHorse = await countDocumentationByHorseIds(
+      supabase,
+      user.id,
+      horseIds
+    )
   }
 
   const customersById = new Map(customers.map((customer) => [customer.id, customer]))
@@ -259,15 +255,6 @@ export default async function HorsesPage({
     if (!existing || appointment.appointment_date < existing) {
       nextAppointmentByHorse.set(link.horse_id, appointment.appointment_date)
     }
-  }
-
-  const documentationCountByHorse = new Map<string, number>()
-  for (const record of hoofRecords) {
-    if (!record.horse_id) continue
-    documentationCountByHorse.set(
-      record.horse_id,
-      (documentationCountByHorse.get(record.horse_id) || 0) + 1
-    )
   }
 
   let rows: HorseRow[] = horseList.map((horse) => ({

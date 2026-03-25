@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
 import { getCurrentWeekRange } from '@/lib/date'
 
 type Horse = {
@@ -83,7 +84,6 @@ export async function GET(request: Request) {
   let customers: Customer[] = []
   const appointmentLinks: { appointment_id: string; horse_id: string }[] = []
   const appointments: { id: string; appointment_date: string | null }[] = []
-  const hoofRecords: { id: string; horse_id: string | null }[] = []
 
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
@@ -116,13 +116,21 @@ export async function GET(request: Request) {
         .returns<{ id: string; appointment_date: string | null }[]>()
       if (appointmentData) appointments.push(...appointmentData)
     }
+  }
 
-    const { data: recordData } = await supabase
-      .from('hoof_records')
-      .select('id, horse_id')
-      .in('horse_id', horseIds)
-      .returns<{ id: string; horse_id: string | null }[]>()
-    if (recordData) hoofRecords.push(...recordData)
+  let documentationCountByHorse = new Map<string, number>()
+  if (horseIds.length > 0) {
+    try {
+      documentationCountByHorse = await countDocumentationByHorseIds(
+        supabase,
+        user.id,
+        horseIds
+      )
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : 'Dokumentationszähler konnte nicht geladen werden.'
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
   }
 
   const customersById = new Map(customers.map((c) => [c.id, c]))
@@ -136,15 +144,6 @@ export async function GET(request: Request) {
     if (!existing || appointment.appointment_date < existing) {
       nextAppointmentByHorse.set(link.horse_id, appointment.appointment_date)
     }
-  }
-
-  const documentationCountByHorse = new Map<string, number>()
-  for (const record of hoofRecords) {
-    if (!record.horse_id) continue
-    documentationCountByHorse.set(
-      record.horse_id,
-      (documentationCountByHorse.get(record.horse_id) || 0) + 1
-    )
   }
 
   type Row = {
