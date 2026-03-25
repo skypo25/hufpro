@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { loadRecordListForCustomerView } from '@/lib/documentation/loadRecordListForCustomerView'
 
 type CustomerRecordsPageProps = {
   params: Promise<{
@@ -11,15 +12,6 @@ type CustomerRecordsPageProps = {
 type Horse = {
   id: string
   name: string | null
-}
-
-type HoofRecord = {
-  id: string
-  horse_id: string
-  record_date: string | null
-  hoof_condition: string | null
-  treatment: string | null
-  notes: string | null
 }
 
 function formatGermanDate(dateString: string | null) {
@@ -78,19 +70,10 @@ export default async function CustomerRecordsPage({
 
   const horseIds = (horses || []).map((horse) => horse.id)
 
-  let records: HoofRecord[] = []
-
-  if (horseIds.length > 0) {
-    const { data } = await supabase
-      .from('hoof_records')
-      .select('id, horse_id, record_date, hoof_condition, treatment, notes')
-      .in('horse_id', horseIds)
-      .eq('user_id', user.id)
-      .order('record_date', { ascending: false })
-      .returns<HoofRecord[]>()
-
-    records = data || []
-  }
+  const records =
+    horseIds.length > 0
+      ? await loadRecordListForCustomerView(supabase, user.id, horseIds)
+      : []
 
   const horseMap = new Map(
     (horses || []).map((horse) => [horse.id, horse.name || '-'])
