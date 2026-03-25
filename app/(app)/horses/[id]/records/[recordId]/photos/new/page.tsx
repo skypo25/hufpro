@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
+import { mirrorDocumentationPhotoAfterHoofInsert } from '@/lib/documentation/mirrorDocumentationPhotos'
 
 type UploadPhotoPageProps = {
   params: Promise<{
@@ -107,6 +108,24 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
 
     if (insertError) {
       setMessage(`Datenbank-Fehler: ${insertError.message}`)
+      setLoading(false)
+      return
+    }
+
+    try {
+      await mirrorDocumentationPhotoAfterHoofInsert(supabase, params.recordId, user.id, {
+        file_path: filePath,
+        photo_type: photoType || null,
+        annotations_json: null,
+        width: null,
+        height: null,
+        file_size: null,
+        mime_type: null,
+      })
+    } catch (mirrorErr) {
+      await supabase.from('hoof_photos').delete().eq('hoof_record_id', params.recordId).eq('file_path', filePath).eq('user_id', user.id)
+      await supabase.storage.from('hoof-photos').remove([filePath])
+      setMessage(mirrorErr instanceof Error ? mirrorErr.message : 'Dokumentationsspiegel fehlgeschlagen.')
       setLoading(false)
       return
     }

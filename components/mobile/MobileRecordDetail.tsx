@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
+import { deleteDocumentationRecordByLegacyHoofId } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot } from '@/lib/photos/photoTypes'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
@@ -424,6 +425,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
       if (paths.length) await supabase.storage.from('hoof-photos').remove(paths)
       await supabase.from('hoof_photos').delete().eq('hoof_record_id', recordId).eq('user_id', user.id)
     }
+    await deleteDocumentationRecordByLegacyHoofId(supabase, recordId, user.id)
     await supabase.from('hoof_records').delete().eq('id', recordId).eq('user_id', user.id)
     router.push(`/horses/${horseId}`)
   }

@@ -77,7 +77,7 @@ JOIN public.documentation_records dr ON dr.id = dp.documentation_record_id
 WHERE dr.metadata ? 'legacy_hoof_record_id';
 
 -- G) hoof_photos-Zeilen, die noch kein documentation_photos-Pendant haben
---    (gleicher Match wie im Backfill: record + file_path + photo_type)
+--    (gleicher Match wie im Backfill: record + file_path + normalisierter photo_type)
 SELECT
   count(*)::bigint AS hoof_photos_noch_nicht_gespiegelt
 FROM public.hoof_photos hp
@@ -88,7 +88,7 @@ WHERE NOT EXISTS (
   FROM public.documentation_photos dp
   WHERE dp.documentation_record_id = dr.id
     AND dp.file_path = hp.file_path
-    AND dp.photo_type = hp.photo_type
+    AND dp.photo_type = COALESCE(NULLIF(trim(hp.photo_type), ''), 'legacy_unknown')
 );
 
 -- H) Stichprobe: ein Pferd mit meisten Einträgen (IDs anpassen nach Bedarf)

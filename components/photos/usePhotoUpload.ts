@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase-client'
+import { mirrorDocumentationPhotoAfterHoofInsert, mirrorDocumentationPhotoAnnotations } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { processHoofImage, processWholeBodyImage } from './imageProcessing'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 
@@ -88,6 +89,21 @@ export async function uploadProcessedPhoto(
     .single<HoofPhotoRow>()
 
   if (!errFull && dataFull) {
+    try {
+      await mirrorDocumentationPhotoAfterHoofInsert(supabase, params.recordId, user.id, {
+        file_path: dataFull.file_path,
+        photo_type: dataFull.photo_type,
+        annotations_json: dataFull.annotations_json,
+        width: dataFull.width,
+        height: dataFull.height,
+        file_size: dataFull.file_size,
+        mime_type: dataFull.mime_type,
+      })
+    } catch (e) {
+      await supabase.from('hoof_photos').delete().eq('id', dataFull.id).eq('user_id', user.id)
+      await supabase.storage.from('hoof-photos').remove([filePath])
+      throw new Error(e instanceof Error ? e.message : 'Dokumentationsspiegel fehlgeschlagen.')
+    }
     return dataFull
   }
 
@@ -104,6 +120,21 @@ export async function uploadProcessedPhoto(
       .single<HoofPhotoRow>()
     if (errMin) throw new Error(`DB: ${errMin.message}`)
     if (!dataMin) throw new Error('DB: Insert fehlgeschlagen')
+    try {
+      await mirrorDocumentationPhotoAfterHoofInsert(supabase, params.recordId, user.id, {
+        file_path: dataMin.file_path,
+        photo_type: dataMin.photo_type,
+        annotations_json: dataMin.annotations_json,
+        width: dataMin.width,
+        height: dataMin.height,
+        file_size: dataMin.file_size,
+        mime_type: dataMin.mime_type,
+      })
+    } catch (e) {
+      await supabase.from('hoof_photos').delete().eq('id', dataMin.id).eq('user_id', user.id)
+      await supabase.storage.from('hoof-photos').remove([filePath])
+      throw new Error(e instanceof Error ? e.message : 'Dokumentationsspiegel fehlgeschlagen.')
+    }
     return dataMin
   }
 
@@ -122,13 +153,23 @@ export async function saveAnnotationsForExistingPhoto(params: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase
+  const { error: hoofAnnErr } = await supabase
     .from('hoof_photos')
     .update({ annotations_json: params.annotationsJson })
     .eq('hoof_record_id', params.recordId)
     .eq('photo_type', params.slot)
     .eq('user_id', user.id)
-  // errors (e.g. missing column) are intentionally ignored
+
+  if (hoofAnnErr) {
+    const isSchemaError =
+      hoofAnnErr.message?.includes('annotations_json') ||
+      hoofAnnErr.message?.includes('column') ||
+      hoofAnnErr.message?.includes('schema cache')
+    if (isSchemaError) return
+    throw new Error(`Annotationen (hoof_photos): ${hoofAnnErr.message}`)
+  }
+
+  await mirrorDocumentationPhotoAnnotations(supabase, params.recordId, user.id, params.slot, params.annotationsJson)
 }
 
 /**

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
+import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { formatCustomerNumber } from '@/lib/format'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
 
@@ -251,6 +252,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
         const paths = (photos ?? []).map(p => p.file_path).filter((p): p is string => !!p)
         if (paths.length) await supabase.storage.from('hoof-photos').remove(paths)
         await supabase.from('hoof_photos').delete().eq('user_id', user.id).in('hoof_record_id', recordIds)
+        await deleteDocumentationRecordsForLegacyHoofIds(supabase, recordIds, user.id)
         await supabase.from('hoof_records').delete().eq('horse_id', horseId).eq('user_id', user.id)
       }
       await supabase.from('appointment_horses').delete().eq('horse_id', horseId)

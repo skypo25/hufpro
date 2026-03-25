@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { deleteDocumentationRecordByLegacyHoofId } from '@/lib/documentation/mirrorDocumentationPhotos'
 import DeleteRecordForm from './DeleteRecordForm'
 import { SLOT_LABELS, SLOT_SOLAR, SLOT_LATERAL } from '@/lib/photos/photoTypes'
 import { formatCustomerNumber } from '@/lib/format'
@@ -189,6 +190,7 @@ async function deleteRecord(horseId: string, recordId: string) {
     if (paths.length) await supabase.storage.from('hoof-photos').remove(paths)
     await supabase.from('hoof_photos').delete().eq('hoof_record_id', recordId).eq('user_id', user.id)
   }
+  await deleteDocumentationRecordByLegacyHoofId(supabase, recordId, user.id)
   await supabase.from('hoof_records').delete().eq('id', recordId).eq('horse_id', horseId).eq('user_id', user.id)
   redirect(`/horses/${horseId}`)
 }

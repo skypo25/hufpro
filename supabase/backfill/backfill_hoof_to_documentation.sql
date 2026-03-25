@@ -6,6 +6,7 @@
 --
 -- Eigenschaften:
 --   - idempotent (NOT EXISTS auf legacy_hoof_record_id bzw. Foto-Schlüssel)
+--   - photo_type: NULL/leer in hoof_photos → 'legacy_unknown' (documentation_photos NOT NULL)
 --   - metadata.legacy_hoof_record_id, legacy_record_type, backfill_version
 --   - documentation_kind / therapy_discipline aus user_settings.settings->profession
 --   - hoof_payload nur bei kind=hoof; therapy_payload Minimalobjekt bei therapy
@@ -77,7 +78,9 @@ SELECT
   hr.hoof_condition AS summary_html,
   hr.treatment AS recommendations_html,
   hr.notes AS internal_notes,
-  hr.doc_number,
+  -- doc_number: nicht aus hr lesen — Spalte existiert nur nach Migration 20250319000000;
+  -- bei Bedarf nachträglich: UPDATE documentation_records dr SET doc_number = hr.doc_number FROM hoof_records hr WHERE dr.metadata->>'legacy_hoof_record_id' = hr.id::text AND hr.doc_number IS NOT NULL;
+  NULL::text AS doc_number,
 
   CASE
     WHEN COALESCE(NULLIF(trim(us.settings ->> 'profession'), ''), 'hufbearbeiter') = 'hufbearbeiter'
@@ -141,7 +144,7 @@ SELECT
   hp.user_id,
   dr.id,
   hp.file_path,
-  hp.photo_type,
+  COALESCE(NULLIF(trim(hp.photo_type), ''), 'legacy_unknown') AS photo_type,
   hp.annotations_json,
   hp.width,
   hp.height,
@@ -157,7 +160,7 @@ WHERE NOT EXISTS (
   FROM public.documentation_photos dp
   WHERE dp.documentation_record_id = dr.id
     AND dp.file_path = hp.file_path
-    AND dp.photo_type = hp.photo_type
+    AND dp.photo_type = COALESCE(NULLIF(trim(hp.photo_type), ''), 'legacy_unknown')
 );
 
 -- ---------------------------------------------------------------------------

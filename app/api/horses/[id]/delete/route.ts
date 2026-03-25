@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 
 /** Liefert Termin-Info für den Lösch-Dialog (nächster künftiger Termin). */
 export async function GET(
@@ -75,6 +76,7 @@ export async function DELETE(
     const paths = (photos ?? []).map((p) => p.file_path).filter((p): p is string => !!p)
     if (paths.length) await supabase.storage.from('hoof-photos').remove(paths)
     await supabase.from('hoof_photos').delete().eq('user_id', user.id).in('hoof_record_id', recordIds)
+    await deleteDocumentationRecordsForLegacyHoofIds(supabase, recordIds, user.id)
     await supabase.from('hoof_records').delete().eq('horse_id', horseId).eq('user_id', user.id)
   }
 
