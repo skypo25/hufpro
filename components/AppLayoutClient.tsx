@@ -1,6 +1,7 @@
 'use client'
 
 import Sidebar from '@/components/Sidebar'
+import { AppProfileProvider } from '@/context/AppProfileContext'
 import { SidebarProvider, useSidebarContext } from '@/context/SidebarContext'
 import { useIsMobile } from '@/components/mobile/useIsMobile'
 import { useMobileContent } from '@/components/mobile/mobileRouteMap'
@@ -46,13 +47,13 @@ export default function AppLayoutClient({ children }: { children: React.ReactNod
   const isMobile = useIsMobile()
   const mobileContent = useMobileContent()
 
-  if (isMobile) {
-    return (
-      <MobileShell>
-        {mobileContent}
-      </MobileShell>
-    )
-  }
-
-  return <DesktopLayout>{children}</DesktopLayout>
+  return (
+    <AppProfileProvider>
+      {isMobile ? (
+        <MobileShell>{mobileContent}</MobileShell>
+      ) : (
+        <DesktopLayout>{children}</DesktopLayout>
+      )}
+    </AppProfileProvider>
+  )
 }

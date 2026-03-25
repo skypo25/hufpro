@@ -1,5 +1,18 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import {
+  animalSingularLabel,
+  animalsEmptyMessage,
+  animalsInCareLine,
+  animalsNavLabel,
+  animalsPaginationLine,
+  animalsStatLabel,
+  deriveAppProfile,
+  horsesLoadErrorDescription,
+  newAnimalButtonLabel,
+  searchAnimalsPlaceholder,
+  statCardAllAnimalsSubtext,
+} from '@/lib/appProfile'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { formatGermanDate, getAgeFromBirthYear } from '@/lib/format'
 import { getCurrentWeekRange } from '@/lib/date'
@@ -131,6 +144,16 @@ export default async function HorsesPage({
     redirect('/login')
   }
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const term = profile.terminology
+
   const { q, sort, page, perPage } = await searchParams
 
   const searchQuery = q?.trim().toLowerCase() || ''
@@ -159,7 +182,7 @@ export default async function HorsesPage({
       <main className="space-y-4">
         <EmptyState
           title="Fehler"
-          description={`Pferde konnten nicht geladen werden: ${error.message}`}
+          description={horsesLoadErrorDescription(term, error.message)}
           className="border-red-200 bg-red-50"
         />
       </main>
@@ -353,8 +376,8 @@ export default async function HorsesPage({
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <PageHeader
-        title="Pferde"
-        description={`${horseCount} Pferde in Betreuung · ${customerCount} Kunden`}
+        title={animalsNavLabel(term)}
+        description={`${animalsInCareLine(term, horseCount)} · ${customerCount} Kunden`}
         actions={
           <div className="flex gap-2.5">
             <Link
@@ -370,14 +393,18 @@ export default async function HorsesPage({
               className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
             >
               <i className="bi bi-plus-lg text-[14px]" />
-              Pferd anlegen
+              {newAnimalButtonLabel(term)}
             </Link>
           </div>
         }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Pferde gesamt" value={horseCount} subtext="alle Pferde" />
+        <StatCard
+          label={animalsStatLabel(term)}
+          value={horseCount}
+          subtext={statCardAllAnimalsSubtext(term)}
+        />
         <StatCard
           label="Barhuf"
           value={barhufCount}
@@ -409,7 +436,7 @@ export default async function HorsesPage({
                 type="text"
                 name="q"
                 defaultValue={q || ''}
-                placeholder="Pferd, Rasse, Besitzer oder Stallort suchen…"
+                placeholder={searchAnimalsPlaceholder(term)}
                 className="w-full border-0 bg-transparent text-[14px] text-[#1B1F23] outline-none placeholder:text-[#9CA3AF]"
               />
             </div>
@@ -467,7 +494,7 @@ export default async function HorsesPage({
       <div className="huf-card">
         <div className="grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden">
           <div></div>
-          <div>Pferd</div>
+          <div>{animalSingularLabel(term)}</div>
           <div>Besitzer / Stall</div>
           <div>Nutzung</div>
           <div>Alter</div>
@@ -490,7 +517,7 @@ export default async function HorsesPage({
                 <Link
                   href={`/horses/${row.horse.id}`}
                   className="absolute inset-0 z-0"
-                  aria-label={`Pferd ${row.horse.name || ''} öffnen`}
+                  aria-label={`${animalSingularLabel(term)} ${row.horse.name || ''} öffnen`}
                 />
 
                 <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef]">
@@ -570,7 +597,7 @@ export default async function HorsesPage({
 
           {pagedRows.length === 0 && (
             <div className="px-6 py-12">
-              <EmptyState description="Keine Pferde gefunden." />
+              <EmptyState description={animalsEmptyMessage(term)} />
             </div>
           )}
         </div>
@@ -579,7 +606,12 @@ export default async function HorsesPage({
       {totalRows > currentPerPage && (
         <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
           <div className="text-[13px] text-[#6B7280]">
-            Zeige {startIndex + 1}–{Math.min(endIndex, totalRows)} von {totalRows} Pferden
+            {animalsPaginationLine(
+              term,
+              startIndex + 1,
+              Math.min(endIndex, totalRows),
+              totalRows
+            )}
           </div>
 
           <div className="flex items-center gap-3">

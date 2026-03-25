@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
 import RecordCreateForm from '@/components/records/RecordCreateForm'
+import TherapyRecordForm from '@/components/records/TherapyRecordForm'
 import { createRecord } from '@/app/(app)/horses/[id]/records/actions'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
+import { deriveAppProfile } from '@/lib/appProfile'
+import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
 
 type NewRecordPageProps = {
   params: Promise<{
@@ -64,6 +67,15 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
 
   const { data: horseRow } = await supabase
     .from('horses')
@@ -131,6 +143,32 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
         }
       : null
 
+  const defaultRecordDate = getTodayISODate()
+
+  const therapyHorse = horse
+    ? {
+        id: horse.id,
+        name: horse.name,
+        customerName: horse.customerName,
+        stableName: horse.stableName,
+      }
+    : null
+
+  if (profile.docType === 'therapy') {
+    const therapyAiType = professionToTherapyAiType(profile.profession)
+    return (
+      <div className="mx-auto w-full max-w-[1200px]">
+        <TherapyRecordForm
+          horse={therapyHorse}
+          defaultRecordDate={defaultRecordDate}
+          lastRecord={lastRecord}
+          therapyAiType={therapyAiType}
+          saveAction={createRecord}
+        />
+      </div>
+    )
+  }
+
   const erstterminBodyPhotos: { url: string; label: string }[] = []
   let erstterminRecordDate: string | null = null
   const { data: firstRecordRow } = await supabase
@@ -167,7 +205,6 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
     }
   }
 
-  const defaultRecordDate = getTodayISODate()
   const defaultRecordType = lastRecordRow ? 'Regeltermin' : 'ersttermin'
 
   return (

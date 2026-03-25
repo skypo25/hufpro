@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { newAnimalFabLabel } from '@/lib/appProfile'
 
 function IconFabPlus() {
   return (
@@ -12,13 +14,16 @@ function IconFabPlus() {
   )
 }
 
-const FAB_ITEMS: { href: string; label: string }[] = [
-  { href: '/appointments/new', label: 'Neuer Termin' },
-  { href: '/customers/new', label: 'Neuer Kunde' },
-  { href: '/horses/new', label: 'Neues Pferd' },
-]
-
 export default function MobileFab() {
+  const { profile } = useAppProfile()
+  const fabItems = useMemo(
+    () => [
+      { href: '/appointments/new', label: 'Neuer Termin' },
+      { href: '/customers/new', label: 'Neuer Kunde' },
+      { href: '/horses/new', label: newAnimalFabLabel(profile.terminology) },
+    ],
+    [profile.terminology]
+  )
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -62,7 +67,7 @@ export default function MobileFab() {
           role="menu"
           aria-label="Schnellaktionen"
         >
-          {FAB_ITEMS.map((item) => (
+          {fabItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

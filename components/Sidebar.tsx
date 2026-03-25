@@ -16,33 +16,38 @@ import {
   faChevronLeft,
   faBars,
 } from '@fortawesome/free-solid-svg-icons'
+import { useMemo } from 'react'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
 
-const navGroups = [
-  {
-    title: 'Übersicht',
-    items: [{ label: 'Dashboard', href: '/dashboard', icon: faTableCellsLarge }],
-  },
-  {
-    title: 'Verwaltung',
-    items: [
-      { label: 'Kunden', href: '/customers', icon: faUsers },
-      { label: 'Pferde', href: '/horses', icon: faHorse },
-      { label: 'Termine', href: '/calendar', icon: faCalendarDays },
-    ],
-  },
-  {
-    title: 'Finanzen',
-    items: [{ label: 'Rechnungen', href: '/invoices', icon: faFileInvoice }],
-  },
-  {
-    title: 'System',
-    items: [
-      { label: 'Suche', href: '/suche', icon: faMagnifyingGlass },
-      { label: 'Einstellungen', href: '/settings', icon: faGear },
-    ],
-  },
-]
+function buildNavGroups(animalsListLabel: string) {
+  return [
+    {
+      title: 'Übersicht',
+      items: [{ label: 'Dashboard', href: '/dashboard', icon: faTableCellsLarge }],
+    },
+    {
+      title: 'Verwaltung',
+      items: [
+        { label: 'Kunden', href: '/customers', icon: faUsers },
+        { label: animalsListLabel, href: '/horses', icon: faHorse },
+        { label: 'Termine', href: '/calendar', icon: faCalendarDays },
+      ],
+    },
+    {
+      title: 'Finanzen',
+      items: [{ label: 'Rechnungen', href: '/invoices', icon: faFileInvoice }],
+    },
+    {
+      title: 'System',
+      items: [
+        { label: 'Suche', href: '/suche', icon: faMagnifyingGlass },
+        { label: 'Einstellungen', href: '/settings', icon: faGear },
+      ],
+    },
+  ]
+}
 
 function isItemActive(pathname: string, href: string) {
   if (href === '/dashboard') {
@@ -59,6 +64,11 @@ const SIDEBAR_INSET = 15
 export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebarContext()
+  const { profile } = useAppProfile()
+  const navGroups = useMemo(
+    () => buildNavGroups(animalsNavLabel(profile.terminology)),
+    [profile.terminology]
+  )
 
   return (
     <aside
@@ -111,7 +121,7 @@ export default function Sidebar() {
 
                 return (
                   <Link
-                    key={`${group.title}-${item.href}-${item.label}`}
+                    key={`${group.title}-${item.href}`}
                     href={item.href}
                     title={isCollapsed ? item.label : undefined}
                     className={[

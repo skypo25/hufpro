@@ -58,6 +58,7 @@ const PROFESSIONS: { value: Profession; label: string; sub: string; emoji: strin
 
 // ─── Step 2: Animal Focus config ──────────────────────────────────────────────
 
+/** Drei Tier-Modi; Werte bleiben wie in der DB / lib/appProfile (inkl. Altbestand alle_tiere, sonstiges). */
 const ANIMALS: { value: AnimalFocus; label: string; sub: string; emoji: string }[] = [
   {
     value: 'nur_pferde',
@@ -67,27 +68,15 @@ const ANIMALS: { value: AnimalFocus; label: string; sub: string; emoji: string }
   },
   {
     value: 'pferde_und_kleintiere',
-    label: 'Pferde + Hunde/Katzen',
-    sub: 'Kombination Groß- und Kleintiere',
+    label: 'Pferde und Kleintiere',
+    sub: 'z. B. Pferde sowie Hunde, Katzen',
     emoji: '🐎',
   },
   {
-    value: 'alle_tiere',
-    label: 'Alle Tiere',
-    sub: 'Groß- und Kleintiere, breites Spektrum',
-    emoji: '🐘',
-  },
-  {
     value: 'kleintiere',
-    label: 'Kleintiere',
+    label: 'Nur Kleintiere',
     sub: 'Hunde, Katzen, Kleinsäuger',
     emoji: '🐕',
-  },
-  {
-    value: 'sonstiges',
-    label: 'Sonstiges',
-    sub: 'Andere Tierarten oder Kombination',
-    emoji: '✨',
   },
 ]
 
@@ -205,7 +194,7 @@ export default function OnboardingPage() {
         <StepAnimalFocus
           selected={animalFocus}
           onSelect={setAnimalFocus}
-          onNext={finishOnboarding}
+          onNext={() => finishOnboarding()}
           onBack={() => setStep(1)}
           saving={saving}
         />

@@ -13,7 +13,7 @@ import MobileHorses from './MobileHorses'
 import MobileHorseDetail from './MobileHorseDetail'
 import MobileCustomerDetail from './MobileCustomerDetail'
 import MobileCustomerEdit from './MobileCustomerEdit'
-import MobileRecordForm from './MobileRecordForm'
+import MobileRecordEntry from './MobileRecordEntry'
 import MobileRecordDetail from './MobileRecordDetail'
 import MobileHorseForm from './MobileHorseForm'
 import MobileCustomerForm from './MobileCustomerForm'
@@ -29,13 +29,19 @@ export function useMobileContent(): ReactNode {
   // Neue Dokumentation erstellen: /horses/[id]/records/new
   const newRecordMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/new$/)
   if (newRecordMatch?.[1]) {
-    return <MobileRecordForm horseId={newRecordMatch[1]} mode="create" />
+    return <MobileRecordEntry horseId={newRecordMatch[1]} mode="create" />
   }
 
   // Dokumentation bearbeiten: /horses/[id]/records/[recordId]/edit
   const editRecordMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/([^/?#]+)\/edit$/)
   if (editRecordMatch?.[1] && editRecordMatch?.[2]) {
-    return <MobileRecordForm horseId={editRecordMatch[1]} recordId={editRecordMatch[2]} mode="edit" />
+    return (
+      <MobileRecordEntry
+        horseId={editRecordMatch[1]}
+        recordId={editRecordMatch[2]}
+        mode="edit"
+      />
+    )
   }
 
   // Dokumentation Detail: /horses/[id]/records/[recordId] (optional trailing slash)

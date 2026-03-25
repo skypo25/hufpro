@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation'
 import RecordCreateForm from '@/components/records/RecordCreateForm'
+import TherapyRecordForm from '@/components/records/TherapyRecordForm'
 import { createRecord, updateRecord } from '@/app/(app)/horses/[id]/records/actions'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { deriveAppProfile } from '@/lib/appProfile'
+import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
 
 type EditRecordPageProps = {
   params: Promise<{
@@ -62,6 +65,15 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
 
   const { id: horseId, recordId } = await params
 
@@ -157,15 +169,61 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         }
       : null
 
-  const defaultRecordDate = record.record_date ? record.record_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
+  const defaultRecordDate = record.record_date
+    ? record.record_date.slice(0, 10)
+    : new Date().toISOString().slice(0, 10)
+
+  if (profile.docType === 'therapy') {
+    const therapyHorse = horse
+      ? {
+          id: horse.id,
+          name: horse.name,
+          customerName: horse.customerName,
+          stableName: horse.stableName,
+        }
+      : null
+    const preservedExtendedFields = {
+      general_condition: extended?.general_condition ?? null,
+      gait: extended?.gait ?? null,
+      handling_behavior: extended?.handling_behavior ?? null,
+      horn_quality: extended?.horn_quality ?? null,
+      hoofs_json: extended?.hoofs_json ?? null,
+      checklist_json: extended?.checklist_json ?? null,
+      notes: record.notes ?? null,
+    }
+    return (
+      <div className="mx-auto w-full max-w-[1200px]">
+        <TherapyRecordForm
+          horse={therapyHorse}
+          defaultRecordDate={defaultRecordDate}
+          therapyAiType={professionToTherapyAiType(profile.profession)}
+          saveAction={createRecord}
+          mode="edit"
+          recordId={recordId}
+          initialRecordDate={record.record_date ?? undefined}
+          initialSummaryNotes={record.hoof_condition ?? ''}
+          initialRecommendationNotes={record.treatment ?? ''}
+          updateAction={updateRecord}
+          preservedExtendedFields={preservedExtendedFields}
+        />
+      </div>
+    )
+  }
 
   const { data: photos } = await supabase
     .from('hoof_photos')
-    .select('id, file_path, photo_type')
+    .select('id, file_path, photo_type, annotations_json, width, height')
     .eq('hoof_record_id', recordId)
     .eq('user_id', user.id)
 
-  const existingPhotos: { id: string; file_path: string; photo_type: string }[] = []
+  const existingPhotos: {
+    id: string
+    file_path: string
+    photo_type: string
+    annotations_json?: unknown
+    width?: number | null
+    height?: number | null
+  }[] = []
   const existingPhotoUrls: Record<string, string> = {}
   if (photos?.length) {
     for (const p of photos) {
@@ -174,6 +232,9 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         id: p.id,
         file_path: p.file_path,
         photo_type: p.photo_type,
+        annotations_json: p.annotations_json ?? undefined,
+        width: p.width ?? null,
+        height: p.height ?? null,
       })
       const { data: signed } = await supabase.storage
         .from('hoof-photos')

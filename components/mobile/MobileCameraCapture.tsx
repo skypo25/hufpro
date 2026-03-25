@@ -104,9 +104,11 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
         {/* 9/16 crop frame + crosshair overlay */}
         {ready && (
           <div className="mcc-frame-overlay">
-            {/* dimmed sides (letterbox) */}
+            {/* dimmed letterbox: Seiten + oben/unten außerhalb des 9:16-Rahmens */}
             <div className="mcc-dim mcc-dim-left" />
             <div className="mcc-dim mcc-dim-right" />
+            <div className="mcc-dim mcc-dim-top" />
+            <div className="mcc-dim mcc-dim-bottom" />
 
             {/* 9/16 window */}
             <div className="mcc-frame">

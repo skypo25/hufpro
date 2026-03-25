@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useAppProfile } from '@/context/AppProfileContext'
+import {
+  animalSingularLabel,
+  animalsEmptyMessage,
+  animalsInCareLine,
+  animalsLoadingMessage,
+  animalsNavLabel,
+  animalsStatLabel,
+  newAnimalButtonLabel,
+  searchAnimalsPlaceholder,
+} from '@/lib/appProfile'
 
 const LIMIT = 20
 
@@ -130,6 +141,8 @@ function IconGrid() {
 }
 
 export default function MobileHorses() {
+  const { profile } = useAppProfile()
+  const t = profile.terminology
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('name_asc')
@@ -224,12 +237,12 @@ export default function MobileHorses() {
       <header className="mobile-header">
         <div className="ah-top">
           <div>
-            <h1 className="mobile-greeting">Pferde</h1>
+            <h1 className="mobile-greeting">{animalsNavLabel(t)}</h1>
             <div className="mobile-sub">
-              {horseCount} Pferde in Betreuung · {customerCount} Kunden
+              {animalsInCareLine(t, horseCount)} · {customerCount} Kunden
             </div>
           </div>
-          <Link href="/horses/new" className="ah-btn" aria-label="Pferd anlegen">
+          <Link href="/horses/new" className="ah-btn" aria-label={newAnimalButtonLabel(t)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -242,7 +255,7 @@ export default function MobileHorses() {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Pferd, Rasse, Besitzer oder Stallort suchen…"
+            placeholder={searchAnimalsPlaceholder(t)}
             className="mobile-search-input"
             aria-label="Suchen"
           />
@@ -253,7 +266,7 @@ export default function MobileHorses() {
         <div className="horse-stats-row">
           <div className="customer-stat-box">
             <span className="customer-stat-value">{horseCount}</span>
-            <span className="customer-stat-label">Pferde gesamt</span>
+            <span className="customer-stat-label">{animalsStatLabel(t)}</span>
           </div>
           <div className="customer-stat-box">
             <span className="customer-stat-value">{barhufCount}</span>
@@ -320,9 +333,9 @@ export default function MobileHorses() {
         </div>
 
         {loading ? (
-          <div className="horse-list-loading">Pferde werden geladen…</div>
+          <div className="horse-list-loading">{animalsLoadingMessage(t)}</div>
         ) : horses.length === 0 ? (
-          <div className="horse-list-empty">Keine Pferde gefunden.</div>
+          <div className="horse-list-empty">{animalsEmptyMessage(t)}</div>
         ) : viewMode === 'list' ? (
           <>
             <div className="horse-list-view">
@@ -382,7 +395,7 @@ export default function MobileHorses() {
                   <Link
                     href={`/horses/${h.id}`}
                     className="horse-card-clickable"
-                    aria-label={`Pferd ${h.name || ''} öffnen`}
+                    aria-label={`${animalSingularLabel(t)} ${h.name || ''} öffnen`}
                   >
                     <div className="horse-card-top">
                       <div className="horse-card-icon" aria-hidden>

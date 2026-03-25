@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalsNavLabel } from '@/lib/appProfile'
 import MobileFab from './MobileFab'
 import MobileMoreSheet from './MobileMoreSheet'
 import {
@@ -14,15 +16,18 @@ import {
   faGear,
 } from '@fortawesome/free-solid-svg-icons'
 
-const NAV_LINK_ITEMS: { href: string; label: string; icon: typeof faTableCellsLarge }[] = [
-  { href: '/dashboard', label: 'Start', icon: faTableCellsLarge },
-  { href: '/calendar', label: 'Termine', icon: faCalendarDays },
-  { href: '/horses', label: 'Pferde', icon: faHorse },
-  { href: '/customers', label: 'Kunden', icon: faUsers },
-]
-
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { profile } = useAppProfile()
+  const navLinkItems = useMemo(
+    () => [
+      { href: '/dashboard', label: 'Start', icon: faTableCellsLarge },
+      { href: '/calendar', label: 'Termine', icon: faCalendarDays },
+      { href: '/horses', label: animalsNavLabel(profile.terminology), icon: faHorse },
+      { href: '/customers', label: 'Kunden', icon: faUsers },
+    ],
+    [profile.terminology]
+  )
   const [moreSheetOpen, setMoreSheetOpen] = useState(false)
   const [todayAppointmentCount, setTodayAppointmentCount] = useState(0)
   const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|horses\/new)$/.test(pathname ?? '')
@@ -49,7 +54,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
       {/* Tab-Bar */}
       {showTabBar && (
         <nav className="mobile-tab-bar mobile-tab-bar-z" aria-label="Hauptnavigation">
-          {NAV_LINK_ITEMS.map(({ href, label, icon }) => {
+          {navLinkItems.map(({ href, label, icon }) => {
             const isActive =
               href === '/dashboard'
                 ? pathname === '/dashboard'
