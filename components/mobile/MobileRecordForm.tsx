@@ -12,6 +12,11 @@ import { processHoofImage } from '@/components/photos/imageProcessing'
 import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot, type PhotoSlotKey } from '@/lib/photos/photoTypes'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { parseAnnotationsJson, DEFAULT_ANNOTATIONS } from '@/lib/photos/annotations'
+import {
+  loadRecordDetailFromDocumentation,
+  type RecordDetailHoofPhoto,
+  type RecordDetailHoofRecord,
+} from '@/lib/documentation/loadRecordForDetailView'
 import MinimalRichEditor from '@/components/records/MinimalRichEditor'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import ImproveTextButton from '@/components/ImproveTextButton'
@@ -531,14 +536,21 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       if (prevRow?.record_date) setPrevRecordDate(prevRow.record_date)
 
       if (isEdit && recordId) {
-        // Load existing record
-        const { data: rec } = await supabase
-          .from('hoof_records')
-          .select('record_date, hoof_condition, general_condition, gait, handling_behavior, horn_quality, hoofs_json, notes')
-          .eq('id', recordId)
-          .eq('user_id', user.id)
-          .single()
-        if (rec) {
+        const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
+
+        let photoRowsForDisplay: RecordDetailHoofPhoto[] = []
+        let hoofPhotoRowsForIds: RecordDetailHoofPhoto[] = []
+
+        const applyLoadedRecord = (rec: RecordDetailHoofRecord | {
+          record_date: string | null
+          hoof_condition: string | null
+          general_condition?: string | null
+          gait?: string | null
+          handling_behavior?: string | null
+          horn_quality?: string | null
+          hoofs_json?: unknown
+          notes?: string | null
+        }) => {
           if (rec.record_date) setRecordDate(rec.record_date.slice(0, 10))
           if (rec.hoof_condition) setSummaryText(rec.hoof_condition)
           if (rec.general_condition) setGeneralCondition(rec.general_condition)
@@ -563,27 +575,76 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
           }
         }
 
-        // Load photos
-        const { data: photos } = await supabase
-          .from('hoof_photos')
-          .select('id, file_path, photo_type, annotations_json, width, height')
-          .eq('hoof_record_id', recordId)
-          .eq('user_id', user.id)
-        if (photos?.length) {
-          setExistingPhotos(photos as ExistingPhoto[])
-          const urls: Record<string, string> = {}
-          const loadedAnnotations: Partial<Record<PhotoSlotKey, AnnotationsData>> = {}
-          for (const p of photos) {
-            if (!p.file_path || !p.photo_type) continue
-            const slot = toCanonicalPhotoSlot(p.photo_type)
-            if (!slot) continue
-            const { data: s } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-            if (s?.signedUrl) urls[slot] = s.signedUrl
-            if (p.annotations_json) loadedAnnotations[slot] = parseAnnotationsJson(p.annotations_json)
+        if (docLoad.ok) {
+          if (process.env.NODE_ENV === 'development') {
+            console.info('[mobile-record-form] Quelle: documentation_*', { recordId })
           }
-          setPhotoUrls(urls)
-          if (Object.keys(loadedAnnotations).length > 0) {
-            setAnnotationsBySlot(loadedAnnotations)
+          applyLoadedRecord(docLoad.record)
+          photoRowsForDisplay = docLoad.photos
+
+          const { data: hoofPhotos } = await supabase
+            .from('hoof_photos')
+            .select('id, file_path, photo_type, annotations_json, width, height')
+            .eq('hoof_record_id', recordId)
+            .eq('user_id', user.id)
+          hoofPhotoRowsForIds = hoofPhotos ?? []
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[mobile-record-form] Fallback: hoof_*', { recordId, reason: docLoad.reason })
+          }
+          const { data: rec } = await supabase
+            .from('hoof_records')
+            .select('record_date, hoof_condition, general_condition, gait, handling_behavior, horn_quality, hoofs_json, notes')
+            .eq('id', recordId)
+            .eq('horse_id', horseId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (rec) applyLoadedRecord(rec)
+
+          const { data: photos } = await supabase
+            .from('hoof_photos')
+            .select('id, file_path, photo_type, annotations_json, width, height')
+            .eq('hoof_record_id', recordId)
+            .eq('user_id', user.id)
+          photoRowsForDisplay = photos ?? []
+          hoofPhotoRowsForIds = photos ?? []
+        }
+
+        const hoofBySlot = new Map<string, RecordDetailHoofPhoto>()
+        for (const h of hoofPhotoRowsForIds) {
+          if (h.photo_type) hoofBySlot.set(h.photo_type, h)
+        }
+
+        if (photoRowsForDisplay.length) {
+          const merged: ExistingPhoto[] = []
+          for (const p of photoRowsForDisplay) {
+            if (!p.file_path || !p.photo_type) continue
+            const hoofMatch = hoofBySlot.get(p.photo_type)
+            merged.push({
+              id: hoofMatch?.id ?? p.id,
+              file_path: p.file_path,
+              photo_type: p.photo_type,
+              annotations_json: p.annotations_json,
+              width: p.width,
+              height: p.height,
+            })
+          }
+          if (merged.length) {
+            setExistingPhotos(merged)
+            const urls: Record<string, string> = {}
+            const loadedAnnotations: Partial<Record<PhotoSlotKey, AnnotationsData>> = {}
+            for (const p of photoRowsForDisplay) {
+              if (!p.file_path || !p.photo_type) continue
+              const slot = toCanonicalPhotoSlot(p.photo_type)
+              if (!slot) continue
+              const { data: s } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
+              if (s?.signedUrl) urls[slot] = s.signedUrl
+              if (p.annotations_json) loadedAnnotations[slot] = parseAnnotationsJson(p.annotations_json)
+            }
+            setPhotoUrls(urls)
+            if (Object.keys(loadedAnnotations).length > 0) {
+              setAnnotationsBySlot(loadedAnnotations)
+            }
           }
         }
       }
