@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
+import { searchDocumentationHits } from '@/lib/documentation/searchDocumentationHits'
 
 type SearchFilter = 'alle' | 'kunden' | 'pferde' | 'termine' | 'dokumentationen' | 'rechnungen'
 
@@ -23,13 +25,13 @@ export async function GET(request: Request) {
     { count: customerCount },
     { count: horseCount },
     { count: appointmentCount },
-    { count: hoofRecordCount },
+    hoofRecordCount,
     { count: invoiceCount },
   ] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('horses').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('hoof_records').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+    countDocumentationTotalForUser(supabase, user.id),
     supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
   ])
 
@@ -165,47 +167,7 @@ export async function GET(request: Request) {
     }
 
     if (currentFilter === 'alle' || currentFilter === 'dokumentationen') {
-      const { data: byRecord } = await supabase
-        .from('hoof_records')
-        .select(`
-          id, horse_id, record_date, hoof_condition, treatment, notes, doc_number,
-          horses (name, customers(name))
-        `)
-        .eq('user_id', user.id)
-        .or(`hoof_condition.ilike.${pattern},treatment.ilike.${pattern},notes.ilike.${pattern},doc_number.ilike.${pattern}`)
-        .order('record_date', { ascending: false })
-        .limit(50)
-
-      const { data: horsesByName } = await supabase
-        .from('horses')
-        .select('id')
-        .eq('user_id', user.id)
-        .ilike('name', pattern)
-      const horseIds = (horsesByName || []).map((r) => r.id)
-
-      let byHorse: typeof byRecord = []
-      if (horseIds.length > 0) {
-        const { data } = await supabase
-          .from('hoof_records')
-          .select(`
-            id, horse_id, record_date, hoof_condition, treatment, notes, doc_number,
-            horses (name, customers(name))
-          `)
-          .eq('user_id', user.id)
-          .in('horse_id', horseIds)
-          .order('record_date', { ascending: false })
-          .limit(50)
-        byHorse = data || []
-      }
-
-      const seen = new Set<string>()
-      hoofRecords = [...(byRecord || []), ...byHorse]
-        .filter((r) => {
-          if (seen.has(r.id)) return false
-          seen.add(r.id)
-          return true
-        })
-        .slice(0, 50)
+      hoofRecords = await searchDocumentationHits(supabase, user.id, searchQuery)
     }
 
     if (currentFilter === 'alle' || currentFilter === 'rechnungen') {
