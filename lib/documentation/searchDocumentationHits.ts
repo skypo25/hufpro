@@ -44,7 +44,8 @@ type HoofSearchRow = {
   hoof_condition: string | null
   treatment: string | null
   notes: string | null
-  doc_number: string | null
+  /** Nur gesetzt, wenn die DB-Spalte hoof_records.doc_number existiert. */
+  doc_number?: string | null
   created_at: string | null
   updated_at: string | null
   horses: SearchDocumentationHit['horses']
@@ -168,8 +169,9 @@ export async function searchDocumentationHits(
     docByHorse = data ?? []
   }
 
+  // Kein hoof_records.doc_number: Spalte fehlt in älteren DBs; Nummer-Suche läuft über documentation_records.
   const hoofSelect = `
-    id, horse_id, record_date, hoof_condition, treatment, notes, doc_number,
+    id, horse_id, record_date, hoof_condition, treatment, notes,
     created_at, updated_at,
     horses (name, customers(name))
   `
@@ -178,7 +180,7 @@ export async function searchDocumentationHits(
     .from('hoof_records')
     .select(hoofSelect)
     .eq('user_id', userId)
-    .or(`hoof_condition.ilike.${pattern},treatment.ilike.${pattern},notes.ilike.${pattern},doc_number.ilike.${pattern}`)
+    .or(`hoof_condition.ilike.${pattern},treatment.ilike.${pattern},notes.ilike.${pattern}`)
     .order('record_date', { ascending: false })
     .limit(50)
     .returns<HoofSearchRow[]>()

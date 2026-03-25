@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import DeleteHorseForm from './DeleteHorseForm'
 import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
@@ -53,18 +54,6 @@ type HoofRecord = {
   created_at?: string | null
   updated_at?: string | null
   doc_number?: string | null
-}
-
-type HoofPhoto = {
-  id: string
-  hoof_record_id: string | null
-  photo_type?: string | null
-}
-
-type HoofPhotoWithPath = {
-  id: string
-  file_path: string | null
-  photo_type: string | null
 }
 
 type Appointment = {
@@ -313,66 +302,37 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
     lastTreatment = lastApts?.[0]?.appointment_date || null
   }
 
-  // id, horse_id, record_date, created_at, updated_at – doc_number wird berechnet
-  const { data: records } = await supabase
-    .from('hoof_records')
-    .select('id, horse_id, record_date, created_at, updated_at')
-    .eq('horse_id', id)
-    .eq('user_id', user.id)
-    .order('record_date', { ascending: false })
-    .returns<HoofRecord[]>()
-
-  const recordRows: RecordRow[] = await Promise.all(
-    (records || []).map(async (record) => {
-      const { data: photos } = await supabase
-        .from('hoof_photos')
-        .select('id, photo_type')
-        .eq('hoof_record_id', record.id)
-        .eq('user_id', user.id)
-        .returns<HoofPhoto[]>()
-
-      const count =
-        photos?.filter(
-          (p) => p.photo_type !== 'whole_left' && p.photo_type !== 'whole_right'
-        ).length ?? 0
-      return {
-        record,
-        photoCount: count,
-      }
-    })
+  const { recordRows, wholeBodyPhotoSources, latestRecordId } = await loadRecordListForHorseView(
+    supabase,
+    user.id,
+    id
   )
 
   const deleteHorseForId = deleteHorse.bind(null, id)
   const age = getAgeFromBirthYear(horse.birth_year)
 
   let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
-  const latestRecordId = records?.[0]?.id
-  if (latestRecordId) {
-    const { data: wholePhotos } = await supabase
-      .from('hoof_photos')
-      .select('id, file_path, photo_type')
-      .eq('hoof_record_id', latestRecordId)
-      .eq('user_id', user.id)
-      .in('photo_type', ['whole_left', 'whole_right'])
-      .returns<HoofPhotoWithPath[]>()
-    if (wholePhotos?.length) {
-      const withUrls = await Promise.all(
-        (wholePhotos || []).map(async (p) => {
-          if (!p.file_path) return null
-          const { data: signed } = await supabase.storage
-            .from('hoof-photos')
-            .createSignedUrl(p.file_path, 60 * 60)
-          if (!signed?.signedUrl) return null
-          return {
-            id: p.id,
-            imageUrl: signed.signedUrl,
-            label: (p.photo_type && SLOT_LABELS[p.photo_type]) ?? p.photo_type ?? 'Ganzkörper',
-          }
-        })
-      )
-      wholeBodyPhotos = withUrls.filter((x): x is { id: string; imageUrl: string; label: string } => x != null)
-      wholeBodyPhotos.sort((a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1))
-    }
+  if (wholeBodyPhotoSources.length > 0) {
+    const withUrls = await Promise.all(
+      wholeBodyPhotoSources.map(async (p) => {
+        if (!p.file_path) return null
+        const { data: signed } = await supabase.storage
+          .from('hoof-photos')
+          .createSignedUrl(p.file_path, 60 * 60)
+        if (!signed?.signedUrl) return null
+        return {
+          id: p.id,
+          imageUrl: signed.signedUrl,
+          label: (p.photo_type && SLOT_LABELS[p.photo_type]) ?? p.photo_type ?? 'Ganzkörper',
+        }
+      })
+    )
+    wholeBodyPhotos = withUrls.filter(
+      (x): x is { id: string; imageUrl: string; label: string } => x != null
+    )
+    wholeBodyPhotos.sort(
+      (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
+    )
   }
 
   return (
@@ -592,7 +552,11 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               <div className="p-[22px]">
                 <WholeBodyPhotoSwitcher
                   items={wholeBodyPhotos}
-                  dateLabel={latestRecordId && records?.[0]?.record_date ? formatGermanDate(records[0].record_date) : undefined}
+                  dateLabel={
+                    latestRecordId && recordRows[0]?.record.record_date
+                      ? formatGermanDate(recordRows[0].record.record_date)
+                      : undefined
+                  }
                 />
               </div>
             </section>

@@ -2,6 +2,11 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { deleteDocumentationRecordByLegacyHoofId } from '@/lib/documentation/mirrorDocumentationPhotos'
+import {
+  loadRecordDetailFromDocumentation,
+  type RecordDetailHoofPhoto,
+  type RecordDetailHoofRecord,
+} from '@/lib/documentation/loadRecordForDetailView'
 import DeleteRecordForm from './DeleteRecordForm'
 import { SLOT_LABELS, SLOT_SOLAR, SLOT_LATERAL } from '@/lib/photos/photoTypes'
 import { formatCustomerNumber } from '@/lib/format'
@@ -11,32 +16,8 @@ type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
 }
 
-type HoofRecord = {
-  id: string
-  horse_id: string
-  record_date: string | null
-  hoof_condition: string | null
-  treatment: string | null
-  notes: string | null
-  created_at?: string | null
-  updated_at?: string | null
-  general_condition?: string | null
-  gait?: string | null
-  handling_behavior?: string | null
-  horn_quality?: string | null
-  hoofs_json?: unknown
-  record_type?: string | null
-  doc_number?: string | null
-}
-
-type HoofPhoto = {
-  id: string
-  file_path: string | null
-  photo_type: string | null
-  annotations_json?: unknown
-  width?: number | null
-  height?: number | null
-}
+type HoofRecord = RecordDetailHoofRecord
+type HoofPhoto = RecordDetailHoofPhoto
 
 type Horse = {
   id: string
@@ -331,16 +312,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     .eq('user_id', user.id)
     .single<Horse>()
 
-  // Fetch base record
-  const { data: recordBase } = await supabase
-    .from('hoof_records')
-    .select('id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at')
-    .eq('id', recordId)
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .single<HoofRecord>()
-
-  if (!horse || !recordBase) {
+  if (!horse) {
     return (
       <main className="mx-auto max-w-[1200px] w-full space-y-7">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
@@ -350,21 +322,64 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     )
   }
 
-  // Extended fields (graceful fallback if columns missing)
-  let extRecord: Partial<HoofRecord> = {}
-  const { data: extRow } = await supabase
-    .from('hoof_records')
-    .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json')
-    .eq('id', recordId)
-    .eq('user_id', user.id)
-    .maybeSingle<Partial<HoofRecord>>()
-  if (extRow) extRecord = extRow
+  const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
 
-  // doc_number – Spalte kann fehlen; Fallback aus recordId + record_date
+  let record: HoofRecord
+  let photoRows: HoofPhoto[]
 
-  const record: HoofRecord = { ...recordBase, ...extRecord }
+  if (docLoad.ok) {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.info('[record-detail] Quelle: documentation_*', { recordId })
+    }
+    record = docLoad.record
+    photoRows = docLoad.photos
+  } else {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn('[record-detail] Fallback: hoof_*', { recordId, reason: docLoad.reason })
+    }
 
-  // Previous record
+    const { data: recordBase } = await supabase
+      .from('hoof_records')
+      .select('id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at')
+      .eq('id', recordId)
+      .eq('horse_id', horseId)
+      .eq('user_id', user.id)
+      .single<HoofRecord>()
+
+    if (!recordBase) {
+      return (
+        <main className="mx-auto max-w-[1200px] w-full space-y-7">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <h1 className="text-xl font-semibold text-red-700">Dokumentation nicht gefunden</h1>
+          </div>
+        </main>
+      )
+    }
+
+    let extRecord: Partial<HoofRecord> = {}
+    const { data: extRow } = await supabase
+      .from('hoof_records')
+      .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json, record_type, doc_number')
+      .eq('id', recordId)
+      .eq('user_id', user.id)
+      .maybeSingle<Partial<HoofRecord>>()
+    if (extRow) extRecord = extRow
+
+    record = { ...recordBase, ...extRecord }
+
+    const { data: hoofPhotos } = await supabase
+      .from('hoof_photos')
+      .select('id, file_path, photo_type, annotations_json, width, height')
+      .eq('hoof_record_id', recordId)
+      .eq('user_id', user.id)
+      .returns<HoofPhoto[]>()
+
+    photoRows = hoofPhotos ?? []
+  }
+
+  // Previous record (unverändert über hoof_records – stabile Nachbar-URLs)
   const { data: prevRows } = await supabase
     .from('hoof_records')
     .select('id, record_date')
@@ -375,17 +390,9 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
     .limit(1)
   const prevRecord = (prevRows as { id: string; record_date: string | null }[] | null)?.[0] ?? null
 
-  // Photos
-  const { data: photoRows } = await supabase
-    .from('hoof_photos')
-    .select('id, file_path, photo_type, annotations_json, width, height')
-    .eq('hoof_record_id', recordId)
-    .eq('user_id', user.id)
-    .returns<HoofPhoto[]>()
-
   const photoMap: Record<string, string> = {}
   const photoMetaMap: Record<string, HoofPhoto> = {}
-  if (photoRows?.length) {
+  if (photoRows.length) {
     for (const p of photoRows) {
       if (!p.file_path || !p.photo_type) continue
       const { data: signed } = await supabase.storage

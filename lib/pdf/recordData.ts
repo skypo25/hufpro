@@ -1,9 +1,11 @@
 /**
  * Lädt alle für die PDF-Ausgabe nötigen Daten zu einem hoof_record.
+ * Primär documentation_* (gleiche Lade-/Mapping-Logik wie Record-Detail), Fallback hoof_*.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { SLOT_LABELS } from "@/lib/photos/photoTypes"
+import { loadRecordDetailFromDocumentation, type RecordDetailHoofPhoto } from "@/lib/documentation/loadRecordForDetailView"
 import type { RecordPdfData, RecordPdfHoof, RecordPdfPhoto, RecordPdfSeller } from "./types"
 
 type HorseRow = {
@@ -108,12 +110,37 @@ function buildDocNumber(recordId: string, recordDate: string | null): string {
   return `DOK-${year}-${suffix}`
 }
 
-export async function fetchRecordPdfData(
+async function buildPdfPhotosFromPaths(
+  supabase: SupabaseClient,
+  rows: { file_path: string | null; photo_type: string | null }[]
+): Promise<RecordPdfPhoto[]> {
+  const photos: RecordPdfPhoto[] = []
+  for (const p of rows) {
+    if (!p.file_path || !p.photo_type) continue
+    const dataUrl = await imageToDataUrl(supabase, p.file_path)
+    if (!dataUrl) continue
+    photos.push({
+      photoType: p.photo_type,
+      label: SLOT_LABELS[p.photo_type] ?? p.photo_type,
+      dataUrl,
+    })
+  }
+  return photos
+}
+
+async function loadSharedContext(
   supabase: SupabaseClient,
   userId: string,
   horseId: string,
   recordId: string
-): Promise<RecordPdfData | null> {
+): Promise<{
+  horseRow: HorseRow
+  seller: RecordPdfSeller
+  lastRecordDate: string | null
+  customer: ReturnType<typeof getRelation>
+  birthYear: number | null
+  ageYears: number | null
+} | null> {
   const { data: horseRow } = await supabase
     .from("horses")
     .select(
@@ -123,28 +150,8 @@ export async function fetchRecordPdfData(
     .eq("user_id", userId)
     .single<HorseRow>()
 
-  const { data: recordBase } = await supabase
-    .from("hoof_records")
-    .select("id, record_date, hoof_condition, treatment, notes")
-    .eq("id", recordId)
-    .eq("horse_id", horseId)
-    .eq("user_id", userId)
-    .single<HoofRecordRow>()
+  if (!horseRow) return null
 
-  if (!horseRow || !recordBase) return null
-
-  // Extended fields (may not exist in older DB schemas)
-  let extended: Partial<HoofRecordRow> = {}
-  const { data: extRow } = await supabase
-    .from("hoof_records")
-    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json")
-    .eq("id", recordId)
-    .eq("horse_id", horseId)
-    .eq("user_id", userId)
-    .maybeSingle<Partial<HoofRecordRow>>()
-  if (extRow) extended = extRow
-
-  // Settings for seller info
   const { data: settingsRow } = await supabase
     .from("user_settings")
     .select("settings")
@@ -153,7 +160,6 @@ export async function fetchRecordPdfData(
 
   const seller = sellerFromSettings(settingsRow?.settings ?? null)
 
-  // Last record date (previous appointment)
   const { data: prevRows } = await supabase
     .from("hoof_records")
     .select("record_date")
@@ -168,9 +174,93 @@ export async function fetchRecordPdfData(
   const birthYear = horseRow.birth_year ?? null
   const ageYears = birthYear != null ? new Date().getFullYear() - birthYear : null
 
-  const hoofs = parseHoofsJson(extended.hoofs_json)
+  return { horseRow, seller, lastRecordDate, customer, birthYear, ageYears }
+}
 
-  // Photos
+export async function fetchRecordPdfData(
+  supabase: SupabaseClient,
+  userId: string,
+  horseId: string,
+  recordId: string
+): Promise<RecordPdfData | null> {
+  const ctx = await loadSharedContext(supabase, userId, horseId, recordId)
+  if (!ctx) return null
+
+  const { horseRow, seller, lastRecordDate, customer, birthYear, ageYears } = ctx
+
+  const docLoad = await loadRecordDetailFromDocumentation(supabase, userId, horseId, recordId)
+
+  if (docLoad.ok) {
+    if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console
+      console.info("[pdf] Quelle: documentation_*", { recordId })
+    }
+
+    const r = docLoad.record
+    const photoRowsForPdf = docLoad.photos.map((p: RecordDetailHoofPhoto) => ({
+      file_path: p.file_path,
+      photo_type: p.photo_type,
+    }))
+    const photos = await buildPdfPhotosFromPaths(supabase, photoRowsForPdf)
+
+    const hoofs = parseHoofsJson(r.hoofs_json)
+
+    return {
+      horse: {
+        name: horseRow.name ?? "–",
+        breed: horseRow.breed ?? null,
+        sex: horseRow.sex ?? null,
+        birthYear,
+        ageYears,
+      },
+      customer: {
+        customerNumber: customer?.customer_number ?? null,
+        name: customer?.name ?? "–",
+        stableName: customer?.stable_name ?? null,
+        city: customer?.city ?? null,
+      },
+      seller,
+      record: {
+        recordDate: r.record_date,
+        recordType: r.record_type ?? null,
+        docNumber: r.doc_number ?? buildDocNumber(recordId, r.record_date),
+        lastRecordDate,
+        generalCondition: r.general_condition ?? null,
+        gait: r.gait ?? null,
+        handlingBehavior: r.handling_behavior ?? null,
+        hornQuality: r.horn_quality ?? null,
+        hoofs,
+        summaryNotes: r.hoof_condition ?? null,
+      },
+      photos,
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    // eslint-disable-next-line no-console
+    console.warn("[pdf] Fallback: hoof_*", { recordId, reason: docLoad.reason })
+  }
+
+  const { data: recordBase } = await supabase
+    .from("hoof_records")
+    .select("id, record_date, hoof_condition, treatment, notes, record_type")
+    .eq("id", recordId)
+    .eq("horse_id", horseId)
+    .eq("user_id", userId)
+    .single<HoofRecordRow>()
+
+  if (!recordBase) return null
+
+  let extended: Partial<HoofRecordRow> = {}
+  const { data: extRow } = await supabase
+    .from("hoof_records")
+    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json")
+    .eq("id", recordId)
+    .eq("horse_id", horseId)
+    .eq("user_id", userId)
+    .maybeSingle<Partial<HoofRecordRow>>()
+  if (extRow) extended = extRow
+
   const { data: photoRows } = await supabase
     .from("hoof_photos")
     .select("file_path, photo_type")
@@ -178,19 +268,8 @@ export async function fetchRecordPdfData(
     .eq("user_id", userId)
     .returns<HoofPhotoRow[]>()
 
-  const photos: RecordPdfPhoto[] = []
-  if (photoRows?.length) {
-    for (const p of photoRows) {
-      if (!p.file_path || !p.photo_type) continue
-      const dataUrl = await imageToDataUrl(supabase, p.file_path)
-      if (!dataUrl) continue
-      photos.push({
-        photoType: p.photo_type,
-        label: SLOT_LABELS[p.photo_type] ?? p.photo_type,
-        dataUrl,
-      })
-    }
-  }
+  const photos = await buildPdfPhotosFromPaths(supabase, photoRows ?? [])
+  const hoofs = parseHoofsJson(extended.hoofs_json)
 
   return {
     horse: {
@@ -209,7 +288,7 @@ export async function fetchRecordPdfData(
     seller,
     record: {
       recordDate: recordBase.record_date,
-      recordType: null,
+      recordType: recordBase.record_type ?? null,
       docNumber: buildDocNumber(recordId, recordBase.record_date),
       lastRecordDate,
       generalCondition: extended.general_condition ?? null,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
 
 function getBerlinDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -141,12 +142,12 @@ export async function GET() {
   const [
     { count: customersCount },
     { count: horsesCount },
-    { count: recordsCount },
+    recordsCount,
     { count: appointmentsWeekCount },
   ] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('horses').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('hoof_records').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+    countDocumentationTotalForUser(supabase, user.id),
     supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
