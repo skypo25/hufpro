@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { searchCustomersPlaceholder, type Terminology } from '@/lib/appProfile'
 
 const LIMIT = 20
 
@@ -11,9 +12,9 @@ type CustomerItem = {
   phone: string | null
   email: string | null
   city: string | null
-  stable_name: string | null
-  stable_city: string | null
+  locationLine: string | null
   horseCount: number
+  animalsSummary: string
   horseNames: string[]
   nextAppointment: string | null
   navAddress: string
@@ -145,6 +146,7 @@ export default function MobileCustomers() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [preferredNavApp, setPreferredNavApp] = useState<'apple' | 'google' | 'waze'>('google')
+  const [terminology, setTerminology] = useState<Terminology>('pferd')
   const [debouncedQ, setDebouncedQ] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -196,17 +198,22 @@ export default function MobileCustomers() {
     let cancelled = false
     fetch('/api/dashboard/mobile', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { preferredNavApp?: 'apple' | 'google' | 'waze' } | null) => {
-        if (!cancelled && data?.preferredNavApp) setPreferredNavApp(data.preferredNavApp)
-      })
+      .then(
+        (data: {
+          preferredNavApp?: 'apple' | 'google' | 'waze'
+          terminology?: Terminology
+        } | null) => {
+          if (!cancelled && data?.preferredNavApp) setPreferredNavApp(data.preferredNavApp)
+          if (!cancelled && (data?.terminology === 'pferd' || data?.terminology === 'tier')) {
+            setTerminology(data.terminology)
+          }
+        }
+      )
     return () => { cancelled = true }
   }, [])
 
   const hasMore = total > customers.length
-  const locationText = (c: CustomerItem) => {
-    const parts = [c.stable_city || c.city, c.stable_name].filter(Boolean) as string[]
-    return parts.join(' · ') || '–'
-  }
+  const locationText = (c: CustomerItem) => c.locationLine?.trim() || c.city || '–'
 
   /** Für Listenansicht: nach Anfangsbuchstabe gruppieren (letztes Wort = Nachname) */
   const customersByLetter = (() => {
@@ -238,7 +245,7 @@ export default function MobileCustomers() {
           <div>
             <h1 className="mobile-greeting">Kunden</h1>
             <div className="mobile-sub">
-              {customerCount} Kunden · {horseCount} Pferde in Betreuung
+              {customerCount} Kunden · {horseCount} Tiere in Betreuung
             </div>
           </div>
           <div className="flex">
@@ -257,7 +264,7 @@ export default function MobileCustomers() {
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Kunde, Ort oder Pferd suchen…"
+            placeholder={searchCustomersPlaceholder(terminology)}
             className="mobile-search-input"
             aria-label="Suchen"
           />
@@ -272,7 +279,7 @@ export default function MobileCustomers() {
           </div>
           <div className="customer-stat-box">
             <span className="customer-stat-value">{horseCount}</span>
-            <span className="customer-stat-label">PFERDE</span>
+            <span className="customer-stat-label">TIERE</span>
           </div>
           <div className="customer-stat-box">
             <span className="customer-stat-value">{appointmentsThisWeek}</span>
@@ -303,7 +310,7 @@ export default function MobileCustomers() {
               <option value="name_asc">Name A–Z</option>
               <option value="name_desc">Name Z–A</option>
               <option value="next_appointment">Nächster Termin</option>
-              <option value="horses_desc">Meiste Pferde</option>
+              <option value="horses_desc">Meiste Tiere</option>
               <option value="newest">Neueste zuerst</option>
             </select>
           </div>
@@ -355,7 +362,7 @@ export default function MobileCustomers() {
                           </div>
                         </div>
                         <div className="customer-list-right-block">
-                          <span className="customer-list-pill">{c.horseCount}</span>
+                          <span className="customer-list-pill">{c.animalsSummary}</span>
                           <span className="customer-list-date">{formatNextAppointment(c.nextAppointment)}</span>
                         </div>
                         <span className="customer-list-chevron" aria-hidden>
@@ -390,7 +397,7 @@ export default function MobileCustomers() {
                     className="absolute inset-0 z-0"
                     aria-label={`Kunde ${c.name || ''} öffnen`}
                   />
-                  {/* Wie Desktop: Header mit Avatar, Name, Ort, Pferde-Badge */}
+                  {/* Wie Desktop: Header mit Avatar, Name, Ort, Tier-Badge */}
                   <div className="customer-card-header pointer-events-none">
                     <div className="customer-card-avatar" aria-hidden>
                       {getInitials(c.name)}
@@ -403,7 +410,7 @@ export default function MobileCustomers() {
                       </div>
                     </div>
                     <div className="customer-card-horses">
-                      {c.horseCount} {c.horseCount === 1 ? 'Pferd' : 'Pferde'}
+                      {c.animalsSummary}
                     </div>
                   </div>
                   {/* Wie Desktop: Nächster Termin, Telefon, E-Mail – ohne Trennlinien dazwischen */}
@@ -427,10 +434,10 @@ export default function MobileCustomers() {
                       <span className="customer-card-contact-value">{c.email || '–'}</span>
                     </div>
                   </div>
-                  {/* Wie Desktop: Pferdenamen + Details → mit hellem Hintergrund */}
+                  {/* Wie Desktop: Tiernamen + Details → mit hellem Hintergrund */}
                   <div className="customer-card-footer pointer-events-none">
                     <span className="customer-card-horsenames">
-                      {c.horseNames.length > 0 ? c.horseNames.join(' · ') : 'Keine Pferde'}
+                      {c.horseNames.length > 0 ? c.horseNames.join(' · ') : 'Keine Tiere'}
                     </span>
                     <Link href={`/customers/${c.id}`} className="customer-card-detail-link pointer-events-auto">
                       Details →

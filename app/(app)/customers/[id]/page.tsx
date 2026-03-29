@@ -1,8 +1,23 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppointmentAnimalsInline, {
+  CUSTOMER_DETAIL_ANIMAL_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
 import ActionButton from '@/components/ui/ActionButton'
 import { formatCustomerNumber } from '@/lib/format'
+import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHorse, faPaw } from '@fortawesome/free-solid-svg-icons'
+import {
+  animalTypeIconColor,
+  faIconForAnimalType,
+} from '@/lib/animalTypeDisplay'
+import {
+  animalsNavLabel,
+  animalSingularLabel,
+  deriveAppProfile,
+} from '@/lib/appProfile'
 
 type CustomerPageProps = {
   params: Promise<{
@@ -23,17 +38,8 @@ type Customer = {
   city: string | null
   country?: string | null
   company?: string | null
-  stable_differs?: boolean | null
-  stable_name?: string | null
-  stable_street?: string | null
-  stable_city?: string | null
-  stable_zip?: string | null
-  stable_country?: string | null
-  stable_contact?: string | null
-  stable_phone?: string | null
   drive_time?: string | null
   preferred_days?: string[] | null
-  directions?: string | null
   notes?: string | null
   salutation?: string | null
   created_at?: string | null
@@ -50,7 +56,12 @@ type Horse = {
   sex?: string | null
   birth_year?: number | null
   usage?: string | null
+  animal_type?: string | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
 }
 
 type Appointment = {
@@ -178,7 +189,7 @@ export default async function CustomerDetailPage({
 
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select('id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, stable_differs, stable_name, stable_street, stable_city, stable_zip, stable_country, stable_contact, stable_phone, drive_time, preferred_days, directions, notes, salutation, created_at')
+    .select('id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, drive_time, preferred_days, notes, salutation, created_at')
     .eq('id', id)
     .eq('user_id', user.id)
     .single<Customer>()
@@ -194,9 +205,22 @@ export default async function CustomerDetailPage({
     )
   }
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const appProfile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const animalsPlural = animalsNavLabel(appProfile.terminology)
+  const animalSingular = animalSingularLabel(appProfile.terminology)
+  const headerAnimalsIcon = appProfile.terminology === 'tier' ? faPaw : faHorse
+
   const { data: horsesData } = await supabase
     .from('horses')
-    .select('id, name, breed, sex, birth_year, usage, customer_id')
+    .select(
+      'id, name, breed, sex, birth_year, usage, animal_type, customer_id, stable_name, stable_city, stable_street, stable_zip'
+    )
     .eq('user_id', user.id)
     .eq('customer_id', customer.id)
     .order('name', { ascending: true })
@@ -231,11 +255,20 @@ export default async function CustomerDetailPage({
   const horseNamesById = new Map(horses.map((horse) => [horse.id, horse.name || '-']))
 
   const horseNamesByAppointment = new Map<string, string[]>()
+  const horseById = new Map(horses.map((h) => [h.id, h]))
+  const animalsByAppointmentId = new Map<string, { name: string; animalType: string | null }[]>()
   for (const row of appointmentHorseRows) {
     const horseName = horseNamesById.get(row.horse_id)
     if (!horseName) continue
     const existing = horseNamesByAppointment.get(row.appointment_id) || []
     horseNamesByAppointment.set(row.appointment_id, [...existing, horseName])
+  }
+  for (const row of appointmentHorseRows) {
+    const h = horseById.get(row.horse_id)
+    if (!h) continue
+    const list = animalsByAppointmentId.get(row.appointment_id) ?? []
+    list.push({ name: h.name || '–', animalType: h.animal_type ?? null })
+    animalsByAppointmentId.set(row.appointment_id, list)
   }
 
   const firstHorseIdByAppointment = new Map<string, string>()
@@ -287,8 +320,8 @@ export default async function CustomerDetailPage({
     }
   }
 
-  const upcomingHorseNames = nextAppointment?.id
-    ? horseNamesByAppointment.get(nextAppointment.id) || []
+  const upcomingAnimals = nextAppointment?.id
+    ? (animalsByAppointmentId.get(nextAppointment.id) ?? [])
     : []
 
   const upcomingDocHorseId = nextAppointment?.id
@@ -322,6 +355,14 @@ export default async function CustomerDetailPage({
   }
   const totalRevenueCents = monthlyRevenueCents.reduce((a, b) => a + b, 0)
 
+  const primaryStallHorse = pickPrimaryStallHorse(horses)
+  const headerLocationLabel =
+    stallDisplayLabel(primaryStallHorse ?? {}, customer.city) || customer.city || '-'
+  const upcomingPrimaryHorse =
+    upcomingDocHorseId ? horses.find((h) => h.id === upcomingDocHorseId) : null
+  const nextAppointmentLocationLabel =
+    stallDisplayLabel(upcomingPrimaryHorse ?? {}, customer.city) || customer.city || '-'
+
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
@@ -353,11 +394,15 @@ export default async function CustomerDetailPage({
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <i className="bi bi-geo-alt text-[14px]" />
-                {customer.city || customer.stable_city || '-'}
+                {headerLocationLabel}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <i className="fa-solid fa-horse text-[13px]" />
-                {horses.length} {horses.length === 1 ? 'Pferd' : 'Pferde'}
+                <FontAwesomeIcon
+                  icon={headerAnimalsIcon}
+                  className="h-[13px] w-[13px] shrink-0"
+                  style={{ color: animalTypeIconColor }}
+                />
+                {horses.length} {horses.length === 1 ? animalSingular : animalsPlural}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <i className="bi bi-calendar3 text-[13px]" />
@@ -491,102 +536,35 @@ export default async function CustomerDetailPage({
                   {[customer.postal_code, customer.city].filter(Boolean).join(' ') || customer.city || '-'}
                 </div>
               </div>
+
+              {customer.drive_time?.trim() ? (
+                <div>
+                  <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                    Entfernung (Rechnungsadresse)
+                  </div>
+                  <div className="text-[14px] font-medium text-[#1B1F23]">{customer.drive_time}</div>
+                </div>
+              ) : null}
             </div>
           </div>
 
           <div className="huf-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
-                Stalldaten
+                {animalsPlural} ({horses.length})
               </h3>
               <Link
-                href={`/customers/${customer.id}/edit`}
+                href={`/animals/new?customerId=${customer.id}`}
                 className="text-[13px] font-medium text-[#52b788] hover:underline"
               >
-                Bearbeiten
-              </Link>
-            </div>
-
-            <div className="grid gap-5 p-[22px] md:grid-cols-2">
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Stallname
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.stable_name?.trim() || '-'}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Straße & Hausnummer
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.stable_street?.trim() || '-'}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Ort
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {[customer.stable_zip, customer.stable_city].filter(Boolean).join(' ') || '-'}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Ansprechpartner vor Ort
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.stable_contact?.trim() || '-'}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Telefon vor Ort
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.stable_phone ? (
-                    <a href={`tel:${customer.stable_phone}`} className="text-[#52b788] hover:underline">
-                      {customer.stable_phone}
-                    </a>
-                  ) : (
-                    '-'
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
-                  Anfahrtszeit
-                </div>
-                <div className="text-[14px] font-medium text-[#1B1F23]">
-                  {customer.drive_time || '-'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="huf-card">
-            <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
-              <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
-                Pferde ({horses.length})
-              </h3>
-              <Link
-                href={`/horses/new?customerId=${customer.id}`}
-                className="text-[13px] font-medium text-[#52b788] hover:underline"
-              >
-                + Pferd hinzufügen
+                + {animalSingular} hinzufügen
               </Link>
             </div>
 
             <div>
               {horses.length === 0 ? (
                 <div className="px-6 py-10 text-center text-[13px] text-[#6B7280]">
-                  Noch keine Pferde angelegt.
+                  Noch keine {animalsPlural.toLowerCase()} angelegt.
                 </div>
               ) : (
                 horses.map((horse, index) => {
@@ -595,13 +573,16 @@ export default async function CustomerDetailPage({
                   return (
                     <Link
                       key={horse.id}
-                      href={`/horses/${horse.id}`}
+                      href={`/animals/${horse.id}`}
                       className="flex items-center gap-4 border-b border-[#E5E2DC] px-[22px] py-4 transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0"
                     >
-                      <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef]">
-                        <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#52b788]" aria-hidden>
-                          <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
-                        </svg>
+                      <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
+                        <FontAwesomeIcon
+                          icon={faIconForAnimalType(horse.animal_type)}
+                          className="h-[8px] w-[8px] shrink-0 text-[#154226]"
+                          style={{ width: 8, height: 8, maxWidth: 8, maxHeight: 8, fontSize: 8 }}
+                          aria-hidden
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -610,6 +591,11 @@ export default async function CustomerDetailPage({
                         </div>
                         <div className="truncate text-[12px] text-[#6B7280]">
                           {getHorseMeta(horse)}
+                          {stallDisplayLabel(horse, customer.city) ? (
+                            <span className="block truncate text-[11px] text-[#9CA3AF]">
+                              Standort: {stallDisplayLabel(horse, customer.city)}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 
@@ -646,7 +632,7 @@ export default async function CustomerDetailPage({
                 </div>
               ) : (
                 pastAppointments.map((appointment) => {
-                  const horseNames = horseNamesByAppointment.get(appointment.id) || []
+                  const pastAnimals = animalsByAppointmentId.get(appointment.id) ?? []
                   const date = appointment.appointment_date
                   const day = date ? new Date(date).getDate() : '--'
                   const month = formatMonthShort(date)
@@ -666,12 +652,25 @@ export default async function CustomerDetailPage({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[14px] font-medium text-[#1B1F23]">
-                          {appointment.type || 'Termin'}
-                          {horseNames.length > 0 ? ` – ${horseNames.join(', ')}` : ''}
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 text-[14px] font-medium text-[#1B1F23]">
+                          <span className="truncate">{appointment.type || 'Termin'}</span>
+                          {pastAnimals.length > 0 ? (
+                            <>
+                              <span className="shrink-0 text-[#9CA3AF]">·</span>
+                              <AppointmentAnimalsInline
+                                animals={pastAnimals}
+                                inheritTextStyle
+                                iconClassName={CUSTOMER_DETAIL_ANIMAL_ICON_CLASS}
+                                className="min-w-0 text-[14px] font-medium"
+                              />
+                            </>
+                          ) : null}
                         </div>
                         <div className="truncate text-[12px] text-[#6B7280]">
-                          {appointment.notes || `${horseNames.length} Pferde bearbeitet`}
+                          {appointment.notes ||
+                            (pastAnimals.length > 0
+                              ? `${pastAnimals.length} ${pastAnimals.length === 1 ? animalSingular : animalsPlural} bearbeitet`
+                              : '–')}
                         </div>
                       </div>
 
@@ -711,10 +710,20 @@ export default async function CustomerDetailPage({
                   </div>
 
                   <div className="text-[13px] leading-6 text-[#6B7280]">
-                    {customer.stable_name || customer.stable_city || customer.city || '-'}
+                    {nextAppointmentLocationLabel}
                     <br />
-                    Pferde:{' '}
-                    {upcomingHorseNames.length > 0 ? upcomingHorseNames.join(', ') : '-'}
+                    <span className="inline-flex flex-wrap items-center gap-x-1">
+                      <span>{animalsPlural}:</span>
+                      {upcomingAnimals.length > 0 ? (
+                        <AppointmentAnimalsInline
+                          animals={upcomingAnimals}
+                          inheritTextStyle
+                          iconClassName={CUSTOMER_DETAIL_ANIMAL_ICON_CLASS}
+                        />
+                      ) : (
+                        <span>–</span>
+                      )}
+                    </span>
                   </div>
 
                   <div className="mt-4 flex gap-2">
@@ -727,7 +736,7 @@ export default async function CustomerDetailPage({
                     </ActionButton>
 
                     <ActionButton
-                      href={upcomingDocHorseId ? `/horses/${upcomingDocHorseId}` : '/calendar'}
+                      href={upcomingDocHorseId ? `/animals/${upcomingDocHorseId}` : '/calendar'}
                       variant="primary"
                       className="flex-1"
                     >
@@ -759,13 +768,7 @@ export default async function CustomerDetailPage({
                   {customer.preferred_days.join(', ')}
                 </p>
               ) : null}
-              {customer.directions?.trim() ? (
-                <p>
-                  <span className="font-medium text-[#1B1F23]">Anfahrtshinweis: </span>
-                  {customer.directions.trim()}
-                </p>
-              ) : null}
-              {!customer.notes?.trim() && !customer.preferred_days?.length && !customer.directions?.trim() && (
+              {!customer.notes?.trim() && !customer.preferred_days?.length && (
                 <p>Noch keine Kundennotizen hinterlegt.</p>
               )}
             </div>

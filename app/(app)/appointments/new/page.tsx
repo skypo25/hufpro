@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getSuggestedDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
+import { getDefaultReminderMinutesFromSettings } from '@/lib/appointments/reminderDefaults'
 import AppointmentForm from '@/components/appointments/AppointmentForm'
 import type {
   AppointmentCustomer,
@@ -26,13 +28,6 @@ type CustomerRow = {
   street?: string | null
   postal_code?: string | null
   country?: string | null
-  stable_differs?: boolean | null
-  stable_name?: string | null
-  stable_city?: string | null
-  stable_street?: string | null
-  stable_zip?: string | null
-  stable_country?: string | null
-  directions?: string | null
 }
 
 type HorseRow = {
@@ -43,6 +38,14 @@ type HorseRow = {
   birth_year?: number | null
   hoof_status?: string | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+  stable_city?: string | null
+  stable_country?: string | null
+  stable_contact?: string | null
+  stable_phone?: string | null
+  stable_directions?: string | null
 }
 
 type AppointmentRow = {
@@ -73,13 +76,6 @@ function getInitialTypeByHorseCount(count: number): AppointmentFormInitialData['
   return count > 0 ? 'Regeltermin' : 'Regeltermin'
 }
 
-function getInitialDurationByHorseCount(count: number) {
-  if (count <= 1) return '45 Minuten'
-  if (count === 2) return '60 Minuten'
-  if (count === 3) return '90 Minuten'
-  return '120 Minuten'
-}
-
 function formatTime(dateString: string | null) {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -104,13 +100,25 @@ export default async function NewAppointmentPage({
     redirect('/login')
   }
 
+  const { data: userSettingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const reminderSettings = (userSettingsRow?.settings ?? {}) as {
+    emailReminders?: boolean
+    appointmentReminderDefaultMinutes?: number | null
+  }
+  const emailRemindersEnabled = reminderSettings.emailReminders !== false
+  const defaultReminderMinutes =
+    getDefaultReminderMinutesFromSettings(reminderSettings)
+
   const { customerId, horseId, date } = await searchParams
 
   const { data: customersData, error: customersError } = await supabase
     .from('customers')
-    .select(
-      'id, customer_number, name, city, phone, street, postal_code, country, stable_differs, stable_name, stable_city, stable_street, stable_zip, stable_country, directions'
-    )
+    .select('id, customer_number, name, city, phone, street, postal_code, country')
     .eq('user_id', user.id)
     .order('name', { ascending: true })
     .returns<CustomerRow[]>()
@@ -130,7 +138,9 @@ export default async function NewAppointmentPage({
 
   const { data: horsesData, error: horsesError } = await supabase
     .from('horses')
-    .select('id, name, breed, sex, birth_year, hoof_status, customer_id')
+    .select(
+      'id, name, breed, sex, birth_year, hoof_status, customer_id, stable_name, stable_street, stable_zip, stable_city, stable_country, stable_contact, stable_phone, stable_directions'
+    )
     .eq('user_id', user.id)
     .order('name', { ascending: true })
     .returns<HorseRow[]>()
@@ -157,13 +167,6 @@ export default async function NewAppointmentPage({
     street: customer.street,
     postal_code: customer.postal_code,
     country: customer.country,
-    stable_differs: customer.stable_differs,
-    stable_name: customer.stable_name,
-    stable_city: customer.stable_city,
-    stable_street: customer.stable_street,
-    stable_zip: customer.stable_zip,
-    stable_country: customer.stable_country,
-    directions: customer.directions,
   }))
 
   const horses: AppointmentHorse[] = (horsesData || []).map((horse) => ({
@@ -174,6 +177,14 @@ export default async function NewAppointmentPage({
     birth_year: horse.birth_year,
     hoof_status: horse.hoof_status,
     customer_id: horse.customer_id,
+    stable_name: horse.stable_name,
+    stable_street: horse.stable_street,
+    stable_zip: horse.stable_zip,
+    stable_city: horse.stable_city,
+    stable_country: horse.stable_country,
+    stable_contact: horse.stable_contact,
+    stable_phone: horse.stable_phone,
+    stable_directions: horse.stable_directions,
   }))
 
   let resolvedCustomerId = customerId || ''
@@ -254,9 +265,10 @@ export default async function NewAppointmentPage({
     appointmentType: getInitialTypeByHorseCount(resolvedHorseIds.length),
     appointmentDate: selectedDate,
     appointmentTime: getDefaultTimeValue(),
-    duration: getInitialDurationByHorseCount(resolvedHorseIds.length),
+    duration: getSuggestedDurationLabelDesktop(resolvedHorseIds.length),
     notes: '',
     status: 'Bestätigt',
+    reminderMinutesBefore: defaultReminderMinutes,
   }
 
   return (
@@ -288,6 +300,7 @@ export default async function NewAppointmentPage({
         horses={horses}
         initialData={initialData}
         dayItems={dayItems}
+        emailRemindersEnabled={emailRemindersEnabled}
       />
     </main>
   )

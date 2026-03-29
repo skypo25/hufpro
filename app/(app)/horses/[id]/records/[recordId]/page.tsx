@@ -29,9 +29,11 @@ type Horse = {
   hoof_status: string | null
   care_interval: string | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
   customers?:
-    | { id?: string; customer_number?: number | null; name: string | null; stable_name: string | null; city: string | null }
-    | { id?: string; customer_number?: number | null; name: string | null; stable_name: string | null; city: string | null }[]
+    | { id?: string; customer_number?: number | null; name: string | null; city: string | null }
+    | { id?: string; customer_number?: number | null; name: string | null; city: string | null }[]
     | null
 }
 
@@ -173,7 +175,7 @@ async function deleteRecord(horseId: string, recordId: string) {
   }
   await deleteDocumentationRecordByLegacyHoofId(supabase, recordId, user.id)
   await supabase.from('hoof_records').delete().eq('id', recordId).eq('horse_id', horseId).eq('user_id', user.id)
-  redirect(`/horses/${horseId}`)
+  redirect(`/animals/${horseId}`)
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -307,7 +309,9 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
 
   const { data: horse } = await supabase
     .from('horses')
-    .select('id, name, breed, sex, birth_year, usage, hoof_status, care_interval, customer_id, customers (id, customer_number, name, stable_name, city)')
+    .select(
+      'id, name, breed, sex, birth_year, usage, hoof_status, care_interval, customer_id, stable_name, stable_city, customers (id, customer_number, name, city)'
+    )
     .eq('id', horseId)
     .eq('user_id', user.id)
     .single<Horse>()
@@ -428,16 +432,16 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       <div className="mb-5 flex items-center gap-2 text-[12px] text-[#9CA3AF]">
         <Link href="/dashboard" className="hover:text-[#52b788]">Dashboard</Link>
         <span aria-hidden>›</span>
-        <Link href="/horses" className="hover:text-[#52b788]">Pferde</Link>
+        <Link href="/animals" className="hover:text-[#52b788]">Tiere</Link>
         <span aria-hidden>›</span>
-        <Link href={`/horses/${horseId}`} className="hover:text-[#52b788]">{horse.name || 'Pferd'}</Link>
+        <Link href={`/animals/${horseId}`} className="hover:text-[#52b788]">{horse.name || 'Pferd'}</Link>
         <span aria-hidden>›</span>
         <span className="text-[#6B7280]">Dokumentation {formatGermanDate(record.record_date)}</span>
       </div>
 
       {/* Horse header */}
       <div className="mb-5 flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-[#edf3ef] text-[#52b788]">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-[#edf3ef] text-[#154226]">
           <svg width="28" height="28" viewBox="0 0 576 512" fill="currentColor" aria-hidden>
             <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
           </svg>
@@ -445,7 +449,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
         <div>
           <h1 className="text-[22px] font-bold text-[#1B1F23]">{horse.name || 'Pferd'}</h1>
           <p className="mt-0.5 text-[13px] text-[#6B7280]">
-            {[horse.breed, horse.sex, age != null ? `${age} J.` : null, customer?.name, customer?.stable_name]
+            {[horse.breed, horse.sex, age != null ? `${age} J.` : null, customer?.name, horse.stable_name]
               .filter(Boolean).join(' · ')}
           </p>
         </div>
@@ -601,7 +605,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
             </div>
             <div className="space-y-2 p-4">
               <a
-                href={`/horses/${horseId}/records/${recordId}/pdf`}
+                href={`/animals/${horseId}/records/${recordId}/pdf`}
                 download
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#52b788] px-4 py-3 text-[13px] font-semibold !text-white transition hover:bg-[#0f301b]"
               >
@@ -609,7 +613,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
                 PDF herunterladen
               </a>
               <a
-                href={`/horses/${horseId}/records/${recordId}/pdf?preview=1`}
+                href={`/animals/${horseId}/records/${recordId}/pdf?preview=1`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
@@ -618,7 +622,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
                 Per E-Mail senden
               </a>
               <Link
-                href={`/horses/${horseId}/records/${recordId}/edit`}
+                href={`/animals/${horseId}/records/${recordId}/edit`}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
               >
                 <i className="bi bi-pencil-square text-[14px]" aria-hidden />
@@ -639,8 +643,11 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
               {customer?.name && (
                 <SidebarRow label="Besitzer/in" value={customer.name} />
               )}
-              {customer?.stable_name && (
-                <SidebarRow label="Stall" value={customer.stable_name} />
+              {(horse.stable_name || horse.stable_city) && (
+                <SidebarRow
+                  label="Stall"
+                  value={[horse.stable_name, horse.stable_city].filter(Boolean).join(' · ') || '–'}
+                />
               )}
               {prevRecord && (
                 <div className="flex items-center gap-2 px-5 py-3">
@@ -648,7 +655,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
                   <span className="text-[12px] text-[#9CA3AF]">
                     Vorheriger Termin:{' '}
                     <Link
-                      href={`/horses/${horseId}/records/${prevRecord.id}`}
+                      href={`/animals/${horseId}/records/${prevRecord.id}`}
                       className="font-medium text-[#52b788] hover:underline"
                     >
                       {formatGermanDate(prevRecord.record_date)}
@@ -686,7 +693,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       {/* Back link */}
       <div className="mt-8">
         <Link
-          href={`/horses/${horseId}`}
+          href={`/animals/${horseId}`}
           className="inline-flex items-center gap-2 rounded-xl border border-[#E5E2DC] px-4 py-2 text-[13px] font-medium text-[#1B1F23] hover:border-[#52b788] hover:bg-[#edf3ef]"
         >
           <i className="bi bi-arrow-left text-[13px]" aria-hidden />

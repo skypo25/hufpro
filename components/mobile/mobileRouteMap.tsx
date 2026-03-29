@@ -15,7 +15,9 @@ import MobileCustomerDetail from './MobileCustomerDetail'
 import MobileCustomerEdit from './MobileCustomerEdit'
 import MobileRecordEntry from './MobileRecordEntry'
 import MobileRecordDetail from './MobileRecordDetail'
-import MobileHorseForm from './MobileHorseForm'
+import MobileAnimalFormScreen from './MobileAnimalFormScreen'
+import MobileErstanamnese from './MobileErstanamnese'
+import MobileErstanamneseEdit from './MobileErstanamneseEdit'
 import MobileCustomerForm from './MobileCustomerForm'
 import MobileAppointmentForm from './MobileAppointmentForm'
 
@@ -26,14 +28,14 @@ import MobileAppointmentForm from './MobileAppointmentForm'
 export function useMobileContent(): ReactNode {
   const pathname = usePathname()
 
-  // Neue Dokumentation erstellen: /horses/[id]/records/new
-  const newRecordMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/new$/)
+  // Neue Dokumentation erstellen: /animals/[id]/records/new
+  const newRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/new$/)
   if (newRecordMatch?.[1]) {
     return <MobileRecordEntry horseId={newRecordMatch[1]} mode="create" />
   }
 
-  // Dokumentation bearbeiten: /horses/[id]/records/[recordId]/edit
-  const editRecordMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/([^/?#]+)\/edit$/)
+  // Dokumentation bearbeiten: /animals/[id]/records/[recordId]/edit
+  const editRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/([^/?#]+)\/edit$/)
   if (editRecordMatch?.[1] && editRecordMatch?.[2]) {
     return (
       <MobileRecordEntry
@@ -44,17 +46,32 @@ export function useMobileContent(): ReactNode {
     )
   }
 
-  // Dokumentation Detail: /horses/[id]/records/[recordId] (optional trailing slash)
-  const recordDetailMatch = pathname?.match(/^\/horses\/([^/?#]+)\/records\/([^/?#]+)\/?$/)
+  // Dokumentation Detail: /animals/[id]/records/[recordId] (optional trailing slash)
+  const recordDetailMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/([^/?#]+)\/?$/)
   if (recordDetailMatch?.[1] && recordDetailMatch?.[2]) {
     return <MobileRecordDetail horseId={recordDetailMatch[1]} recordId={recordDetailMatch[2]} />
   }
 
-  if (pathname === '/horses/new') {
-    return <MobileHorseForm />
+  if (pathname === '/animals/new') {
+    return <MobileAnimalFormScreen mode="create" />
   }
 
-  const horseIdMatch = pathname?.match(/^\/horses\/([^/?#]+)/)
+  const editAnimalMatch = pathname?.match(/^\/animals\/([^/?#]+)\/edit$/)
+  if (editAnimalMatch?.[1]) {
+    return <MobileAnimalFormScreen mode="edit" horseId={editAnimalMatch[1]} />
+  }
+
+  const erstanamneseEditMatch = pathname?.match(/^\/animals\/([^/?#]+)\/erstanamnese\/edit\/?$/)
+  if (erstanamneseEditMatch?.[1]) {
+    return <MobileErstanamneseEdit horseId={erstanamneseEditMatch[1]} />
+  }
+
+  const erstanamneseMatch = pathname?.match(/^\/animals\/([^/?#]+)\/erstanamnese\/?$/)
+  if (erstanamneseMatch?.[1]) {
+    return <MobileErstanamnese horseId={erstanamneseMatch[1]} />
+  }
+
+  const horseIdMatch = pathname?.match(/^\/animals\/([^/?#]+)/)
   if (horseIdMatch?.[1]) {
     return <MobileHorseDetail horseId={horseIdMatch[1]} />
   }
@@ -94,7 +111,7 @@ export function useMobileContent(): ReactNode {
   if (pathname === '/dashboard') return <MobileDashboard />
   if (pathname === '/calendar') return <MobileCalendar />
   if (pathname === '/customers') return <MobileCustomers />
-  if (pathname === '/horses') return <MobileHorses />
+  if (pathname === '/animals') return <MobileHorses />
 
   if (pathname === '/invoices') return <MobilePlaceholder />
   if (pathname === '/settings') return <MobileSettings />

@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
 import TimePicker from '@/components/form/TimePicker'
 import { formatCustomerNumber } from '@/lib/format'
+import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
+import DeleteHorseForm from '@/app/(app)/horses/[id]/DeleteHorseForm'
 
 type HorseFormMode = 'create' | 'edit'
 
@@ -29,13 +31,29 @@ export type HorseFormInitialData = {
   careInterval: string
   specialNotes: string
   notes: string
+
+  stableName: string
+  stableStreet: string
+  stableZip: string
+  stableCity: string
+  stableCountry: string
+  stableContact: string
+  stablePhone: string
+  stableDirections: string
+  /** Nur Bearbeiten: gespeicherter Entfernungstext zum Standort */
+  stableDriveTime?: string | null
 }
 
 type HorseFormProps = {
   mode: HorseFormMode
   customers: HorseFormCustomerOption[]
   initialData: HorseFormInitialData
+  deleteAction?: () => void | Promise<void>
+  deleteLabel?: string
+  deleteConfirmText?: string
 }
+
+const countryOptions = ['Deutschland', 'Österreich', 'Schweiz']
 
 const HorseIconSvg = () => (
   <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0" aria-hidden>
@@ -59,7 +77,7 @@ function Section({
   return (
     <section className="huf-card">
       <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
           {icon}
         </span>
         <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
@@ -215,10 +233,54 @@ const breedOptions = [
   'Esel',
 ]
 
+type StableRow = {
+  stable_name?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+  stable_city?: string | null
+  stable_country?: string | null
+  stable_contact?: string | null
+  stable_phone?: string | null
+  stable_directions?: string | null
+  stable_drive_time?: string | null
+}
+
+function horseRowHasStableLocation(row: StableRow | null | undefined): boolean {
+  if (!row) return false
+  return !!(
+    row.stable_name?.trim() ||
+    row.stable_street?.trim() ||
+    row.stable_zip?.trim() ||
+    row.stable_city?.trim() ||
+    row.stable_country?.trim() ||
+    row.stable_contact?.trim() ||
+    row.stable_phone?.trim() ||
+    row.stable_directions?.trim() ||
+    (row.stable_drive_time != null && String(row.stable_drive_time).trim() !== '')
+  )
+}
+
+function initialHorseHasStableLocation(d: HorseFormInitialData): boolean {
+  return !!(
+    d.stableName?.trim() ||
+    d.stableStreet?.trim() ||
+    d.stableZip?.trim() ||
+    d.stableCity?.trim() ||
+    d.stableContact?.trim() ||
+    d.stablePhone?.trim() ||
+    d.stableDirections?.trim() ||
+    (d.stableDriveTime != null && String(d.stableDriveTime).trim() !== '') ||
+    (d.stableCountry?.trim() && d.stableCountry.trim() !== 'Deutschland')
+  )
+}
+
 export default function HorseForm({
   mode,
   customers,
   initialData,
+  deleteAction,
+  deleteLabel,
+  deleteConfirmText,
 }: HorseFormProps) {
   const router = useRouter()
 
@@ -238,6 +300,25 @@ export default function HorseForm({
   const [specialNotes, setSpecialNotes] = useState(initialData.specialNotes)
   const [notes, setNotes] = useState(initialData.notes)
 
+  const [stableName, setStableName] = useState(initialData.stableName)
+  const [stableStreet, setStableStreet] = useState(initialData.stableStreet)
+  const [stableZip, setStableZip] = useState(initialData.stableZip)
+  const [stableCity, setStableCity] = useState(initialData.stableCity)
+  const [stableCountry, setStableCountry] = useState(initialData.stableCountry)
+  const [stableContact, setStableContact] = useState(initialData.stableContact)
+  const [stablePhone, setStablePhone] = useState(initialData.stablePhone)
+  const [stableDirections, setStableDirections] = useState(initialData.stableDirections)
+  const [stableDistanceText, setStableDistanceText] = useState<string | null>(
+    initialData.stableDriveTime ?? null
+  )
+
+  const [stableDiffersFromCustomer, setStableDiffersFromCustomer] = useState(
+    () => mode === 'edit' && initialHorseHasStableLocation(initialData)
+  )
+
+  const latestCustomerIdRef = useRef(customerId)
+  latestCustomerIdRef.current = customerId
+
   const [planFirstAppointment, setPlanFirstAppointment] = useState(false)
   const [firstAppointmentDate, setFirstAppointmentDate] = useState('')
   const [firstAppointmentTime, setFirstAppointmentTime] = useState('09:00')
@@ -246,6 +327,116 @@ export default function HorseForm({
     () => customers.find((customer) => customer.id === customerId) || null,
     [customers, customerId]
   )
+
+  async function fetchDistanceFromOrigin(destLat: number, destLon: number): Promise<string | null> {
+    try {
+      const res = await fetch('/api/user/origin', { credentials: 'include' })
+      const origin = await res.json()
+      const lat = origin?.lat ?? null
+      const lon = origin?.lon ?? null
+      if (typeof lat !== 'number' || typeof lon !== 'number') return null
+      const params = new URLSearchParams({
+        originLon: String(lon),
+        originLat: String(lat),
+        destLon: String(destLon),
+        destLat: String(destLat),
+      })
+      const routeRes = await fetch(`/api/route-distance?${params}`)
+      const data = await routeRes.json()
+      const km = data?.distanceKm
+      const min = data?.durationMin
+      if (typeof km !== 'number') return null
+      return min != null ? `Ca. ${km} km, ~${min} Min` : `Ca. ${km} km`
+    } catch {
+      return null
+    }
+  }
+
+  function resetStableFields() {
+    setStableName('')
+    setStableStreet('')
+    setStableZip('')
+    setStableCity('')
+    setStableCountry('Deutschland')
+    setStableContact('')
+    setStablePhone('')
+    setStableDirections('')
+    setStableDistanceText(null)
+  }
+
+  const applyStableFromRowRef = useRef<(data: StableRow) => void>(() => {})
+  applyStableFromRowRef.current = (data: StableRow) => {
+    setStableName(data.stable_name ?? '')
+    setStableStreet(data.stable_street ?? '')
+    setStableZip(data.stable_zip ?? '')
+    setStableCity(data.stable_city ?? '')
+    setStableCountry(data.stable_country?.trim() || 'Deutschland')
+    setStableContact(data.stable_contact ?? '')
+    setStablePhone(data.stable_phone ?? '')
+    setStableDirections(data.stable_directions ?? '')
+    setStableDistanceText(data.stable_drive_time ?? null)
+  }
+
+  /** Neues Pferd: Kunde → wenn ein anderes Pferd schon Stall hat, Schalter an + Felder. */
+  useEffect(() => {
+    if (mode !== 'create') return
+    if (!customerId) {
+      setStableDiffersFromCustomer(false)
+      resetStableFields()
+      return
+    }
+    const cid = customerId
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('horses')
+        .select(
+          'stable_name, stable_street, stable_zip, stable_city, stable_country, stable_contact, stable_phone, stable_directions, stable_drive_time'
+        )
+        .eq('customer_id', cid)
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (cancelled || latestCustomerIdRef.current !== cid) return
+      if (error || !data || !horseRowHasStableLocation(data)) {
+        setStableDiffersFromCustomer(false)
+        resetStableFields()
+        return
+      }
+      setStableDiffersFromCustomer(true)
+      applyStableFromRowRef.current(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [customerId, mode])
+
+  /** Schalter an: Stall vom letzten Pferd nachladen (nur Neuanlage). */
+  useEffect(() => {
+    if (mode !== 'create' || !customerId || !stableDiffersFromCustomer) return
+    const cid = customerId
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('horses')
+        .select(
+          'stable_name, stable_street, stable_zip, stable_city, stable_country, stable_contact, stable_phone, stable_directions, stable_drive_time'
+        )
+        .eq('customer_id', cid)
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (cancelled || latestCustomerIdRef.current !== cid) return
+      if (error || !data || !horseRowHasStableLocation(data)) {
+        resetStableFields()
+        return
+      }
+      applyStableFromRowRef.current(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [stableDiffersFromCustomer, customerId, mode])
 
   const customerInitials = selectedCustomer?.name
     ? selectedCustomer.name
@@ -317,6 +508,30 @@ export default function HorseForm({
       care_interval: careInterval || null,
       special_notes: specialNotes.trim() || null,
       notes: notes.trim() || null,
+
+      ...(stableDiffersFromCustomer
+        ? {
+            stable_name: stableName.trim() || null,
+            stable_street: stableStreet.trim() || null,
+            stable_zip: stableZip.trim() || null,
+            stable_city: stableCity.trim() || null,
+            stable_country: stableCountry || null,
+            stable_contact: stableContact.trim() || null,
+            stable_phone: stablePhone.trim() || null,
+            stable_directions: stableDirections.trim() || null,
+            stable_drive_time: stableDistanceText || null,
+          }
+        : {
+            stable_name: null,
+            stable_street: null,
+            stable_zip: null,
+            stable_city: null,
+            stable_country: null,
+            stable_contact: null,
+            stable_phone: null,
+            stable_directions: null,
+            stable_drive_time: null,
+          }),
     }
 
     if (mode === 'create') {
@@ -373,12 +588,12 @@ export default function HorseForm({
       setLoading(false)
 
       if (intent === 'record') {
-        router.push(`/horses/${data.id}/records/new`)
+        router.push(`/animals/${data.id}/records/new`)
         router.refresh()
         return
       }
 
-      router.push(`/horses/${data.id}`)
+      router.push(`/animals/${data.id}`)
       router.refresh()
       return
     }
@@ -404,12 +619,12 @@ export default function HorseForm({
     setLoading(false)
 
     if (intent === 'record') {
-      router.push(`/horses/${initialData.id}/records/new`)
+      router.push(`/animals/${initialData.id}/records/new`)
       router.refresh()
       return
     }
 
-    router.push(`/horses/${initialData.id}`)
+    router.push(`/animals/${initialData.id}`)
     router.refresh()
   }
 
@@ -519,7 +734,136 @@ export default function HorseForm({
             />
           </Field>
         </div>
+
+        <div className="rounded-xl border border-[#E5E2DC] bg-[#fafaf9] px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-medium text-[#1B1F23]">
+                Steht das Pferd an einem anderen Standort als die Kundenadresse?
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
+                Die Rechnungsanschrift des Kunden gilt als Standard. Nur aktivieren, wenn du Stall, Anfahrt oder Kontakt vor Ort separat brauchst.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={stableDiffersFromCustomer}
+              aria-label="Pferd steht an anderem Standort als die Kundenadresse"
+              title={stableDiffersFromCustomer ? 'Anderer Standort: ein' : 'Anderer Standort: aus'}
+              onClick={() => {
+                setStableDiffersFromCustomer((prev) => {
+                  const next = !prev
+                  if (!next) resetStableFields()
+                  return next
+                })
+              }}
+              className={`mhf-toggle-switch${stableDiffersFromCustomer ? ' on' : ''}`}
+            />
+          </div>
+        </div>
       </Section>
+
+      {stableDiffersFromCustomer && (
+        <Section title="Stall / Standort" icon={<i className="bi bi-pin-map-fill" />} badge="Arbeitsort dieses Pferdes">
+          <Field label="Stalladresse suchen" hint="Ort, Adresse oder Name des Stalls/Hofs – Vorschläge füllen die Felder darunter">
+            <AddressAutocomplete
+              placeholder="z. B. Am Waldrand 7, 53567 Asbach"
+              onSelect={(a: AddressSuggestion) => {
+                setStableStreet(a.street)
+                setStableZip(a.zip)
+                setStableCity(a.city)
+                if (a.country) setStableCountry(a.country)
+                setStableDistanceText(null)
+                if (a.lat != null && a.lon != null) {
+                  void fetchDistanceFromOrigin(a.lat, a.lon).then(setStableDistanceText)
+                }
+              }}
+            />
+          </Field>
+          {stableDistanceText && (
+            <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+          )}
+          <Field label="Name des Stalls / Hofs" hint="So findest du den Standort schnell wieder">
+            <input
+              value={stableName}
+              onChange={(e) => setStableName(e.target.value)}
+              type="text"
+              placeholder="z. B. Reiterhof Sonnental"
+              className="huf-input"
+            />
+          </Field>
+          <Field label="Straße & Hausnummer">
+            <input
+              value={stableStreet}
+              onChange={(e) => setStableStreet(e.target.value)}
+              type="text"
+              placeholder="z. B. Am Waldrand 7"
+              className="huf-input"
+            />
+          </Field>
+          <div className="grid gap-5 md:grid-cols-[2fr_1fr_1fr]">
+            <Field label="Ort">
+              <input
+                value={stableCity}
+                onChange={(e) => setStableCity(e.target.value)}
+                type="text"
+                placeholder="z. B. Asbach"
+                className="huf-input"
+              />
+            </Field>
+            <Field label="PLZ">
+              <input
+                value={stableZip}
+                onChange={(e) => setStableZip(e.target.value)}
+                type="text"
+                placeholder="z. B. 53567"
+                className="huf-input"
+              />
+            </Field>
+            <Field label="Land">
+              <select
+                value={stableCountry}
+                onChange={(e) => setStableCountry(e.target.value)}
+                className="huf-input"
+              >
+                {countryOptions.map((country) => (
+                  <option key={country}>{country}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <Field label="Ansprechpartner vor Ort" hint="Optional">
+              <input
+                value={stableContact}
+                onChange={(e) => setStableContact(e.target.value)}
+                type="text"
+                placeholder="z. B. Stallbesitzer Hans Müller"
+                className="huf-input"
+              />
+            </Field>
+            <Field label="Telefon vor Ort" hint="Stalltelefon oder Ansprechpartner-Handy">
+              <input
+                value={stablePhone}
+                onChange={(e) => setStablePhone(e.target.value)}
+                type="tel"
+                placeholder="z. B. 02683 1234"
+                className="huf-input"
+              />
+            </Field>
+          </div>
+          <Field label="Anfahrtshinweis" hint="Besondere Hinweise zur Anfahrt zum Standort">
+            <input
+              value={stableDirections}
+              onChange={(e) => setStableDirections(e.target.value)}
+              type="text"
+              placeholder="z. B. Hofeinfahrt links, hinter Scheune"
+              className="huf-input"
+            />
+          </Field>
+        </Section>
+      )}
 
       <Section title="Nutzung & Haltung" icon={<HorseIconSvg />}>
         <div className="grid gap-5 md:grid-cols-2">
@@ -681,14 +1025,25 @@ export default function HorseForm({
       <div className="flex flex-col gap-3 pt-2 md:flex-row md:items-center md:justify-between">
         <div>
           <Link
-            href="/horses"
+            href="/animals"
             className="inline-flex items-center gap-2 px-4 py-3 text-[14px] text-[#6B7280] hover:text-[#1B1F23]"
           >
             ← Abbrechen
           </Link>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          {mode === 'edit' && initialData.id && deleteAction ? (
+            <DeleteHorseForm
+              action={deleteAction}
+              label={deleteLabel ?? 'Pferd löschen'}
+              confirmText={
+                deleteConfirmText ??
+                'Willst du dieses Pferd wirklich löschen? Alle zugehörigen Dokumentationen und Fotos werden ebenfalls entfernt.'
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-5 py-2.5 text-[15px] font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-50 sm:py-3"
+            />
+          ) : null}
           <button
             type="button"
             disabled={loading}

@@ -52,7 +52,7 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
               {stat.label}
             </div>
 
-            <div className="dashboard-serif text-[30px] font-medium leading-none tracking-[-0.02em] text-[#1B1F23] tabular-nums">
+            <div className="dashboard-serif text-[26px] !font-extrabold leading-none tracking-[-0.02em] text-[#1B1F23] tabular-nums">
               <CountUp value={stat.value} duration={1400} delay={index * 80} startOnView />
             </div>
 

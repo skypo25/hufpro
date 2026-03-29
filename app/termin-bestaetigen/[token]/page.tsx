@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
+import { formatAppointmentTimeRangeDe } from '@/lib/appointments/appointmentDisplay'
+import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
 import TerminConfirmForm from './TerminConfirmForm'
 
 type Props = {
@@ -15,7 +17,7 @@ export default async function TerminBestaetigenPage({ params }: Props) {
     date: string
     time: string
     type: string
-    duration: string | null
+    duration: string
     horseNames: string[]
     notes: string | null
   } | null = null
@@ -62,20 +64,15 @@ export default async function TerminBestaetigenPage({ params }: Props) {
           year: 'numeric',
         }).format(new Date(row.appointment_date))
       : '–'
-    const time = row.appointment_date
-      ? new Intl.DateTimeFormat('de-DE', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date(row.appointment_date))
-      : '–'
+    const time =
+      formatAppointmentTimeRangeDe(row.appointment_date, row.duration_minutes) || '–'
 
     appointment = {
       id: row.id,
       date,
       time,
       type: (row.type ?? 'Termin').toString(),
-      duration:
-        row.duration_minutes != null ? `${row.duration_minutes} Min.` : null,
+      duration: minutesToDurationLabelDesktop(row.duration_minutes),
       horseNames,
       notes: row.notes?.trim() || null,
     }
@@ -127,16 +124,14 @@ export default async function TerminBestaetigenPage({ params }: Props) {
           </dt>
           <dd className="mt-0.5 font-medium text-[#1B1F23]">{appointment.type}</dd>
         </div>
-        {appointment.duration && (
-          <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
-              Dauer
-            </dt>
-            <dd className="mt-0.5 font-medium text-[#1B1F23]">
-              {appointment.duration}
-            </dd>
-          </div>
-        )}
+        <div>
+          <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
+            Dauer
+          </dt>
+          <dd className="mt-0.5 font-medium text-[#1B1F23]">
+            {appointment.duration}
+          </dd>
+        </div>
         {appointment.horseNames.length > 0 && (
           <div>
             <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">

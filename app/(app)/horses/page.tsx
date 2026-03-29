@@ -17,9 +17,12 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
 import { formatGermanDate, getAgeFromBirthYear } from '@/lib/format'
 import { getCurrentWeekRange } from '@/lib/date'
+import { animalTypeBadgeClassName, formatAnimalTypeLabel } from '@/lib/animalTypeDisplay'
 import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import EmptyState from '@/components/ui/EmptyState'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 
 type HorsesPageProps = {
   searchParams: Promise<{
@@ -36,10 +39,15 @@ type Horse = {
   breed: string | null
   sex?: string | null
   birth_year?: number | null
+  animal_type?: string | null
   usage?: string | null
   hoof_status?: string | null
   special_notes?: string | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
 }
 
 type Customer = {
@@ -47,8 +55,6 @@ type Customer = {
   customer_number?: number | null
   name: string | null
   city: string | null
-  stable_name?: string | null
-  stable_city?: string | null
   interval_weeks?: string | null
 }
 
@@ -82,10 +88,10 @@ function horseTileClass(index: number) {
   return HORSE_TILE_CLASSES[index % HORSE_TILE_CLASSES.length]
 }
 
-function getOwnerLocation(customer: Customer | null) {
-  if (!customer) return '-'
-  if (customer.stable_name) return customer.stable_name
-  return customer.stable_city || customer.city || '-'
+function getOwnerLocation(horse: Horse, customer: Customer | null) {
+  if (horse.stable_name) return horse.stable_name
+  if (horse.stable_city) return horse.stable_city
+  return customer?.city || '-'
 }
 
 function getHorseMeta(horse: Horse) {
@@ -124,7 +130,7 @@ function buildPageHref({
   if (perPage !== 10) params.set('perPage', String(perPage))
 
   const query = params.toString()
-  return `/horses${query ? `?${query}` : ''}`
+  return `/animals${query ? `?${query}` : ''}`
 }
 
 export default async function HorsesPage({
@@ -167,9 +173,7 @@ export default async function HorsesPage({
 
   const { data: horses, error } = await supabase
     .from('horses')
-    .select(
-      'id, name, breed, sex, birth_year, usage, hoof_status, special_notes, customer_id'
-    )
+    .select('*')
     .eq('user_id', user.id)
     .returns<Horse[]>()
 
@@ -200,7 +204,7 @@ export default async function HorsesPage({
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
       .from('customers')
-      .select('id, customer_number, name, city, stable_name, stable_city, interval_weeks')
+      .select('id, customer_number, name, city, interval_weeks')
       .eq('user_id', user.id)
       .in('id', customerIds)
       .returns<Customer[]>()
@@ -271,10 +275,12 @@ export default async function HorsesPage({
         row.horse.breed,
         row.horse.sex,
         row.horse.usage,
+        row.horse.animal_type,
+        formatAnimalTypeLabel(row.horse.animal_type),
         row.customer?.name,
         row.customer?.city,
-        row.customer?.stable_name,
-        row.customer?.stable_city,
+        row.horse.stable_name,
+        row.horse.stable_city,
       ]
         .filter(Boolean)
         .join(' ')
@@ -323,11 +329,7 @@ export default async function HorsesPage({
 
   const hoofschutzCount = horseList.filter((horse) => {
     const value = (horse.hoof_status || '').toLowerCase()
-    return (
-      value.includes('hufschuhe') ||
-      value.includes('kunststoff') ||
-      value.includes('scoot')
-    )
+    return value.includes('hufschuhe') || value.includes('kunststoff') || value.includes('scoot')
   }).length
 
   const correctionCount = horseList.filter((horse) => {
@@ -353,12 +355,30 @@ export default async function HorsesPage({
           .replace('.', ',')
       : '-'
 
+  const dogsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'dog').length
+  const catsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'cat').length
+  const smallCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'small').length
+  const otherCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'other').length
+  // NULL/leer = Pferd (Legacy / Pferde-only Profil)
+  const horsesCount = horseList.filter((a) => {
+    const t = (a.animal_type ?? '').trim()
+    return !t || t === 'horse'
+  }).length
+
   const { weekStart, weekEnd } = getCurrentWeekRange()
   const appointmentsThisWeek = appointments.filter((appointment) => {
     if (!appointment.appointment_date) return false
     const d = new Date(appointment.appointment_date)
     return d >= weekStart && d < weekEnd
   }).length
+
+  const isTierTerm = term === 'tier'
+  const listHeaderClass = isTierTerm
+    ? 'grid grid-cols-[52px_minmax(0,1.4fr)_120px_1fr_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.4fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(3)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
+    : 'grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
+  const listRowClass = isTierTerm
+    ? 'relative grid grid-cols-[52px_minmax(0,1.4fr)_120px_1fr_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.4fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(3)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
+    : 'relative grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
 
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
@@ -376,7 +396,7 @@ export default async function HorsesPage({
             </Link>
 
             <Link
-              href="/horses/new"
+              href="/animals/new"
               className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
             >
               <i className="bi bi-plus-lg text-[14px]" />
@@ -386,27 +406,68 @@ export default async function HorsesPage({
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard
-          label={animalsStatLabel(term)}
-          value={horseCount}
-          subtext={statCardAllAnimalsSubtext(term)}
-        />
-        <StatCard
-          label="Barhuf"
-          value={barhufCount}
-          valueClassName="text-[#52b788]"
-          subtext="ohne festen Beschlag"
-        />
-        <StatCard label="Hufschutz" value={hoofschutzCount} subtext="z. B. Hufschuhe" />
-        <StatCard
-          label="In Korrektur"
-          value={correctionCount}
-          valueClassName="text-[#F59E0B]"
-          subtext="laut Status / Notiz"
-        />
-        <StatCard label="Ø Intervall" value={avgInterval} subtext="Wochen" />
-      </div>
+      {term === 'pferd' ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <StatCard
+            label={animalsStatLabel(term)}
+            value={horseCount}
+            subtext={statCardAllAnimalsSubtext(term)}
+          />
+          <StatCard
+            label="Barhuf"
+            value={barhufCount}
+            subtext="ohne festen Beschlag"
+          />
+          <StatCard
+            label="Hufschutz"
+            value={hoofschutzCount}
+            subtext="z. B. Hufschuhe"
+          />
+          <StatCard
+            label="In Korrektur"
+            value={correctionCount}
+            subtext="laut Status / Notiz"
+          />
+          <StatCard
+            label="Ø Intervall"
+            value={avgInterval}
+            subtext="Wochen"
+          />
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatCard
+            label="Tiere gesamt"
+            value={horseCount}
+            subtext="alle Tierarten"
+          />
+          <StatCard
+            label="Hunde"
+            value={dogsCount}
+            subtext="Tierart"
+          />
+          <StatCard
+            label="Katzen"
+            value={catsCount}
+            subtext="Tierart"
+          />
+          <StatCard
+            label="Pferde"
+            value={horsesCount}
+            subtext="Tierart"
+          />
+          <StatCard
+            label="Kleintiere"
+            value={smallCount}
+            subtext="Tierart"
+          />
+          <StatCard
+            label="Sonstige"
+            value={otherCount}
+            subtext="Tierart"
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
@@ -440,15 +501,19 @@ export default async function HorsesPage({
             <span className="rounded-full bg-[#52b788] px-4 py-2 text-[12px] font-medium text-white">
               Alle ({horseCount})
             </span>
-            <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
-              Barhuf ({barhufCount})
-            </span>
-            <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
-              Hufschutz ({hoofschutzCount})
-            </span>
-            <span className="rounded-full border border-[#F59E0B] bg-white px-4 py-2 text-[12px] font-medium text-[#F59E0B]">
-              Korrektur ({correctionCount})
-            </span>
+            {term === 'pferd' && (
+              <>
+                <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
+                  Barhuf ({barhufCount})
+                </span>
+                <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
+                  Hufschutz ({hoofschutzCount})
+                </span>
+                <span className="rounded-full border border-[#F59E0B] bg-white px-4 py-2 text-[12px] font-medium text-[#F59E0B]">
+                  Korrektur ({correctionCount})
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -479,11 +544,12 @@ export default async function HorsesPage({
       </div>
 
       <div className="huf-card">
-        <div className="grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden">
+        <div className={listHeaderClass}>
           <div></div>
           <div>{animalSingularLabel(term)}</div>
+          {isTierTerm ? <div>Tierart</div> : null}
           <div>Besitzer / Stall</div>
-          <div>Nutzung</div>
+          {!isTierTerm ? <div>Nutzung</div> : null}
           <div>Alter</div>
           <div>Nächster Termin</div>
           <div>Dokumentationen</div>
@@ -493,24 +559,37 @@ export default async function HorsesPage({
         <div>
           {pagedRows.map((row, index) => {
             const age = getAgeFromBirthYear(row.horse.birth_year ?? null)
-            const ownerLocation = getOwnerLocation(row.customer)
+            const ownerLocation = getOwnerLocation(row.horse, row.customer)
             const globalIndex = startIndex + index
+            const animalType = (row.horse.animal_type ?? '').toString().trim()
+            const rowIcon =
+              term === 'pferd'
+                ? faHorse
+                : animalType === 'dog'
+                  ? faDog
+                  : animalType === 'cat'
+                    ? faCat
+                    : animalType === 'horse' || !animalType
+                      ? faHorse
+                      : animalType === 'small'
+                        ? faPaw
+                        : animalType === 'other'
+                          ? faWandMagicSparkles
+                          : faPaw
 
             return (
               <div
                 key={row.horse.id}
-                className="relative grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden"
+                className={listRowClass}
               >
                 <Link
-                  href={`/horses/${row.horse.id}`}
+                  href={`/animals/${row.horse.id}`}
                   className="absolute inset-0 z-0"
                   aria-label={`${animalSingularLabel(term)} ${row.horse.name || ''} öffnen`}
                 />
 
-                <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef]">
-                  <svg width="14" height="14" viewBox="0 0 576 512" fill="currentColor" className="shrink-0 text-[#52b788]" aria-hidden>
-                    <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
-                  </svg>
+                <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
+                  <FontAwesomeIcon icon={rowIcon} className="h-4 w-4" />
                 </div>
 
                 <div className="pointer-events-none z-10 min-w-0">
@@ -522,8 +601,16 @@ export default async function HorsesPage({
                   </div>
                 </div>
 
+                {isTierTerm ? (
+                  <div className="pointer-events-none z-10 flex min-w-0 items-center">
+                    <span className={`${animalTypeBadgeClassName} truncate`}>
+                      {formatAnimalTypeLabel(row.horse.animal_type)}
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="pointer-events-none z-10 min-w-0">
-                  <div className="truncate text-[13px] font-medium text-[#52b788]">
+                  <div className="truncate text-[13px] font-semibold text-[#1B1F23]">
                     {row.customer?.name ?? '-'}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-[#9CA3AF]">
@@ -532,9 +619,11 @@ export default async function HorsesPage({
                   </div>
                 </div>
 
-                <div className="pointer-events-none z-10 text-[13px] text-[#1B1F23]">
-                  {row.horse.usage || '-'}
-                </div>
+                {!isTierTerm ? (
+                  <div className="pointer-events-none z-10 text-[13px] text-[#1B1F23]">
+                    {row.horse.usage || '-'}
+                  </div>
+                ) : null}
 
                 <div className="pointer-events-none z-10 text-[13px] text-[#6B7280]">
                   {age ? `${age} J.` : '-'}

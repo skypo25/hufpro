@@ -131,7 +131,7 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
     }
 
     setLoading(false)
-    router.push(`/horses/${params.id}/records/${params.recordId}`)
+    router.push(`/animals/${params.id}/records/${params.recordId}`)
     router.refresh()
   }
 
@@ -189,7 +189,7 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
 
             <button
               type="button"
-              onClick={() => router.push(`/horses/${params.id}/records/${params.recordId}`)}
+              onClick={() => router.push(`/animals/${params.id}/records/${params.recordId}`)}
               className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               Zurück zur Dokumentation

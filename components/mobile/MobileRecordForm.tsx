@@ -54,7 +54,8 @@ type Horse = {
   breed: string | null
   sex: string | null
   birth_year: number | null
-  customers?: { name: string | null; stable_name: string | null } | null
+  stable_name?: string | null
+  customers?: { name: string | null } | { name: string | null }[] | null
 }
 
 type HoofState = {
@@ -523,7 +524,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
       const { data: h } = await supabase
         .from('horses')
-        .select('id, name, breed, sex, birth_year, customers(name, stable_name)')
+        .select('id, name, breed, sex, birth_year, stable_name, customers(name)')
         .eq('id', horseId)
         .eq('user_id', user.id)
         .single()
@@ -802,7 +803,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       }
       await clear()
       router.refresh()
-      router.push(`/horses/${horseId}/records/${targetRecordId}`)
+      router.push(`/animals/${horseId}/records/${targetRecordId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
       setSyncError(e instanceof Error ? e.message : 'Synchronisierung fehlgeschlagen.')

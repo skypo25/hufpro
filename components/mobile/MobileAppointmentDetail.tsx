@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHorse } from '@fortawesome/free-solid-svg-icons'
+import {
+  animalTypeIconColor,
+  faIconForAnimalType,
+  formatCustomerAnimalsSummary,
+} from '@/lib/animalTypeDisplay'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
+
+type ReminderStatusTone = 'ok' | 'warn' | 'muted'
 
 type Appointment = {
   id: string
@@ -18,6 +26,8 @@ type Appointment = {
   dateLong: string | null
   dayNum: string
   monthShort: string
+  reminderStatusLine: string | null
+  reminderStatusTone: ReminderStatusTone | null
   createdAtFormatted: string | null
 }
 
@@ -42,6 +52,7 @@ type Customer = {
 type Horse = {
   id: string
   name: string | null
+  animalType?: string | null
   breed: string | null
   sex: string | null
   birthYear: number | null
@@ -74,6 +85,9 @@ function getInitials(name: string | null) {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default function MobileAppointmentDetail({ appointmentId }: { appointmentId?: string }) {
+  const { profile } = useAppProfile()
+  const animalsPlural = animalsNavLabel(profile.terminology)
+  const animalSingular = animalSingularLabel(profile.terminology)
   const router = useRouter()
   const pathname = usePathname()
   const idFromPath = pathname?.match(/^\/appointments\/([^/?#]+)/)?.[1] ?? ''
@@ -148,7 +162,7 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
     appointment.status.toLowerCase().includes('confirmed')
   const firstHorse = horses[0]
   const docUrl = firstHorse
-    ? `/horses/${firstHorse.id}/records/new?appointmentId=${effectiveId}`
+    ? `/animals/${firstHorse.id}/records/new?appointmentId=${effectiveId}`
     : null
 
   const hasCustomerAddress = !!(customer.customerAddressForNav?.trim())
@@ -279,33 +293,51 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
           <div className="mad-s-header">
             <i className="bi bi-person-fill mad-s-icon" />
             <h3>Kunde</h3>
-            <Link href={`/customers/${customer.id}`} className="mad-s-link">
-              <i className="bi bi-chevron-right" />
-              Öffnen
-            </Link>
+            {customer.id ? (
+              <Link href={`/customers/${customer.id}`} className="mad-s-link">
+                <i className="bi bi-chevron-right" />
+                Öffnen
+              </Link>
+            ) : null}
           </div>
-          <div className="mad-customer-card" onClick={() => router.push(`/customers/${customer.id}`)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && router.push(`/customers/${customer.id}`)}>
-            <div className="mad-cc-avatar">{getInitials(customer.name)}</div>
-            <div className="mad-cc-info">
-              <div className="mad-cc-name">{customer.name}</div>
-              <div className="mad-cc-sub">
-                {customer.customerNumber ? `${customer.customerNumber} · ` : ''}
-                {customer.stableDisplay || '-'}
+          {customer.id ? (
+            <div
+              className="mad-customer-card"
+              onClick={() => router.push(`/customers/${customer.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && router.push(`/customers/${customer.id}`)}
+            >
+              <div className="mad-cc-avatar">{getInitials(customer.name)}</div>
+              <div className="mad-cc-info">
+                <div className="mad-cc-name">{customer.name}</div>
+                <div className="mad-cc-sub">
+                  {customer.customerNumber ? `${customer.customerNumber} · ` : ''}
+                  {customer.stableDisplay || '-'}
+                </div>
+              </div>
+              <div className="mad-cc-actions">
+                {customer.phone && (
+                  <a href={`tel:${customer.phone.replace(/\s/g, '')}`} className="mad-cc-btn" onClick={(e) => e.stopPropagation()} aria-label="Anrufen">
+                    <i className="bi bi-telephone-fill" />
+                  </a>
+                )}
+                {customer.email && (
+                  <a href={`mailto:${customer.email}`} className="mad-cc-btn" onClick={(e) => e.stopPropagation()} aria-label="E-Mail">
+                    <i className="bi bi-envelope-fill" />
+                  </a>
+                )}
               </div>
             </div>
-            <div className="mad-cc-actions">
-              {customer.phone && (
-                <a href={`tel:${customer.phone.replace(/\s/g, '')}`} className="mad-cc-btn" onClick={(e) => e.stopPropagation()} aria-label="Anrufen">
-                  <i className="bi bi-telephone-fill" />
-                </a>
-              )}
-              {customer.email && (
-                <a href={`mailto:${customer.email}`} className="mad-cc-btn" onClick={(e) => e.stopPropagation()} aria-label="E-Mail">
-                  <i className="bi bi-envelope-fill" />
-                </a>
-              )}
+          ) : (
+            <div className="mad-customer-card">
+              <div className="mad-cc-avatar">{getInitials(customer.name)}</div>
+              <div className="mad-cc-info">
+                <div className="mad-cc-name">{customer.name}</div>
+                <div className="mad-cc-sub">Bitte im Bearbeiten-Modus einen Kunden zuordnen.</div>
+              </div>
             </div>
-          </div>
+          )}
           <div className="mad-s-body" style={{ paddingTop: 0 }}>
             <div className="mad-d-row">
               <span className="mad-d-label">Telefon</span>
@@ -342,21 +374,31 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
           </div>
         </div>
 
-        {/* Pferde */}
+        {/* Tiere / Pferde (Profil) */}
         <div className="mad-section">
           <div className="mad-s-header">
             <i className="bi bi-heart-pulse-fill mad-s-icon" />
-            <h3>Pferde</h3>
-            <span className="mad-s-meta">{horses.length} {horses.length === 1 ? 'Pferd' : 'Pferde'}</span>
+            <h3>{animalsPlural}</h3>
+            <span className="mad-s-meta">
+              {horses.length === 0
+                ? `Kein ${animalSingular} zugeordnet`
+                : `${formatCustomerAnimalsSummary(
+                    horses.map((h) => ({ animal_type: h.animalType }))
+                  )} für diesen Termin`}
+            </span>
           </div>
           <div className="mad-s-body">
             {horses.map((h) => (
-              <Link key={h.id} href={`/horses/${h.id}`} className="mad-horse-card">
+              <Link key={h.id} href={`/animals/${h.id}`} className="mad-horse-card">
                 <div className="mad-hc-icon">
-                  <FontAwesomeIcon icon={faHorse} />
+                  <FontAwesomeIcon
+                    icon={faIconForAnimalType(h.animalType)}
+                    className="h-[14px] w-[14px]"
+                    style={{ color: animalTypeIconColor }}
+                  />
                 </div>
                 <div className="mad-hc-info">
-                  <div className="mad-hc-name">{h.name || 'Pferd'}</div>
+                  <div className="mad-hc-name">{h.name || animalSingular}</div>
                   <div className="mad-hc-breed">
                     {[h.breed, h.sex, h.age != null ? `${h.age} Jahre` : null].filter(Boolean).join(' · ')}
                   </div>
@@ -427,6 +469,24 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
               <span className="mad-d-label">Dauer</span>
               <span className="mad-d-value">{appointment.durationLabel}</span>
             </div>
+            {appointment.reminderStatusLine && (
+              <div className="mad-d-row">
+                <span className="mad-d-label">Erinnerung</span>
+                <span
+                  className="mad-d-value"
+                  style={{
+                    color:
+                      appointment.reminderStatusTone === 'ok'
+                        ? 'var(--m-green)'
+                        : appointment.reminderStatusTone === 'warn'
+                          ? '#b45309'
+                          : '#6B7280',
+                  }}
+                >
+                  {appointment.reminderStatusLine}
+                </span>
+              </div>
+            )}
             <div className="mad-d-row">
               <span className="mad-d-label">Terminart</span>
               <span className="mad-d-value">{appointment.type || 'Regeltermin'}</span>

@@ -60,15 +60,14 @@ export async function GET(request: Request) {
         `last_name.ilike.${pattern}`,
         `company.ilike.${pattern}`,
         `city.ilike.${pattern}`,
-        `stable_name.ilike.${pattern}`,
-        `stable_city.ilike.${pattern}`,
+        `street.ilike.${pattern}`,
         `email.ilike.${pattern}`,
         `phone.ilike.${pattern}`,
       ]
       if (numQuery != null) orParts.push(`customer_number.eq.${numQuery}`)
       const { data } = await supabase
         .from('customers')
-        .select('id, customer_number, name, first_name, last_name, phone, email, city, stable_name')
+        .select('id, customer_number, name, first_name, last_name, phone, email, city')
         .eq('user_id', user.id)
         .or(orParts.join(','))
         .order('name', { ascending: true })
@@ -81,7 +80,7 @@ export async function GET(request: Request) {
         .from('horses')
         .select('id, name, breed, birth_year, customer_id, customers(name)')
         .eq('user_id', user.id)
-        .or(`name.ilike.${pattern},breed.ilike.${pattern}`)
+        .or(`name.ilike.${pattern},breed.ilike.${pattern},stable_name.ilike.${pattern},stable_city.ilike.${pattern}`)
         .order('name', { ascending: true })
         .limit(50)
 

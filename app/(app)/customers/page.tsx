@@ -7,6 +7,12 @@ import {
   getInitials,
 } from '@/lib/format'
 import { getCurrentWeekRange } from '@/lib/date'
+import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
+import {
+  formatCustomerAnimalsSummary,
+  formatGenericAnimalCount,
+} from '@/lib/animalTypeDisplay'
+import { deriveAppProfile, searchCustomersPlaceholder } from '@/lib/appProfile'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import CustomersStatsCards from '@/components/customers/CustomersStatsCards'
@@ -55,8 +61,6 @@ type Customer = {
   phone: string | null
   email: string | null
   city: string | null
-  stable_name?: string | null
-  stable_city?: string | null
   created_at?: string | null
 }
 
@@ -64,6 +68,11 @@ type Horse = {
   id: string
   name: string | null
   customer_id: string | null
+  animal_type?: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
 }
 
 type Appointment = {
@@ -79,16 +88,12 @@ type AppointmentHorse = {
 
 type CustomerRow = {
   customer: Customer
+  locationLine: string
   horseCount: number
+  animalsSummary: string
   horseNames: string[]
   nextAppointment: string | null
   nextAppointmentHorseCount: number
-}
-
-function getCustomerLocation(customer: Customer) {
-  return customer.stable_name
-    ? `${customer.stable_city || customer.city || ''} · ${customer.stable_name}`
-    : customer.city || '-'
 }
 
 export default async function CustomersPage({
@@ -103,6 +108,15 @@ export default async function CustomersPage({
   if (!user) {
     redirect('/login')
   }
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const term = profile.terminology
 
   const { q, sort, view, page, perPage } = await searchParams
   const searchQuery = q?.trim() || ''
@@ -133,8 +147,7 @@ export default async function CustomersPage({
           `first_name.ilike.%${searchQuery}%`,
           `last_name.ilike.%${searchQuery}%`,
           `city.ilike.%${searchQuery}%`,
-          `stable_name.ilike.%${searchQuery}%`,
-          `stable_city.ilike.%${searchQuery}%`,
+          `street.ilike.%${searchQuery}%`,
           `email.ilike.%${searchQuery}%`,
           `phone.ilike.%${searchQuery}%`,
           ...(Number.isInteger(Number(searchQuery)) ? [`customer_number.eq.${Number(searchQuery)}`] : []),
@@ -148,7 +161,9 @@ export default async function CustomersPage({
       .select('customer_id')
       .eq('user_id', user.id)
       .not('customer_id', 'is', null)
-      .ilike('name', `%${searchQuery}%`)
+      .or(
+        `name.ilike.%${searchQuery}%,stable_name.ilike.%${searchQuery}%,stable_city.ilike.%${searchQuery}%,breed.ilike.%${searchQuery}%`
+      )
       .returns<{ customer_id: string | null }[]>()
     customerIdsFromHorses = (horsesMatch || [])
       .map((r) => r.customer_id)
@@ -163,7 +178,7 @@ export default async function CustomersPage({
   let query = supabase
     .from('customers')
     .select(
-      'id, customer_number, name, first_name, last_name, phone, email, city, stable_name, stable_city, created_at'
+      'id, customer_number, name, first_name, last_name, phone, email, city, created_at'
     )
     .eq('user_id', user.id)
 
@@ -199,7 +214,7 @@ export default async function CustomersPage({
   if (customerIds.length > 0) {
     const { data: horseData } = await supabase
       .from('horses')
-      .select('id, name, customer_id')
+      .select('id, name, customer_id, animal_type, stable_name, stable_city, stable_street, stable_zip')
       .eq('user_id', user.id)
       .in('customer_id', customerIds)
       .returns<Horse[]>()
@@ -267,10 +282,15 @@ export default async function CustomersPage({
   const rows: CustomerRow[] = (customers || []).map((customer) => {
     const customerHorses = horsesByCustomer.get(customer.id) || []
     const next = nextAppointmentByCustomer.get(customer.id)
+    const stallHorse = pickPrimaryStallHorse(customerHorses)
+    const locationLine =
+      stallDisplayLabel(stallHorse ?? {}, customer.city) || customer.city || '-'
 
     return {
       customer,
+      locationLine,
       horseCount: customerHorses.length,
+      animalsSummary: formatCustomerAnimalsSummary(customerHorses),
       horseNames: customerHorses
         .map((horse) => horse.name)
         .filter((name): name is string => Boolean(name)),
@@ -326,7 +346,7 @@ export default async function CustomersPage({
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <PageHeader
         title="Kunden"
-        description={`${customerCount} Kunden · ${horseCount} Pferde in Betreuung`}
+        description={`${customerCount} Kunden · ${horseCount} Tiere in Betreuung`}
         actions={
           <Link
             href="/customers/new"
@@ -363,7 +383,7 @@ export default async function CustomersPage({
                 type="text"
                 name="q"
                 defaultValue={searchQuery}
-                placeholder="Kunde, Ort oder Pferd suchen…"
+                placeholder={searchCustomersPlaceholder(term)}
                 className="w-full border-0 bg-transparent text-[14px] text-[#1B1F23] outline-none placeholder:text-[#9CA3AF]"
               />
             </div>
@@ -392,7 +412,7 @@ export default async function CustomersPage({
               <option value="name_asc">Sortieren: Name A–Z</option>
               <option value="name_desc">Name Z–A</option>
               <option value="next_appointment">Nächster Termin</option>
-              <option value="horses_desc">Meiste Pferde</option>
+              <option value="horses_desc">Meiste Tiere</option>
               <option value="newest">Neueste zuerst</option>
             </select>
 
@@ -450,14 +470,14 @@ export default async function CustomersPage({
             <div></div>
             <div>Kunde</div>
             <div>Kontakt</div>
-            <div>Pferde</div>
+            <div>Tiere</div>
             <div>Nächster Termin</div>
             <div></div>
           </div>
 
           <div>
             {pagedRows.map((row, index) => {
-              const location = getCustomerLocation(row.customer)
+              const location = row.locationLine
 
               return (
                 <div
@@ -495,9 +515,8 @@ export default async function CustomersPage({
                     </div>
                   </div>
 
-                  <div className="pointer-events-none flex items-center gap-1.5 text-[14px] font-semibold text-[#1B1F23]">
-                    <span className="text-[16px]">🐴</span>
-                    {row.horseCount}
+                  <div className="pointer-events-none text-[14px] font-semibold text-[#1B1F23]">
+                    {row.animalsSummary}
                   </div>
 
                   <div className="pointer-events-none">
@@ -507,11 +526,7 @@ export default async function CustomersPage({
                           {formatGermanDate(row.nextAppointment)}
                         </div>
                         <div className="text-[11px] text-[#9CA3AF]">
-                          {row.nextAppointmentHorseCount > 1
-                            ? `${row.nextAppointmentHorseCount} Pferde`
-                            : row.nextAppointmentHorseCount === 1
-                            ? '1 Pferd'
-                            : ''}
+                          {formatGenericAnimalCount(row.nextAppointmentHorseCount)}
                         </div>
                       </>
                     ) : (

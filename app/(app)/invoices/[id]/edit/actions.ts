@@ -45,6 +45,7 @@ export async function updateInvoice(
     return { error: 'Rechnung kann nur im Entwurf bearbeitet werden.' }
   }
 
+  const nowIso = new Date().toISOString()
   const updateData: Record<string, unknown> = {
     invoice_date: payload.invoice_date,
     service_date_from: payload.service_date_from ?? null,
@@ -57,10 +58,13 @@ export async function updateInvoice(
     buyer_zip: payload.buyer_zip,
     buyer_city: payload.buyer_city,
     buyer_country: payload.buyer_country,
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
   }
   if (payload.status !== undefined) {
     updateData.status = payload.status
+    if (payload.status === 'sent') {
+      updateData.sent_at = nowIso
+    }
   }
 
   const { error: updErr } = await supabase
@@ -93,6 +97,7 @@ export async function updateInvoice(
 
   revalidatePath('/invoices')
   revalidatePath(`/invoices/${invoiceId}`)
+  revalidatePath('/dashboard')
   revalidatePath(`/customers/${customerId}/invoices`)
   return { invoiceId }
 }

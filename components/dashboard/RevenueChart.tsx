@@ -54,7 +54,7 @@ export default function RevenueChart({ monthlyCents, totalCents }: RevenueChartP
         ))}
       </div>
 
-      <div className="dashboard-serif mt-3 text-[24px] font-medium text-[#1B1F23]">
+      <div className="dashboard-serif mt-3 text-[26px] !font-extrabold text-[#1B1F23]">
         {formatEuro(totalCents)}
       </div>
       <div className="text-[12px] text-[#6B7280]">Umsatz 2026 (bezahlte & offene Rechnungen)</div>

@@ -88,7 +88,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
 
   const { data: invs } = await supabase
     .from('invoices')
-    .select('id, invoice_date')
+    .select('id, invoice_date, status')
     .eq('user_id', user.id)
     .eq('customer_id', customerId)
     .order('invoice_date', { ascending: false })
@@ -100,7 +100,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
       .from('invoice_items')
       .select('invoice_id, amount_cents')
       .in('invoice_id', invoiceIds)
-    const statusByInv = new Map((invs ?? []).map((i) => [i.id, (i as { status?: string }).status]))
+    const statusByInv = new Map((invs ?? []).map((i) => [i.id, i.status]))
     for (const it of allItems ?? []) {
       totalCents += it.amount_cents
       const status = statusByInv.get(it.invoice_id)

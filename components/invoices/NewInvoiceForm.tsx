@@ -256,12 +256,80 @@ export default function NewInvoiceForm({
     result = await createInvoice(selectedCustomer.id, {
       invoice_number: invoiceNumber,
       ...payload,
+      status: 'draft',
     })
     setSaving(false)
     if ('error' in result) {
       setError(result.error)
       return
     }
+    router.push(`/invoices/${result.invoiceId}`)
+  }
+
+  const handleCreateAndSend = async () => {
+    if (isEdit) return
+    if (!selectedCustomer) {
+      setError('Bitte einen Kunden auswählen.')
+      return
+    }
+    if (lineItems.length === 0) {
+      setError('Bitte mindestens eine Position anlegen.')
+      return
+    }
+    if (lineItems.some((i) => !i.description.trim() || i.amountCents <= 0)) {
+      setError('Bitte alle Positionen ausfüllen und Beträge prüfen.')
+      return
+    }
+    setError(null)
+    setSaving(true)
+    const buyerName = selectedCustomer.name
+    const payload = {
+      invoice_date: invoiceDate,
+      service_date_from: serviceDate,
+      payment_due_date: paymentDueDate,
+      intro_text: introText.trim() || null,
+      footer_text: footerText.trim() || null,
+      buyer_name: buyerName,
+      buyer_company: selectedCustomer.company?.trim() || null,
+      buyer_street: selectedCustomer.street?.trim() || null,
+      buyer_zip: selectedCustomer.postal_code?.trim() || null,
+      buyer_city: selectedCustomer.city?.trim() || null,
+      buyer_country: selectedCustomer.country?.trim() || null,
+      items: lineItems.map((i) => ({
+        description: i.description + (i.optionalSuffix?.trim() ? ' — ' + i.optionalSuffix.trim() : ''),
+        quantity: i.quantity,
+        unitPriceCents: i.unitPriceCents,
+        amountCents: i.amountCents,
+      })),
+    }
+    const result = await createInvoice(selectedCustomer.id, {
+      invoice_number: invoiceNumber,
+      ...payload,
+      status: 'draft',
+    })
+    setSaving(false)
+    if ('error' in result) {
+      setError(result.error)
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/invoices/${result.invoiceId}/send-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
+      }
+    } catch (e) {
+      setSaving(false)
+      setError(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')
+      return
+    }
+    setSaving(false)
     router.push(`/invoices/${result.invoiceId}`)
   }
 
@@ -802,23 +870,20 @@ export default function NewInvoiceForm({
           </button>
         </div>
         <div className="flex gap-3">
-          <span className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#9CA3AF]">
-            <FontAwesomeIcon icon={faFilePdf} className="h-4 w-4" /> PDF-Vorschau (nach Speichern)
-          </span>
           <button
             type="button"
             onClick={isEdit ? handleSaveAsSent : handleSaveDraft}
             disabled={saving || !selectedCustomer}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#0f301b] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-black disabled:opacity-50"
           >
             <FontAwesomeIcon icon={faCheck} className="h-4 w-4" /> {isEdit ? 'Speichern & als versendet markieren' : 'Rechnung erstellen'}
           </button>
           {!isEdit && (
             <button
               type="button"
-              onClick={handleSaveDraft}
+              onClick={handleCreateAndSend}
               disabled={saving || !selectedCustomer}
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#34A853] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#2E9148] disabled:opacity-50"
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
             >
               <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /> Erstellen & senden
             </button>

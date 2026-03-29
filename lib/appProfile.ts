@@ -44,6 +44,9 @@ const ANIMAL_FOCUS: readonly AnimalFocus[] = [
   'sonstiges',
 ]
 
+/** Fachliche Erstaufnahme-Module im AnimalForm (nicht an Berufsbezeichnung gekoppelt). */
+export type ClinicalIntakeBlockId = 'anamnesis' | 'locomotion' | 'history'
+
 export type AppProfile = {
   profession: Profession
   animalFocus: AnimalFocus
@@ -120,6 +123,15 @@ export function deriveAppProfile(
   }
 }
 
+/**
+ * Welche Fachblöcke im Tier-Anlageformular angezeigt werden.
+ * Später: z. B. aus user_settings (Kombinationen) — aktuell alle drei für Nicht-Hufbearbeiter.
+ */
+export function deriveClinicalIntakeBlocks(profile: AppProfile): ClinicalIntakeBlockId[] {
+  if (profile.isHufbearbeiter) return []
+  return ['anamnesis', 'locomotion', 'history']
+}
+
 // ─── UI-Labels (Terminologie) — zentral, für Navigation & Pferde-/Tier-Listen ───
 
 /** Tab- und Seitentitel: „Pferde“ vs. „Tiere“ */
@@ -153,8 +165,20 @@ export function searchAnimalsPlaceholder(terminology: Terminology): string {
     : 'Tier, Rasse, Besitzer oder Stallort suchen…'
 }
 
+/** Kundenlisten-Suche (Desktop/Mobile) */
+export function searchCustomersPlaceholder(terminology: Terminology): string {
+  return terminology === 'pferd'
+    ? 'Kunde, Ort oder Pferd suchen…'
+    : 'Kunde, Ort oder Tier suchen…'
+}
+
 export function animalsStatLabel(terminology: Terminology): string {
   return `${animalsNavLabel(terminology)} gesamt`
+}
+
+/** Dashboard-Stat-Kachel: „Pferde betreut“ vs. „Tiere betreut“ */
+export function dashboardAnimalsBetreutLabel(terminology: Terminology): string {
+  return terminology === 'pferd' ? 'Pferde betreut' : 'Tiere betreut'
 }
 
 export function animalsLoadingMessage(terminology: Terminology): string {

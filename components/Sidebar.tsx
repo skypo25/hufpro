@@ -7,6 +7,7 @@ import LogoutButton from './LogoutButton'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faHorse,
+  faPaw,
   faUsers,
   faCalendarDays,
   faMagnifyingGlass,
@@ -21,7 +22,7 @@ import { useAppProfile } from '@/context/AppProfileContext'
 import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
 
-function buildNavGroups(animalsListLabel: string) {
+function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
   return [
     {
       title: 'Übersicht',
@@ -31,7 +32,7 @@ function buildNavGroups(animalsListLabel: string) {
       title: 'Verwaltung',
       items: [
         { label: 'Kunden', href: '/customers', icon: faUsers },
-        { label: animalsListLabel, href: '/horses', icon: faHorse },
+        { label: animalsListLabel, href: '/animals', icon: animalsIcon },
         { label: 'Termine', href: '/calendar', icon: faCalendarDays },
       ],
     },
@@ -65,9 +66,10 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebarContext()
   const { profile } = useAppProfile()
+  const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
   const navGroups = useMemo(
-    () => buildNavGroups(animalsNavLabel(profile.terminology)),
-    [profile.terminology]
+    () => buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon),
+    [profile.terminology, animalsIcon]
   )
 
   return (

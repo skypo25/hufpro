@@ -134,7 +134,7 @@ export default async function CustomerRecordsPage({
                   <td>
                     <div className="flex justify-end">
                       <Link
-                        href={`/horses/${record.horse_id}/records/${record.id}`}
+                        href={`/animals/${record.horse_id}/records/${record.id}`}
                         className="huf-btn-dark inline-flex items-center justify-center rounded-lg bg-[#1B1F23] px-3 py-2 text-sm font-medium text-white hover:bg-[#2A2F35]"
                       >
                         Öffnen

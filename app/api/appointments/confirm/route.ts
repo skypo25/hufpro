@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { sendMail } from '@/lib/email'
+import { formatAppointmentTimeRangeDe } from '@/lib/appointments/appointmentDisplay'
+import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
 
 type SettingsSmtp = {
   smtpHost?: string
@@ -99,15 +101,17 @@ export async function GET(request: Request) {
     horseNames = (horses ?? []).map((h) => h.name?.trim() || 'Pferd').filter(Boolean)
   }
 
-  const duration =
-    appointment.duration_minutes != null
-      ? `${appointment.duration_minutes} Min.`
-      : null
+  const timeRange =
+    formatAppointmentTimeRangeDe(
+      appointment.appointment_date,
+      appointment.duration_minutes
+    ) || formatTime(appointment.appointment_date)
+  const duration = minutesToDurationLabelDesktop(appointment.duration_minutes)
 
   return NextResponse.json({
     appointmentId: appointment.id,
     date: formatDate(appointment.appointment_date),
-    time: formatTime(appointment.appointment_date),
+    time: timeRange,
     type: (appointment.type ?? 'Termin').toString(),
     duration,
     horseNames,
@@ -221,12 +225,13 @@ export async function POST(request: Request) {
           [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ||
           'Kunde/Kundin'
         const dateStr = formatDate(appointment.appointment_date)
-        const timeStr = formatTime(appointment.appointment_date)
+        const timeStr =
+          formatAppointmentTimeRangeDe(
+            appointment.appointment_date,
+            appointment.duration_minutes
+          ) || formatTime(appointment.appointment_date)
         const typeLabel = (appointment.type ?? 'Termin').toString()
-        const duration =
-          appointment.duration_minutes != null
-            ? `${appointment.duration_minutes} Min.`
-            : ''
+        const duration = minutesToDurationLabelDesktop(appointment.duration_minutes)
 
         const { data: links } = await supabase
           .from('appointment_horses')

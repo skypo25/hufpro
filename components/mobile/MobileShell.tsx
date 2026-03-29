@@ -12,6 +12,7 @@ import {
   faTableCellsLarge,
   faCalendarDays,
   faHorse,
+  faPaw,
   faUsers,
   faGear,
 } from '@fortawesome/free-solid-svg-icons'
@@ -19,18 +20,21 @@ import {
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { profile } = useAppProfile()
+  const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
   const navLinkItems = useMemo(
     () => [
       { href: '/dashboard', label: 'Start', icon: faTableCellsLarge },
       { href: '/calendar', label: 'Termine', icon: faCalendarDays },
-      { href: '/horses', label: animalsNavLabel(profile.terminology), icon: faHorse },
+      { href: '/animals', label: animalsNavLabel(profile.terminology), icon: animalsIcon },
       { href: '/customers', label: 'Kunden', icon: faUsers },
     ],
-    [profile.terminology]
+    [profile.terminology, animalsIcon]
   )
   const [moreSheetOpen, setMoreSheetOpen] = useState(false)
   const [todayAppointmentCount, setTodayAppointmentCount] = useState(0)
-  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|horses\/new)$/.test(pathname ?? '')
+  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|animals\/new|animals\/[^/]+\/edit|animals\/[^/]+\/erstanamnese(\/edit)?)$/.test(
+    pathname ?? ''
+  )
   const isMoreActive = pathname?.startsWith('/settings') ?? false
 
   useEffect(() => {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { formatAnimalTypeLabel, formatNeuteredLabel, formatWeightKgKg } from '@/lib/animalTypeDisplay'
 
 type Owner = {
   id: string
@@ -17,6 +19,11 @@ type Horse = {
   sex: string | null
   birthYear: number | null
   age: number | null
+  animalType?: string | null
+  neutered?: string | null
+  weightKg?: number | string | null
+  coatColor?: string | null
+  chipId?: string | null
   usage: string | null
   housing: string | null
   hoofStatus: string | null
@@ -115,11 +122,12 @@ function IconTrash() {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function getHorseIdFromPath(path: string): string {
-  const m = path.match(/^\/horses\/([^/?#]+)/)
+  const m = path.match(/^\/animals\/([^/?#]+)/)
   return (m?.[1] ?? '').trim()
 }
 
 export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: string }) {
+  const { profile } = useAppProfile()
   const pathname = usePathname()
   const fromPath = pathname ? getHorseIdFromPath(pathname) : ''
   const horseId = (horseIdProp && horseIdProp !== 'undefined' ? horseIdProp : fromPath) || ''
@@ -127,6 +135,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<ViewTab>('overview')
+  const [terminology, setTerminology] = useState<'tier' | 'pferd'>('pferd')
   const [horse, setHorse] = useState<Horse | null>(null)
   const [owner, setOwner] = useState<Owner | null>(null)
   const [lastTreatment, setLastTreatment] = useState<string | null>(null)
@@ -154,6 +163,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
         return data
       })
       .then((data) => {
+        setTerminology(data.terminology === 'tier' ? 'tier' : 'pferd')
         setHorse(data.horse || null)
         setOwner(data.owner || null)
         setLastTreatment(data.lastTreatment || null)
@@ -219,7 +229,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
             </div>
           </div>
           <Link
-            href={`/horses/${horse.id}/edit`}
+            href={`/animals/${horse.id}/edit`}
             className="cd-edit shrink-0"
             aria-label="Bearbeiten"
           >
@@ -233,7 +243,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
           <IconCalendar />
           Termin anlegen
         </Link>
-        <Link href={`/horses/${horse.id}/records/new`} className="cd-action-btn primary flex flex-1 items-center justify-center gap-1.5">
+        <Link href={`/animals/${horse.id}/records/new`} className="cd-action-btn primary flex flex-1 items-center justify-center gap-1.5">
           <IconDoc />
           Dokumentation
         </Link>
@@ -325,71 +335,144 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
             <div className="section">
               <div className="section-header">
                 <h3>Stammdaten</h3>
-                <Link href={`/horses/${horse.id}/edit`}>Bearbeiten</Link>
+                <Link href={`/animals/${horse.id}/edit`}>Bearbeiten</Link>
               </div>
               <div className="section-body">
                 <div className="sd-grid">
-                  <div className="sd-item">
-                    <div className="sd-label">Name</div>
-                    <div className="sd-value">{horse.name || '–'}</div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Rasse</div>
-                    <div className="sd-value">{horse.breed || '–'}</div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Geschlecht</div>
-                    <div className="sd-value">{horse.sex || '–'}</div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Geburtsjahr</div>
-                    <div className="sd-value">
-                      {horse.birthYear
-                        ? `${horse.birthYear}${
-                            horse.age ? ` (${horse.age} Jahre)` : ''
-                          }`
-                        : '–'}
-                    </div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Besitzer:in</div>
-                    <div className="sd-value">
-                      {owner ? owner.name || '–' : '–'}
-                    </div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Nutzung</div>
-                    <div className={`sd-value ${horse.usage ? '' : 'none'}`}>
-                      {horse.usage || '–'}
-                    </div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Haltung</div>
-                    <div className={`sd-value ${horse.housing ? '' : 'none'}`}>
-                      {horse.housing || '–'}
-                    </div>
-                  </div>
-                  <div className="sd-item">
-                    <div className="sd-label">Hufstatus / Beschlag</div>
-                    <div
-                      className={`sd-value ${horse.hoofStatus ? '' : 'none'}`}
-                    >
-                      {horse.hoofStatus || '–'}
-                    </div>
-                  </div>
-                  <div className="sd-item" style={{ gridColumn: '1 / -1' }}>
-                    <div className="sd-label">Bearbeitungsintervall</div>
-                    <div
-                      className={`sd-value ${
-                        horse.careInterval ? '' : 'none'
-                      }`}
-                    >
-                      {horse.careInterval || '–'}
-                    </div>
-                  </div>
+                  {terminology === 'tier' ? (
+                    <>
+                      <div className="sd-item">
+                        <div className="sd-label">Name</div>
+                        <div className="sd-value">{horse.name || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Tierart</div>
+                        <div className="sd-value">{formatAnimalTypeLabel(horse.animalType)}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Rasse</div>
+                        <div className="sd-value">{horse.breed || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Geschlecht</div>
+                        <div className="sd-value">{horse.sex || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Kastriert</div>
+                        <div className="sd-value">{formatNeuteredLabel(horse.neutered)}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Geburtsjahr</div>
+                        <div className="sd-value">
+                          {horse.birthYear
+                            ? `${horse.birthYear}${
+                                horse.age ? ` (${horse.age} Jahre)` : ''
+                              }`
+                            : '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Gewicht</div>
+                        <div className="sd-value">{formatWeightKgKg(horse.weightKg)}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Fellfarbe</div>
+                        <div className={`sd-value ${horse.coatColor?.trim() ? '' : 'none'}`}>
+                          {horse.coatColor?.trim() || '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Chip-Nr. / Tätowierung</div>
+                        <div className={`sd-value ${horse.chipId?.trim() ? '' : 'none'}`}>
+                          {horse.chipId?.trim() || '–'}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="sd-item">
+                        <div className="sd-label">Name</div>
+                        <div className="sd-value">{horse.name || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Rasse</div>
+                        <div className="sd-value">{horse.breed || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Geschlecht</div>
+                        <div className="sd-value">{horse.sex || '–'}</div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Geburtsjahr</div>
+                        <div className="sd-value">
+                          {horse.birthYear
+                            ? `${horse.birthYear}${
+                                horse.age ? ` (${horse.age} Jahre)` : ''
+                              }`
+                            : '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Besitzer:in</div>
+                        <div className="sd-value">
+                          {owner ? owner.name || '–' : '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Nutzung</div>
+                        <div className={`sd-value ${horse.usage ? '' : 'none'}`}>
+                          {horse.usage || '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Haltung</div>
+                        <div className={`sd-value ${horse.housing ? '' : 'none'}`}>
+                          {horse.housing || '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item">
+                        <div className="sd-label">Hufstatus / Beschlag</div>
+                        <div
+                          className={`sd-value ${horse.hoofStatus ? '' : 'none'}`}
+                        >
+                          {horse.hoofStatus || '–'}
+                        </div>
+                      </div>
+                      <div className="sd-item" style={{ gridColumn: '1 / -1' }}>
+                        <div className="sd-label">Bearbeitungsintervall</div>
+                        <div
+                          className={`sd-value ${
+                            horse.careInterval ? '' : 'none'
+                          }`}
+                        >
+                          {horse.careInterval || '–'}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
+
+            {!profile.isHufbearbeiter && (
+              <div className="section">
+                <div className="section-header">
+                  <h3>Erstanamnese</h3>
+                </div>
+                <div className="section-body">
+                  <p className="mb-3 text-[13px] leading-relaxed text-[#6B7280]">
+                    Anamnese, Bewegung und Vorgeschichte — ohne interne Notizen.
+                  </p>
+                  <Link
+                    href={`/animals/${horse.id}/erstanamnese`}
+                    className="cd-action-btn primary flex w-full items-center justify-center gap-2 py-3"
+                  >
+                    <i className="bi bi-clipboard2-pulse text-[16px]" />
+                    Erstanamnese öffnen
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="section">
               <div className="section-header">
@@ -428,7 +511,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                         {row.photoCount === 1 ? '' : 's'}
                       </div>
                       <Link
-                        href={`/horses/${horse.id}/records/${row.id}`}
+                        href={`/animals/${horse.id}/records/${row.id}`}
                         className="doku-action"
                         aria-label="Dokumentation öffnen"
                       >
@@ -443,7 +526,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
             <div className="danger-section">
               <h3>Aktionen</h3>
               <Link
-                href={`/horses/${horse.id}`}
+                href={`/animals/${horse.id}`}
                 className="danger-btn"
                 aria-label="Pferd im Desktop löschen"
               >
@@ -486,7 +569,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                       {row.photoCount === 1 ? '' : 's'}
                     </div>
                     <Link
-                      href={`/horses/${horse.id}/records/${row.id}`}
+                      href={`/animals/${horse.id}/records/${row.id}`}
                       className="doku-action"
                       aria-label="Dokumentation öffnen"
                     >

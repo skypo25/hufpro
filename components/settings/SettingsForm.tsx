@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase-client'
+import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 
 export type SettingsData = {
   // Persönliche Daten
@@ -62,6 +63,8 @@ export type SettingsData = {
   preferredNavApp?: 'apple' | 'google' | 'waze' | ''
   // Benachrichtigungen (PWA)
   emailReminders?: boolean
+  /** Minuten vor Termin für neue Termine; null = keine Voreinstellung */
+  appointmentReminderDefaultMinutes?: number | null
   pushNotifications?: boolean
   dailySummary?: boolean
 }
@@ -111,6 +114,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   smtpFromName: '',
   preferredNavApp: '',
   emailReminders: true,
+  appointmentReminderDefaultMinutes: 1440,
   pushNotifications: true,
   dailySummary: false,
   services: [
@@ -223,6 +227,11 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
   const [logoUploading, setLogoUploading] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  /** Rechnungsvorschau nutzt Session-E-Mail u. a. — erst nach Hydration rendern, sonst SSR/Client-Mismatch. */
+  const [invoicePreviewReady, setInvoicePreviewReady] = useState(false)
+  useEffect(() => {
+    setInvoicePreviewReady(true)
+  }, [])
 
   const update = (key: keyof SettingsData, value: unknown) => {
     setS((prev) => ({ ...prev, [key]: value }))
@@ -722,35 +731,67 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
 
           <FormSection icon="👁" iconBg="bg-[#F3F4F6] text-[#6B7280]" title="Rechnungsvorschau" badge="So sehen deine Rechnungen aus" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="rounded-xl border border-[#E5E2DC] bg-black/[0.01] p-6 text-[13px] leading-relaxed">
-              <div className="mb-4 flex justify-between border-b border-[#E5E2DC] pb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf3ef] font-serif text-lg font-bold text-[#52b788]">H</div>
-                <div className="text-right text-xs text-[#6B7280]" suppressHydrationWarning>
-                  <strong className="text-[13px] text-[#1B1F23]">{s.companyName || `${s.firstName} ${s.lastName}`.trim() || 'Betriebsname'}</strong><br />
-                  {[s.firstName, s.lastName].filter(Boolean).join(' ')} {s.qualification && `· ${s.qualification}`}<br />
-                  {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
-                  {s.phone && `Tel: ${s.phone}`} {s.email && `· ${s.email}`}
-                </div>
-              </div>
-              <div className="font-serif text-lg font-semibold">Rechnung</div>
-              <div className="text-xs text-[#6B7280]">{s.invoicePrefix ?? 'HUF-'}{s.nextInvoiceNumber ?? '2026-0001'} · Zahlungsziel: {s.paymentTerms ?? '7 Tage'}</div>
-              <div className="my-3 border-t border-b border-[#E5E2DC] py-2 text-xs text-[#6B7280]">Kunde: [Name] · [Adresse]</div>
-              <div className="flex justify-between border-b border-dotted border-[#E5E2DC] py-1.5">
-                <span>Barhufbearbeitung (1 Pferd, 4 Hufe)</span>
-                <span className="font-semibold">65,00 €</span>
-              </div>
-              <div className="flex justify-between pt-2 font-bold">
-                <span>Gesamtbetrag</span>
-                <span className="text-[#52b788]">65,00 €</span>
-              </div>
-              {s.kleinunternehmer && (
-                <div className="mt-2 rounded-md bg-[#F0FDF4] px-3 py-2 text-[11px] text-[#166534]">
-                  {s.kleinunternehmerText ?? 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.'}
+              {invoicePreviewReady ? (
+                <>
+                  <div className="mb-4 flex justify-between border-b border-[#E5E2DC] pb-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#edf3ef] font-serif text-lg font-bold text-[#52b788]">H</div>
+                    <div className="text-right text-xs text-[#6B7280]">
+                      <strong className="text-[13px] text-[#1B1F23]">{s.companyName || `${s.firstName} ${s.lastName}`.trim() || 'Betriebsname'}</strong><br />
+                      {[s.firstName, s.lastName].filter(Boolean).join(' ')} {s.qualification && `· ${s.qualification}`}<br />
+                      {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
+                      {s.phone && `Tel: ${s.phone}`} {s.email && `· ${s.email}`}
+                    </div>
+                  </div>
+                  <div className="font-serif text-lg font-semibold">Rechnung</div>
+                  <div className="text-xs text-[#6B7280]">{s.invoicePrefix ?? 'HUF-'}{s.nextInvoiceNumber ?? '2026-0001'} · Zahlungsziel: {s.paymentTerms ?? '7 Tage'}</div>
+                  <div className="my-3 border-t border-b border-[#E5E2DC] py-2 text-xs text-[#6B7280]">Kunde: [Name] · [Adresse]</div>
+                  <div className="flex justify-between border-b border-dotted border-[#E5E2DC] py-1.5">
+                    <span>Barhufbearbeitung (1 Pferd, 4 Hufe)</span>
+                    <span className="font-semibold">65,00 €</span>
+                  </div>
+                  <div className="flex justify-between pt-2 font-bold">
+                    <span>Gesamtbetrag</span>
+                    <span className="text-[#52b788]">65,00 €</span>
+                  </div>
+                  {s.kleinunternehmer && (
+                    <div className="mt-2 rounded-md bg-[#F0FDF4] px-3 py-2 text-[11px] text-[#166534]">
+                      {s.kleinunternehmerText ?? 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.'}
+                    </div>
+                  )}
+                  <div className="mt-4 border-t border-[#E5E2DC] pt-3 text-center text-[11px] text-[#9CA3AF] leading-relaxed">
+                    {s.companyName || [s.firstName, s.lastName].filter(Boolean).join(' ')} · {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
+                    StNr: {s.taxNumber || '…'} · IBAN: {s.iban ? `${s.iban.slice(0, 8)}…` : '…'}
+                  </div>
+                </>
+              ) : (
+                <div
+                  className="space-y-4 py-1"
+                  aria-hidden
+                >
+                  <div className="mb-4 flex justify-between border-b border-[#E5E2DC] pb-3">
+                    <div className="h-12 w-12 shrink-0 rounded-xl bg-[#edf3ef]" />
+                    <div className="flex flex-col items-end gap-2 pt-1">
+                      <div className="h-3.5 w-40 max-w-[55%] rounded bg-[#E5E2DC]/70" />
+                      <div className="h-3 w-32 max-w-[45%] rounded bg-[#E5E2DC]/50" />
+                      <div className="h-3 w-36 max-w-[50%] rounded bg-[#E5E2DC]/50" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-24 rounded bg-[#E5E2DC]/60" />
+                  <div className="h-3 w-64 max-w-full rounded bg-[#E5E2DC]/40" />
+                  <div className="my-3 border-t border-b border-[#E5E2DC] py-2">
+                    <div className="h-3 w-48 rounded bg-[#E5E2DC]/35" />
+                  </div>
+                  <div className="flex justify-between border-b border-dotted border-[#E5E2DC] py-1.5">
+                    <div className="h-3 w-48 max-w-[60%] rounded bg-[#E5E2DC]/45" />
+                    <div className="h-3 w-14 rounded bg-[#E5E2DC]/45" />
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <div className="h-4 w-28 rounded bg-[#E5E2DC]/50" />
+                    <div className="h-4 w-16 rounded bg-[#E5E2DC]/50" />
+                  </div>
+                  <div className="mx-auto mt-4 h-3 w-56 max-w-full rounded bg-[#E5E2DC]/35" />
                 </div>
               )}
-              <div className="mt-4 border-t border-[#E5E2DC] pt-3 text-center text-[11px] text-[#9CA3AF] leading-relaxed" suppressHydrationWarning>
-                {s.companyName || [s.firstName, s.lastName].filter(Boolean).join(' ')} · {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
-                StNr: {s.taxNumber || '…'} · IBAN: {s.iban ? `${s.iban.slice(0, 8)}…` : '…'}
-              </div>
             </div>
           </FormSection>
         </>
@@ -763,16 +804,87 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
       )}
       {activeTab === 'benachrichtigungen' && (
         <>
+          <FormSection icon="🔔" iconBg="bg-[#ECFDF5] text-[#059669]" title="Termin-Erinnerungen (E-Mail)" badge="Automatisch an Kund:innen" badgeClass="bg-[#D1FAE5] text-[#065F46]">
+            <p className="mb-4 text-[13px] leading-relaxed text-[#6B7280]">
+              Steuert den Versand der Erinnerungen per Cron (SMTP muss konfiguriert sein). Pro Termin kann die Vorlaufzeit weiterhin im Terminformular angepasst werden.
+            </p>
+            <FormRow>
+              <FormGroup
+                label="E-Mail-Erinnerungen"
+                hint="Wenn aus, werden keine automatischen Erinnerungen versendet und neue Termine starten ohne Erinnerung."
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    update('emailReminders', !(s.emailReminders !== false))
+                    setSaved(false)
+                  }}
+                  className="flex w-full max-w-md items-center gap-3"
+                >
+                  <div
+                    className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.emailReminders !== false ? 'bg-[#52b788]' : 'bg-[#E5E2DC]'}`}
+                  >
+                    <div
+                      className={`mt-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${s.emailReminders !== false ? 'translate-x-6' : 'translate-x-0.5'}`}
+                    />
+                  </div>
+                  <span className="text-sm text-[#1B1F23]">
+                    {s.emailReminders !== false ? 'Aktiv' : 'Aus'}
+                  </span>
+                </button>
+              </FormGroup>
+              <FormGroup
+                label="Standard bei neuen Terminen"
+                hint="Voreinstellung für das Feld „E-Mail-Erinnerung“ beim Anlegen eines Termins."
+              >
+                <select
+                  className={inputClass()}
+                  disabled={s.emailReminders === false}
+                  value={
+                    s.appointmentReminderDefaultMinutes == null
+                      ? ''
+                      : String(s.appointmentReminderDefaultMinutes)
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value
+                    update(
+                      'appointmentReminderDefaultMinutes',
+                      v === '' ? null : Number(v)
+                    )
+                    setSaved(false)
+                  }}
+                >
+                  {APPOINTMENT_REMINDER_MINUTES_OPTIONS.map((o) => (
+                    <option
+                      key={o.label}
+                      value={o.minutes == null ? '' : String(o.minutes)}
+                    >
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </FormGroup>
+            </FormRow>
+          </FormSection>
+
           <FormSection icon="📧" iconBg="bg-[#DBEAFE] text-[#2563EB]" title="E-Mail-Versand (SMTP)" badge="Für Rechnungsversand & Benachrichtigungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
               <span className="shrink-0 text-lg">ℹ️</span>
-              <p>Trage hier die Zugangsdaten deines E-Mail-Anbieters ein (z. B. GMX, Web.de, Strato, Mailtrap). <strong>Wichtig:</strong> Port 587 = „TLS/SSL: Nein“ (STARTTLS). Port 465 = „TLS/SSL: Ja“ (direkte SSL-Verbindung). Falsche Kombination führt zu Verbindungsfehlern.</p>
+              <p>
+                Trage hier die Zugangsdaten deines E-Mail-Anbieters ein (z. B. GMX, Web.de, Strato,{' '}
+                <strong>Mailtrap</strong>). <strong>Wichtig:</strong> Port <strong>587</strong> oder{' '}
+                <strong>2525</strong> → „TLS/SSL: <strong>Nein</strong>“ (STARTTLS). Port{' '}
+                <strong>465</strong> → „TLS/SSL: <strong>Ja</strong>“ (direktes TLS). Falsche Kombination
+                führt zu OpenSSL-Fehlern wie „wrong version number“.{' '}
+                <strong>Mailtrap-Sandbox:</strong> meist Host <code className="rounded bg-white/80 px-1">sandbox.smtp.mailtrap.io</code>, Port{' '}
+                <strong>2525</strong> oder <strong>587</strong>, TLS/SSL <strong>aus</strong> — nicht 465, wenn es bei dir nicht verbindet.
+              </p>
             </div>
             <FormRow>
               <FormGroup label="SMTP-Server (Host)" hint="z. B. smtp.gmx.net, smtp.web.de">
                 <input type="text" className={inputClass()} placeholder="smtp.example.de" value={s.smtpHost ?? ''} onChange={(e) => update('smtpHost', e.target.value)} />
               </FormGroup>
-              <FormGroup label="Port" hint="Üblich: 587 (TLS) oder 465 (SSL)">
+              <FormGroup label="Port" hint="Häufig 587 oder 2525 (STARTTLS) bzw. 465 (SSL)">
                 <input type="number" className={inputClass()} placeholder="587" min={1} max={65535} value={s.smtpPort ?? ''} onChange={(e) => update('smtpPort', e.target.value === '' ? undefined : Number(e.target.value))} />
               </FormGroup>
             </FormRow>

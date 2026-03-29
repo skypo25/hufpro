@@ -14,8 +14,8 @@ type CustomerPickerProps = {
 }
 
 function getCustomerDetail(customer: AppointmentCustomer) {
-  const stable = customer.stable_name || customer.stable_city || customer.city || ''
-  return stable || 'Kein Stall hinterlegt'
+  const zipCity = [customer.postal_code, customer.city].filter(Boolean).join(' ')
+  return zipCity || customer.city || 'Keine Anschrift hinterlegt'
 }
 
 export default function CustomerPicker({
@@ -39,8 +39,7 @@ export default function CustomerPicker({
         const haystack = [
           customer.name,
           customer.city,
-          customer.stable_name,
-          customer.stable_city,
+          customer.street,
           customer.customer_number != null ? String(customer.customer_number) : null,
           customer.customer_number != null ? formatCustomerNumber(customer.customer_number) : null,
         ]

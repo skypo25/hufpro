@@ -23,16 +23,7 @@ type FormData = {
   billingCity: string
   billingZip: string
   billingCountry: string
-  stableDiffers: boolean
-  stableName: string
-  stableStreet: string
-  stableCity: string
-  stableZip: string
-  stableCountry: string
-  stableContact: string
-  stablePhone: string
   driveTime: string
-  directions: string
   preferredDays: string[]
   preferredTime: string
   intervalWeeks: string
@@ -46,9 +37,7 @@ const EMPTY: FormData = {
   phone: '', phone2: '', email: '', preferredContact: '',
   company: '', vatId: '',
   billingStreet: '', billingCity: '', billingZip: '', billingCountry: 'Deutschland',
-  stableDiffers: false,
-  stableName: '', stableStreet: '', stableCity: '', stableZip: '', stableCountry: 'Deutschland',
-  stableContact: '', stablePhone: '', driveTime: '', directions: '',
+  driveTime: '',
   preferredDays: [], preferredTime: '', intervalWeeks: '', reminderTiming: '',
   notes: '', source: '',
 }
@@ -101,16 +90,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
       billingCity: data.city ?? '',
       billingZip: data.postal_code ?? '',
       billingCountry: data.country ?? 'Deutschland',
-      stableDiffers: data.stable_differs ?? false,
-      stableName: data.stable_name ?? '',
-      stableStreet: data.stable_street ?? '',
-      stableCity: data.stable_city ?? '',
-      stableZip: data.stable_zip ?? '',
-      stableCountry: data.stable_country ?? 'Deutschland',
-      stableContact: data.stable_contact ?? '',
-      stablePhone: data.stable_phone ?? '',
       driveTime: data.drive_time ?? '',
-      directions: data.directions ?? '',
       preferredDays: Array.isArray(data.preferred_days) ? data.preferred_days : [],
       preferredTime: data.preferred_time ?? '',
       intervalWeeks: data.interval_weeks != null ? String(data.interval_weeks) : '',
@@ -193,15 +173,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
       company: form.company.trim() || null, vat_id: form.vatId.trim() || null,
       street: form.billingStreet.trim() || null, city: form.billingCity.trim() || null,
       postal_code: form.billingZip.trim() || null, country: form.billingCountry || null,
-      stable_differs: form.stableDiffers,
-      stable_name: form.stableDiffers ? form.stableName.trim() || null : null,
-      stable_street: form.stableDiffers ? form.stableStreet.trim() || null : null,
-      stable_city: form.stableDiffers ? form.stableCity.trim() || null : null,
-      stable_zip: form.stableDiffers ? form.stableZip.trim() || null : null,
-      stable_country: form.stableDiffers ? form.stableCountry || null : null,
-      stable_contact: form.stableDiffers ? form.stableContact.trim() || null : null,
-      stable_phone: form.stableDiffers ? form.stablePhone.trim() || null : null,
-      drive_time: form.driveTime.trim() || null, directions: form.directions.trim() || null,
+      drive_time: form.driveTime.trim() || null,
       preferred_days: form.preferredDays.length ? form.preferredDays : null,
       preferred_time: form.preferredTime || null,
       interval_weeks: form.intervalWeeks ? parseInt(form.intervalWeeks) : null,
@@ -478,105 +450,6 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
               <FHint>Nur bei gewerblichen Kunden</FHint>
             </FGroup>
           </FRow>
-        </Sec>
-
-        {/* ── 3. STALLADRESSE ─────────────────────────────────────── */}
-        <Sec icon="bi bi-geo-alt-fill" title="Stalladresse / Standort" hint="Wo stehen die Tiere?">
-          {/* Checkbox */}
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '12px 14px', marginBottom: 14, cursor: 'pointer',
-            background: 'rgba(82,183,136,.04)',
-            border: '1px solid rgba(82,183,136,.15)', borderRadius: 8,
-          }}>
-            <input
-              type="checkbox"
-              checked={form.stableDiffers}
-              onChange={e => set('stableDiffers', e.target.checked)}
-              style={{ display: 'none' }}
-            />
-            <div style={{
-              width: 20, height: 20, borderRadius: 5, flexShrink: 0,
-              border: `1.5px solid ${form.stableDiffers ? '#52b788' : '#cdcdd0'}`,
-              background: form.stableDiffers ? '#52b788' : '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all .12s',
-            }}>
-              {form.stableDiffers && (
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                  <polyline points="2 6 5 9 10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#6B7280', lineHeight: 1.4 }}>
-              <strong style={{ color: '#1A1A1A', fontWeight: 600 }}>Stalladresse weicht ab</strong>
-              {' '}– Tiere stehen an einem anderen Ort als die Rechnungsanschrift
-            </span>
-          </label>
-
-          {form.stableDiffers && (
-            <>
-              <FGroup>
-                <FLabel>Stalladresse suchen</FLabel>
-                <AddressAutocomplete
-                  onSelect={(s: AddressSuggestion) => {
-                    set('stableStreet', s.street)
-                    set('stableCity', s.city)
-                    set('stableZip', s.zip)
-                    set('stableCountry', s.country || 'Deutschland')
-                  }}
-                  className="mce-autocomplete"
-                  placeholder="z. B. Am Waldrand 7, 53567 Asbach"
-                />
-                <FHint>Ort, Adresse oder Name des Stalls/Hofs</FHint>
-              </FGroup>
-
-              <FGroup>
-                <FLabel>Name des Stalls / Hofs</FLabel>
-                <FInput value={form.stableName} onChange={v => set('stableName', v)} placeholder="z. B. Reitanlage Sonnenhof" />
-                <FHint>So findest du den Stall schnell wieder</FHint>
-              </FGroup>
-
-              <FGroup>
-                <FLabel>Straße &amp; Hausnummer</FLabel>
-                <FInput value={form.stableStreet} onChange={v => set('stableStreet', v)} placeholder="z. B. Am Waldrand 7" />
-              </FGroup>
-
-              <FRow3>
-                <FGroup>
-                  <FLabel>Ort</FLabel>
-                  <FInput value={form.stableCity} onChange={v => set('stableCity', v)} placeholder="Stadt" />
-                </FGroup>
-                <FGroup>
-                  <FLabel>PLZ</FLabel>
-                  <FInput value={form.stableZip} onChange={v => set('stableZip', v)} placeholder="12345" inputMode="numeric" />
-                </FGroup>
-                <FGroup>
-                  <FLabel>Land</FLabel>
-                  <FSelect value={form.stableCountry} onChange={v => set('stableCountry', v)} options={COUNTRIES} />
-                </FGroup>
-              </FRow3>
-
-              <FRow>
-                <FGroup>
-                  <FLabel>Ansprechpartner vor Ort</FLabel>
-                  <FInput value={form.stableContact} onChange={v => set('stableContact', v)} placeholder="z. B. Hans Müller" />
-                  <FHint>Falls du vor Ort jemand anderen triffst</FHint>
-                </FGroup>
-                <FGroup>
-                  <FLabel>Telefon vor Ort</FLabel>
-                  <FInput value={form.stablePhone} onChange={v => set('stablePhone', v)} type="tel" placeholder="z. B. 02683 1234" />
-                  <FHint>Stalltelefon oder Ansprechpartner-Handy</FHint>
-                </FGroup>
-              </FRow>
-            </>
-          )}
-
-          <FGroup>
-            <FLabel>Anfahrtshinweis</FLabel>
-            <FInput value={form.directions} onChange={v => set('directions', v)} placeholder="z. B. Hofeinfahrt links, hinter Scheune" />
-            <FHint>Besondere Hinweise zur Anfahrt</FHint>
-          </FGroup>
         </Sec>
 
         {/* ── 4. TERMINPRÄFERENZEN ───────────────────────────────── */}

@@ -654,7 +654,9 @@ export default function RecordPdfDocument({ data }: Props) {
     horse.ageYears != null ? `${horse.ageYears} Jahre (geb. ${horse.birthYear})`
     : horse.birthYear      ? `geb. ${horse.birthYear}`
     : "–"
-  const stableCity = [customer.stableName, customer.city].filter(Boolean).join(", ")
+  const stallLocationLine = [customer.stableName, customer.stableCity || customer.city]
+    .filter(Boolean)
+    .join(", ")
 
   const hasGeneralData = !!(record.generalCondition || record.gait || record.handlingBehavior || record.hornQuality)
   // Strip HTML tags + &nbsp; before checking – catches empty <p><br></p> etc.
@@ -713,7 +715,7 @@ export default function RecordPdfDocument({ data }: Props) {
           <View style={s.infoCellNoBorder}><Text style={s.infoLabel}>Alter</Text><Text style={s.infoValue}>{horseAge}</Text></View>
 
           <View style={s.infoCell}><Text style={s.infoLabel}>Besitzer/in</Text><Text style={s.infoValue}>{customer.name}</Text></View>
-          <View style={s.infoCell}><Text style={s.infoLabel}>Stall / Standort</Text><Text style={s.infoValue}>{stableCity || "–"}</Text></View>
+          <View style={s.infoCell}><Text style={s.infoLabel}>Stall / Standort</Text><Text style={s.infoValue}>{stallLocationLine || "–"}</Text></View>
           <View style={s.infoCellNoBorder}><Text style={s.infoLabel}>Termin-Nr.</Text><Text style={s.infoValue}>{record.docNumber ?? "–"}</Text></View>
 
           <View style={{ ...s.infoCell, borderBottomWidth: 0 }}><Text style={s.infoLabel}>Datum</Text><Text style={s.infoValue}>{formatGermanDate(record.recordDate)}</Text></View>

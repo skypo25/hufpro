@@ -16,16 +16,7 @@ export const emptyCustomerFormData: CustomerFormInitialData = {
   company: '',
   vatId: '',
 
-  stableDiffers: true,
-  stableName: '',
-  stableStreet: '',
-  stableCity: '',
-  stableZip: '',
-  stableCountry: 'Deutschland',
-  stableContact: '',
-  stablePhone: '',
   driveTime: '',
-  directions: '',
 
   preferredDays: [],
   preferredTime: 'Vormittags (8–12 Uhr)',

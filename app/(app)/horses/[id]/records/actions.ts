@@ -130,8 +130,8 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
     return { error: `Speichern fehlgeschlagen: ${mirror.error}` }
   }
 
-  revalidatePath(`/horses/${horseId}`)
-  revalidatePath(`/horses/${horseId}/records/${data.id}`)
+  revalidatePath(`/animals/${horseId}`)
+  revalidatePath(`/animals/${horseId}/records/${data.id}`)
   return { recordId: data.id }
 }
 
@@ -223,7 +223,7 @@ export async function updateRecord(
     )
   }
 
-  revalidatePath(`/horses/${horseId}/records/${recordId}`)
+  revalidatePath(`/animals/${horseId}/records/${recordId}`)
 }
 
 export async function deleteRecordPhotos(
@@ -263,5 +263,5 @@ export async function deleteRecordPhotos(
     if (hoofDelErr) throw new Error(`hoof_photos löschen: ${hoofDelErr.message}`)
   }
 
-  revalidatePath(`/horses/${horseId}/records/${recordId}`)
+  revalidatePath(`/animals/${horseId}/records/${recordId}`)
 }

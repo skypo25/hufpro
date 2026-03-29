@@ -34,6 +34,8 @@ export async function createInvoice(
     buyer_city: string | null
     buyer_country: string | null
     items: InvoiceItemInput[]
+    /** Standard: Entwurf; „senden“ = sofort als versendet/offen (Detailansicht) */
+    status?: 'draft' | 'sent'
   }
 ): Promise<{ invoiceId: string } | { error: string }> {
   const supabase = await createSupabaseServerClient()
@@ -72,6 +74,8 @@ export async function createInvoice(
     if (seqs.length) nextSeq = Math.max(...seqs) + 1
   }
   const invoiceNumber = `${prefix}${year}-${String(nextSeq).padStart(4, '0')}`
+  const finalStatus = payload.status === 'sent' ? 'sent' : 'draft'
+  const nowIso = new Date().toISOString()
 
   const { data: inv, error: invErr } = await supabase
     .from('invoices')
@@ -82,7 +86,8 @@ export async function createInvoice(
       invoice_date: payload.invoice_date,
       service_date_from: payload.service_date_from ?? null,
       payment_due_date: payload.payment_due_date,
-      status: 'draft',
+      status: finalStatus,
+      ...(finalStatus === 'sent' ? { sent_at: nowIso } : {}),
       intro_text: payload.intro_text,
       footer_text: payload.footer_text,
       buyer_name: payload.buyer_name,
@@ -131,6 +136,7 @@ export async function createInvoice(
     )
 
   revalidatePath('/invoices')
+  revalidatePath('/dashboard')
   revalidatePath(`/customers/${customerId}/invoices`)
   return { invoiceId: inv.id }
 }

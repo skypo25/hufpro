@@ -92,6 +92,11 @@ export async function DELETE(
     await supabase.from('appointments').delete().eq('user_id', user.id).in('id', aptIds)
   }
 
+  // 2b. Allgemeines Tierfoto (AnimalForm), falls vorhanden
+  await supabase.storage
+    .from('hoof-photos')
+    .remove([`${user.id}/${horseId}/animal-profile.jpg`])
+
   // 3. Pferd löschen
   const { error } = await supabase.from('horses').delete().eq('id', horseId).eq('user_id', user.id)
   if (error) {

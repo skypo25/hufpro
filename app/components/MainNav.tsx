@@ -17,7 +17,7 @@ export default function MainNav() {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <Link href="/dashboard">Dashboard</Link>
         <Link href="/customers">Kunden</Link>
-        <Link href="/horses">Pferde</Link>
+        <Link href="/animals">Tiere</Link>
       </div>
 
       <form method="get" action="/suche" style={{ display: 'flex', gap: 8 }}>

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { sendMail } from '@/lib/email'
 import crypto from 'crypto'
+import { formatAppointmentTimeRangeDe } from '@/lib/appointments/appointmentDisplay'
+import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
 
 type SettingsSmtp = {
   smtpHost?: string
@@ -193,12 +195,13 @@ export async function POST(request: Request) {
     (settings.companyName ?? 'AniDocs').toString().trim()
 
   const dateStr = formatDate(appointment.appointment_date)
-  const timeStr = formatTime(appointment.appointment_date)
+  const timeStr =
+    formatAppointmentTimeRangeDe(
+      appointment.appointment_date,
+      appointment.duration_minutes
+    ) || formatTime(appointment.appointment_date)
   const typeLabel = (appointment.type ?? 'Termin').toString()
-  const duration =
-    appointment.duration_minutes != null
-      ? `${appointment.duration_minutes} Min.`
-      : ''
+  const duration = minutesToDurationLabelDesktop(appointment.duration_minutes)
   const horseList =
     horseNames.length > 0
       ? horseNames.join(', ')

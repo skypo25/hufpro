@@ -1,10 +1,16 @@
 /**
- * Realistische Testdaten für einen Hufbearbeiter.
- * Keine Fotos, keine Storage-Uploads – nur Tabellen: customers, horses, appointments,
- * appointment_horses, hoof_records, invoices, invoice_items.
+ * Testdaten für den eingeloggten User.
+ * - Hufbearbeiter: wie bisher (Pferde, Hufdokumentationen, Huf-Rechnungen).
+ * - Alle anderen Berufe: Tierarten passend zum Onboarding-Fokus, Erstanamnese (`intake.clinicalFirstContext`),
+ *   Dokumentationen nur für Pferde, Rechnungspositionen mit Therapie-/Tier-Bezug.
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js"
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppProfile } from '@/lib/appProfile'
+import { deriveAppProfile } from '@/lib/appProfile'
+import type { ClinicalFirstContext } from '@/lib/animals/clinicalIntakeTypes'
+import { emptyClinicalFirstContext } from '@/lib/animals/clinicalIntakeTypes'
+import { mergeIntakeWithClinical } from '@/lib/animals/mergeIntakeClinical'
 
 const CUSTOMERS = [
   { first_name: "Anna", last_name: "Weber", phone: "0171 1234567", email: "anna.weber@example.de", city: "München", stable_name: "Reitanlage Sonnenhof", stable_city: "München" },
@@ -30,8 +36,16 @@ const HORSE_NAMES = [
   "Ben", "Lilly", "Charlie", "Emma", "Oscar",
 ]
 
-const BREEDS = ["Warmblut", "Haflinger", "Quarter Horse", "Pony", "Vollblut", "Kaltblut", "Isländer", "Deutsches Reitpony"]
-const SEXES = ["Stute", "Wallach", "Hengst"] as const
+const BREEDS_HORSE = ["Warmblut", "Haflinger", "Quarter Horse", "Pony", "Vollblut", "Kaltblut", "Isländer", "Deutsches Reitpony"]
+const BREEDS_DOG = ["Labrador", "Mischling", "Border Collie", "Golden Retriever", "Jack Russell"]
+const BREEDS_CAT = ["EKH", "Britisch Kurzhaar", "Maine Coon", "Perser-Mix"]
+const BREEDS_SMALL = ["Kaninchen", "Meerschweinchen"]
+
+const SEXES_HORSE = ["Stute", "Wallach", "Hengst"] as const
+const SEXES_DOG = ["Rüde", "Hündin"] as const
+const SEXES_CAT = ["Kater", "Kätzin"] as const
+const SEXES_SMALL = ["—"] as const
+
 const APPOINTMENT_TYPES = ["Ersttermin", "Folgebehandlung", "Kontrolle", "Regeltermin"] as const
 const RECORD_SUMMARY = [
   "Alle vier Hufe bearbeitet, leichte mediale Belastung vorne links korrigiert.",
@@ -60,15 +74,25 @@ const CHECKLIST_ITEMS = [
   "Besitzer informiert",
 ]
 
-const INVOICE_POSITIONS = [
+const INVOICE_POSITIONS_HUF = [
   { description: "Hufbearbeitung", priceCents: 6500 },
   { description: "Korrektur", priceCents: 5500 },
   { description: "Kontrolle", priceCents: 4500 },
   { description: "Hufbearbeitung inkl. Anfahrt", priceCents: 7500 },
 ]
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+const INVOICE_POSITIONS_THERAPY = [
+  { description: "Einzelbehandlung Physiotherapie / Manuelle Therapie", priceCents: 8500 },
+  { description: "Therapieblock 45 Min.", priceCents: 7200 },
+  { description: "Erstkonsultation inkl. Anamnese", priceCents: 9500 },
+  { description: "Folgetermin Bewegungsanalyse", priceCents: 6800 },
+  { description: "Behandlung Kleintier (Hund/Katze)", priceCents: 6500 },
+]
+
+type AnimalTypeSeed = "horse" | "dog" | "cat" | "small" | "other"
+
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]!
 }
 function pickN<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5)
@@ -94,20 +118,147 @@ function toISODateTime(d: Date, hour: number, minute: number): string {
   return x.toISOString().slice(0, 19).replace("T", "T")
 }
 
+function pickAnimalTypeForProfile(profile: AppProfile, index: number): AnimalTypeSeed {
+  if (profile.isHufbearbeiter) return "horse"
+  if (!profile.showSmallAnimals) return "horse"
+  if (!profile.showHorses) {
+    const onlySmall: AnimalTypeSeed[] = ["dog", "cat", "small"]
+    return onlySmall[index % onlySmall.length]!
+  }
+  const mixed: AnimalTypeSeed[] = ["horse", "horse", "dog", "cat", "small", "horse", "other"]
+  return mixed[index % mixed.length]!
+}
+
+function breedAndSexForAnimalType(t: AnimalTypeSeed): { breed: string; sex: string } {
+  if (t === "horse" || t === "other") return { breed: pick(BREEDS_HORSE), sex: pick(SEXES_HORSE) }
+  if (t === "dog") return { breed: pick(BREEDS_DOG), sex: pick(SEXES_DOG) }
+  if (t === "cat") return { breed: pick(BREEDS_CAT), sex: pick(SEXES_CAT) }
+  return { breed: pick(BREEDS_SMALL), sex: pick(SEXES_SMALL) }
+}
+
+/** Beispiel-Erstanamnese (nur fachliche Blöcke), variiert nach Index. */
+function sampleClinicalFirstContext(seed: number): ClinicalFirstContext {
+  const c = emptyClinicalFirstContext()
+  const v = seed % 4
+  if (v === 0) {
+    c.anamnesis.mainComplaint = "Lahmheit hinten links, verstärkt nach Belastung"
+    c.anamnesis.complaintsSince = "seit ca. 3 Wochen"
+    c.anamnesis.acuteOrChronic = "akut"
+    c.anamnesis.currentMeds = "keine Dauermedikation"
+    c.anamnesis.knownConditions = "keine bekannten orthopädischen Vorerkrankungen"
+    c.anamnesis.more.feedingNotes = "Heu ad libitum, Kraftfutter nach Arbeit"
+    c.anamnesis.more.vaccination = "Grundimmunisierung aktuell"
+    c.locomotion.affectedRegion = "Hinterhand links"
+    c.locomotion.movementLimitation = "ja"
+    c.locomotion.problemContext = "bewegung"
+    c.locomotion.priorTreatments = "ja"
+    c.locomotion.trainingLevel = "Freizeit, 3–4× Ausritt pro Woche"
+    c.locomotion.more.lameness = "Wechselhinken in der Trabgalopp-Übergangsphase beobachtet"
+    c.history.priorInjuries = "keine schweren Unfälle bekannt"
+    c.history.recurringIssues = "gelegentlich steifer Rücken nach langer Boxenruhe"
+  } else if (v === 1) {
+    c.anamnesis.mainComplaint = "Rückensteife, Unwilligkeit beim Sattellegen"
+    c.anamnesis.complaintsSince = "seit Herbst, schleichend"
+    c.anamnesis.acuteOrChronic = "chronisch"
+    c.anamnesis.knownConditions = "ältere Zügelhand-Verletzung (auskuriert)"
+    c.anamnesis.more.behaviorStress = "reagiert nervös auf neue Reitböden"
+    c.anamnesis.more.ownerObservations = "Besitzerin fällt auf, dass das Pferd den Rücken oft „einhängt“"
+    c.locomotion.trainingLevel = "Turniersport Springen"
+    c.locomotion.more.trainingLimits = "Springen nur noch bis M**-Höhe ohne Beschwerden"
+    c.history.equipmentIssues = "Sattel wurde vor einem Jahr neu angepasst"
+  } else if (v === 2) {
+    c.anamnesis.mainComplaint = "Hund humpelt nach dem Spaziergang an der rechten Vorpfote"
+    c.anamnesis.complaintsSince = "seit 5 Tagen"
+    c.anamnesis.acuteOrChronic = "akut"
+    c.anamnesis.more.allergiesDetail = "Futtermittelallergie Huhn (bekannt)"
+    c.anamnesis.more.digestionNotable = "unauffällig"
+    c.locomotion.affectedRegion = "Vorderglied rechts"
+    c.locomotion.movementLimitation = "ja"
+    c.locomotion.problemContext = "bewegung"
+    c.history.priorInjuries = "Zehenbruch VR vor 2 Jahren (operativ, gut verheilt)"
+  } else {
+    c.anamnesis.mainComplaint = "Katze zeigt verminderte Sprungfreude, weniger Spieltrieb"
+    c.anamnesis.complaintsSince = "ca. 6–8 Wochen"
+    c.anamnesis.acuteOrChronic = "chronisch"
+    c.anamnesis.more.vetFindings = "TA: Blutbild unauffällig (vor 4 Wochen)"
+    c.locomotion.affectedRegion = "Wirbelsäule / Hinterhand unspezifisch"
+    c.locomotion.movementLimitation = "unbekannt"
+    c.history.otherHistory = "Innenhalter, reine Wohnungshaltung"
+  }
+  return c
+}
+
+function buildIntakeForTherapyAnimal(
+  animalType: AnimalTypeSeed,
+  seed: number
+): { intake: Record<string, unknown>; ownerObservations: string | null } {
+  const clinical = sampleClinicalFirstContext(seed)
+  const base = mergeIntakeWithClinical({}, clinical)
+  const neutered =
+    animalType === "horse" || animalType === "other"
+      ? "unknown"
+      : pick(["yes", "no"] as const)
+  const weightKg =
+    animalType === "horse"
+      ? null
+      : animalType === "cat"
+        ? pick([3.5, 4.2, 5.1, 5.8])
+        : animalType === "dog"
+          ? pick([12, 18, 22, 28, 34])
+          : pick([1.1, 1.8, 2.4])
+  const intake: Record<string, unknown> = {
+    ...base,
+    neutered,
+    internalNotes: null,
+    profilePhotoPath: null,
+    weightKg,
+    coatColor:
+      animalType === "horse"
+        ? null
+        : pick(["Schwarz", "Rot", "Getigert", "Weiß/Braun", "Tricolor"]),
+    chipId: Math.random() > 0.4 ? `DE${pick(["27", "28", "44"])}${String(1000000 + seed).slice(-8)}` : null,
+  }
+  const obs = clinical.anamnesis.more.ownerObservations.trim()
+  return { intake, ownerObservations: obs || null }
+}
+
 export type SeedResult = {
   customers: number
   horses: number
   appointments: number
   hoofRecords: number
   invoices: number
+  profileMode: "hufbearbeiter" | "therapie"
   error?: string
 }
 
 export async function runSeed(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  profileInput?: AppProfile
 ): Promise<SeedResult> {
-  const result: SeedResult = { customers: 0, horses: 0, appointments: 0, hoofRecords: 0, invoices: 0 }
+  const profile =
+    profileInput ?? deriveAppProfile(null, null)
+
+  const result: SeedResult = {
+    customers: 0,
+    horses: 0,
+    appointments: 0,
+    hoofRecords: 0,
+    invoices: 0,
+    profileMode: profile.isHufbearbeiter ? "hufbearbeiter" : "therapie",
+  }
+
+  const { data: maxCustomerRow } = await supabase
+    .from("customers")
+    .select("customer_number")
+    .eq("user_id", userId)
+    .order("customer_number", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const maxNum = typeof maxCustomerRow?.customer_number === "number" ? maxCustomerRow.customer_number : 0
+  const customerNumberStart = maxNum + 1
 
   const customerIds: string[] = []
   for (let i = 0; i < CUSTOMERS.length; i++) {
@@ -117,7 +268,7 @@ export async function runSeed(
       .from("customers")
       .insert({
         user_id: userId,
-        customer_number: i + 1,
+        customer_number: customerNumberStart + i,
         name,
         first_name: c.first_name,
         last_name: c.last_name,
@@ -127,9 +278,6 @@ export async function runSeed(
         city: c.city,
         postal_code: "80000",
         country: "Deutschland",
-        stable_name: c.stable_name ?? null,
-        stable_city: c.stable_city ?? null,
-        stable_differs: !!(c.stable_name || c.stable_city),
       })
       .select("id")
       .single()
@@ -138,7 +286,7 @@ export async function runSeed(
   }
   result.customers = customerIds.length
 
-  const horseByCustomer: { horseId: string; customerIdx: number }[] = []
+  const horseByCustomer: { horseId: string; customerIdx: number; animalType: AnimalTypeSeed }[] = []
   let horseIndex = 0
   for (let i = 0; i < customerIds.length; i++) {
     const numHorses = i < 8 ? 2 : 1
@@ -146,20 +294,46 @@ export async function runSeed(
       const name = HORSE_NAMES[horseIndex % HORSE_NAMES.length]
       horseIndex++
       const birthYear = 2015 + Math.floor(Math.random() * 10)
-      const { data, error } = await supabase
-        .from("horses")
-        .insert({
-          user_id: userId,
-          customer_id: customerIds[i],
-          name,
-          breed: pick(BREEDS),
-          sex: pick(SEXES),
-          birth_year: birthYear,
-        })
+      const animalType = pickAnimalTypeForProfile(profile, horseIndex)
+      const { breed, sex } = breedAndSexForAnimalType(animalType)
+
+      const therapy = profile.isHufbearbeiter
+        ? null
+        : buildIntakeForTherapyAnimal(animalType, horseIndex)
+
+      const rowPayload: Record<string, unknown> = {
+        user_id: userId,
+        customer_id: customerIds[i],
+        name,
+        breed,
+        sex,
+        birth_year: birthYear,
+      }
+
+      if (profile.isHufbearbeiter) {
+        if (h === 0) {
+          rowPayload.stable_name = CUSTOMERS[i].stable_name ?? null
+          rowPayload.stable_city = CUSTOMERS[i].stable_city ?? null
+        }
+      } else if (therapy) {
+        rowPayload.animal_type = animalType
+        rowPayload.neutered = therapy.intake.neutered as string
+        rowPayload.weight_kg = typeof therapy.intake.weightKg === "number" ? therapy.intake.weightKg : null
+        rowPayload.coat_color = (therapy.intake.coatColor as string) ?? null
+        rowPayload.chip_id = (therapy.intake.chipId as string) ?? null
+        rowPayload.intake = therapy.intake
+        rowPayload.special_notes = therapy.ownerObservations
+        if (h === 0) {
+          rowPayload.stable_name = CUSTOMERS[i].stable_name ?? null
+          rowPayload.stable_city = CUSTOMERS[i].stable_city ?? null
+        }
+      }
+
+      const { data, error } = await supabase.from("horses").insert(rowPayload)
         .select("id")
         .single()
       if (error) return { ...result, error: `Pferde: ${error.message}` }
-      if (data?.id) horseByCustomer.push({ horseId: data.id, customerIdx: i })
+      if (data?.id) horseByCustomer.push({ horseId: data.id, customerIdx: i, animalType })
     }
   }
   result.horses = horseByCustomer.length
@@ -205,7 +379,7 @@ export async function runSeed(
         .single()
       if (appErr) return { ...result, error: `Termine: ${appErr.message}` }
       if (!appData?.id) continue
-      const selectedHorses = pickN(horsesOfCustomer, 1 + Math.floor(Math.random() * (horsesOfCustomer.length)))
+      const selectedHorses = pickN(horsesOfCustomer, 1 + Math.floor(Math.random() * horsesOfCustomer.length))
       for (const hid of selectedHorses) {
         await supabase.from("appointment_horses").insert({
           user_id: userId,
@@ -224,11 +398,18 @@ export async function runSeed(
   }
   result.appointments = appointmentCount
 
+  const animalTypeByHorseId = new Map<string, AnimalTypeSeed>()
+  for (const row of horseByCustomer) {
+    animalTypeByHorseId.set(row.horseId, row.animalType)
+  }
+
   let recordCount = 0
-  const recordIdsByHorse = new Map<string, string[]>()
   for (const { horseIds, appointment_date } of appointments) {
     const recordDate = appointment_date.slice(0, 10)
     for (const horseId of horseIds) {
+      const at = animalTypeByHorseId.get(horseId) ?? "horse"
+      if (at !== "horse" && at !== "other") continue
+
       const { data: recData, error: recErr } = await supabase
         .from("hoof_records")
         .insert({
@@ -240,20 +421,23 @@ export async function runSeed(
           general_condition: pick(GENERAL_CONDITION),
           gait: pick(GAIT),
           horn_quality: pick(HORN_QUALITY),
-          checklist_json: Math.random() > 0.5 ? pickN(CHECKLIST_ITEMS, 2 + Math.floor(Math.random() * 3)).map((label) => ({ label, checked: true })) : null,
+          checklist_json:
+            Math.random() > 0.5
+              ? pickN(CHECKLIST_ITEMS, 2 + Math.floor(Math.random() * 3)).map((label) => ({
+                  label,
+                  checked: true,
+                }))
+              : null,
         })
         .select("id")
         .single()
       if (recErr) return { ...result, error: `Dokumentation: ${recErr.message}` }
-      if (recData?.id) {
-        recordCount++
-        const list = recordIdsByHorse.get(horseId) ?? []
-        list.push(recData.id)
-        recordIdsByHorse.set(horseId, list)
-      }
+      if (recData?.id) recordCount++
     }
   }
   result.hoofRecords = recordCount
+
+  const invoicePositions = profile.isHufbearbeiter ? INVOICE_POSITIONS_HUF : INVOICE_POSITIONS_THERAPY
 
   let invoiceNumber = 9001
   const year = new Date().getFullYear()
@@ -267,7 +451,7 @@ export async function runSeed(
     const due = new Date(invoiceDate)
     due.setDate(due.getDate() + 14)
     const paymentDueDate = toISODate(due)
-    const pos = pick(INVOICE_POSITIONS)
+    const pos = pick(invoicePositions)
     const { data: invData, error: invErr } = await supabase
       .from("invoices")
       .insert({

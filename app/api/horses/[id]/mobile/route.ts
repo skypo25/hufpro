@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
+import { deriveAppProfile } from '@/lib/appProfile'
 
 type CustomerRelation =
   | {
@@ -21,6 +22,11 @@ type Horse = {
   breed: string | null
   sex: string | null
   birth_year: number | null
+  animal_type?: string | null
+  neutered?: string | null
+  weight_kg?: number | string | null
+  coat_color?: string | null
+  chip_id?: string | null
   usage: string | null
   housing: string | null
   hoof_status: string | null
@@ -70,6 +76,14 @@ export async function GET(
     )
   }
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+
   const { data: horse, error: horseError } = await supabase
     .from('horses')
     .select(
@@ -79,6 +93,11 @@ export async function GET(
       breed,
       sex,
       birth_year,
+      animal_type,
+      neutered,
+      weight_kg,
+      coat_color,
+      chip_id,
       usage,
       housing,
       hoof_status,
@@ -156,6 +175,8 @@ export async function GET(
   }
 
   return NextResponse.json({
+    terminology: profile.terminology,
+    showErstanamnese: !profile.isHufbearbeiter,
     horse: {
       id: horse.id,
       name: horse.name,
@@ -163,6 +184,11 @@ export async function GET(
       sex: horse.sex,
       birthYear: horse.birth_year,
       age: getAgeFromBirthYear(horse.birth_year),
+      animalType: horse.animal_type ?? null,
+      neutered: horse.neutered ?? null,
+      weightKg: horse.weight_kg ?? null,
+      coatColor: horse.coat_color ?? null,
+      chipId: horse.chip_id ?? null,
       usage: horse.usage,
       housing: horse.housing,
       hoofStatus: horse.hoof_status,

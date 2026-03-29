@@ -10,13 +10,6 @@ export type AppointmentCustomer = {
   street?: string | null
   postal_code?: string | null
   country?: string | null
-  stable_differs?: boolean | null
-  stable_name?: string | null
-  stable_city?: string | null
-  stable_street?: string | null
-  stable_zip?: string | null
-  stable_country?: string | null
-  directions?: string | null
 }
 
 export type AppointmentHorse = {
@@ -28,6 +21,14 @@ export type AppointmentHorse = {
   hoof_status?: string | null
   customer_id: string | null
   last_appointment_date?: string | null
+  stable_name?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+  stable_city?: string | null
+  stable_country?: string | null
+  stable_contact?: string | null
+  stable_phone?: string | null
+  stable_directions?: string | null
 }
 
 export type AppointmentDayItem = {
@@ -48,6 +49,8 @@ export type AppointmentFormInitialData = {
   duration: string
   notes: string
   status: 'Bestätigt' | 'Vorgeschlagen' | 'Warteliste'
+  /** Minuten vor Terminbeginn; null = keine Erinnerung */
+  reminderMinutesBefore: number | null
 }
 
 export type AppointmentFormProps = {
@@ -56,4 +59,6 @@ export type AppointmentFormProps = {
   horses: AppointmentHorse[]
   initialData: AppointmentFormInitialData
   dayItems?: AppointmentDayItem[]
+  /** false = keine Erinnerung speichern / Auswahl gesperrt (globale Einstellung) */
+  emailRemindersEnabled?: boolean
 }

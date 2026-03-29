@@ -19,9 +19,11 @@ type HorseRow = {
   sex: string | null
   birth_year: number | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
   customers?:
-    | { customer_number: number | null; name: string | null; stable_name: string | null; city: string | null }
-    | { customer_number: number | null; name: string | null; stable_name: string | null; city: string | null }[]
+    | { customer_number: number | null; name: string | null; city: string | null }
+    | { customer_number: number | null; name: string | null; city: string | null }[]
     | null
 }
 
@@ -45,6 +47,12 @@ type HoofPhotoRow = {
 }
 
 type SettingsRow = { settings: Record<string, unknown> | null }
+
+type PdfCustomerRow = {
+  customer_number: number | null
+  name: string | null
+  city: string | null
+}
 
 function getRelation<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? v[0] ?? null : v ?? null
@@ -141,14 +149,14 @@ async function loadSharedContext(
   horseRow: HorseRow
   seller: RecordPdfSeller
   lastRecordDate: string | null
-  customer: ReturnType<typeof getRelation>
+  customer: PdfCustomerRow | null
   birthYear: number | null
   ageYears: number | null
 } | null> {
   const { data: horseRow } = await supabase
     .from("horses")
     .select(
-      "id, name, breed, sex, birth_year, customer_id, customers(customer_number, name, stable_name, city)"
+      "id, name, breed, sex, birth_year, customer_id, stable_name, stable_city, customers(customer_number, name, city)"
     )
     .eq("id", horseId)
     .eq("user_id", userId)
@@ -184,7 +192,7 @@ async function loadSharedContext(
       (prevRows as { record_date: string | null }[] | null)?.[0]?.record_date ?? null
   }
 
-  const customer = getRelation(horseRow.customers ?? null)
+  const customer = getRelation(horseRow.customers ?? null) as PdfCustomerRow | null
   const birthYear = horseRow.birth_year ?? null
   const ageYears = birthYear != null ? new Date().getFullYear() - birthYear : null
 
@@ -230,7 +238,8 @@ export async function fetchRecordPdfData(
       customer: {
         customerNumber: customer?.customer_number ?? null,
         name: customer?.name ?? "–",
-        stableName: customer?.stable_name ?? null,
+        stableName: horseRow.stable_name ?? null,
+        stableCity: horseRow.stable_city ?? null,
         city: customer?.city ?? null,
       },
       seller,
@@ -296,7 +305,8 @@ export async function fetchRecordPdfData(
     customer: {
       customerNumber: customer?.customer_number ?? null,
       name: customer?.name ?? "–",
-      stableName: customer?.stable_name ?? null,
+      stableName: horseRow.stable_name ?? null,
+      stableCity: horseRow.stable_city ?? null,
       city: customer?.city ?? null,
     },
     seller,

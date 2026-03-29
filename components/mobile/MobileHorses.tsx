@@ -13,6 +13,13 @@ import {
   newAnimalButtonLabel,
   searchAnimalsPlaceholder,
 } from '@/lib/appProfile'
+import {
+  animalTypeBadgeClassName,
+  animalTypeIconColor,
+  faIconForAnimalType,
+  formatAnimalTypeLabel,
+} from '@/lib/animalTypeDisplay'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 const LIMIT = 20
 
@@ -23,6 +30,7 @@ type HorseItem = {
   sex: string | null
   birthYear: number | null
   age: number | null
+  animalType: string | null
   usage: string | null
   hoofStatus: string | null
   customerId: string | null
@@ -33,7 +41,6 @@ type HorseItem = {
   intervalWeeks: string | null
 }
 
-type Filter = 'all' | 'barhuf' | 'hufschutz' | 'korrektur'
 type Sort =
   | 'name_asc'
   | 'name_desc'
@@ -46,22 +53,6 @@ type ViewMode = 'list' | 'cards'
 function getBreedSex(h: HorseItem): string {
   const parts = [h.breed, h.sex].filter(Boolean) as string[]
   return parts.length > 0 ? parts.join(' · ') : '–'
-}
-
-/** Pferd-Icon wie auf der Desktop-Pferdeseite (SVG) */
-function IconHorse() {
-  return (
-    <svg
-      viewBox="0 0 576 512"
-      fill="currentColor"
-      width={18}
-      height={18}
-      className="horse-icon-svg"
-      aria-hidden
-    >
-      <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
-    </svg>
-  )
 }
 
 function IconSearch() {
@@ -144,7 +135,6 @@ export default function MobileHorses() {
   const { profile } = useAppProfile()
   const t = profile.terminology
   const [q, setQ] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('name_asc')
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const [horses, setHorses] = useState<HorseItem[]>([])
@@ -155,6 +145,11 @@ export default function MobileHorses() {
   const [hoofschutzCount, setHoofschutzCount] = useState(0)
   const [correctionCount, setCorrectionCount] = useState(0)
   const [avgInterval, setAvgInterval] = useState<string>('–')
+  const [dogsCount, setDogsCount] = useState(0)
+  const [catsCount, setCatsCount] = useState(0)
+  const [typeHorseCount, setTypeHorseCount] = useState(0)
+  const [smallAnimalsCount, setSmallAnimalsCount] = useState(0)
+  const [otherAnimalsCount, setOtherAnimalsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [debouncedQ, setDebouncedQ] = useState('')
@@ -172,7 +167,6 @@ export default function MobileHorses() {
     async (offset: number, append: boolean) => {
       const params = new URLSearchParams()
       if (debouncedQ) params.set('q', debouncedQ)
-      params.set('filter', filter)
       params.set('sort', sort)
       params.set('limit', String(LIMIT))
       params.set('offset', String(offset))
@@ -191,8 +185,13 @@ export default function MobileHorses() {
       setHoofschutzCount(data.hoofschutzCount ?? 0)
       setCorrectionCount(data.correctionCount ?? 0)
       setAvgInterval(data.avgInterval ?? '–')
+      setDogsCount(data.dogsCount ?? 0)
+      setCatsCount(data.catsCount ?? 0)
+      setTypeHorseCount(data.typeHorseCount ?? 0)
+      setSmallAnimalsCount(data.smallAnimalsCount ?? 0)
+      setOtherAnimalsCount(data.otherAnimalsCount ?? 0)
     },
-    [debouncedQ, filter, sort]
+    [debouncedQ, sort]
   )
 
   useEffect(() => {
@@ -224,12 +223,7 @@ export default function MobileHorses() {
     )
   })()
 
-  const filterChips: { key: Filter; label: string; count: number; warn?: boolean }[] = [
-    { key: 'all', label: 'Alle', count: horseCount },
-    { key: 'barhuf', label: 'Barhuf', count: barhufCount },
-    { key: 'hufschutz', label: 'Hufschutz', count: hoofschutzCount },
-    { key: 'korrektur', label: 'Korrektur', count: correctionCount, warn: true },
-  ]
+  const isPferdTerm = t === 'pferd'
 
   return (
     <>
@@ -242,7 +236,7 @@ export default function MobileHorses() {
               {animalsInCareLine(t, horseCount)} · {customerCount} Kunden
             </div>
           </div>
-          <Link href="/horses/new" className="ah-btn" aria-label={newAnimalButtonLabel(t)}>
+          <Link href="/animals/new" className="ah-btn" aria-label={newAnimalButtonLabel(t)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -263,40 +257,61 @@ export default function MobileHorses() {
       </header>
 
       <div className="mobile-content">
-        <div className="horse-stats-row">
-          <div className="customer-stat-box">
-            <span className="customer-stat-value">{horseCount}</span>
-            <span className="customer-stat-label">{animalsStatLabel(t)}</span>
-          </div>
-          <div className="customer-stat-box">
-            <span className="customer-stat-value">{barhufCount}</span>
-            <span className="customer-stat-label">Barhuf</span>
-          </div>
-          <div className="customer-stat-box">
-            <span className="customer-stat-value">{hoofschutzCount}</span>
-            <span className="customer-stat-label">Hufschutz</span>
-          </div>
-          <div className="customer-stat-box">
-            <span className="customer-stat-value warn">{correctionCount}</span>
-            <span className="customer-stat-label">In Korrektur</span>
-          </div>
-          <div className="customer-stat-box">
-            <span className="customer-stat-value">{avgInterval}</span>
-            <span className="customer-stat-label">Ø Intervall Wo</span>
-          </div>
+        <div className={`horse-stats-row ${isPferdTerm ? 'horse-stats-row--pferd' : 'horse-stats-row--tier'}`}>
+          {isPferdTerm ? (
+            <>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{horseCount}</span>
+                <span className="customer-stat-label">{animalsStatLabel(t)}</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{barhufCount}</span>
+                <span className="customer-stat-label">Barhuf</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{hoofschutzCount}</span>
+                <span className="customer-stat-label">Hufschutz</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value warn">{correctionCount}</span>
+                <span className="customer-stat-label">In Korrektur</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{avgInterval}</span>
+                <span className="customer-stat-label">Ø Intervall Wo</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{horseCount}</span>
+                <span className="customer-stat-label">Tiere gesamt</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{dogsCount}</span>
+                <span className="customer-stat-label">Hunde</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{catsCount}</span>
+                <span className="customer-stat-label">Katzen</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{typeHorseCount}</span>
+                <span className="customer-stat-label">Pferde</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{smallAnimalsCount}</span>
+                <span className="customer-stat-label">Kleintiere</span>
+              </div>
+              <div className="customer-stat-box">
+                <span className="customer-stat-value">{otherAnimalsCount}</span>
+                <span className="customer-stat-label">Sonstige</span>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="horse-filter-bar">
-          {filterChips.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              className={`horse-f-chip ${filter === chip.key ? 'active' : ''} ${chip.warn && filter === chip.key ? 'warn active' : ''} ${chip.warn && filter !== chip.key ? 'warn' : ''}`}
-              onClick={() => setFilter(chip.key)}
-            >
-              {chip.key === 'all' ? `${chip.label} (${chip.count})` : `${chip.label} (${chip.count})`}
-            </button>
-          ))}
+        <div className="horse-filter-bar horse-filter-bar--sort-only">
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
@@ -344,9 +359,13 @@ export default function MobileHorses() {
                   <h2 className="customer-list-letter" aria-hidden>{letter}</h2>
                   <div className="horse-list-group">
                     {list.map((h) => (
-                      <Link key={h.id} href={`/horses/${h.id}`} className="horse-list-row">
+                      <Link key={h.id} href={`/animals/${h.id}`} className="horse-list-row">
                         <div className="horse-list-icon" aria-hidden>
-                          <IconHorse />
+                          <FontAwesomeIcon
+                            icon={faIconForAnimalType(h.animalType)}
+                            className="h-4 w-4"
+                            style={{ color: animalTypeIconColor }}
+                          />
                         </div>
                         <div className="horse-list-body">
                           <div className="horse-list-name">{h.name || '–'}</div>
@@ -393,13 +412,17 @@ export default function MobileHorses() {
               {horses.map((h) => (
                 <article key={h.id} className="horse-card">
                   <Link
-                    href={`/horses/${h.id}`}
+                    href={`/animals/${h.id}`}
                     className="horse-card-clickable"
                     aria-label={`${animalSingularLabel(t)} ${h.name || ''} öffnen`}
                   >
                     <div className="horse-card-top">
                       <div className="horse-card-icon" aria-hidden>
-                        <IconHorse />
+                        <FontAwesomeIcon
+                          icon={faIconForAnimalType(h.animalType)}
+                          className="h-4 w-4"
+                          style={{ color: animalTypeIconColor }}
+                        />
                       </div>
                       <div className="horse-card-info">
                         <div className="horse-card-name">{h.name || '–'}</div>
@@ -417,10 +440,22 @@ export default function MobileHorses() {
                     </div>
                     <div className="horse-card-details">
                       <div className="horse-card-detail">
-                        <div className={`horse-card-detail-value ${!h.usage ? 'none' : ''}`}>
-                          {h.usage || '–'}
+                        <div
+                          className={`horse-card-detail-value ${
+                            t === 'tier' ? 'min-w-0' : !h.usage ? 'none' : ''
+                          }`}
+                        >
+                          {t === 'tier' ? (
+                            <span className={`${animalTypeBadgeClassName} truncate`}>
+                              {formatAnimalTypeLabel(h.animalType)}
+                            </span>
+                          ) : (
+                            h.usage || '–'
+                          )}
                         </div>
-                        <div className="horse-card-detail-label">Nutzung</div>
+                        <div className="horse-card-detail-label">
+                          {t === 'tier' ? 'Tierart' : 'Nutzung'}
+                        </div>
                       </div>
                       <div className="horse-card-detail">
                         <div className="horse-card-detail-value">{h.documentationCount}</div>
@@ -468,13 +503,13 @@ export default function MobileHorses() {
                     ) : (
                       <span className="horse-card-act disabled"><IconUser /> Besitzer</span>
                     )}
-                    <Link href={`/horses/${h.id}/records/new`} className="horse-card-act">
+                    <Link href={`/animals/${h.id}/records/new`} className="horse-card-act">
                       <IconDoc /> Doku
                     </Link>
                     <Link href={`/appointments/new?horseId=${h.id}`} className="horse-card-act">
                       <IconCalendar /> Termin
                     </Link>
-                    <Link href={`/horses/${h.id}`} className="horse-card-act">
+                    <Link href={`/animals/${h.id}`} className="horse-card-act">
                       <IconChevronRight /> Details
                     </Link>
                   </div>

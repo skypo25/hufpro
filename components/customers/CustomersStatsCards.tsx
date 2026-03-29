@@ -43,7 +43,7 @@ export default function CustomersStatsCards({
       valueClassName: '',
     },
     {
-      label: 'Pferde in Betreuung',
+      label: 'Tiere in Betreuung',
       value: horseCount,
       subtext: `Ø ${avgHorsesPerCustomer} pro Kunde`,
       valueClassName: '',

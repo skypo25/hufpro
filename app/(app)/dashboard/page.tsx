@@ -2,28 +2,33 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
+import {
+  dashboardAnimalsBetreutLabel,
+  deriveAppProfile,
+  newAnimalButtonLabel,
+} from '@/lib/appProfile'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus,
   faHorse,
+  faPaw,
   faCalendarPlus,
 } from '@fortawesome/free-solid-svg-icons'
 import RevenueChart from '@/components/dashboard/RevenueChart'
 import DashboardSearchBar from '@/components/dashboard/DashboardSearchBar'
 import DashboardStats from '@/components/dashboard/DashboardStats'
 import DashboardAnimatedSection from '@/components/dashboard/DashboardAnimatedSection'
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
 
 type CustomerRelation =
   | {
       name: string | null
-      stable_name?: string | null
-      stable_city?: string | null
       city?: string | null
     }
   | {
       name: string | null
-      stable_name?: string | null
-      stable_city?: string | null
       city?: string | null
     }[]
   | null
@@ -45,10 +50,12 @@ type AppointmentHorse = {
     | {
         id: string
         name: string | null
+        animal_type?: string | null
       }
     | {
         id: string
         name: string | null
+        animal_type?: string | null
       }[]
     | null
 }
@@ -61,7 +68,7 @@ type DashboardAppointment = {
   type: string | null
   status: string | null
   customerName: string
-  horseLabel: string
+  linkedAnimals: { name: string; animalType: string | null }[]
 }
 
 function relationName(
@@ -73,13 +80,13 @@ function relationName(
   return Array.isArray(value) ? value[0]?.name ?? null : value?.name ?? null
 }
 
-function horseName(
+function horseRelation(
   value:
-    | { id: string; name: string | null }
-    | { id: string; name: string | null }[]
+    | { id: string; name: string | null; animal_type?: string | null }
+    | { id: string; name: string | null; animal_type?: string | null }[]
     | null
 ) {
-  return Array.isArray(value) ? value[0]?.name ?? null : value?.name ?? null
+  return Array.isArray(value) ? value[0] ?? null : value
 }
 
 function getBerlinDateKey(date: Date) {
@@ -163,8 +170,10 @@ export default async function DashboardPage() {
     .select('settings')
     .eq('user_id', user.id)
     .maybeSingle()
-  const settings = (settingsRow?.settings ?? {}) as { firstName?: string }
-  const userFirstName = settings.firstName?.trim() || null
+  const settings = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const userFirstName = String(settings.firstName ?? '').trim() || null
+  const profile = deriveAppProfile(settings.profession, settings.animal_focus)
+  const term = profile.terminology
 
   const now = new Date()
   const todayBerlinKey = getBerlinDateKey(now)
@@ -207,8 +216,6 @@ export default async function DashboardPage() {
       status,
       customers (
         name,
-        stable_name,
-        stable_city,
         city
       )
     `)
@@ -233,7 +240,8 @@ export default async function DashboardPage() {
         horse_id,
         horses (
           id,
-          name
+          name,
+          animal_type
         )
       `)
       .eq('user_id', user.id)
@@ -243,26 +251,21 @@ export default async function DashboardPage() {
     appointmentHorses = appointmentHorseRows || []
   }
 
-  const horsesByAppointment = new Map<string, string[]>()
+  const animalsByAppointment = new Map<string, { name: string; animalType: string | null }[]>()
 
   for (const row of appointmentHorses) {
-    const currentHorseName = horseName(row.horses)
-    if (!currentHorseName) continue
-
-    const existing = horsesByAppointment.get(row.appointment_id) || []
-    horsesByAppointment.set(row.appointment_id, [...existing, currentHorseName])
+    const h = horseRelation(row.horses)
+    if (!h?.name) continue
+    const existing = animalsByAppointment.get(row.appointment_id) || []
+    animalsByAppointment.set(row.appointment_id, [
+      ...existing,
+      { name: h.name, animalType: h.animal_type ?? null },
+    ])
   }
 
   const mappedAppointments: DashboardAppointment[] = appointments.map((appointment) => {
     const customerName = relationName(appointment.customers) || 'Kunde'
-    const horseNames = horsesByAppointment.get(appointment.id) || []
-
-    let horseLabel = 'Kein Pferd zugeordnet'
-    if (horseNames.length === 1) {
-      horseLabel = horseNames[0]
-    } else if (horseNames.length > 1) {
-      horseLabel = `${horseNames.length} Pferde`
-    }
+    const linkedAnimals = animalsByAppointment.get(appointment.id) || []
 
     return {
       id: appointment.id,
@@ -272,7 +275,7 @@ export default async function DashboardPage() {
       type: appointment.type,
       status: appointment.status,
       customerName,
-      horseLabel,
+      linkedAnimals,
     }
   })
 
@@ -328,13 +331,18 @@ export default async function DashboardPage() {
 
   const quickActions = [
     { title: 'Kunde anlegen', href: '/customers/new', icon: faUserPlus },
-    { title: 'Pferd anlegen', href: '/horses/new', icon: faHorse },
+    { title: newAnimalButtonLabel(term), href: '/animals/new', icon: term === 'tier' ? faPaw : faHorse },
     { title: 'Termin erstellen', href: '/appointments/new', icon: faCalendarPlus },
   ]
 
   const stats = [
     { label: 'Kunden gesamt', value: customersCount ?? 0, badge: 'aktive Kunden', tone: 'bg-[#f4eadf]' },
-    { label: 'Pferde betreut', value: horsesCount ?? 0, badge: 'im System', tone: 'bg-[#e8f1e7]' },
+    {
+      label: dashboardAnimalsBetreutLabel(term),
+      value: horsesCount ?? 0,
+      badge: 'im System',
+      tone: 'bg-[#e8f1e7]',
+    },
     { label: 'Termine diese Woche', value: appointmentsWeekCount ?? 0, badge: 'geplant', tone: 'bg-[#ece9f7]' },
     { label: 'Dokumentationen', value: recordsCount ?? 0, badge: 'erfasst', tone: 'bg-[#f8efe3]' },
   ]
@@ -372,7 +380,11 @@ export default async function DashboardPage() {
               href={item.href}
               className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#52b788] hover:shadow-md"
             >
-              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#52b788]">
+              <div
+                className={`mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] ${
+                  item.href === '/animals/new' ? 'text-[#154226]' : 'text-[#52b788]'
+                }`}
+              >
                 <FontAwesomeIcon icon={item.icon} className="text-[18px]" />
               </div>
               <div className="text-[14px] font-medium text-[#1B1F23]">{item.title}</div>
@@ -416,8 +428,12 @@ export default async function DashboardPage() {
                       <div className="text-[14px] font-medium text-[#1B1F23]">
                         {appointment.customerName}
                       </div>
-                      <div className="text-[12px] text-[#6B7280]">
-                        {appointment.horseLabel}
+                      <div className="appt-animal-icons-8 text-[12px] text-[#6B7280]">
+                        <AppointmentAnimalsInline
+                          animals={appointment.linkedAnimals}
+                          inheritTextStyle
+                          iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                        />
                         {appointment.notes ? ` · ${appointment.notes}` : ''}
                       </div>
                     </div>
@@ -485,9 +501,18 @@ export default async function DashboardPage() {
                       </div>
 
                       <div className="flex-1">
-                        <div className="text-[14px] font-medium text-[#1B1F23]">
-                          {appointment.customerName}
-                          {appointment.horseLabel ? ` · ${appointment.horseLabel}` : ''}
+                        <div className="appt-animal-icons-8 flex flex-wrap items-center gap-x-1 text-[14px] font-medium text-[#1B1F23]">
+                          <span>{appointment.customerName}</span>
+                          {appointment.linkedAnimals.length > 0 ? (
+                            <>
+                              <span className="text-[#9CA3AF]">·</span>
+                              <AppointmentAnimalsInline
+                                animals={appointment.linkedAnimals}
+                                inheritTextStyle
+                                iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                              />
+                            </>
+                          ) : null}
                         </div>
                         <div className="text-[12px] text-[#6B7280]">
                           {formatTime(appointment.appointment_date)}

@@ -38,16 +38,25 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     openTotalCents = (items ?? []).reduce((sum, row) => sum + (row.amount_cents ?? 0), 0)
   }
 
-  let invoices: { id: string; invoice_number: string; invoice_date: string; status: string; customer_id: string | null }[] | null = null
+  let invoices: {
+    id: string
+    invoice_number: string
+    invoice_date: string
+    sent_at: string | null
+    status: string
+    customer_id: string | null
+    created_at: string
+  }[] | null = null
 
   if (qTrim) {
     const qPattern = `%${qTrim}%`
     const byNumberRes = await supabase
       .from('invoices')
-      .select('id, invoice_number, invoice_date, status, customer_id')
+      .select('id, invoice_number, invoice_date, sent_at, status, customer_id, created_at')
       .eq('user_id', user.id)
       .ilike('invoice_number', qPattern)
       .order('invoice_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(100)
     const byNumber = byNumberRes.data ?? []
     const custIdSet = new Set<string>()
@@ -74,10 +83,11 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
     if (custIds.length > 0) {
       const { data } = await supabase
         .from('invoices')
-        .select('id, invoice_number, invoice_date, status, customer_id')
+        .select('id, invoice_number, invoice_date, sent_at, status, customer_id, created_at')
         .eq('user_id', user.id)
         .in('customer_id', custIds)
         .order('invoice_date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100)
       byCustomer = data ?? []
     }
@@ -87,13 +97,18 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
       seen.add(inv.id)
       return true
     })
-    invoices.sort((a, b) => (b.invoice_date > a.invoice_date ? 1 : -1))
+    invoices.sort((a, b) => {
+      const d = (b.invoice_date || '').localeCompare(a.invoice_date || '')
+      if (d !== 0) return d
+      return (b.created_at || '').localeCompare(a.created_at || '')
+    })
   } else {
     let query = supabase
       .from('invoices')
-      .select('id, invoice_number, invoice_date, status, customer_id')
+      .select('id, invoice_number, invoice_date, sent_at, status, customer_id, created_at')
       .eq('user_id', user.id)
       .order('invoice_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(100)
     if (status === 'open') query = query.in('status', ['draft', 'sent'])
     else if (status === 'paid') query = query.eq('status', 'paid')
@@ -143,7 +158,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
       <InvoicesListSearchForm q={qTrim} status={status ?? 'all'} />
 
-      <div className="rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
+      <div className="huf-card">
         {!invoices?.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf3ef] text-2xl text-[#52b788]">
@@ -160,18 +175,30 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-[#E5E2DC]">
-            {(invoices ?? []).map((inv) => (
-              <InvoiceListRowWithMenu
-                key={inv.id}
-                id={inv.id}
-                invoiceNumber={inv.invoice_number}
-                customerName={inv.customer_id ? customerNames[inv.customer_id] ?? 'Kunde' : '–'}
-                invoiceDate={inv.invoice_date}
-                status={inv.status}
-              />
-            ))}
-          </ul>
+          <>
+            <div className="grid grid-cols-[140px_220px_1fr_120px_44px_52px] items-center gap-6 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[700px]:grid-cols-[130px_1fr_120px_44px_52px] max-[700px]:[&>*:nth-child(2)]:hidden">
+              <div>Datum</div>
+              <div>Rechnung</div>
+              <div>Kunde</div>
+              <div className="text-right">Status</div>
+              <div></div>
+              <div></div>
+            </div>
+
+            <div>
+              {(invoices ?? []).map((inv) => (
+                <InvoiceListRowWithMenu
+                  key={inv.id}
+                  id={inv.id}
+                  invoiceNumber={inv.invoice_number}
+                  customerName={inv.customer_id ? customerNames[inv.customer_id] ?? 'Kunde' : '–'}
+                  invoiceDate={inv.invoice_date}
+                  sentAt={inv.sent_at}
+                  status={inv.status}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

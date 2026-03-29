@@ -137,21 +137,21 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Rechnungen gesamt</div>
-          <div className="font-serif text-[24px] font-medium text-[#1B1F23]">{(invoices ?? []).length}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-[#1B1F23]">{(invoices ?? []).length}</div>
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Bezahlt</div>
-          <div className="font-serif text-[24px] font-medium text-[#52b788]">{formatCurrency(totalPaidCents)}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-[#52b788]">{formatCurrency(totalPaidCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status === 'paid').length} Rechnungen</div>
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Offen</div>
-          <div className="font-serif text-[24px] font-medium text-[#F59E0B]">{formatCurrency(openCents)}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-[#F59E0B]">{formatCurrency(openCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status !== 'paid' && i.status !== 'cancelled').length} Rechnungen</div>
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Überfällig</div>
-          <div className="font-serif text-[24px] font-medium text-[#EF4444]">{formatCurrency(overdueCents)}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-[#EF4444]">{formatCurrency(overdueCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{overdueInvoices.length} Rechnung(en)</div>
         </div>
       </div>

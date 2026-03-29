@@ -28,16 +28,7 @@ type CustomerRow = {
   company?: string | null
   vat_id?: string | null
 
-  stable_differs?: boolean | null
-  stable_name?: string | null
-  stable_street?: string | null
-  stable_city?: string | null
-  stable_zip?: string | null
-  stable_country?: string | null
-  stable_contact?: string | null
-  stable_phone?: string | null
   drive_time?: string | null
-  directions?: string | null
 
   preferred_days?: string[] | null
   preferred_time?: string | null
@@ -80,16 +71,7 @@ export default async function EditCustomerPage({
       country,
       company,
       vat_id,
-      stable_differs,
-      stable_name,
-      stable_street,
-      stable_city,
-      stable_zip,
-      stable_country,
-      stable_contact,
-      stable_phone,
       drive_time,
-      directions,
       preferred_days,
       preferred_time,
       interval_weeks,
@@ -165,16 +147,7 @@ export default async function EditCustomerPage({
           company: customer.company || '',
           vatId: customer.vat_id || '',
 
-          stableDiffers: customer.stable_differs ?? true,
-          stableName: customer.stable_name || '',
-          stableStreet: customer.stable_street || '',
-          stableCity: customer.stable_city || '',
-          stableZip: customer.stable_zip || '',
-          stableCountry: customer.stable_country || 'Deutschland',
-          stableContact: customer.stable_contact || '',
-          stablePhone: customer.stable_phone || '',
           driveTime: customer.drive_time || '',
-          directions: customer.directions || '',
 
           preferredDays: customer.preferred_days || [],
           preferredTime: customer.preferred_time || 'Vormittags (8–12 Uhr)',

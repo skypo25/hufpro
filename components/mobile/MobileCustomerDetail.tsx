@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { formatCustomerNumber } from '@/lib/format'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  animalTypeIconColor,
+  faIconForAnimalType,
+  formatAnimalsWorkedSummary,
+} from '@/lib/animalTypeDisplay'
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
 
 type Customer = {
   id: string
@@ -30,6 +41,8 @@ type Customer = {
   createdAt: string | null
 }
 
+type AppointmentAnimal = { name: string; animalType: string | null }
+
 type NextAppointment = {
   id: string
   appointmentDate: string | null
@@ -37,6 +50,7 @@ type NextAppointment = {
   notes: string | null
   status: string | null
   horseNames: string[]
+  appointmentAnimals?: AppointmentAnimal[]
   stableDisplay: string | null
 }
 
@@ -45,6 +59,7 @@ type Horse = {
   name: string
   meta: string
   nextAppointmentDate: string | null
+  animalType?: string | null
 }
 
 type PastAppointment = {
@@ -54,6 +69,7 @@ type PastAppointment = {
   notes: string | null
   status: string | null
   horseNames: string[]
+  appointmentAnimals?: AppointmentAnimal[]
 }
 
 type ViewTab = 'overview' | 'termine' | 'doku' | 'rechnungen'
@@ -177,12 +193,24 @@ function IconChevronRight() {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function workedSummaryFromApt(apt: {
+  appointmentAnimals?: AppointmentAnimal[]
+  horseNames: string[]
+}): string {
+  const list =
+    apt.appointmentAnimals && apt.appointmentAnimals.length > 0
+      ? apt.appointmentAnimals.map((a) => ({ animal_type: a.animalType }))
+      : apt.horseNames.map(() => ({ animal_type: null as string | null }))
+  return formatAnimalsWorkedSummary(list)
+}
+
 function getCustomerIdFromPath(path: string): string {
   const m = path.match(/^\/customers\/([^/?#]+)/)
   return (m?.[1] ?? '').trim()
 }
 
 export default function MobileCustomerDetail({ customerId: customerIdProp }: { customerId?: string }) {
+  const { profile } = useAppProfile()
   const pathname = usePathname()
   const fromPath = pathname ? getCustomerIdFromPath(pathname) : ''
   const customerId = (customerIdProp && customerIdProp !== 'undefined' ? customerIdProp : fromPath) || ''
@@ -271,10 +299,14 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
 
   const { customer, nextAppointment, horses, monthlyRevenueCents, totalRevenueCents, revenueYear, monthNames, pastAppointments, allAppointments } = data
   const displayName = [customer.firstName, customer.lastName].filter(Boolean).join(' ').trim() || customer.name || 'Kunde'
+  const animalsPlural = animalsNavLabel(profile.terminology)
+  const animalSingular = animalSingularLabel(profile.terminology)
   const metaParts = [
     customer.customerNumber != null ? formatCustomerNumber(customer.customerNumber) : null,
     customer.city || null,
-    horses.length > 0 ? `${horses.length} Pferd${horses.length !== 1 ? 'e' : ''}` : null,
+    horses.length > 0
+      ? `${horses.length} ${horses.length === 1 ? animalSingular : animalsPlural}`
+      : null,
     customer.createdAt ? `Kunde seit ${formatKundeSeit(customer.createdAt)}` : null,
   ].filter(Boolean)
 
@@ -436,7 +468,15 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
                   {nextAppointment.type ? ` · ${nextAppointment.type}` : ''}
                   <br />
                   {nextAppointment.stableDisplay && <>{nextAppointment.stableDisplay}<br /></>}
-                  {nextAppointment.horseNames.length > 0 && `Pferde: ${nextAppointment.horseNames.join(', ')}`}
+                  {(nextAppointment.appointmentAnimals?.length ?? 0) > 0 && (
+                    <span className="inline-flex flex-wrap items-center gap-x-1">
+                      <span>{animalsPlural}:</span>
+                      <AppointmentAnimalsInline
+                        animals={nextAppointment.appointmentAnimals!}
+                        iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                      />
+                    </span>
+                  )}
                 </div>
                 <div className="cd-nt-actions flex gap-2">
                   <Link href={`/calendar?customerId=${customer.id}`} className="cd-nt-btn flex-1 text-center">
@@ -565,16 +605,29 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
 
             <div className="cd-section">
               <div className="cd-section-header flex justify-between items-center">
-                <h3>Pferde ({horses.length})</h3>
-                <Link href={`/horses/new?customerId=${customer.id}`}>+ Pferd hinzufügen</Link>
+                <h3>
+                  {animalsPlural} ({horses.length})
+                </h3>
+                <Link href={`/animals/new?customerId=${customer.id}`}>
+                  + {animalSingular} hinzufügen
+                </Link>
               </div>
               <div className="cd-section-body">
                 {horses.length === 0 ? (
-                  <p className="text-[13px] text-[#6B7280]">Noch keine Pferde angelegt.</p>
+                  <p className="text-[13px] text-[#6B7280]">
+                    Noch keine {animalsPlural.toLowerCase()} angelegt.
+                  </p>
                 ) : (
                   horses.map((h) => (
-                    <Link key={h.id} href={`/horses/${h.id}`} className="cd-horse-item flex items-center gap-3">
-                      <div className="cd-hi-icon shrink-0">🐴</div>
+                    <Link key={h.id} href={`/animals/${h.id}`} className="cd-horse-item flex items-center gap-3">
+                      <div className="cd-hi-icon shrink-0">
+                        <FontAwesomeIcon
+                          icon={faIconForAnimalType(h.animalType)}
+                          style={{ color: animalTypeIconColor }}
+                          className="h-4 w-4"
+                          aria-hidden
+                        />
+                      </div>
                       <div className="cd-hi-info min-w-0 flex-1">
                         <div className="cd-hi-name">{h.name}</div>
                         <div className="cd-hi-breed">{h.meta}</div>
@@ -636,12 +689,21 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
                         <div className="cd-pi-month">{formatMonthShort(apt.appointmentDate)}</div>
                       </div>
                       <div className="cd-pi-info min-w-0 flex-1">
-                        <div className="cd-pi-title">
-                          {apt.type || 'Termin'}
-                          {apt.horseNames.length > 0 ? ` – ${apt.horseNames.join(', ')}` : ''}
+                        <div className="cd-pi-title flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                          <span>{apt.type || 'Termin'}</span>
+                          {(apt.appointmentAnimals?.length ?? 0) > 0 && (
+                            <>
+                              <span className="text-[#9CA3AF]">–</span>
+                              <AppointmentAnimalsInline
+                                animals={apt.appointmentAnimals!}
+                                inheritTextStyle
+                                iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                              />
+                            </>
+                          )}
                         </div>
                         <div className="cd-pi-sub">
-                          {apt.notes || `${apt.horseNames.length} Pferde bearbeitet`}
+                          {apt.notes || workedSummaryFromApt(apt)}
                         </div>
                       </div>
                       <span className={getStatusClass(apt.status)}>{apt.status || '–'}</span>
@@ -670,13 +732,26 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
                       <div className="cd-pi-month">{formatMonthShort(apt.appointmentDate)}</div>
                     </div>
                     <div className="cd-pi-info min-w-0 flex-1">
-                      <div className="cd-pi-title">
-                        {apt.type || 'Termin'}
-                        {apt.horseNames.length > 0 ? ` – ${apt.horseNames.join(', ')}` : ''}
+                      <div className="cd-pi-title flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                        <span>{apt.type || 'Termin'}</span>
+                        {(apt.appointmentAnimals?.length ?? 0) > 0 && (
+                          <>
+                            <span className="text-[#9CA3AF]">–</span>
+                            <AppointmentAnimalsInline
+                              animals={apt.appointmentAnimals!}
+                              inheritTextStyle
+                              iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                            />
+                          </>
+                        )}
                       </div>
                       <div className="cd-pi-sub">
                         {apt.appointmentDate && formatTime(apt.appointmentDate)}
-                        {apt.notes ? ` · ${apt.notes}` : apt.horseNames.length ? ` · ${apt.horseNames.length} Pferde bearbeitet` : ''}
+                        {apt.notes
+                          ? ` · ${apt.notes}`
+                          : workedSummaryFromApt(apt)
+                            ? ` · ${workedSummaryFromApt(apt)}`
+                            : ''}
                       </div>
                     </div>
                     <span className={getStatusClass(apt.status)}>{apt.status || '–'}</span>
@@ -695,12 +770,12 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
             </div>
             <div className="cd-section-body cd-doku-hint">
               <p className="text-[14px] font-medium text-[#6B7280]">
-                Dokumentationen werden über die Pferdedetailseite angezeigt.
+                Dokumentationen werden über die {animalSingular}-Detailseite angezeigt.
               </p>
               {horses.length > 0 && (
                 <p className="mt-2 text-[13px]">
                   →{' '}
-                  <Link href={`/horses/${horses[0].id}`} className="text-[#52b788] font-semibold">
+                  <Link href={`/animals/${horses[0].id}`} className="text-[#52b788] font-semibold">
                     {horses[0].name} öffnen
                   </Link>
                 </p>

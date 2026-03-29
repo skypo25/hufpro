@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
@@ -24,7 +25,7 @@ export async function GET(
   const { data: customer, error: customerError } = await supabase
     .from('customers')
     .select(
-      'id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, stable_differs, stable_name, stable_street, stable_city, stable_zip, stable_country, stable_contact, stable_phone, drive_time, preferred_days, directions, notes, created_at'
+      'id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, drive_time, preferred_days, notes, created_at'
     )
     .eq('id', customerId)
     .eq('user_id', user.id)
@@ -36,7 +37,9 @@ export async function GET(
 
   const { data: horses } = await supabase
     .from('horses')
-    .select('id, name, breed, sex, birth_year, usage, customer_id')
+    .select(
+      'id, name, breed, sex, birth_year, usage, animal_type, customer_id, stable_name, stable_street, stable_zip, stable_city, stable_country, stable_contact, stable_phone, stable_directions'
+    )
     .eq('user_id', user.id)
     .eq('customer_id', customer.id)
     .order('name', { ascending: true })
@@ -62,12 +65,28 @@ export async function GET(
     appointmentHorseRows = (linkData ?? []) as { appointment_id: string; horse_id: string }[]
   }
 
-  const horseNamesById = new Map(horseList.map((h) => [h.id, h.name || '-']))
+  const horseMetaById = new Map(
+    horseList.map((h) => [
+      h.id,
+      {
+        name: h.name || '-',
+        animalType: (h as { animal_type?: string | null }).animal_type ?? null,
+      },
+    ])
+  )
   const horseNamesByAppointment = new Map<string, string[]>()
+  const appointmentAnimalsByAppointment = new Map<
+    string,
+    { name: string; animalType: string | null }[]
+  >()
   for (const row of appointmentHorseRows) {
-    const horseName = horseNamesById.get(row.horse_id) ?? '-'
-    const existing = horseNamesByAppointment.get(row.appointment_id) || []
-    horseNamesByAppointment.set(row.appointment_id, [...existing, horseName])
+    const meta = horseMetaById.get(row.horse_id)
+    if (meta) {
+      const existingNames = horseNamesByAppointment.get(row.appointment_id) || []
+      horseNamesByAppointment.set(row.appointment_id, [...existingNames, meta.name])
+      const existingAnimals = appointmentAnimalsByAppointment.get(row.appointment_id) || []
+      appointmentAnimalsByAppointment.set(row.appointment_id, [...existingAnimals, meta])
+    }
   }
 
   const now = new Date()
@@ -166,15 +185,21 @@ export async function GET(
       sex: h.sex,
       birthYear: h.birth_year,
       usage: h.usage,
+      animalType: (h as { animal_type?: string | null }).animal_type ?? null,
       meta: meta || '-',
       nextAppointmentDate: nextDateByHorse.get(h.id) || null,
     }
   })
 
-  const stableDisplay =
-    customer.stable_name ||
-    (customer.stable_city ? `${customer.stable_zip || ''} ${customer.stable_city}`.trim() : null) ||
-    null
+  const primaryStallHorse = pickPrimaryStallHorse(horseList)
+  const nextAptHorseId = nextAppointment?.id
+    ? firstHorseIdByAppointment.get(nextAppointment.id)
+    : null
+  const nextAptHorse = nextAptHorseId
+    ? horseList.find((h) => h.id === nextAptHorseId)
+    : null
+  const nextAppointmentStableDisplay =
+    stallDisplayLabel(nextAptHorse ?? {}, customer.city) || customer.city || null
 
   return NextResponse.json({
     customer: {
@@ -190,16 +215,16 @@ export async function GET(
       city: customer.city,
       country: customer.country,
       company: customer.company,
-      stableName: customer.stable_name,
-      stableStreet: customer.stable_street,
-      stableCity: customer.stable_city,
-      stableZip: customer.stable_zip,
-      stableCountry: customer.stable_country,
-      stableContact: customer.stable_contact,
-      stablePhone: customer.stable_phone,
+      stableName: primaryStallHorse?.stable_name ?? null,
+      stableStreet: primaryStallHorse?.stable_street ?? null,
+      stableCity: primaryStallHorse?.stable_city ?? null,
+      stableZip: primaryStallHorse?.stable_zip ?? null,
+      stableCountry: primaryStallHorse?.stable_country ?? null,
+      stableContact: primaryStallHorse?.stable_contact ?? null,
+      stablePhone: primaryStallHorse?.stable_phone ?? null,
       driveTime: customer.drive_time,
       preferredDays: customer.preferred_days ?? [],
-      directions: customer.directions,
+      directions: primaryStallHorse?.stable_directions ?? null,
       notes: customer.notes,
       createdAt: customer.created_at,
     },
@@ -211,7 +236,8 @@ export async function GET(
           notes: nextAppointment.notes,
           status: nextAppointment.status,
           horseNames: nextAppointmentHorseNames,
-          stableDisplay,
+          appointmentAnimals: appointmentAnimalsByAppointment.get(nextAppointment.id) || [],
+          stableDisplay: nextAppointmentStableDisplay,
         }
       : null,
     horses: horsesWithNext,
@@ -226,6 +252,7 @@ export async function GET(
       notes: a.notes,
       status: a.status,
       horseNames: horseNamesByAppointment.get(a.id) || [],
+      appointmentAnimals: appointmentAnimalsByAppointment.get(a.id) || [],
     })),
     allAppointments: (appointments ?? []).map((a) => ({
       id: a.id,
@@ -234,6 +261,7 @@ export async function GET(
       notes: a.notes,
       status: a.status,
       horseNames: horseNamesByAppointment.get(a.id) || [],
+      appointmentAnimals: appointmentAnimalsByAppointment.get(a.id) || [],
     })),
   })
 }

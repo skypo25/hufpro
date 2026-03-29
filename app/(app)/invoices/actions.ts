@@ -16,7 +16,7 @@ export async function updateInvoiceStatus(
 
   const { data: row } = await supabase
     .from('invoices')
-    .select('id, customer_id, status')
+    .select('id, customer_id, status, sent_at, paid_at')
     .eq('id', invoiceId)
     .eq('user_id', user.id)
     .single()
@@ -30,9 +30,18 @@ export async function updateInvoiceStatus(
     return { error: 'Eine Rechnung mit Status Entwurf kann nicht als bezahlt oder offen markiert werden.' }
   }
 
+  const nowIso = new Date().toISOString()
+  const patch: Record<string, unknown> = { status, updated_at: nowIso }
+  if (status === 'paid' && currentStatus !== 'paid') {
+    patch.paid_at = nowIso
+  }
+  if (status === 'sent' && currentStatus === 'paid') {
+    patch.paid_at = null
+  }
+
   const { error } = await supabase
     .from('invoices')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq('id', invoiceId)
     .eq('user_id', user.id)
 
@@ -42,6 +51,7 @@ export async function updateInvoiceStatus(
 
   revalidatePath('/invoices')
   revalidatePath(`/invoices/${invoiceId}`)
+  revalidatePath('/dashboard')
   if (row.customer_id) {
     revalidatePath(`/customers/${row.customer_id}/invoices`)
   }

@@ -7,6 +7,18 @@ import {
   getInitials,
   getAgeFromBirthYear,
 } from '@/lib/format'
+import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
+import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
+import { getAppointmentReminderStatusLine } from '@/lib/reminders/reminderStatus'
+import {
+  buildBillingNavLineFromCustomer,
+  buildStallMultilineFromHorse,
+  buildStallNavLineFromHorse,
+  pickPrimaryStallHorse,
+  stallDisplayLabel,
+} from '@/lib/nav/horseStableAddress'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faIconForAnimalType } from '@/lib/animalTypeDisplay'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -46,16 +58,6 @@ function formatDay(dateString: string | null) {
   return new Intl.DateTimeFormat('de-DE', { day: 'numeric' }).format(date)
 }
 
-function durationLabel(minutes: number | null) {
-  if (minutes == null) return '1 Stunde'
-  if (minutes === 60) return '1 Stunde'
-  if (minutes === 30) return '30 Minuten'
-  if (minutes === 45) return '45 Minuten'
-  if (minutes === 90) return '1,5 Stunden'
-  if (minutes === 120) return '2 Stunden'
-  return `${minutes} Minuten`
-}
-
 function getWeekNumber(date: Date) {
   const target = new Date(date.valueOf())
   const dayNr = (date.getDay() + 6) % 7
@@ -64,31 +66,6 @@ function getWeekNumber(date: Date) {
   const firstDayNr = (firstThursday.getDay() + 6) % 7
   firstThursday.setDate(firstThursday.getDate() - firstDayNr + 3)
   return 1 + Math.round((target.getTime() - firstThursday.getTime()) / 604800000)
-}
-
-function buildStableAddress(
-  c: {
-    stable_differs?: boolean | null
-    stable_street?: string | null
-    stable_zip?: string | null
-    stable_city?: string | null
-    street?: string | null
-    postal_code?: string | null
-    city?: string | null
-  },
-  forNav = false
-) {
-  const useStable =
-    c.stable_differs &&
-    (c.stable_street?.trim() || c.stable_zip?.trim() || c.stable_city?.trim())
-  if (useStable) {
-    const parts = [c.stable_street, [c.stable_zip, c.stable_city].filter(Boolean).join(' ')].filter(
-      Boolean
-    )
-    return forNav ? parts.join(', ') : parts.join('\n')
-  }
-  const parts = [c.street, [c.postal_code, c.city].filter(Boolean).join(' ')].filter(Boolean)
-  return forNav ? parts.join(', ') : parts.join('\n')
 }
 
 function getNavUrl(address: string) {
@@ -103,7 +80,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
 
   const { data: appointment, error: aptErr } = await supabase
     .from('appointments')
-    .select('id, customer_id, appointment_date, notes, type, status, duration_minutes, created_at')
+    .select('*')
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
@@ -111,12 +88,14 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   if (aptErr || !appointment) notFound()
 
   const customerId = appointment.customer_id
-  if (!customerId) notFound()
+  if (!customerId) {
+    redirect(`/appointments/${id}/edit`)
+  }
 
   const { data: customer, error: custErr } = await supabase
     .from('customers')
     .select(
-      'id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, stable_differs, stable_name, stable_street, stable_city, stable_zip, stable_country, stable_contact, stable_phone, drive_time, preferred_days, directions, interval_weeks, preferred_contact, created_at'
+      'id, customer_number, name, first_name, last_name, phone, email, street, postal_code, city, country, company, drive_time, preferred_days, interval_weeks, preferred_contact, created_at'
     )
     .eq('id', customerId)
     .eq('user_id', user.id)
@@ -134,17 +113,28 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   let horses: Array<{
     id: string
     name: string | null
+    animal_type?: string | null
     breed: string | null
     sex: string | null
     birth_year: number | null
     hoof_status: string | null
     care_interval: string | null
+    stable_name?: string | null
+    stable_street?: string | null
+    stable_zip?: string | null
+    stable_city?: string | null
+    stable_country?: string | null
+    stable_contact?: string | null
+    stable_phone?: string | null
+    stable_directions?: string | null
   }> = []
 
   if (horseIds.length > 0) {
     const { data: horseData } = await supabase
       .from('horses')
-      .select('id, name, breed, sex, birth_year, hoof_status, care_interval')
+      .select(
+        'id, name, animal_type, breed, sex, birth_year, hoof_status, care_interval, stable_name, stable_street, stable_zip, stable_city, stable_country, stable_contact, stable_phone, stable_directions'
+      )
       .eq('user_id', user.id)
       .in('id', horseIds)
     horses = horseData || []
@@ -168,15 +158,26 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   const title = `${customerName}${horseNames.length > 0 ? ' · ' + horseNames.join(', ') : ''}`
 
   const aptDate = appointment.appointment_date
-  const startTime = formatTime(aptDate)
-  const duration = appointment.duration_minutes ?? 60
-  const endDate = aptDate ? new Date(new Date(aptDate).getTime() + duration * 60 * 1000) : null
-  const endTime = endDate ? formatTime(endDate.toISOString()) : ''
+  const slot = getAppointmentStartEndFromRow(aptDate, appointment.duration_minutes)
+  const startTime = slot ? formatTime(slot.startIso) : ''
+  const endTime = slot ? formatTime(slot.endIso) : ''
   const timeRange = startTime && endTime ? `${startTime} – ${endTime} Uhr` : ''
+  const durationDisplay = minutesToDurationLabelDesktop(appointment.duration_minutes)
+  const reminderStatus = getAppointmentReminderStatusLine({
+    reminderMinutesBefore: appointment.reminder_minutes_before,
+    reminderEmailSentAt: appointment.reminder_email_sent_at,
+    reminderEmailError:
+      'reminder_email_error' in appointment
+        ? (appointment as { reminder_email_error?: string | null }).reminder_email_error
+        : undefined,
+    appointmentDate: appointment.appointment_date,
+  })
 
-  const stableAddress = buildStableAddress(customer)
-  const stableAddressForNav = buildStableAddress(customer, true)
-  const locationLabel = customer.stable_name || customer.stable_city || customer.city || ''
+  const stallHorse = pickPrimaryStallHorse(horses)
+  const billingNav = buildBillingNavLineFromCustomer(customer) || ''
+  const stallNav = stallHorse ? buildStallNavLineFromHorse(stallHorse) : null
+  const stableAddress = stallHorse ? buildStallMultilineFromHorse(stallHorse) : ''
+  const locationLabel = stallDisplayLabel(stallHorse ?? {}, customer.city) || customer.city || ''
 
   const weekNum = aptDate ? getWeekNumber(new Date(aptDate)) : null
   const breadcrumbKw = weekNum ? `KW ${weekNum}` : 'Termine'
@@ -230,7 +231,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
             <i className="bi bi-clock-fill" />
             {timeRange}
             {timeRange && ' · '}
-            {durationLabel(duration)}
+            {durationDisplay}
             {locationLabel && (
               <>
                 <i className="bi bi-geo-alt-fill" style={{ marginLeft: 8 }} />
@@ -258,7 +259,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           )}
           {horses[0] && (
             <Link
-              href={`/horses/${horses[0].id}/records/new?appointmentId=${id}`}
+              href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
               className="apt-detail-btn primary"
             >
               <i className="bi bi-file-earmark-plus-fill" />
@@ -306,13 +307,13 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                     <i className="bi bi-envelope-fill" />
                   </a>
                 )}
-                {stableAddressForNav && (
+                {billingNav && (
                   <a
-                    href={getNavUrl(stableAddressForNav)}
+                    href={getNavUrl(billingNav)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apt-detail-cc-btn"
-                    title="Route"
+                    title="Route zur Rechnungsadresse"
                   >
                     <i className="bi bi-geo-alt-fill" />
                   </a>
@@ -389,11 +390,14 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                   return (
                     <Link
                       key={horse.id}
-                      href={`/horses/${horse.id}`}
+                      href={`/animals/${horse.id}`}
                       className="apt-detail-horse-item"
                     >
                       <div className="apt-detail-hi-icon">
-                        <i className="bi bi-heart-pulse-fill" />
+                        <FontAwesomeIcon
+                          icon={faIconForAnimalType(horse.animal_type)}
+                          className="h-4 w-4"
+                        />
                       </div>
                       <div className="apt-detail-hi-info">
                         <div className="apt-detail-hi-name">{horse.name || '–'}</div>
@@ -419,43 +423,61 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                 </div>
                 <div className="apt-detail-stall-info">
                   <div className="apt-detail-stall-name">
-                    {customer.stable_name || customer.city || '–'}
+                    {stallHorse
+                      ? stallDisplayLabel(stallHorse, customer.city) || '–'
+                      : 'Kein Stall hinterlegt'}
                   </div>
                   <div className="apt-detail-stall-address">
-                    {stableAddress.split('\n').map((line, i) => (
-                      <span key={i}>
-                        {line}
-                        <br />
-                      </span>
-                    ))}
+                    {stableAddress
+                      ? stableAddress.split('\n').map((line, i) => (
+                          <span key={i}>
+                            {line}
+                            <br />
+                          </span>
+                        ))
+                      : '–'}
                   </div>
-                  {(customer.stable_contact || customer.stable_phone) && (
+                  {(stallHorse?.stable_contact || stallHorse?.stable_phone) && (
                     <div className="apt-detail-stall-contact">
                       <i className="bi bi-person-fill" />
-                      Ansprechpartner: {customer.stable_contact || '–'}
-                      {customer.stable_phone && ` · ${customer.stable_phone}`}
+                      Ansprechpartner: {stallHorse?.stable_contact || '–'}
+                      {stallHorse?.stable_phone && ` · ${stallHorse.stable_phone}`}
                     </div>
                   )}
-                  {customer.directions && (
+                  {stallHorse?.stable_directions && (
                     <div className="apt-detail-stall-hint">
                       <i className="bi bi-signpost-fill" />
-                      {customer.directions}
+                      {stallHorse.stable_directions}
                     </div>
                   )}
                   <div className="apt-detail-stall-actions">
-                    {stableAddressForNav && (
+                    {stallNav && (
                       <a
-                        href={getNavUrl(stableAddressForNav)}
+                        href={getNavUrl(stallNav)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="apt-detail-btn"
                       >
                         <i className="bi bi-map-fill" />
-                        Route starten
+                        Route zum Stall
                       </a>
                     )}
-                    {customer.stable_phone && (
-                      <a href={`tel:${customer.stable_phone.replace(/\s/g, '')}`} className="apt-detail-btn">
+                    {billingNav && stallNav && (
+                      <a
+                        href={getNavUrl(billingNav)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="apt-detail-btn"
+                      >
+                        <i className="bi bi-house-fill" />
+                        Route zum Kunden
+                      </a>
+                    )}
+                    {stallHorse?.stable_phone && (
+                      <a
+                        href={`tel:${stallHorse.stable_phone.replace(/\s/g, '')}`}
+                        className="apt-detail-btn"
+                      >
                         <i className="bi bi-telephone-fill" />
                         Stall anrufen
                       </a>
@@ -489,16 +511,16 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
               <div className="apt-detail-qa-list">
                 {horses[0] && (
                   <Link
-                    href={`/horses/${horses[0].id}/records/new?appointmentId=${id}`}
+                    href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
                     className="apt-detail-qa-item primary"
                   >
                     <i className="bi bi-file-earmark-plus-fill" />
                     Dokumentation starten
                   </Link>
                 )}
-                {stableAddressForNav && (
+                {stallNav && (
                   <a
-                    href={getNavUrl(stableAddressForNav)}
+                    href={getNavUrl(stallNav)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apt-detail-qa-item"
@@ -547,8 +569,26 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
               </div>
               <div className="apt-detail-d-row">
                 <span className="apt-detail-d-label">Dauer</span>
-                <span className="apt-detail-d-value">{durationLabel(duration)}</span>
+                <span className="apt-detail-d-value">{durationDisplay}</span>
               </div>
+              {reminderStatus && (
+                <div className="apt-detail-d-row">
+                  <span className="apt-detail-d-label">Erinnerung</span>
+                  <span
+                    className="apt-detail-d-value"
+                    style={{
+                      color:
+                        reminderStatus.tone === 'ok'
+                          ? 'var(--apt-accent)'
+                          : reminderStatus.tone === 'warn'
+                            ? '#b45309'
+                            : '#6B7280',
+                    }}
+                  >
+                    {reminderStatus.text}
+                  </span>
+                </div>
+              )}
               <div className="apt-detail-d-row">
                 <span className="apt-detail-d-label">Terminart</span>
                 <span className="apt-detail-d-value">{appointment.type || 'Regeltermin'}</span>

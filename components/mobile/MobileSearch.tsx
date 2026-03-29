@@ -22,7 +22,6 @@ type SearchResponse = {
     phone: string | null
     email: string | null
     city?: string | null
-    stable_name?: string | null
   }>
   horses: Array<{
     id: string
@@ -318,7 +317,7 @@ export default function MobileSearch() {
                           return (
                             <Link
                               key={h.id}
-                              href={`/horses/${h.id}`}
+                              href={`/animals/${h.id}`}
                               className="flex items-center justify-between rounded-xl border border-[#E5E2DC] bg-white p-3"
                             >
                               <div>
@@ -389,7 +388,7 @@ export default function MobileSearch() {
                           return (
                             <Link
                               key={r.id}
-                              href={`/horses/${r.horse_id}/records/${r.id}`}
+                              href={`/animals/${r.horse_id}/records/${r.id}`}
                               className="flex items-center justify-between rounded-xl border border-[#E5E2DC] bg-white p-3"
                             >
                               <div>

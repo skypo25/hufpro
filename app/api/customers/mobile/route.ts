@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getCurrentWeekRange } from '@/lib/date'
+import {
+  buildBillingNavLineFromCustomer,
+  pickPrimaryStallHorse,
+  stallDisplayLabel,
+} from '@/lib/nav/horseStableAddress'
+import { formatCustomerAnimalsSummary } from '@/lib/animalTypeDisplay'
 
 type Customer = {
   id: string
@@ -11,31 +17,23 @@ type Customer = {
   phone: string | null
   email: string | null
   city: string | null
-  stable_name?: string | null
-  stable_city?: string | null
   street?: string | null
   postal_code?: string | null
-  stable_differs?: boolean | null
-  stable_street?: string | null
-  stable_zip?: string | null
   created_at?: string | null
 }
 
-type Horse = { id: string; name: string | null; customer_id: string | null }
+type Horse = {
+  id: string
+  name: string | null
+  customer_id: string | null
+  animal_type?: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+}
 type Appointment = { id: string; customer_id: string | null; appointment_date: string | null }
 type AppointmentHorse = { appointment_id: string; horse_id: string }
-
-function buildNavAddress(c: Customer): string {
-  const useStable =
-    c.stable_differs &&
-    (c.stable_street?.trim() || c.stable_zip?.trim() || c.stable_city?.trim())
-  if (useStable) {
-    const parts = [c.stable_street, c.stable_zip, c.stable_city].filter(Boolean) as string[]
-    return parts.join(', ')
-  }
-  const parts = [c.street, c.postal_code, c.city].filter(Boolean) as string[]
-  return parts.join(', ')
-}
 
 export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient()
@@ -63,8 +61,7 @@ export async function GET(request: Request) {
           `first_name.ilike.%${q}%`,
           `last_name.ilike.%${q}%`,
           `city.ilike.%${q}%`,
-          `stable_name.ilike.%${q}%`,
-          `stable_city.ilike.%${q}%`,
+          `street.ilike.%${q}%`,
           `email.ilike.%${q}%`,
           `phone.ilike.%${q}%`,
           ...(Number.isInteger(Number(q)) ? [`customer_number.eq.${Number(q)}`] : []),
@@ -78,7 +75,7 @@ export async function GET(request: Request) {
       .select('customer_id')
       .eq('user_id', user.id)
       .not('customer_id', 'is', null)
-      .ilike('name', `%${q}%`)
+      .or(`name.ilike.%${q}%,breed.ilike.%${q}%,stable_name.ilike.%${q}%,stable_city.ilike.%${q}%`)
       .returns<{ customer_id: string | null }[]>()
     customerIdsFromHorses = (horsesMatch || [])
       .map((r) => r.customer_id)
@@ -90,7 +87,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('customers')
     .select(
-      'id, customer_number, name, first_name, last_name, phone, email, city, stable_name, stable_city, street, postal_code, stable_differs, stable_street, stable_zip, created_at'
+      'id, customer_number, name, first_name, last_name, phone, email, city, street, postal_code, created_at'
     )
     .eq('user_id', user.id)
 
@@ -121,7 +118,7 @@ export async function GET(request: Request) {
     const [{ data: horseData }, { data: appointmentData }] = await Promise.all([
       supabase
         .from('horses')
-        .select('id, name, customer_id')
+        .select('id, name, customer_id, animal_type, stable_name, stable_city, stable_street, stable_zip')
         .eq('user_id', user.id)
         .in('customer_id', customerIds)
         .returns<Horse[]>(),
@@ -172,22 +169,28 @@ export async function GET(request: Request) {
   type Row = {
     customer: Customer
     horseCount: number
+    animalsSummary: string
     horseNames: string[]
     nextAppointment: string | null
     nextAppointmentHorseCount: number
     navAddress: string
+    locationLine: string
   }
 
   let rows: Row[] = (customers || []).map((customer) => {
     const customerHorses = horsesByCustomer.get(customer.id) || []
     const next = nextAppointmentByCustomer.get(customer.id)
+    const stallHorse = pickPrimaryStallHorse(customerHorses)
+    const navAddress = buildBillingNavLineFromCustomer(customer) || ''
     return {
       customer,
       horseCount: customerHorses.length,
+      animalsSummary: formatCustomerAnimalsSummary(customerHorses),
       horseNames: customerHorses.map((h) => h.name).filter((n): n is string => Boolean(n)),
       nextAppointment: next?.date ?? null,
       nextAppointmentHorseCount: next?.horseCount ?? 0,
-      navAddress: buildNavAddress(customer),
+      navAddress,
+      locationLine: stallDisplayLabel(stallHorse ?? {}, customer.city) || customer.city || '',
     }
   })
 
@@ -248,9 +251,9 @@ export async function GET(request: Request) {
       phone: r.customer.phone,
       email: r.customer.email,
       city: r.customer.city,
-      stable_name: r.customer.stable_name,
-      stable_city: r.customer.stable_city,
+      locationLine: r.locationLine,
       horseCount: r.horseCount,
+      animalsSummary: r.animalsSummary,
       horseNames: r.horseNames,
       nextAppointment: r.nextAppointment,
       nextAppointmentHorseCount: r.nextAppointmentHorseCount,

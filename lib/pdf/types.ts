@@ -13,7 +13,11 @@ export type RecordPdfHorse = {
 export type RecordPdfCustomer = {
   customerNumber: number | null
   name: string
+  /** Stall-/Standortname (Pferd) */
   stableName: string | null
+  /** Ort am Standort (Pferd), Fallback für Anzeige neben Stallname */
+  stableCity: string | null
+  /** Rechnungs-/Kontaktort (Kunde) */
   city: string | null
 }
 

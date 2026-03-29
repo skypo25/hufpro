@@ -29,16 +29,7 @@ export type CustomerFormInitialData = {
   company: string
   vatId: string
 
-  stableDiffers: boolean
-  stableName: string
-  stableStreet: string
-  stableCity: string
-  stableZip: string
-  stableCountry: string
-  stableContact: string
-  stablePhone: string
   driveTime: string
-  directions: string
 
   preferredDays: string[]
   preferredTime: string
@@ -135,16 +126,6 @@ export default function CustomerForm({
   const [company, setCompany] = useState(initialData.company)
   const [vatId, setVatId] = useState(initialData.vatId)
 
-  const [stableDiffers, setStableDiffers] = useState(initialData.stableDiffers)
-  const [stableName, setStableName] = useState(initialData.stableName)
-  const [stableStreet, setStableStreet] = useState(initialData.stableStreet)
-  const [stableCity, setStableCity] = useState(initialData.stableCity)
-  const [stableZip, setStableZip] = useState(initialData.stableZip)
-  const [stableCountry, setStableCountry] = useState(initialData.stableCountry)
-  const [stableContact, setStableContact] = useState(initialData.stableContact)
-  const [stablePhone, setStablePhone] = useState(initialData.stablePhone)
-  const [directions, setDirections] = useState(initialData.directions)
-
   const [preferredDays, setPreferredDays] = useState<string[]>(
     initialData.preferredDays
   )
@@ -165,7 +146,6 @@ export default function CustomerForm({
   const [horseSpecialNotes, setHorseSpecialNotes] = useState('')
 
   const [billingDistanceText, setBillingDistanceText] = useState<string | null>(null)
-  const [stableDistanceText, setStableDistanceText] = useState<string | null>(null)
 
   async function fetchDistanceFromOrigin(destLat: number, destLon: number): Promise<string | null> {
     try {
@@ -192,13 +172,8 @@ export default function CustomerForm({
   }
 
   useEffect(() => {
-    if (!initialData.driveTime) return
-    if (initialData.stableDiffers) {
-      setStableDistanceText(initialData.driveTime)
-    } else {
-      setBillingDistanceText(initialData.driveTime)
-    }
-  }, [initialData.driveTime, initialData.stableDiffers])
+    if (initialData.driveTime) setBillingDistanceText(initialData.driveTime)
+  }, [initialData.driveTime])
 
   function togglePreferredDay(day: string) {
     setPreferredDays((prev) =>
@@ -262,16 +237,7 @@ export default function CustomerForm({
       company: company.trim() || null,
       vat_id: vatId.trim() || null,
 
-      stable_differs: stableDiffers,
-      stable_name: stableDiffers ? stableName.trim() || null : null,
-      stable_street: stableDiffers ? stableStreet.trim() || null : null,
-      stable_city: stableDiffers ? stableCity.trim() || null : null,
-      stable_zip: stableDiffers ? stableZip.trim() || null : null,
-      stable_country: stableDiffers ? stableCountry || null : null,
-      stable_contact: stableDiffers ? stableContact.trim() || null : null,
-      stable_phone: stableDiffers ? stablePhone.trim() || null : null,
-      drive_time: stableDiffers ? (stableDistanceText || null) : (billingDistanceText || null),
-      directions: stableDiffers ? directions.trim() || null : null,
+      drive_time: billingDistanceText || null,
 
       preferred_days: preferredDays.length > 0 ? preferredDays : null,
       preferred_time: preferredTime || null,
@@ -567,136 +533,6 @@ export default function CustomerForm({
             />
           </Field>
         </div>
-      </Section>
-
-      <Section title="Stalladresse / Standort der Pferde" icon={<i className="bi bi-pin-map-fill" />} badge="Wo stehen die Pferde?">
-        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent bg-[rgba(21,66,38,0.06)] px-4 py-3 hover:border-[#52b788]">
-          <input
-            type="checkbox"
-            checked={stableDiffers}
-            onChange={(e) => setStableDiffers(e.target.checked)}
-            className="h-4 w-4 accent-[#52b788]"
-          />
-          <span className="text-[13px] text-[#1B1F23]">
-            <strong>Stalladresse weicht ab</strong> – Pferde stehen an einem anderen Ort als die Rechnungsanschrift
-          </span>
-        </label>
-
-        {stableDiffers && (
-          <>
-            <Field label="Stalladresse suchen" hint="Ort, Adresse oder Name des Stalls/Hofs – Vorschläge füllen die Felder darunter">
-              <AddressAutocomplete
-                placeholder="z. B. Am Waldrand 7, 53567 Asbach"
-                onSelect={(a: AddressSuggestion) => {
-                  setStableStreet(a.street)
-                  setStableZip(a.zip)
-                  setStableCity(a.city)
-                  if (a.country) setStableCountry(a.country)
-                  setStableDistanceText(null)
-                  if (a.lat != null && a.lon != null) {
-                    fetchDistanceFromOrigin(a.lat, a.lon).then(setStableDistanceText)
-                  }
-                }}
-              />
-            </Field>
-            {stableDistanceText && (
-              <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
-            )}
-            <Field
-              label="Name des Stalls / Hofs"
-              hint="So findest du den Stall schnell wieder"
-            >
-              <input
-                value={stableName}
-                onChange={(e) => setStableName(e.target.value)}
-                type="text"
-                placeholder="z. B. Reiterhof Sonnental"
-                className="huf-input"
-              />
-            </Field>
-
-            <Field label="Straße & Hausnummer">
-              <input
-                value={stableStreet}
-                onChange={(e) => setStableStreet(e.target.value)}
-                type="text"
-                placeholder="z. B. Am Waldrand 7"
-                className="huf-input"
-              />
-            </Field>
-
-            <div className="grid gap-5 md:grid-cols-[2fr_1fr_1fr]">
-              <Field label="Ort">
-                <input
-                  value={stableCity}
-                  onChange={(e) => setStableCity(e.target.value)}
-                  type="text"
-                  placeholder="z. B. Asbach"
-                  className="huf-input"
-                />
-              </Field>
-
-              <Field label="PLZ">
-                <input
-                  value={stableZip}
-                  onChange={(e) => setStableZip(e.target.value)}
-                  type="text"
-                  placeholder="z. B. 53567"
-                  className="huf-input"
-                />
-              </Field>
-
-              <Field label="Land">
-                <select
-                  value={stableCountry}
-                  onChange={(e) => setStableCountry(e.target.value)}
-                  className="huf-input"
-                >
-                  {countryOptions.map((country) => (
-                    <option key={country}>{country}</option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field
-                label="Ansprechpartner vor Ort"
-                hint="Falls du vor Ort jemand anderen triffst als den Kunden"
-              >
-                <input
-                  value={stableContact}
-                  onChange={(e) => setStableContact(e.target.value)}
-                  type="text"
-                  placeholder="z. B. Stallbesitzer Hans Müller"
-                  className="huf-input"
-                />
-              </Field>
-
-              <Field label="Telefon vor Ort" hint="Stalltelefon oder Ansprechpartner-Handy">
-                <input
-                  value={stablePhone}
-                  onChange={(e) => setStablePhone(e.target.value)}
-                  type="tel"
-                  placeholder="z. B. 02683 1234"
-                  className="huf-input"
-                />
-              </Field>
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Anfahrtshinweis" hint="Besondere Hinweise zur Anfahrt">
-                <input
-                  value={directions}
-                  onChange={(e) => setDirections(e.target.value)}
-                  type="text"
-                  placeholder="z. B. Hofeinfahrt links, hinter Scheune"
-                  className="huf-input"
-                />
-              </Field>
-            </div>
-          </>
-        )}
       </Section>
 
       <Section title="Terminpräferenzen" icon={<i className="bi bi-calendar3" />}>

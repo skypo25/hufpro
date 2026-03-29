@@ -24,7 +24,7 @@ export default function StatCard({
 
       <div
         className={[
-          'dashboard-serif text-[28px] font-medium text-[#1B1F23]',
+          'dashboard-serif text-[26px] !font-extrabold leading-none tracking-[-0.02em] text-[#1B1F23]',
           valueClassName,
         ].join(' ')}
       >

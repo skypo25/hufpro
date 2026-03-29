@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
+import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
 
 function getBerlinDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -59,26 +61,30 @@ function formatGermanWeekRange(weekStart: Date) {
 }
 
 type CustomerRelation =
-  | { name: string | null; stable_name?: string | null; stable_city?: string | null; city?: string | null }
-  | { name: string | null; stable_name?: string | null; stable_city?: string | null; city?: string | null }[]
+  | { name: string | null; city?: string | null }
+  | { name: string | null; city?: string | null }[]
   | null
+
+type CalHorse = {
+  id: string
+  name: string | null
+  animal_type?: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+}
 
 function relationName(c: CustomerRelation) {
   const one = Array.isArray(c) ? c[0] : c
   return one?.name ?? null
 }
 
-function getStallLabel(c: CustomerRelation) {
-  const one = Array.isArray(c) ? c[0] : c
-  if (!one) return ''
-  return one.stable_name || one.stable_city || one.city || ''
-}
-
-function horseName(
-  value: { id: string; name: string | null } | { id: string; name: string | null }[] | null
-) {
+function horseRow(
+  value: CalHorse | CalHorse[] | null
+): CalHorse | null {
   const one = Array.isArray(value) ? value[0] : value
-  return one?.name ?? null
+  return one ?? null
 }
 
 export async function GET(request: Request) {
@@ -104,7 +110,7 @@ export async function GET(request: Request) {
       type,
       status,
       duration_minutes,
-      customers (name, stable_name, stable_city, city)
+      customers (name, city)
     `)
     .eq('user_id', user.id)
     .gte('appointment_date', weekStart.toISOString())
@@ -112,20 +118,22 @@ export async function GET(request: Request) {
     .order('appointment_date', { ascending: true })
 
   const appointments = appointmentRows ?? []
-  let horsesByAppointment = new Map<string, string[]>()
+  const horseRowsByAppointment = new Map<string, CalHorse[]>()
 
   if (appointments.length > 0) {
     const { data: horseRows } = await supabase
       .from('appointment_horses')
-      .select('appointment_id, horse_id, horses (id, name)')
+      .select(
+        'appointment_id, horse_id, horses (id, name, animal_type, stable_name, stable_city, stable_street, stable_zip)'
+      )
       .eq('user_id', user.id)
       .in('appointment_id', appointments.map((a) => a.id))
     for (const row of horseRows ?? []) {
-      const horses = (row as { horses?: { id: string; name: string | null } | { id: string; name: string | null }[] | null }).horses
-      const name = horseName(horses ?? null)
-      if (!name) continue
-      const existing = horsesByAppointment.get(row.appointment_id) ?? []
-      horsesByAppointment.set(row.appointment_id, [...existing, name])
+      const horses = (row as { horses?: CalHorse | CalHorse[] | null }).horses
+      const h = horseRow(horses ?? null)
+      if (!h?.name) continue
+      const list = horseRowsByAppointment.get(row.appointment_id) ?? []
+      horseRowsByAppointment.set(row.appointment_id, [...list, h])
     }
   }
 
@@ -135,7 +143,7 @@ export async function GET(request: Request) {
   type MappedApt = {
     id: string
     customerName: string
-    horseLabel: string
+    animals: { name: string; animalType: string | null }[]
     stallLabel: string
     time: string
     endTime: string
@@ -150,20 +158,24 @@ export async function GET(request: Request) {
   const mapped: MappedApt[] = appointments
     .filter((a) => a.appointment_date)
     .map((a) => {
+      const slot = getAppointmentStartEndFromRow(
+        a.appointment_date,
+        a.duration_minutes
+      )
+      if (!slot) return null
+
       const customerName = relationName(a.customers) || 'Kunde'
-      const horseNames = horsesByAppointment.get(a.id) ?? []
-      const horseLabel =
-        horseNames.length === 0
-          ? 'Kein Pferd zugeordnet'
-          : horseNames.length === 1
-            ? horseNames[0]
-            : horseNames.join(' + ')
-      const stallLabel = getStallLabel(a.customers)
-      const start = new Date(a.appointment_date!)
-      const duration = a.duration_minutes ?? 60
-      const end = new Date(start.getTime() + duration * 60 * 1000)
+      const cust = Array.isArray(a.customers) ? a.customers[0] : a.customers
+      const linked = horseRowsByAppointment.get(a.id) ?? []
+      const animals = linked
+        .filter((h) => h.name)
+        .map((h) => ({ name: h.name as string, animalType: h.animal_type ?? null }))
+      const stallHorse = pickPrimaryStallHorse(linked)
+      const stallLabel =
+        stallDisplayLabel(stallHorse ?? {}, cust?.city) || cust?.city || ''
+      const { start, end } = slot
       const time = formatTime(a.appointment_date)
-      const endTime = formatTime(end.toISOString())
+      const endTime = formatTime(slot.endIso)
       const type = a.type || 'Regeltermin'
       const status = a.status || 'Bestätigt'
       const typeVal = type.toLowerCase()
@@ -185,7 +197,7 @@ export async function GET(request: Request) {
       return {
         id: a.id,
         customerName,
-        horseLabel,
+        animals,
         stallLabel,
         time,
         endTime,
@@ -197,6 +209,7 @@ export async function GET(request: Request) {
         isPast,
       }
     })
+    .filter((x): x is MappedApt => x !== null)
 
   const appointmentsByDay = new Map<string, MappedApt[]>()
   for (const apt of mapped) {
@@ -232,12 +245,17 @@ export async function GET(request: Request) {
 
   const appointmentsByDayObj: Record<string, Omit<MappedApt, 'dateKey'>[]> = {}
   for (const [key, list] of appointmentsByDay) {
-    appointmentsByDayObj[key] = list.map(({ dateKey: _, ...rest }) => rest)
+    appointmentsByDayObj[key] = list.map((apt) => {
+      const { dateKey: _omit, ...rest } = apt
+      void _omit
+      return rest
+    })
   }
 
   return NextResponse.json({
-    weekStart: weekStart.toISOString().slice(0, 10),
-    weekEnd: weekEnd.toISOString().slice(0, 10),
+    /** Berlin-Kalendertag des Montags — muss mit days[0].dateKey übereinstimmen (nicht UTC-ISO slice). */
+    weekStart: getBerlinDateKey(weekStart),
+    weekEnd: getBerlinDateKey(addDays(weekStart, 6)),
     weekNumber: getWeekNumber(weekStart),
     weekLabel: formatGermanWeekRange(weekStart),
     days,

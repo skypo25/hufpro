@@ -22,7 +22,9 @@ type Horse = {
   breed: string | null
   sex: string | null
   birth_year: number | null
-  customers?: { name: string | null; stable_name: string | null } | null
+  customer_id?: string | null
+  stable_name?: string | null
+  customers?: { name: string | null } | null
 }
 
 type HoofEntry = {
@@ -319,18 +321,33 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
     }
 
     const [horseRes, docLoad] = await Promise.all([
-      supabase.from('horses').select('id,name,breed,sex,birth_year,customer_id').eq('id', horseId).eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('horses')
+        .select('id,name,breed,sex,birth_year,customer_id,stable_name')
+        .eq('id', horseId)
+        .eq('user_id', user.id)
+        .maybeSingle(),
       loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId),
     ])
 
     const { data: horseData } = horseRes
 
-    let horseWithCustomer = horseData
-    if (horseData && (horseData as { customer_id?: string | null }).customer_id) {
-      const { data: cust } = await supabase.from('customers').select('name,stable_name').eq('id', (horseData as { customer_id: string }).customer_id).eq('user_id', user.id).maybeSingle()
-      horseWithCustomer = { ...horseData, customers: cust ?? null } as Horse
+    let horseWithCustomer: Horse | null = null
+    if (horseData) {
+      const cid = (horseData as { customer_id?: string | null }).customer_id
+      if (cid) {
+        const { data: cust } = await supabase
+          .from('customers')
+          .select('name')
+          .eq('id', cid)
+          .eq('user_id', user.id)
+          .maybeSingle()
+        horseWithCustomer = { ...(horseData as Horse), customers: cust ?? null }
+      } else {
+        horseWithCustomer = horseData as Horse
+      }
     }
-    if (horseWithCustomer) setHorse(horseWithCustomer as Horse)
+    if (horseWithCustomer) setHorse(horseWithCustomer)
 
     type PhotoRow = {
       file_path: string | null
@@ -498,15 +515,15 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
     }
     await deleteDocumentationRecordByLegacyHoofId(supabase, recordId, user.id)
     await supabase.from('hoof_records').delete().eq('id', recordId).eq('user_id', user.id)
-    router.push(`/horses/${horseId}`)
+    router.push(`/animals/${horseId}`)
   }
 
   async function handlePdfDownload() {
-    window.open(`/horses/${horseId}/records/${recordId}/pdf`, '_blank')
+    window.open(`/animals/${horseId}/records/${recordId}/pdf`, '_blank')
   }
 
   async function handleEmail() {
-    window.open(`/horses/${horseId}/records/${recordId}?email=1`, '_blank')
+    window.open(`/animals/${horseId}/records/${recordId}?email=1`, '_blank')
   }
 
   if (loading) {
@@ -555,7 +572,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
               </span>
             </div>
             <div className="cd-meta">
-              {[horse?.breed, horse?.sex === 'male' ? 'Hengst' : horse?.sex === 'female' ? 'Stute' : horse?.sex === 'gelding' ? 'Wallach' : horse?.sex, horse?.birth_year ? `${new Date().getFullYear() - horse.birth_year} J.` : null, customer?.name, customer?.stable_name].filter(Boolean).join(' · ')}
+              {[horse?.breed, horse?.sex === 'male' ? 'Hengst' : horse?.sex === 'female' ? 'Stute' : horse?.sex === 'gelding' ? 'Wallach' : horse?.sex, horse?.birth_year ? `${new Date().getFullYear() - horse.birth_year} J.` : null, customer?.name, horse?.stable_name].filter(Boolean).join(' · ')}
             </div>
           </div>
         </div>
@@ -563,7 +580,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
 
       {/* ACTION ROW – wie Erstellungsseite (Bearbeiten + Löschen) */}
       <div className="cd-action-row flex gap-2">
-        <button type="button" className="cd-action-btn flex flex-1 items-center justify-center gap-1.5" onClick={() => router.push(`/horses/${horseId}/records/${recordId}/edit`)}>
+        <button type="button" className="cd-action-btn flex flex-1 items-center justify-center gap-1.5" onClick={() => router.push(`/animals/${horseId}/records/${recordId}/edit`)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}>
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -715,7 +732,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
             <div className="mrd-td-row"><span className="mrd-td-label">Datum</span><span className="mrd-td-value">{fmtDate(record.record_date)}</span></div>
             {record.record_type && <div className="mrd-td-row"><span className="mrd-td-label">Terminart</span><span className="mrd-td-value">{record.record_type}</span></div>}
             {customer?.name && <div className="mrd-td-row"><span className="mrd-td-label">Besitzer/in</span><span className="mrd-td-value">{customer.name}</span></div>}
-            {customer?.stable_name && <div className="mrd-td-row"><span className="mrd-td-label">Stall</span><span className="mrd-td-value">{customer.stable_name}</span></div>}
+            {horse?.stable_name && <div className="mrd-td-row"><span className="mrd-td-label">Stall</span><span className="mrd-td-value">{horse.stable_name}</span></div>}
           </div>
         </div>
 
@@ -732,7 +749,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
         </div>
 
         {/* ZURÜCK */}
-        <button type="button" className="mrd-back" onClick={() => router.push(`/horses/${horseId}`)}>
+        <button type="button" className="mrd-back" onClick={() => router.push(`/animals/${horseId}`)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
             <polyline points="15 18 9 12 15 6" />
           </svg>

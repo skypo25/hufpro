@@ -2,17 +2,37 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { supabase } from '@/lib/supabase-client'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
+import { animalTypeIconColor, faIconForAnimalType } from '@/lib/animalTypeDisplay'
+import AppointmentAnimalsInline from '@/components/appointments/AppointmentAnimalsInline'
+
+/** Tagesübersicht: etwas kleiner als Kalender-Standard (8px) */
+const MAF_TAGES_ANIMAL_ICON_CLASS = 'h-[6px] w-[6px] shrink-0'
 import { getInitials, formatCustomerNumber } from '@/lib/format'
+import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
+import {
+  APPOINTMENT_DURATION_CHOICES,
+  durationLabelToMinutesForWrite,
+  getSuggestedDurationLabelMobile,
+  minutesToDurationLabelMobile,
+} from '@/lib/appointments/appointmentDuration'
+import {
+  formValueToReminderMinutesBefore,
+  reminderOptionsForSelect,
+} from '@/lib/appointments/reminderOptions'
+import { getDefaultReminderMinutesFromSettings } from '@/lib/appointments/reminderDefaults'
 
-const APPOINTMENT_TYPES = [
-  { value: 'Regeltermin' as const, icon: 'bi-repeat', title: 'Regeltermin', sub: 'Routinebearbeitung' },
-  { value: 'Ersttermin' as const, icon: 'bi-stars', title: 'Ersttermin', sub: 'Neues Pferd / Befund' },
-  { value: 'Kontrolle' as const, icon: 'bi-search', title: 'Kontrolle', sub: 'Nachkontrolle' },
-  { value: 'Sondertermin' as const, icon: 'bi-lightning-fill', title: 'Sondertermin', sub: 'Akut / außerplanmäßig' },
-]
+type AppointmentTypeOption = {
+  value: 'Regeltermin' | 'Ersttermin' | 'Kontrolle' | 'Sondertermin'
+  icon: string
+  title: string
+  sub: string
+}
 
-const DURATION_OPTIONS = ['30 min', '45 min', '60 min', '90 min', '120 min']
+const DURATION_OPTIONS = APPOINTMENT_DURATION_CHOICES.map((c) => c.labelMobile)
 
 const STATUS_OPTIONS = ['Bestätigt', 'Vorgeschlagen', 'Warteliste'] as const
 
@@ -20,8 +40,6 @@ type CustomerOption = {
   id: string
   customer_number?: number | null
   name: string | null
-  stable_name?: string | null
-  stable_city?: string | null
   phone?: string | null
   street?: string | null
   postal_code?: string | null
@@ -31,17 +49,20 @@ type CustomerOption = {
 type HorseOption = {
   id: string
   name: string | null
+  animal_type?: string | null
   breed?: string | null
   sex?: string | null
   birth_year?: number | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
 }
 
 type DayItem = {
   id: string
   time: string
   customerName: string
-  horseNames: string[]
+  animals: { name: string; animalType: string | null }[]
   typeLabel: string | null
   typeColor: 'green' | 'orange' | 'blue' | 'purple'
 }
@@ -59,11 +80,6 @@ function formatTime(dateString: string | null) {
   const date = new Date(dateString)
   if (Number.isNaN(date.getTime())) return ''
   return new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(date)
-}
-
-function durationToMinutes(d: string) {
-  const m: Record<string, number> = { '30 min': 30, '45 min': 45, '60 min': 60, '90 min': 90, '120 min': 120 }
-  return m[d] ?? 45
 }
 
 function formatDayHint(dateStr: string) {
@@ -86,6 +102,26 @@ type Props = {
 }
 
 export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
+  const { profile } = useAppProfile()
+  const term = profile.terminology
+  const animalsPlural = animalsNavLabel(term)
+  const animalSingular = animalSingularLabel(term)
+
+  const appointmentTypeOptions = useMemo<AppointmentTypeOption[]>(
+    () => [
+      { value: 'Regeltermin', icon: 'bi-repeat', title: 'Regeltermin', sub: 'Routinebearbeitung' },
+      {
+        value: 'Ersttermin',
+        icon: 'bi-stars',
+        title: 'Ersttermin',
+        sub: term === 'tier' ? 'Neues Tier / Befund' : 'Neues Pferd / Befund',
+      },
+      { value: 'Kontrolle', icon: 'bi-search', title: 'Kontrolle', sub: 'Nachkontrolle' },
+      { value: 'Sondertermin', icon: 'bi-lightning-fill', title: 'Sondertermin', sub: 'Akut / außerplanmäßig' },
+    ],
+    [term]
+  )
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialCustomerId = searchParams.get('customerId') || ''
@@ -100,12 +136,27 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
   const [customerId, setCustomerId] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [selectedHorseIds, setSelectedHorseIds] = useState<string[]>([])
-  const [appointmentType, setAppointmentType] = useState<typeof APPOINTMENT_TYPES[0]['value']>('Regeltermin')
+  const [appointmentType, setAppointmentType] =
+    useState<AppointmentTypeOption['value']>('Regeltermin')
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('09:00')
   const [duration, setDuration] = useState('60 min')
   const [status, setStatus] = useState<typeof STATUS_OPTIONS[number]>('Bestätigt')
   const [notes, setNotes] = useState('')
+  const [reminderSelect, setReminderSelect] = useState('')
+  const [storedReminderForOptions, setStoredReminderForOptions] = useState<
+    number | null
+  >(null)
+  const [editBaseline, setEditBaseline] = useState<{
+    appointmentDateRaw: string
+    reminder: string
+  } | null>(null)
+  const [emailRemindersOn, setEmailRemindersOn] = useState(true)
+
+  const reminderOpts = useMemo(
+    () => reminderOptionsForSelect(storedReminderForOptions),
+    [storedReminderForOptions]
+  )
 
   const [dayItems, setDayItems] = useState<DayItem[]>([])
 
@@ -114,35 +165,71 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
     if (!user) return
 
     const [custRes, horseRes] = await Promise.all([
-      supabase.from('customers').select('id, customer_number, name, stable_name, stable_city, phone, street, postal_code, city').eq('user_id', user.id).order('name', { ascending: true }),
-      supabase.from('horses').select('id, name, breed, sex, birth_year, customer_id').eq('user_id', user.id).order('name', { ascending: true }),
+      supabase
+        .from('customers')
+        .select('id, customer_number, name, phone, street, postal_code, city')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true }),
+      supabase
+        .from('horses')
+        .select('id, name, animal_type, breed, sex, birth_year, customer_id, stable_name, stable_city')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true }),
     ])
 
     setCustomers(custRes.data ?? [])
     setHorses(horseRes.data ?? [])
 
+    const { data: usRow } = await supabase
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const st = (usRow?.settings ?? {}) as {
+      emailReminders?: boolean
+      appointmentReminderDefaultMinutes?: number | null
+    }
+    setEmailRemindersOn(st.emailReminders !== false)
+
     if (mode === 'edit' && appointmentId) {
       const { data: apt } = await supabase
         .from('appointments')
-        .select('customer_id, appointment_date, type, status, duration_minutes, notes')
+        .select('customer_id, appointment_date, type, status, duration_minutes, notes, reminder_minutes_before')
         .eq('id', appointmentId)
         .eq('user_id', user.id)
         .single()
 
       if (apt) {
-        const aptEnd = apt.appointment_date ? new Date(new Date(apt.appointment_date).getTime() + (apt.duration_minutes ?? 60) * 60 * 1000) : null
+        const slot = getAppointmentStartEndFromRow(
+          apt.appointment_date,
+          apt.duration_minutes
+        )
+        const aptEnd = slot?.end ?? null
         if (aptEnd && aptEnd.getTime() < Date.now()) {
           router.replace(`/appointments/${appointmentId}`)
           setLoading(false)
           return
         }
         setCustomerId(apt.customer_id || '')
-        setAppointmentType((apt.type as typeof APPOINTMENT_TYPES[0]['value']) || 'Regeltermin')
+        setAppointmentType((apt.type as AppointmentTypeOption['value']) || 'Regeltermin')
         setAppointmentDate(apt.appointment_date ? apt.appointment_date.slice(0, 10) : '')
         setAppointmentTime(formatTime(apt.appointment_date) || '09:00')
-        setDuration(apt.duration_minutes === 30 ? '30 min' : apt.duration_minutes === 60 ? '60 min' : apt.duration_minutes === 90 ? '90 min' : apt.duration_minutes === 120 ? '120 min' : '45 min')
+        setDuration(minutesToDurationLabelMobile(apt.duration_minutes))
         setStatus((apt.status as typeof STATUS_OPTIONS[number]) || 'Bestätigt')
         setNotes(apt.notes || '')
+        setStoredReminderForOptions(apt.reminder_minutes_before ?? null)
+        setReminderSelect(
+          apt.reminder_minutes_before == null
+            ? ''
+            : String(apt.reminder_minutes_before)
+        )
+        setEditBaseline({
+          appointmentDateRaw: apt.appointment_date || '',
+          reminder:
+            apt.reminder_minutes_before == null
+              ? ''
+              : String(apt.reminder_minutes_before),
+        })
 
         const { data: links } = await supabase
           .from('appointment_horses')
@@ -152,6 +239,9 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
         setSelectedHorseIds((links ?? []).map((r) => r.horse_id))
       }
     } else {
+      const def = getDefaultReminderMinutesFromSettings(st)
+      setStoredReminderForOptions(def)
+      setReminderSelect(def == null ? '' : String(def))
       const today = new Date().toISOString().slice(0, 10)
       setAppointmentDate(today)
       let resolvedCustomerId = initialCustomerId
@@ -169,7 +259,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
       }
       setCustomerId(resolvedCustomerId)
       setSelectedHorseIds(resolvedHorseIds)
-      setDuration(resolvedHorseIds.length <= 1 ? '45 min' : resolvedHorseIds.length === 2 ? '60 min' : '90 min')
+      setDuration(getSuggestedDurationLabelMobile(resolvedHorseIds.length || 1))
     }
 
     setLoading(false)
@@ -205,17 +295,20 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
 
     const horseIds = [...new Set((links ?? []).map((l) => l.horse_id))]
     const { data: horseData } = horseIds.length > 0
-      ? await supabase.from('horses').select('id, name').in('id', horseIds)
+      ? await supabase.from('horses').select('id, name, animal_type').in('id', horseIds)
       : { data: [] }
 
     const customersById = new Map((custData ?? []).map((c) => [c.id, c]))
     const horsesById = new Map((horseData ?? []).map((h) => [h.id, h]))
-    const horseNamesByApt = new Map<string, string[]>()
+    const animalsByApt = new Map<string, { name: string; animalType: string | null }[]>()
     for (const link of links ?? []) {
       const h = horsesById.get(link.horse_id)
       if (h?.name) {
-        const existing = horseNamesByApt.get(link.appointment_id) ?? []
-        horseNamesByApt.set(link.appointment_id, [...existing, h.name])
+        const existing = animalsByApt.get(link.appointment_id) ?? []
+        animalsByApt.set(link.appointment_id, [
+          ...existing,
+          { name: h.name, animalType: (h as { animal_type?: string | null }).animal_type ?? null },
+        ])
       }
     }
 
@@ -223,7 +316,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
       id: a.id,
       time: formatTime(a.appointment_date),
       customerName: customersById.get(a.customer_id || '')?.name || 'Unbekannt',
-      horseNames: horseNamesByApt.get(a.id) ?? [],
+      animals: animalsByApt.get(a.id) ?? [],
       typeLabel: a.type || null,
       typeColor: getTypeColor(a.type),
     }))
@@ -238,6 +331,15 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
   const customerHorses = useMemo(() => horses.filter((h) => h.customer_id === customerId), [horses, customerId])
   const selectedCustomer = customers.find((c) => c.id === customerId) || null
 
+  const stallLabel = useMemo(() => {
+    const pool =
+      selectedHorseIds.length > 0
+        ? customerHorses.filter((h) => selectedHorseIds.includes(h.id))
+        : customerHorses
+    const h = pool.find((x) => x.stable_name?.trim() || x.stable_city?.trim())
+    return h?.stable_name?.trim() || h?.stable_city?.trim() || ''
+  }, [customerHorses, selectedHorseIds])
+
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase()
     let list = customers
@@ -251,19 +353,12 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
     )
   }
 
-  function getSuggestedDuration(count: number) {
-    if (count <= 1) return '45 min'
-    if (count === 2) return '60 min'
-    if (count === 3) return '90 min'
-    return '120 min'
-  }
-
   useEffect(() => {
     if (customerHorses.length === 1 && !selectedHorseIds.length) {
       setSelectedHorseIds([customerHorses[0].id])
-      setDuration(getSuggestedDuration(1))
+      setDuration(getSuggestedDurationLabelMobile(1))
     } else if (customerId && selectedHorseIds.length > 0) {
-      setDuration(getSuggestedDuration(selectedHorseIds.length))
+      setDuration(getSuggestedDurationLabelMobile(selectedHorseIds.length))
     }
   }, [customerId, customerHorses.length, selectedHorseIds.length])
 
@@ -285,7 +380,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
       return
     }
     if (selectedHorseIds.length === 0) {
-      setMessage('Bitte wähle mindestens ein Pferd.')
+      setMessage(`Bitte wähle mindestens ein ${animalSingular}.`)
       setSaving(false)
       return
     }
@@ -301,7 +396,18 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
     }
 
     const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`
-    const durationMinutes = durationToMinutes(duration)
+    const durationMinutes = durationLabelToMinutesForWrite(duration)
+    const prevReminderStored = editBaseline
+      ? formValueToReminderMinutesBefore(editBaseline.reminder)
+      : null
+    const nextReminder =
+      mode === 'create'
+        ? emailRemindersOn
+          ? formValueToReminderMinutesBefore(reminderSelect)
+          : null
+        : emailRemindersOn
+          ? formValueToReminderMinutesBefore(reminderSelect)
+          : prevReminderStored
     const finalStatus = asDraft ? 'Vorgeschlagen' : status
 
     try {
@@ -316,6 +422,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
             status: finalStatus,
             duration_minutes: durationMinutes,
             notes: notes.trim() || null,
+            reminder_minutes_before: nextReminder,
           })
           .select('id')
           .single()
@@ -334,6 +441,12 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
           }))
         )
       } else if (appointmentId) {
+        const clearReminderSent =
+          !!editBaseline &&
+          (new Date(appointmentDateTime).getTime() !==
+            new Date(editBaseline.appointmentDateRaw).getTime() ||
+            prevReminderStored !== nextReminder)
+
         const { error: updErr } = await supabase
           .from('appointments')
           .update({
@@ -343,6 +456,10 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
             status: finalStatus,
             duration_minutes: durationMinutes,
             notes: notes.trim() || null,
+            reminder_minutes_before: nextReminder,
+            ...(clearReminderSent
+              ? { reminder_email_sent_at: null, reminder_email_error: null }
+              : {}),
           })
           .eq('id', appointmentId)
           .eq('user_id', user.id)
@@ -389,7 +506,6 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
     )
   }
 
-  const stallLabel = selectedCustomer?.stable_name || selectedCustomer?.stable_city || ''
   const addressParts = [selectedCustomer?.street, [selectedCustomer?.postal_code, selectedCustomer?.city].filter(Boolean).join(' ')].filter(Boolean)
   const fullAddress = addressParts.join(', ')
 
@@ -447,18 +563,20 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
           </div>
         </section>
 
-        {/* 2. Pferde */}
+        {/* 2. Tiere auswählen */}
         <section className="mhf-section">
           <div className="mhf-s-header">
             <i className="bi bi-heart-pulse-fill mhf-s-icon" aria-hidden />
-            <h3>Pferde auswählen</h3>
+            <h3>{animalsPlural} auswählen</h3>
             {customerHorses.length > 1 && <span className="mhf-s-hint">Mehrfachauswahl möglich</span>}
           </div>
           <div className="mhf-s-body">
             {!customerId ? (
               <div className="maf-empty-hint">Bitte zuerst einen Kunden auswählen.</div>
             ) : customerHorses.length === 0 ? (
-              <div className="maf-empty-hint">Für diesen Kunden sind keine Pferde vorhanden.</div>
+              <div className="maf-empty-hint">
+                Für diesen Kunden sind keine {animalsPlural.toLowerCase()} vorhanden.
+              </div>
             ) : (
               customerHorses.map((horse) => {
                 const checked = selectedHorseIds.includes(horse.id)
@@ -466,6 +584,13 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
                 return (
                   <button key={horse.id} type="button" className={`maf-pferd-item ${checked ? 'selected' : ''}`} onClick={() => toggleHorse(horse.id)}>
                     <div className="maf-pi-check">{checked ? '✓' : ''}</div>
+                    <div className="maf-pi-icon shrink-0" aria-hidden>
+                      <FontAwesomeIcon
+                        icon={faIconForAnimalType(horse.animal_type)}
+                        className="h-3 w-3"
+                        style={{ color: animalTypeIconColor }}
+                      />
+                    </div>
                     <div className="maf-pi-info">
                       <div className="maf-pi-name">{horse.name || '–'}</div>
                       {breedStr && <div className="maf-pi-breed">{breedStr}</div>}
@@ -485,7 +610,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
           </div>
           <div className="mhf-s-body">
             <div className="maf-terminart-grid">
-              {APPOINTMENT_TYPES.map((opt) => (
+              {appointmentTypeOptions.map((opt) => (
                 <button key={opt.value} type="button" className={`maf-ta-option ${appointmentType === opt.value ? 'selected' : ''}`} onClick={() => setAppointmentType(opt.value)}>
                   <div className="maf-ta-icon"><i className={`bi ${opt.icon}`} aria-hidden /></div>
                   <div className="maf-ta-title">{opt.title}</div>
@@ -518,6 +643,29 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
                   {DURATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
+              <div className="mhf-f-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="mhf-f-label">E-Mail-Erinnerung</label>
+                <select
+                  value={reminderSelect}
+                  onChange={(e) => setReminderSelect(e.target.value)}
+                  disabled={!emailRemindersOn}
+                  className="mhf-f-select disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {reminderOpts.map((o) => (
+                    <option
+                      key={o.label}
+                      value={o.minutes == null ? '' : String(o.minutes)}
+                    >
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="mhf-f-hint">
+                  {emailRemindersOn
+                    ? 'An Kunden-E-Mail; SMTP unter Benachrichtigungen. Standard dort einstellbar.'
+                    : 'Termin-Erinnerungen sind unter Einstellungen → Benachrichtigungen deaktiviert.'}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -540,7 +688,19 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
                     <div className={`maf-ti-bar ${item.typeColor !== 'green' ? item.typeColor : ''}`} />
                     <div className="maf-ti-info">
                       <div className="maf-ti-name">{item.customerName}</div>
-                      <div className="maf-ti-detail">{item.horseNames.length ? `${item.horseNames.join(' + ')} · ` : ''}{item.typeLabel || 'Regeltermin'}</div>
+                      <div className="maf-ti-detail flex flex-wrap items-center gap-x-1">
+                        {item.animals.length > 0 ? (
+                          <>
+                            <AppointmentAnimalsInline
+                              animals={item.animals}
+                              inheritTextStyle
+                              iconClassName={MAF_TAGES_ANIMAL_ICON_CLASS}
+                            />
+                            <span className="text-[#9CA3AF]">·</span>
+                          </>
+                        ) : null}
+                        <span>{item.typeLabel || 'Regeltermin'}</span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -583,13 +743,24 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
               {selectedCustomer.phone && <div className="maf-zf-row"><span className="maf-zf-label">Telefon</span><span className="maf-zf-value">{selectedCustomer.phone}</span></div>}
               {(fullAddress || stallLabel) && <div className="maf-zf-row"><span className="maf-zf-label">Stalladresse</span><span className="maf-zf-value">{fullAddress || stallLabel}</span></div>}
               <div className="maf-zf-row">
-                <span className="maf-zf-label">Pferd(e)</span>
-                <span className="maf-zf-value link">{customerHorses.filter((h) => selectedHorseIds.includes(h.id)).map((h) => h.name || 'Pferd').join(', ') || '–'}</span>
+                <span className="maf-zf-label">{animalsPlural}</span>
+                <span className="maf-zf-value link">
+                  {customerHorses.filter((h) => selectedHorseIds.includes(h.id)).map((h) => h.name || animalSingular).join(', ') || '–'}
+                </span>
               </div>
               <div className="maf-zf-row"><span className="maf-zf-label">Terminart</span><span className="maf-zf-value">{appointmentType}</span></div>
               <div className="maf-zf-row"><span className="maf-zf-label">Datum</span><span className="maf-zf-value">{appointmentDate ? formatDateLong(appointmentDate) : '–'}</span></div>
               <div className="maf-zf-row"><span className="maf-zf-label">Uhrzeit</span><span className="maf-zf-value">{appointmentTime || '–'}</span></div>
               <div className="maf-zf-row"><span className="maf-zf-label">Dauer</span><span className="maf-zf-value">{duration}</span></div>
+              <div className="maf-zf-row">
+                <span className="maf-zf-label">Erinnerung</span>
+                <span className="maf-zf-value">
+                  {reminderOpts.find(
+                    (o) =>
+                      (o.minutes == null ? '' : String(o.minutes)) === reminderSelect
+                  )?.label ?? '–'}
+                </span>
+              </div>
             </div>
           </section>
         )}

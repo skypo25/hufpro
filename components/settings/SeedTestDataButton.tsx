@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useAppProfile } from '@/context/AppProfileContext'
 
 type SeedResult = {
   ok?: boolean
@@ -10,11 +11,13 @@ type SeedResult = {
   appointments?: number
   hoofRecords?: number
   invoices?: number
+  profileMode?: 'hufbearbeiter' | 'therapie'
   error?: string
   partial?: SeedResult
 }
 
 export default function SeedTestDataButton() {
+  const { profile } = useAppProfile()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SeedResult | null>(null)
 
@@ -37,7 +40,18 @@ export default function SeedTestDataButton() {
     <div className="rounded-xl border border-[#E5E2DC] bg-[#FAF9F7] p-5">
       <h3 className="font-semibold text-[#1B1F23]">Testdaten</h3>
       <p className="mt-1 text-sm text-[#6B7280]">
-        15 Kunden, ca. 20–25 Pferde, Termine (letzte 6 Monate + nächste 2 Wochen), Hufdokumentationen und einige Rechnungen. Keine Fotos.
+        {profile.isHufbearbeiter ? (
+          <>
+            15 Kunden, ca. 20–25 Pferde, Termine (letzte 6 Monate + nächste 2 Wochen), Hufdokumentationen und einige
+            Rechnungen. Keine Fotos.
+          </>
+        ) : (
+          <>
+            15 Kunden, Tiere passend zu deinem Tier-Fokus (Pferde und/oder Kleintiere), mit gefüllter{' '}
+            <strong className="font-medium text-[#1B1F23]">Erstanamnese</strong> in der Tierakte. Termine wie oben;
+            Hufdokumentationen nur bei Pferden; Rechnungen mit Therapie-/Tier-Positionen. Keine Fotos.
+          </>
+        )}
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -54,7 +68,9 @@ export default function SeedTestDataButton() {
               <span className="text-red-600">{result.error}</span>
             ) : result.ok ? (
               <>
-                {result.customers} Kunden, {result.horses} Pferde, {result.appointments} Termine, {result.hoofRecords} Dokumentationen, {result.invoices} Rechnungen.
+                {result.customers} Kunden, {result.horses}{' '}
+                {result.profileMode === 'therapie' ? 'Tiere' : 'Pferde'}, {result.appointments} Termine,{' '}
+                {result.hoofRecords} Dokumentationen, {result.invoices} Rechnungen.
               </>
             ) : null}
           </span>

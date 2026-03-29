@@ -110,7 +110,7 @@ export default function TherapyRecordForm({
         if (isEdit && updateAction && editRecordId) {
           await updateAction(horse.id, editRecordId, fd)
           router.refresh()
-          router.push(`/horses/${horse.id}/records/${editRecordId}`)
+          router.push(`/animals/${horse.id}/records/${editRecordId}`)
           return
         }
         const result = await saveAction(fd)
@@ -121,7 +121,7 @@ export default function TherapyRecordForm({
         const rid = result?.recordId
         if (!rid) return
         router.refresh()
-        router.push(`/horses/${horse.id}/records/${rid}`)
+        router.push(`/animals/${horse.id}/records/${rid}`)
       } catch (err) {
         setMessage(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.')
       } finally {
@@ -197,12 +197,12 @@ export default function TherapyRecordForm({
       <div className="mb-1 flex flex-wrap items-center gap-2 text-[13px] text-[#6B7280]">
         {isEdit ? (
           <>
-            <Link href={`/horses/${horse.id}`} className="text-[#52b788] hover:underline">
+            <Link href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
               {horse.name}
             </Link>
             <span>›</span>
             <Link
-              href={`/horses/${horse.id}/records/${editRecordId}`}
+              href={`/animals/${horse.id}/records/${editRecordId}`}
               className="text-[#52b788] hover:underline"
             >
               {formatGermanDate(recordDate)}
@@ -212,7 +212,7 @@ export default function TherapyRecordForm({
           </>
         ) : (
           <>
-            <Link href={`/horses/${horse.id}`} className="text-[#52b788] hover:underline">
+            <Link href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
               {horse.name}
             </Link>
             <span>›</span>
@@ -339,7 +339,7 @@ export default function TherapyRecordForm({
 
       <div className="flex flex-wrap items-center justify-end gap-3 pb-8">
         <Link
-          href={isEdit && editRecordId ? `/horses/${horse.id}/records/${editRecordId}` : `/horses/${horse.id}`}
+          href={isEdit && editRecordId ? `/animals/${horse.id}/records/${editRecordId}` : `/animals/${horse.id}`}
           className="rounded-xl border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#374151] hover:bg-[#FAFAF8]"
         >
           Abbrechen

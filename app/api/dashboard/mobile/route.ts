@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
+import {
+  dashboardAnimalsBetreutLabel,
+  deriveAppProfile,
+} from '@/lib/appProfile'
+import {
+  buildBillingNavLineFromCustomer,
+  buildStallNavLineFromHorse,
+  pickPrimaryStallHorse,
+} from '@/lib/nav/horseStableAddress'
 
 function getBerlinDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -43,11 +52,6 @@ type CustomerRelation =
       postal_code?: string | null
       city?: string | null
       country?: string | null
-      stable_differs?: boolean | null
-      stable_street?: string | null
-      stable_zip?: string | null
-      stable_city?: string | null
-      stable_country?: string | null
     }
   | {
       name: string | null
@@ -55,11 +59,6 @@ type CustomerRelation =
       postal_code?: string | null
       city?: string | null
       country?: string | null
-      stable_differs?: boolean | null
-      stable_street?: string | null
-      stable_zip?: string | null
-      stable_city?: string | null
-      stable_country?: string | null
     }[]
   | null
 
@@ -73,40 +72,38 @@ type AppointmentRow = {
   customers: CustomerRelation
 }
 
-/** Baut eine Zeile für Straße + "PLZ Ort" (Deutschland-Standard), damit Nav-Apps die Adresse präzise finden. */
-function formatAddressLine(street: string | null | undefined, zip: string | null | undefined, city: string | null | undefined): string {
-  const zipCity = [zip, city].filter(Boolean).join(' ')
-  const parts = [street?.trim(), zipCity].filter(Boolean) as string[]
-  return parts.join(', ')
-}
-
-/** Navigationsadresse: bei abweichender Stalladresse (stable_differs) Stall nutzen, sonst Kundenadresse. Vollständige Adresse für präzise Navigation. */
-function buildNavAddress(c: CustomerRelation): string {
-  const one = Array.isArray(c) ? c[0] : c
-  if (!one) return ''
-  const useStable =
-    one.stable_differs &&
-    (one.stable_street?.trim() || one.stable_zip?.trim() || one.stable_city?.trim())
-  if (useStable) {
-    return formatAddressLine(one.stable_street, one.stable_zip, one.stable_city)
-  }
-  return formatAddressLine(one.street, one.postal_code, one.city)
+type StallHorseRow = {
+  id: string
+  name: string | null
+  animal_type?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+  stable_city?: string | null
+  stable_name?: string | null
 }
 
 type AppointmentHorseRow = {
   appointment_id: string
   horse_id: string
-  horses: { id: string; name: string | null } | { id: string; name: string | null }[] | null
+  horses: StallHorseRow | StallHorseRow[] | null
 }
 
 function relationName(value: CustomerRelation): string | null {
   return Array.isArray(value) ? value[0]?.name ?? null : value?.name ?? null
 }
 
-function horseName(
-  value: { id: string; name: string | null } | { id: string; name: string | null }[] | null
-): string | null {
-  return Array.isArray(value) ? value[0]?.name ?? null : value?.name ?? null
+function horseRow(value: StallHorseRow | StallHorseRow[] | null): StallHorseRow | null {
+  return Array.isArray(value) ? value[0] ?? null : value
+}
+
+function buildNavAddressForAppointment(
+  customerRel: CustomerRelation,
+  horses: StallHorseRow[]
+): string {
+  const customer = Array.isArray(customerRel) ? customerRel[0] : customerRel
+  const billing = customer ? buildBillingNavLineFromCustomer(customer) : null
+  const stall = buildStallNavLineFromHorse(pickPrimaryStallHorse(horses) ?? {})
+  return stall || billing || ''
 }
 
 export async function GET() {
@@ -124,11 +121,16 @@ export async function GET() {
     .select('settings')
     .eq('user_id', user.id)
     .maybeSingle()
-  const settings = (settingsRow?.settings ?? {}) as { firstName?: string; preferredNavApp?: string }
-  const userFirstName = settings.firstName?.trim() || null
-  const preferredNavApp = (settings.preferredNavApp === 'apple' || settings.preferredNavApp === 'waze')
-    ? settings.preferredNavApp
-    : 'google'
+  const settings = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const userFirstName =
+    typeof settings.firstName === 'string' ? settings.firstName.trim() || null : null
+  const preferredNavAppRaw = settings.preferredNavApp
+  const preferredNavApp =
+    preferredNavAppRaw === 'apple' || preferredNavAppRaw === 'waze'
+      ? preferredNavAppRaw
+      : 'google'
+  const profile = deriveAppProfile(settings.profession, settings.animal_focus)
+  const term = profile.terminology
 
   const now = new Date()
   const todayBerlinKey = getBerlinDateKey(now)
@@ -167,7 +169,7 @@ export async function GET() {
       customer_id,
       type,
       status,
-      customers ( name, street, postal_code, city, country, stable_differs, stable_street, stable_zip, stable_city, stable_country )
+      customers ( name, street, postal_code, city, country )
     `)
     .eq('user_id', user.id)
     .not('appointment_date', 'is', null)
@@ -177,21 +179,32 @@ export async function GET() {
     .returns<AppointmentRow[]>()
 
   const appointments = appointmentRows ?? []
-  let horsesByAppointment = new Map<string, string[]>()
+  const horseRowsByAppointment = new Map<string, StallHorseRow[]>()
 
   if (appointments.length > 0) {
     const { data: appointmentHorseRows } = await supabase
       .from('appointment_horses')
-      .select('appointment_id, horse_id, horses ( id, name )')
+      .select(
+        'appointment_id, horse_id, horses ( id, name, animal_type, stable_street, stable_zip, stable_city, stable_name )'
+      )
       .eq('user_id', user.id)
       .in('appointment_id', appointments.map((a) => a.id))
       .returns<AppointmentHorseRow[]>()
     for (const row of appointmentHorseRows ?? []) {
-      const name = horseName(row.horses)
-      if (!name) continue
-      const existing = horsesByAppointment.get(row.appointment_id) ?? []
-      horsesByAppointment.set(row.appointment_id, [...existing, name])
+      const h = horseRow(row.horses)
+      if (!h?.name) continue
+      const rows = horseRowsByAppointment.get(row.appointment_id) ?? []
+      horseRowsByAppointment.set(row.appointment_id, [...rows, h])
     }
+  }
+
+  function animalsForAppointment(appointmentId: string) {
+    return (horseRowsByAppointment.get(appointmentId) ?? [])
+      .filter((h) => h.name)
+      .map((h) => ({
+        name: h.name as string,
+        animalType: h.animal_type ?? null,
+      }))
   }
 
   const todayAppointments = appointments
@@ -203,33 +216,33 @@ export async function GET() {
     .slice(0, 5)
     .map((a) => {
       const customerName = relationName(a.customers) || 'Kunde'
-      const horseNames = horsesByAppointment.get(a.id) ?? []
-      let horseLabel = 'Kein Pferd zugeordnet'
-      if (horseNames.length === 1) horseLabel = horseNames[0]
-      else if (horseNames.length > 1) horseLabel = `${horseNames.length} Pferde`
+      const animals = animalsForAppointment(a.id)
       return {
         id: a.id,
         time: formatTime(a.appointment_date),
         name: customerName,
-        detail: horseLabel + (a.notes ? ' · ' + a.notes : ''),
+        animals,
+        notes: a.notes,
         status: a.status || 'Bestätigt',
-        navAddress: buildNavAddress(a.customers),
+        navAddress: buildNavAddressForAppointment(
+          a.customers,
+          horseRowsByAppointment.get(a.id) ?? []
+        ),
       }
     })
 
   const allMapped = appointments.map((a) => {
     const customerName = relationName(a.customers) || 'Kunde'
-    const horseNames = horsesByAppointment.get(a.id) ?? []
-    let horseLabel = 'Kein Pferd zugeordnet'
-    if (horseNames.length === 1) horseLabel = horseNames[0]
-    else if (horseNames.length > 1) horseLabel = `${horseNames.length} Pferde`
     return {
       id: a.id,
       appointment_date: a.appointment_date,
       customerName,
-      horseLabel,
+      animals: animalsForAppointment(a.id),
       notes: a.notes,
-      navAddress: buildNavAddress(a.customers),
+      navAddress: buildNavAddressForAppointment(
+        a.customers,
+        horseRowsByAppointment.get(a.id) ?? []
+      ),
     }
   })
 
@@ -244,8 +257,10 @@ export async function GET() {
       id: m.id,
       day: formatDay(m.appointment_date) + '.',
       month: formatMonthShort(m.appointment_date),
-      title: `${m.customerName} · ${m.horseLabel}`,
-      sub: formatTime(m.appointment_date) + (m.notes ? ' · ' + m.notes : ''),
+      customerName: m.customerName,
+      animals: m.animals,
+      time: formatTime(m.appointment_date),
+      notes: m.notes,
       navAddress: m.navAddress,
     }))
 
@@ -266,7 +281,7 @@ export async function GET() {
       subClass: 'green' as const,
     },
     {
-      label: 'Pferde betreut',
+      label: dashboardAnimalsBetreutLabel(term),
       value: String(horsesCount ?? 0),
       sub: 'im System',
       subClass: 'neutral' as const,
@@ -289,6 +304,7 @@ export async function GET() {
     userFirstName,
     dateLabel,
     preferredNavApp,
+    terminology: term,
     todayStrip: {
       termine: todayCount,
       pferde: horsesCount ?? 0,

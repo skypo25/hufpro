@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
 import { getCurrentWeekRange } from '@/lib/date'
+import { formatAnimalTypeLabel } from '@/lib/animalTypeDisplay'
 
 type Horse = {
   id: string
@@ -9,18 +10,21 @@ type Horse = {
   breed: string | null
   sex?: string | null
   birth_year?: number | null
+  animal_type?: string | null
   usage?: string | null
   hoof_status?: string | null
   special_notes?: string | null
   customer_id: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
 }
 
 type Customer = {
   id: string
   name: string | null
   city: string | null
-  stable_name?: string | null
-  stable_city?: string | null
   interval_weeks?: string | null
 }
 
@@ -60,7 +64,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const q = (searchParams.get('q') ?? '').trim().toLowerCase()
-  const filter = searchParams.get('filter') || 'all'
   const sort = searchParams.get('sort') || 'name_asc'
   const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit')) || 20))
   const offset = Math.max(0, Number(searchParams.get('offset')) || 0)
@@ -68,7 +71,7 @@ export async function GET(request: Request) {
   const { data: horses, error } = await supabase
     .from('horses')
     .select(
-      'id, name, breed, sex, birth_year, usage, hoof_status, special_notes, customer_id'
+      'id, name, breed, sex, birth_year, animal_type, usage, hoof_status, special_notes, customer_id, stable_name, stable_city, stable_street, stable_zip'
     )
     .eq('user_id', user.id)
     .returns<Horse[]>()
@@ -88,7 +91,7 @@ export async function GET(request: Request) {
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
       .from('customers')
-      .select('id, name, city, stable_name, stable_city, interval_weeks')
+      .select('id, name, city, interval_weeks')
       .eq('user_id', user.id)
       .in('id', customerIds)
       .returns<Customer[]>()
@@ -171,10 +174,12 @@ export async function GET(request: Request) {
         row.horse.breed,
         row.horse.sex,
         row.horse.usage,
+        row.horse.animal_type,
+        formatAnimalTypeLabel(row.horse.animal_type),
         row.customer?.name,
         row.customer?.city,
-        row.customer?.stable_name,
-        row.customer?.stable_city,
+        row.horse.stable_name,
+        row.horse.stable_city,
       ]
         .filter(Boolean)
         .join(' ')
@@ -182,10 +187,6 @@ export async function GET(request: Request) {
       return haystack.includes(q)
     })
   }
-
-  if (filter === 'barhuf') rows = rows.filter((r) => isBarhuf(r.horse))
-  else if (filter === 'hufschutz') rows = rows.filter((r) => isHufschutz(r.horse))
-  else if (filter === 'korrektur') rows = rows.filter((r) => isKorrektur(r.horse))
 
   switch (sort) {
     case 'name_desc':
@@ -225,6 +226,15 @@ export async function GET(request: Request) {
   const hoofschutzCount = horseList.filter(isHufschutz).length
   const correctionCount = horseList.filter(isKorrektur).length
 
+  const dogsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'dog').length
+  const catsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'cat').length
+  const smallAnimalsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'small').length
+  const otherAnimalsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'other').length
+  const typeHorseCount = horseList.filter((a) => {
+    const ty = (a.animal_type ?? '').trim()
+    return !ty || ty === 'horse'
+  }).length
+
   const intervals = customers
     .map((c) => c.interval_weeks)
     .filter(Boolean)
@@ -237,10 +247,10 @@ export async function GET(request: Request) {
           .replace('.', ',')
       : null
 
-  function getOwnerLocation(c: Customer | null) {
-    if (!c) return null
-    if (c.stable_name) return c.stable_name
-    return c.stable_city || c.city || null
+  function getOwnerLocation(h: Horse, c: Customer | null) {
+    if (h.stable_name) return h.stable_name
+    if (h.stable_city) return h.stable_city
+    return c?.city || null
   }
 
   function formatInterval(val: string | null) {
@@ -258,11 +268,12 @@ export async function GET(request: Request) {
       sex: r.horse.sex,
       birthYear: r.horse.birth_year,
       age: getAgeFromBirthYear(r.horse.birth_year ?? null),
+      animalType: r.horse.animal_type ?? null,
       usage: r.horse.usage,
       hoofStatus: r.horse.hoof_status,
       customerId: r.horse.customer_id ?? null,
       customerName: r.customer?.name ?? null,
-      customerStable: getOwnerLocation(r.customer),
+      customerStable: getOwnerLocation(r.horse, r.customer),
       nextAppointment: r.nextAppointment,
       documentationCount: r.documentationCount,
       intervalWeeks: formatInterval(r.intervalWeeks),
@@ -274,5 +285,10 @@ export async function GET(request: Request) {
     hoofschutzCount,
     correctionCount,
     avgInterval: avgInterval ?? '–',
+    dogsCount,
+    catsCount,
+    typeHorseCount,
+    smallAnimalsCount,
+    otherAnimalsCount,
   })
 }

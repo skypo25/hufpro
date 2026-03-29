@@ -48,8 +48,7 @@ export default function MobileCustomerForm() {
   const [company, setCompany] = useState('')
   const [vatId, setVatId] = useState('')
 
-  // Stalladresse
-  const [stableDiffers, setStableDiffers] = useState(true)
+  // Stall-/Standort (nur wenn erstes Pferd mit angelegt wird → Spalten am Pferd)
   const [stableName, setStableName] = useState('')
   const [stableStreet, setStableStreet] = useState('')
   const [stableZip, setStableZip] = useState('')
@@ -155,15 +154,6 @@ export default function MobileCustomerForm() {
         country: billingCountry || 'Deutschland',
         company: company.trim() || null,
         vat_id: vatId.trim() || null,
-        stable_differs: stableDiffers,
-        stable_name: stableDiffers ? stableName.trim() || null : null,
-        stable_street: stableDiffers ? stableStreet.trim() || null : null,
-        stable_city: stableDiffers ? stableCity.trim() || null : null,
-        stable_zip: stableDiffers ? stableZip.trim() || null : null,
-        stable_country: stableDiffers ? stableCountry || null : null,
-        stable_contact: stableDiffers ? stableContact.trim() || null : null,
-        stable_phone: stableDiffers ? stablePhone.trim() || null : null,
-        directions: stableDiffers ? directions.trim() || null : null,
         preferred_days: preferredDays.length > 0 ? preferredDays : null,
         preferred_time: preferredTime || null,
         interval_weeks: intervalWeeks || null,
@@ -210,6 +200,14 @@ export default function MobileCustomerForm() {
             usage: horseUsage || null,
             hoof_status: horseShoeing || null,
             special_notes: horseSpecialNotes.trim() || null,
+            stable_name: stableName.trim() || null,
+            stable_street: stableStreet.trim() || null,
+            stable_zip: stableZip.trim() || null,
+            stable_city: stableCity.trim() || null,
+            stable_country: stableCountry || null,
+            stable_contact: stableContact.trim() || null,
+            stable_phone: stablePhone.trim() || null,
+            stable_directions: directions.trim() || null,
           },
         ])
         if (horseError) {
@@ -359,88 +357,7 @@ export default function MobileCustomerForm() {
           </div>
         </section>
 
-        {/* 3. Stalladresse */}
-        <section className="mhf-section">
-          <div className="mhf-s-header">
-            <i className="bi bi-pin-map-fill mhf-s-icon" aria-hidden />
-            <h3>Standort der Pferde</h3>
-            <span className="mhf-s-hint">Wo stehen die Pferde?</span>
-          </div>
-          <div className="mhf-s-body">
-            <div className="mhf-toggle-row">
-              <div className="mhf-toggle-info">
-                <div className="mhf-toggle-title">Stalladresse weicht ab</div>
-                <div className="mhf-toggle-sub">Pferde stehen an einem anderen Ort als die Rechnungsanschrift</div>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={stableDiffers}
-                className={`mhf-toggle-switch ${stableDiffers ? 'on' : ''}`}
-                onClick={() => setStableDiffers((p) => !p)}
-              />
-            </div>
-            {stableDiffers && (
-              <>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Stalladresse suchen</label>
-                  <AddressAutocomplete
-                    placeholder="z. B. Am Waldrand 7, 53567 Asbach"
-                    onSelect={(a: AddressSuggestion) => {
-                      setStableStreet(a.street)
-                      setStableZip(a.zip)
-                      setStableCity(a.city)
-                      if (a.country) setStableCountry(a.country)
-                    }}
-                    className="mhf-f-input"
-                  />
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Name des Stalls / Hofs</label>
-                  <input value={stableName} onChange={(e) => setStableName(e.target.value)} className="mhf-f-input" placeholder="z. B. Reiterhof Sonnental" />
-                  <div className="mhf-f-hint">So findest du den Stall schnell wieder</div>
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Straße & Hausnummer</label>
-                  <input value={stableStreet} onChange={(e) => setStableStreet(e.target.value)} className="mhf-f-input" placeholder="z. B. Am Waldrand 7" />
-                </div>
-                <div className="mhf-f-row">
-                  <div className="mhf-f-group">
-                    <label className="mhf-f-label">PLZ</label>
-                    <input value={stableZip} onChange={(e) => setStableZip(e.target.value)} className="mhf-f-input" placeholder="z. B. 53567" />
-                  </div>
-                  <div className="mhf-f-group">
-                    <label className="mhf-f-label">Ort</label>
-                    <input value={stableCity} onChange={(e) => setStableCity(e.target.value)} className="mhf-f-input" placeholder="z. B. Asbach" />
-                  </div>
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Land</label>
-                  <select value={stableCountry} onChange={(e) => setStableCountry(e.target.value)} className="mhf-f-select">
-                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Ansprechpartner vor Ort</label>
-                  <input value={stableContact} onChange={(e) => setStableContact(e.target.value)} className="mhf-f-input" placeholder="z. B. Stallbesitzer Hans Müller" />
-                  <div className="mhf-f-hint">Falls du vor Ort jemand anderen triffst als den Kunden</div>
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Telefon vor Ort</label>
-                  <input value={stablePhone} onChange={(e) => setStablePhone(e.target.value)} className="mhf-f-input" placeholder="z. B. 02683 1234" type="tel" />
-                  <div className="mhf-f-hint">Stalltelefon oder Ansprechpartner-Handy</div>
-                </div>
-                <div className="mhf-f-group">
-                  <label className="mhf-f-label">Anfahrtshinweis</label>
-                  <input value={directions} onChange={(e) => setDirections(e.target.value)} className="mhf-f-input" placeholder="z. B. Hofeinfahrt links, hinter Scheune" />
-                  <div className="mhf-f-hint">Besondere Hinweise zur Anfahrt</div>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* 4. Terminpräferenzen */}
+        {/* 3. Terminpräferenzen */}
         <section className="mhf-section">
           <div className="mhf-s-header">
             <i className="bi bi-calendar3 mhf-s-icon" aria-hidden />
@@ -489,7 +406,7 @@ export default function MobileCustomerForm() {
           </div>
         </section>
 
-        {/* 5. Notizen & Sonstiges */}
+        {/* 4. Notizen & Sonstiges */}
         <section className="mhf-section">
           <div className="mhf-s-header">
             <i className="bi bi-chat-quote-fill mhf-s-icon" aria-hidden />
@@ -513,7 +430,7 @@ export default function MobileCustomerForm() {
           </div>
         </section>
 
-        {/* 6. Erstes Pferd direkt anlegen */}
+        {/* 5. Erstes Pferd direkt anlegen */}
         <section className={`mhf-section ${errorFields.includes('horseName') ? 'mhf-field-error' : ''}`}>
           <div className="mhf-s-header">
             <i className="bi bi-plus-circle-fill mhf-s-icon" aria-hidden />
@@ -577,6 +494,65 @@ export default function MobileCustomerForm() {
                   <label className="mhf-f-label">Besonderheiten / Hufhistorie</label>
                   <textarea value={horseSpecialNotes} onChange={(e) => setHorseSpecialNotes(e.target.value)} className="mhf-f-textarea" placeholder="z. B. Wurde früher beschlagen, seit 2023 barhuf." rows={2} />
                   <div className="mhf-f-hint">Medizinische Hinweise, Hufprobleme, Verhaltensbesonderheiten</div>
+                </div>
+
+                <div className="mhf-s-header" style={{ marginTop: 18 }}>
+                  <i className="bi bi-pin-map-fill mhf-s-icon" aria-hidden />
+                  <h3>Stall / Standort dieses Pferdes</h3>
+                  <span className="mhf-s-hint">Optional – für Route &amp; Anfahrt</span>
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Stalladresse suchen</label>
+                  <AddressAutocomplete
+                    placeholder="z. B. Am Waldrand 7, 53567 Asbach"
+                    onSelect={(a: AddressSuggestion) => {
+                      setStableStreet(a.street)
+                      setStableZip(a.zip)
+                      setStableCity(a.city)
+                      if (a.country) setStableCountry(a.country)
+                    }}
+                    className="mhf-f-input"
+                  />
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Name des Stalls / Hofs</label>
+                  <input value={stableName} onChange={(e) => setStableName(e.target.value)} className="mhf-f-input" placeholder="z. B. Reiterhof Sonnental" />
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Straße & Hausnummer</label>
+                  <input value={stableStreet} onChange={(e) => setStableStreet(e.target.value)} className="mhf-f-input" placeholder="z. B. Am Waldrand 7" />
+                </div>
+                <div className="mhf-f-row">
+                  <div className="mhf-f-group">
+                    <label className="mhf-f-label">PLZ</label>
+                    <input value={stableZip} onChange={(e) => setStableZip(e.target.value)} className="mhf-f-input" placeholder="z. B. 53567" />
+                  </div>
+                  <div className="mhf-f-group">
+                    <label className="mhf-f-label">Ort</label>
+                    <input value={stableCity} onChange={(e) => setStableCity(e.target.value)} className="mhf-f-input" placeholder="z. B. Asbach" />
+                  </div>
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Land</label>
+                  <select value={stableCountry} onChange={(e) => setStableCountry(e.target.value)} className="mhf-f-select">
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Ansprechpartner vor Ort</label>
+                  <input value={stableContact} onChange={(e) => setStableContact(e.target.value)} className="mhf-f-input" placeholder="z. B. Stallbesitzer Hans Müller" />
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Telefon vor Ort</label>
+                  <input value={stablePhone} onChange={(e) => setStablePhone(e.target.value)} className="mhf-f-input" placeholder="z. B. 02683 1234" type="tel" />
+                </div>
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Anfahrtshinweis</label>
+                  <input value={directions} onChange={(e) => setDirections(e.target.value)} className="mhf-f-input" placeholder="z. B. Hofeinfahrt links, hinter Scheune" />
                 </div>
               </>
             )}

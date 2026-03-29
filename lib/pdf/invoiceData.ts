@@ -13,6 +13,8 @@ type InvoiceRow = {
   service_date_from: string | null
   service_date_to: string | null
   payment_due_date: string | null
+  sent_at?: string | null
+  paid_at?: string | null
   intro_text: string | null
   footer_text: string | null
   customer_id: string | null
@@ -98,12 +100,13 @@ export async function fetchInvoicePdfData(
   userId: string,
   invoiceId: string
 ): Promise<InvoicePdfData | null> {
-  const { data: inv, error: invErr } = await supabase
+  const { data: invRaw, error: invErr } = await supabase
     .from("invoices")
-    .select("id, invoice_number, invoice_date, service_date_from, service_date_to, payment_due_date, intro_text, footer_text, customer_id, buyer_name, buyer_company, buyer_street, buyer_zip, buyer_city, buyer_country")
+    .select("*")
     .eq("id", invoiceId)
     .eq("user_id", userId)
-    .single<InvoiceRow>()
+    .single()
+  const inv = invRaw as InvoiceRow | null
 
   if (invErr || !inv) return null
 
@@ -164,6 +167,8 @@ export async function fetchInvoicePdfData(
     customerNumberDisplay: customerNumberDisplay ?? undefined,
     invoiceNumber: inv.invoice_number,
     invoiceDate: inv.invoice_date,
+    sentAt: inv.sent_at ?? null,
+    paidAt: inv.paid_at ?? null,
     serviceDateFrom: inv.service_date_from,
     serviceDateTo: inv.service_date_to,
     paymentDueDate: inv.payment_due_date,

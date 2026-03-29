@@ -5,6 +5,11 @@ import { createRecord, updateRecord } from '@/app/(app)/horses/[id]/records/acti
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { deriveAppProfile } from '@/lib/appProfile'
 import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
+import {
+  loadRecordDetailFromDocumentation,
+  type RecordDetailHoofPhoto,
+  type RecordDetailHoofRecord,
+} from '@/lib/documentation/loadRecordForDetailView'
 
 type EditRecordPageProps = {
   params: Promise<{
@@ -21,17 +26,15 @@ type HorseRow = {
   birth_year: number | null
   special_notes: string | null
   notes: string | null
+  stable_name: string | null
+  stable_city: string | null
   customers:
     | {
         name: string | null
-        stable_name: string | null
-        stable_city: string | null
         city: string | null
       }
     | {
         name: string | null
-        stable_name: string | null
-        stable_city: string | null
         city: string | null
       }[]
     | null
@@ -53,6 +56,9 @@ type HoofRecordRow = HoofRecordBase & {
   hoofs_json?: unknown
   checklist_json?: unknown
 }
+
+type HoofRecord = RecordDetailHoofRecord
+type HoofPhoto = RecordDetailHoofPhoto
 
 function getRelation<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? value[0] ?? null : value
@@ -88,10 +94,10 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         birth_year,
         special_notes,
         notes,
+        stable_name,
+        stable_city,
         customers (
           name,
-          stable_name,
-          stable_city,
           city
         )
       `
@@ -100,34 +106,97 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
     .eq('user_id', user.id)
     .single<HorseRow>()
 
-  const { data: record, error: recordError } = await supabase
-    .from('hoof_records')
-    .select('id, record_date, hoof_condition, treatment, notes')
-    .eq('id', recordId)
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .single<HoofRecordBase>()
+  const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
 
-  if (recordError || !record) {
-    return (
-      <main className="max-w-[1200px]">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-          <h1 className="text-xl font-semibold text-red-700">Dokumentation nicht gefunden</h1>
-        </div>
-      </main>
-    )
-  }
+  let record: HoofRecord
+  let photoRowsForDisplay: HoofPhoto[]
+  let extended: Pick<
+    HoofRecordRow,
+    'general_condition' | 'gait' | 'handling_behavior' | 'horn_quality' | 'hoofs_json' | 'checklist_json'
+  > | null = null
+  /** hoof_photos-Zeilen für ID-Zuordnung (Löschen/Writer erwarten hoof_photos.id) */
+  let hoofPhotoRowsForIds: HoofPhoto[] = []
 
-  let extended: Pick<HoofRecordRow, 'general_condition' | 'gait' | 'handling_behavior' | 'horn_quality' | 'hoofs_json' | 'checklist_json'> | null = null
-  const { data: extendedRow } = await supabase
-    .from('hoof_records')
-    .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json')
-    .eq('id', recordId)
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (extendedRow) {
-    extended = extendedRow as Pick<HoofRecordRow, 'general_condition' | 'gait' | 'handling_behavior' | 'horn_quality' | 'hoofs_json' | 'checklist_json'>
+  if (docLoad.ok) {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[record-edit] Quelle: documentation_*', { recordId })
+    }
+    record = docLoad.record
+    photoRowsForDisplay = docLoad.photos
+
+    const { data: checklistRow } = await supabase
+      .from('hoof_records')
+      .select('checklist_json')
+      .eq('id', recordId)
+      .eq('horse_id', horseId)
+      .eq('user_id', user.id)
+      .maybeSingle<{ checklist_json?: unknown }>()
+
+    extended = {
+      general_condition: record.general_condition ?? null,
+      gait: record.gait ?? null,
+      handling_behavior: record.handling_behavior ?? null,
+      horn_quality: record.horn_quality ?? null,
+      hoofs_json: record.hoofs_json ?? null,
+      checklist_json: checklistRow?.checklist_json ?? null,
+    }
+
+    const { data: hoofPhotos } = await supabase
+      .from('hoof_photos')
+      .select('id, file_path, photo_type, annotations_json, width, height')
+      .eq('hoof_record_id', recordId)
+      .eq('user_id', user.id)
+      .returns<HoofPhoto[]>()
+
+    hoofPhotoRowsForIds = hoofPhotos ?? []
+  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[record-edit] Fallback: hoof_*', { recordId, reason: docLoad.reason })
+    }
+
+    const { data: recordBase, error: recordError } = await supabase
+      .from('hoof_records')
+      .select('id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at')
+      .eq('id', recordId)
+      .eq('horse_id', horseId)
+      .eq('user_id', user.id)
+      .single<HoofRecord>()
+
+    if (recordError || !recordBase) {
+      return (
+        <main className="max-w-[1200px]">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <h1 className="text-xl font-semibold text-red-700">Dokumentation nicht gefunden</h1>
+          </div>
+        </main>
+      )
+    }
+
+    const { data: extRow } = await supabase
+      .from('hoof_records')
+      .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json')
+      .eq('id', recordId)
+      .eq('horse_id', horseId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (extRow) {
+      extended = extRow as Pick<
+        HoofRecordRow,
+        'general_condition' | 'gait' | 'handling_behavior' | 'horn_quality' | 'hoofs_json' | 'checklist_json'
+      >
+    }
+
+    record = { ...recordBase, ...(extRow ?? {}) }
+
+    const { data: hoofPhotos } = await supabase
+      .from('hoof_photos')
+      .select('id, file_path, photo_type, annotations_json, width, height')
+      .eq('hoof_record_id', recordId)
+      .eq('user_id', user.id)
+      .returns<HoofPhoto[]>()
+
+    photoRowsForDisplay = hoofPhotos ?? []
+    hoofPhotoRowsForIds = hoofPhotos ?? []
   }
 
   const customer = getRelation(horseRow?.customers ?? null)
@@ -141,8 +210,8 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         birthYear: horseRow.birth_year,
         customerName: customer?.name || 'Kunde',
         stableName:
-          customer?.stable_name ||
-          customer?.stable_city ||
+          horseRow.stable_name ||
+          horseRow.stable_city ||
           customer?.city ||
           null,
         memo: horseRow.special_notes || horseRow.notes || null,
@@ -210,11 +279,10 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
     )
   }
 
-  const { data: photos } = await supabase
-    .from('hoof_photos')
-    .select('id, file_path, photo_type, annotations_json, width, height')
-    .eq('hoof_record_id', recordId)
-    .eq('user_id', user.id)
+  const hoofBySlot = new Map<string, HoofPhoto>()
+  for (const h of hoofPhotoRowsForIds) {
+    if (h.photo_type) hoofBySlot.set(h.photo_type, h)
+  }
 
   const existingPhotos: {
     id: string
@@ -225,11 +293,12 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
     height?: number | null
   }[] = []
   const existingPhotoUrls: Record<string, string> = {}
-  if (photos?.length) {
-    for (const p of photos) {
+  if (photoRowsForDisplay.length) {
+    for (const p of photoRowsForDisplay) {
       if (!p.file_path || !p.photo_type) continue
+      const hoofMatch = hoofBySlot.get(p.photo_type)
       existingPhotos.push({
-        id: p.id,
+        id: hoofMatch?.id ?? p.id,
         file_path: p.file_path,
         photo_type: p.photo_type,
         annotations_json: p.annotations_json ?? undefined,

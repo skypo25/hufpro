@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import HorseForm from '@/components/horses/HorseForm'
 import { emptyHorseFormData } from '@/components/horses/horseFormDefaults'
+import AnimalForm from '@/components/animals/AnimalForm'
+import { deriveAppProfile, animalsNavLabel, newAnimalButtonLabel } from '@/lib/appProfile'
 
 type NewHorsePageProps = {
   searchParams: Promise<{
@@ -22,6 +24,15 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
   }
 
   const { customerId } = await searchParams
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const term = profile.terminology
 
   const { data: customers, error } = await supabase
     .from('customers')
@@ -49,30 +60,34 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/horses" className="text-[#52b788] hover:underline">
-          Pferde
+        <Link href="/animals" className="text-[#52b788] hover:underline">
+          {animalsNavLabel(term)}
         </Link>
         <span>›</span>
-        <span>Neues Pferd anlegen</span>
+        <span>{newAnimalButtonLabel(term)}</span>
       </div>
 
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
-          Neues Pferd anlegen
+          {newAnimalButtonLabel(term)}
         </h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">
           Pflichtfelder sind mit * gekennzeichnet
         </p>
       </div>
 
-      <HorseForm
-        mode="create"
-        customers={customers || []}
-        initialData={{
-          ...emptyHorseFormData,
-          customerId: customerId || '',
-        }}
-      />
+      {profile.requiresAnimalTypeChoice ? (
+        <AnimalForm customers={customers || []} initialCustomerId={customerId || ''} />
+      ) : (
+        <HorseForm
+          mode="create"
+          customers={customers || []}
+          initialData={{
+            ...emptyHorseFormData,
+            customerId: customerId || '',
+          }}
+        />
+      )}
     </main>
   )
 }

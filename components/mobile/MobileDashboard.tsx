@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import DashboardAnimatedSection from '@/components/dashboard/DashboardAnimatedSection'
+import { useAppProfile } from '@/context/AppProfileContext'
+import {
+  animalsNavLabel,
+  dashboardAnimalsBetreutLabel,
+  newAnimalButtonLabel,
+} from '@/lib/appProfile'
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
 
 const BAR_CONTAINER_HEIGHT = 80
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
@@ -62,8 +71,28 @@ function MobileUmsatzBars({ monthlyCents, totalCents }: MobileUmsatzBarsProps) {
 
 const UMSATZ_LABEL = 'Umsatz (bezahlte & offene Rechnungen)'
 
-type TodayAppointment = { id: string; time: string; name: string; detail: string; status: string; navAddress?: string }
-type UpcomingItem = { id: string; day: string; month: string; title: string; sub: string; navAddress?: string }
+type DashboardAnimal = { name: string; animalType: string | null }
+
+type TodayAppointment = {
+  id: string
+  time: string
+  name: string
+  animals: DashboardAnimal[]
+  notes: string | null
+  status: string
+  navAddress?: string
+}
+
+type UpcomingItem = {
+  id: string
+  day: string
+  month: string
+  customerName: string
+  animals: DashboardAnimal[]
+  time: string
+  notes: string | null
+  navAddress?: string
+}
 
 /** URL für Navigation zur Adresse je nach gewählter App (Standard: Google) */
 function getNavUrl(app: 'apple' | 'google' | 'waze', address: string): string {
@@ -92,7 +121,7 @@ function getGreeting(firstName: string | null): string {
 }
 
 const ACTIVITIES = [
-  { dot: 'gray' as const, text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
+  { dot: 'gray' as const, text: 'Neue Termine, Kunden und Tiere erscheinen hier als Nächstes.' },
   { dot: 'green' as const, text: 'Die Box ist vorbereitet und kann später mit echten Aktivitäten befüllt werden.' },
   { dot: 'blue' as const, text: 'Dashboard-Stil wurde an dein Wunschlayout angepasst.' },
 ]
@@ -179,6 +208,9 @@ const DEFAULT_STATS: StatItem[] = [
 ]
 
 export default function MobileDashboard() {
+  const { profile } = useAppProfile()
+  const term = profile.terminology
+
   const [monthlyRevenueCents, setMonthlyRevenueCents] = useState<number[]>(() => Array(12).fill(0))
   const [totalRevenueCents, setTotalRevenueCents] = useState(0)
   const [userFirstName, setUserFirstName] = useState<string | null>(null)
@@ -188,6 +220,18 @@ export default function MobileDashboard() {
   const [todayAppointments, setTodayAppointments] = useState<TodayAppointment[]>([])
   const [upcomingItems, setUpcomingItems] = useState<UpcomingItem[]>([])
   const [preferredNavApp, setPreferredNavApp] = useState<'apple' | 'google' | 'waze'>('google')
+
+  useEffect(() => {
+    const animalsLabel = dashboardAnimalsBetreutLabel(term)
+    setStats((prev) => {
+      const idx = prev.findIndex((r) => r.sub === 'im System')
+      if (idx < 0) return prev
+      if (prev[idx].label === animalsLabel) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], label: animalsLabel }
+      return next
+    })
+  }, [term])
 
   useEffect(() => {
     let cancelled = false
@@ -277,7 +321,7 @@ export default function MobileDashboard() {
           <div className="ts-divider" />
           <div className="ts-item">
             <div className="ts-value">{todayStrip.pferde}</div>
-            <div className="ts-label">Pferde</div>
+            <div className="ts-label">{animalsNavLabel(term)}</div>
           </div>
           <div className="ts-divider" />
           <div className="ts-item">
@@ -294,9 +338,9 @@ export default function MobileDashboard() {
               <div className="qa-icon"><IconUserPlus /></div>
               Kunde anlegen
             </Link>
-            <Link href="/horses/new" className="qa">
+            <Link href="/animals/new" className="qa">
               <div className="qa-icon"><IconPlus /></div>
-              Pferd anlegen
+              {newAnimalButtonLabel(term)}
             </Link>
             <Link href="/appointments/new" className="qa">
               <div className="qa-icon"><IconCalendar /></div>
@@ -334,7 +378,14 @@ export default function MobileDashboard() {
                 </div>
                 <div className="apt-info">
                   <div className="apt-name">{apt.name}</div>
-                  <div className="apt-detail">{apt.detail}</div>
+                  <div className="apt-detail">
+                    <AppointmentAnimalsInline
+                      animals={apt.animals}
+                      inheritTextStyle
+                      iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                    />
+                    {apt.notes ? ` · ${apt.notes}` : ''}
+                  </div>
                 </div>
                 <span className="apt-badge ok">{apt.status}</span>
               </div>
@@ -386,8 +437,23 @@ export default function MobileDashboard() {
                     <div className="ni-month">{item.month}</div>
                   </div>
                   <div className="ni-info">
-                    <div className="ni-title">{item.title}</div>
-                    <div className="ni-sub">{item.sub}</div>
+                    <div className="ni-title flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                      <span>{item.customerName}</span>
+                      {item.animals.length > 0 ? (
+                        <>
+                          <span className="text-[#9CA3AF]">·</span>
+                          <AppointmentAnimalsInline
+                            animals={item.animals}
+                            inheritTextStyle
+                            iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                          />
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="ni-sub">
+                      {item.time}
+                      {item.notes ? ` · ${item.notes}` : ''}
+                    </div>
                   </div>
                   <div className="ni-chevron">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}><polyline points="9 18 15 12 9 6" /></svg>

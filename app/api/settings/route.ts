@@ -11,7 +11,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   'invoicePrefix', 'nextInvoiceNumber', 'currency', 'invoiceDelivery', 'invoiceTextTop', 'invoiceTextBottom',
   'services', 'logoUrl',
   'smtpHost', 'smtpPort', 'smtpSecure', 'smtpUser', 'smtpPassword', 'smtpFromEmail', 'smtpFromName',
-  'preferredNavApp', 'emailReminders', 'pushNotifications', 'dailySummary',
+  'preferredNavApp', 'emailReminders', 'appointmentReminderDefaultMinutes', 'pushNotifications', 'dailySummary',
   'onboarding_complete',
 ])
 

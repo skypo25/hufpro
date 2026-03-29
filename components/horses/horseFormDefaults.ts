@@ -13,4 +13,12 @@ export const emptyHorseFormData: HorseFormInitialData = {
   careInterval: '',
   specialNotes: '',
   notes: '',
+  stableName: '',
+  stableStreet: '',
+  stableZip: '',
+  stableCity: '',
+  stableCountry: 'Deutschland',
+  stableContact: '',
+  stablePhone: '',
+  stableDirections: '',
 }

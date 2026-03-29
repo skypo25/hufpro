@@ -47,6 +47,10 @@ export type InvoicePdfData = {
   customerNumberDisplay?: string | null
   invoiceNumber: string
   invoiceDate: string
+  /** ISO: erste Buchung als versendet (optional, für Anzeige/PDF) */
+  sentAt?: string | null
+  /** ISO: Zahlungseingang (optional) */
+  paidAt?: string | null
   serviceDateFrom: string | null
   serviceDateTo: string | null
   paymentDueDate: string | null

@@ -339,6 +339,12 @@ export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
               <Text style={styles.metaContentBold}>Rechnungsnummer:</Text> {data.invoiceNumber}{"\n"}
               <Text style={styles.metaContentBold}>Rechnungsdatum:</Text> {formatDate(data.invoiceDate)}
               {data.paymentDueDate ? `\n` : ""}{data.paymentDueDate ? <><Text style={styles.metaContentBold}>Zahlungsziel:</Text> {formatDate(data.paymentDueDate)}</> : ""}
+              {data.sentAt
+                ? `\nVersendet: ${formatDateShort(data.sentAt)}`
+                : ""}
+              {data.paidAt
+                ? `\nZahlungseingang: ${formatDateShort(data.paidAt)}`
+                : ""}
             </Text>
           </View>
         </View>

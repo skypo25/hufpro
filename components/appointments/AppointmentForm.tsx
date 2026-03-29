@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHorse } from '@fortawesome/free-solid-svg-icons'
@@ -11,25 +11,14 @@ import AppointmentTypePicker from './AppointmentTypePicker'
 import AppointmentSidebar from './AppointmentSidebar'
 import TimePicker from '@/components/form/TimePicker'
 import type { AppointmentFormProps } from './types'
-
-function getSuggestedDuration(selectedHorseCount: number) {
-  if (selectedHorseCount <= 1) return '45 Minuten'
-  if (selectedHorseCount === 2) return '60 Minuten'
-  if (selectedHorseCount === 3) return '90 Minuten'
-  return '120 Minuten'
-}
-
-function durationLabelToMinutes(duration: string) {
-  const map: Record<string, number> = {
-    '30 Minuten': 30,
-    '45 Minuten': 45,
-    '60 Minuten': 60,
-    '90 Minuten': 90,
-    '120 Minuten': 120,
-  }
-
-  return map[duration] || 45
-}
+import {
+  durationLabelToMinutesForWrite,
+  getSuggestedDurationLabelDesktop,
+} from '@/lib/appointments/appointmentDuration'
+import {
+  formValueToReminderMinutesBefore,
+  reminderOptionsForSelect,
+} from '@/lib/appointments/reminderOptions'
 
 export default function AppointmentForm({
   mode,
@@ -37,6 +26,7 @@ export default function AppointmentForm({
   horses,
   initialData,
   dayItems = [],
+  emailRemindersEnabled = true,
 }: AppointmentFormProps) {
   const router = useRouter()
 
@@ -49,11 +39,27 @@ export default function AppointmentForm({
   const [duration, setDuration] = useState(initialData.duration)
   const [notes, setNotes] = useState(initialData.notes)
   const [status, setStatus] = useState(initialData.status)
+  const [reminderSelect, setReminderSelect] = useState(
+    initialData.reminderMinutesBefore == null
+      ? ''
+      : String(initialData.reminderMinutesBefore)
+  )
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const messageBoxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!message.trim() || !messageBoxRef.current) return
+    messageBoxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [message])
 
   const selectedCustomer =
     customers.find((customer) => customer.id === selectedCustomerId) || null
+
+  const reminderOptions = useMemo(
+    () => reminderOptionsForSelect(initialData.reminderMinutesBefore),
+    [initialData.reminderMinutesBefore]
+  )
 
   const customerHorses = useMemo(() => {
     return horses.filter((horse) => horse.customer_id === selectedCustomerId)
@@ -71,10 +77,10 @@ export default function AppointmentForm({
 
     if (horsesForCustomer.length === 1) {
       setSelectedHorseIds([horsesForCustomer[0].id])
-      setDuration(getSuggestedDuration(1))
+      setDuration(getSuggestedDurationLabelDesktop(1))
     } else {
       setSelectedHorseIds([])
-      setDuration(getSuggestedDuration(0))
+      setDuration(getSuggestedDurationLabelDesktop(0))
     }
   }
 
@@ -82,7 +88,7 @@ export default function AppointmentForm({
     setSelectedCustomerId('')
     setSelectedHorseIds([])
     setCustomerSearch('')
-    setDuration(getSuggestedDuration(0))
+    setDuration(getSuggestedDurationLabelDesktop(0))
     setMessage('')
   }
 
@@ -92,7 +98,7 @@ export default function AppointmentForm({
     setSelectedHorseIds((prev) => {
       const exists = prev.includes(horseId)
       const next = exists ? prev.filter((id) => id !== horseId) : [...prev, horseId]
-      setDuration(getSuggestedDuration(next.length))
+      setDuration(getSuggestedDurationLabelDesktop(next.length))
       return next
     })
   }
@@ -136,7 +142,17 @@ export default function AppointmentForm({
     }
 
     const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`
-    const durationMinutes = durationLabelToMinutes(duration)
+    const durationMinutes = durationLabelToMinutesForWrite(duration)
+    const prevReminderStored = initialData.reminderMinutesBefore ?? null
+    const nextReminder =
+      mode === 'create'
+        ? emailRemindersEnabled
+          ? formValueToReminderMinutesBefore(reminderSelect)
+          : null
+        : emailRemindersEnabled
+          ? formValueToReminderMinutesBefore(reminderSelect)
+          : prevReminderStored
+
     let appointmentIdToNotify: string | null = null
 
     if (mode === 'create') {
@@ -149,6 +165,7 @@ export default function AppointmentForm({
           type: appointmentType,
           status,
           duration_minutes: durationMinutes,
+          reminder_minutes_before: nextReminder,
           user_id: user.id,
         })
         .select('id')
@@ -189,6 +206,10 @@ export default function AppointmentForm({
         return
       }
 
+      const prevIso = `${initialData.appointmentDate}T${initialData.appointmentTime}:00`
+      const clearReminderSent =
+        prevIso !== appointmentDateTime || prevReminderStored !== nextReminder
+
       const { error: updateError } = await supabase
         .from('appointments')
         .update({
@@ -198,6 +219,10 @@ export default function AppointmentForm({
           type: appointmentType,
           status,
           duration_minutes: durationMinutes,
+          reminder_minutes_before: nextReminder,
+          ...(clearReminderSent
+            ? { reminder_email_sent_at: null, reminder_email_error: null }
+            : {}),
         })
         .eq('id', initialData.appointmentId)
         .eq('user_id', user.id)
@@ -246,6 +271,9 @@ export default function AppointmentForm({
       status === 'Bestätigt' &&
       appointmentIdToNotify &&
       (mode === 'create' || initialData.status !== 'Bestätigt')
+
+    let postSaveEmailNotice: string | null = null
+
     if (sendConfirmationEmail) {
       try {
         const res = await fetch('/api/email/appointment-confirmed', {
@@ -255,10 +283,11 @@ export default function AppointmentForm({
         })
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         if (!res.ok && data.error) {
-          setMessage(`Termin gespeichert. E-Mail an den Kunden konnte nicht versendet werden: ${data.error}`)
+          postSaveEmailNotice = `Termin gespeichert. E-Mail an den Kunden konnte nicht versendet werden: ${data.error}`
         }
       } catch {
-        setMessage('Termin gespeichert. E-Mail-Benachrichtigung konnte nicht gesendet werden.')
+        postSaveEmailNotice =
+          'Termin gespeichert. E-Mail-Benachrichtigung konnte nicht gesendet werden.'
       }
     }
 
@@ -266,6 +295,7 @@ export default function AppointmentForm({
       status === 'Vorgeschlagen' &&
       appointmentIdToNotify &&
       (mode === 'create' || initialData.status !== 'Vorgeschlagen')
+
     if (sendProposedEmail) {
       try {
         const res = await fetch('/api/email/appointment-proposed', {
@@ -275,13 +305,21 @@ export default function AppointmentForm({
         })
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         if (!res.ok && data.error) {
-          setMessage(`Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht versendet werden: ${data.error}`)
+          postSaveEmailNotice = `Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht versendet werden: ${data.error}`
         }
       } catch {
-        setMessage('Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht gesendet werden.')
+        postSaveEmailNotice =
+          'Termin gespeichert. E-Mail mit Bestätigungs-Link konnte nicht gesendet werden.'
       }
     }
 
+    if (postSaveEmailNotice) {
+      setMessage(postSaveEmailNotice)
+      setLoading(false)
+      return
+    }
+
+    setLoading(false)
     router.push('/calendar')
     router.refresh()
   }
@@ -313,7 +351,7 @@ export default function AppointmentForm({
 
         <div className="huf-card">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
               <FontAwesomeIcon icon={faHorse} className="text-[14px]" />
             </div>
             <h3 className="dashboard-serif flex-1 text-[16px] text-[#1B1F23]">
@@ -401,6 +439,32 @@ export default function AppointmentForm({
                   <option>120 Minuten</option>
                 </select>
               </div>
+
+              <div>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
+                  E-Mail-Erinnerung (Kund:in)
+                </label>
+                <select
+                  value={reminderSelect}
+                  onChange={(e) => setReminderSelect(e.target.value)}
+                  disabled={!emailRemindersEnabled}
+                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {reminderOptions.map((o) => (
+                    <option
+                      key={o.label}
+                      value={o.minutes == null ? '' : String(o.minutes)}
+                    >
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-[#9CA3AF]">
+                  {emailRemindersEnabled
+                    ? 'Benötigt SMTP und E-Mail beim Kunden. Standardwert unter Einstellungen → Benachrichtigungen.'
+                    : 'Termin-Erinnerungen sind in den Einstellungen unter „Benachrichtigungen“ deaktiviert.'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -451,7 +515,16 @@ export default function AppointmentForm({
             </div>
 
             {message && (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div
+                ref={messageBoxRef}
+                role="alert"
+                aria-live="assertive"
+                className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
+                  message.startsWith('Termin gespeichert.')
+                    ? 'border-amber-200 bg-amber-50 text-amber-900'
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}
+              >
                 {message}
               </div>
             )}

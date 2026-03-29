@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import type { InvoicePdfData } from '@/lib/pdf/invoiceTypes'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -25,6 +26,19 @@ function formatDateShort(d: string | null | undefined) {
   return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
+function formatDateTime(d: string | null | undefined) {
+  if (!d) return '–'
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return d
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
 }
@@ -46,6 +60,9 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
   const sellerAddress = formatAddress([seller.street, [seller.zip, seller.city].filter(Boolean).join(' '), seller.country])
   const buyerAddress = formatAddress([buyer.street, [buyer.zip, buyer.city].filter(Boolean).join(' '), buyer.country])
 
+  const [sending, setSending] = useState(false)
+  const [sendMsg, setSendMsg] = useState<string | null>(null)
+
   const statusLabel = status === 'paid' ? 'Bezahlt' : status === 'sent' ? 'Offen' : status === 'cancelled' ? 'Storniert' : 'Entwurf'
   const statusClass =
     status === 'paid'
@@ -55,6 +72,29 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
         : status === 'cancelled'
           ? 'bg-[#F3F4F6] text-[#9CA3AF]'
           : 'bg-[#F3F4F6] text-[#6B7280]'
+
+  const handleSendEmail = async () => {
+    setSendMsg(null)
+    setSending(true)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
+      }
+      const to = (json as { to?: string })?.to
+      setSendMsg(to ? `E-Mail wurde an ${to} versendet.` : 'E-Mail wurde versendet.')
+    } catch (e) {
+      setSendMsg(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-[#F7F6F3] px-5 py-10">
@@ -93,15 +133,30 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
             <FontAwesomeIcon icon={faFilePdf} className="h-4 w-4" />
             PDF herunterladen
           </a>
-          <button
-            type="button"
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
-          >
-            <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
-            Per E-Mail senden
-          </button>
+          {data.sentAt ? (
+            <span className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23]">
+              <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4 text-[#52b788]" />
+              Gesendet am {formatDateTime(data.sentAt)}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void handleSendEmail()}
+              disabled={sending}
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#0f301b]"
+            >
+              <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
+              {sending ? 'Sende…' : 'Per E-Mail senden'}
+            </button>
+          )}
         </div>
       </div>
+
+      {sendMsg && (
+        <div className="mb-5 w-full max-w-[820px] rounded-lg border border-[#E5E2DC] bg-white px-4 py-3 text-[13px] text-[#1B1F23] shadow-sm print:hidden">
+          {sendMsg}
+        </div>
+      )}
 
       {/* Invoice card */}
       <div className="w-full max-w-[820px] overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
@@ -164,6 +219,18 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
                   <><strong>Leistungsdatum:</strong> {formatDateShort(data.serviceDateFrom || data.serviceDateTo)}<br /></>
                 )}
                 <strong>Zahlungsziel:</strong> {data.paymentDueDate ? formatDate(data.paymentDueDate) : '–'}
+                {data.sentAt && (
+                  <>
+                    <br />
+                    <strong>Versendet:</strong> {formatDateShort(data.sentAt)}
+                  </>
+                )}
+                {data.paidAt && (
+                  <>
+                    <br />
+                    <strong>Zahlungseingang:</strong> {formatDateShort(data.paidAt)}
+                  </>
+                )}
               </div>
             </div>
           </div>

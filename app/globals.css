@@ -387,8 +387,8 @@ button.huf-btn-dark {
 }
 .mobile-app .ts-value {
   font-family: var(--font-outfit), "Outfit", sans-serif;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
 }
 .mobile-app .ts-label {
   font-size: 10px;
@@ -491,8 +491,8 @@ button.huf-btn-dark {
 }
 .mobile-app .stat-value {
   font-family: var(--font-outfit), "Outfit", sans-serif;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -586,6 +586,20 @@ button.huf-btn-dark {
   color: var(--m-text-secondary);
   margin-top: 2px;
 }
+
+/* Tier-Icons in Terminzeilen: einheitlich 8×8px (Tailwind + FA-SVG) */
+.appt-animal-icons-8 svg,
+.mobile-app .apt-detail svg,
+.mobile-app .cal-apt-detail svg,
+.mobile-app .ni-title svg,
+.mobile-app .cal-dp-value svg {
+  width: 8px !important;
+  height: 8px !important;
+  max-width: 8px;
+  max-height: 8px;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
 .mobile-app .apt-badge {
   padding: 4px 10px;
   border-radius: 6px;
@@ -636,8 +650,8 @@ button.huf-btn-dark {
 }
 .mobile-app .uc-amount {
   font-family: var(--font-outfit), "Outfit", sans-serif;
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   color: var(--m-green);
   letter-spacing: -0.02em;
 }
@@ -1892,17 +1906,29 @@ button.huf-btn-dark {
   min-width: 90px;
   scroll-snap-align: start;
 }
+.mobile-app .horse-stats-row--tier .customer-stat-box {
+  min-width: 82px;
+}
+.mobile-app .horse-filter-bar--sort-only {
+  justify-content: flex-end;
+  width: 100%;
+}
 .mobile-app .horse-icon-svg {
   color: var(--m-green);
 }
+/* Wie .customer-filters: gleicher Abstand zur Liste/Kacheln darunter */
 .mobile-app .horse-filter-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 0;
+  padding: 0 0 4px;
+  margin-bottom: 16px;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  margin-bottom: 8px;
+  touch-action: pan-x;
+  scroll-snap-type: x proximity;
 }
 .mobile-app .horse-filter-bar::-webkit-scrollbar {
   display: none;
@@ -1934,10 +1960,12 @@ button.huf-btn-dark {
   color: #fff;
   border-color: var(--m-accent, #C87941);
 }
+/* Wie .customer-sort-select (Kundenliste) */
 .mobile-app .horse-f-sort {
-  padding: 8px 28px 8px 12px;
-  border-radius: 20px;
-  font-size: 11px;
+  padding: 10px 32px 10px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
   border: 1px solid var(--m-border);
   background: var(--m-card);
   color: var(--m-text);
@@ -1945,14 +1973,16 @@ button.huf-btn-dark {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
   flex-shrink: 0;
+  scroll-snap-align: start;
   outline: none;
   cursor: pointer;
 }
 .mobile-app .horse-view-toggle {
   flex-shrink: 0;
   display: flex;
+  align-items: center;
   gap: 4px;
   margin-left: 4px;
 }
@@ -2500,6 +2530,26 @@ button.huf-btn-dark {
 }
 .mobile-app .section .section-body {
   padding: 16px;
+}
+
+/*
+ * .cd-action-btn ist für die dunkle .cd-action-row (#1b1f23, weiße Schrift) gebaut.
+ * Dieselbe Klasse in hellen Karten / mobile-content = weiße Schrift auf hellem Grund → unsichtbar.
+ */
+.mobile-app .section .section-body a.cd-action-btn,
+.mobile-app .mobile-content a.cd-action-btn {
+  flex: none !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: #52b788 !important;
+  color: #fff !important;
+  border: none !important;
+}
+.mobile-app .section .section-body a.cd-action-btn:active,
+.mobile-app .mobile-content a.cd-action-btn:active {
+  background: #45a077 !important;
+  transform: scale(0.98);
 }
 
 /* Stammdaten-Grid */
@@ -3312,7 +3362,7 @@ button.huf-btn-dark {
 .mce-autocomplete::placeholder { color: #C4C4C4; }
 .mce-autocomplete:focus { border-color: #52b788; box-shadow: 0 0 0 3px rgba(82,183,136,.1); background: #fff; }
 
-/* ─── Mobile Horse Form (Neues Pferd anlegen) ───────────────────────────────── */
+/* ─── Mobile Form-Shell (Tier anlegen/bearbeiten, eingebettete HorseForm/AnimalForm) ─ */
 .mhf-root { background: var(--m-bg, #f6f5f3); min-height: 100dvh; }
 .mhf-header {
   background: #1c2023;
@@ -3336,6 +3386,15 @@ button.huf-btn-dark {
 .mhf-ah-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 4px; }
 
 .mhf-content { padding: 14px 16px 120px; }
+/* HorseForm / AnimalForm in der PWA: volle Breite, leichte Kartenoptik */
+.mobile-app .mobile-form-embed-root .huf-card {
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.mobile-app .mobile-form-embed-root .huf-input,
+.mobile-app .mobile-form-embed-root .huf-input--multiline {
+  font-size: 16px; /* verhindert iOS-Zoom bei Fokus */
+}
 .mhf-loading { padding: 24px; text-align: center; color: var(--m-text-light, #9CA3AF); font-size: 14px; }
 .mhf-field-error { border-color: #DC2626 !important; box-shadow: 0 0 0 2px rgba(220,38,38,.2); }
 .mhf-has-error .mhf-f-input,
@@ -3790,6 +3849,11 @@ button.huf-btn-dark {
 .maf-pferd-item:last-child { margin-bottom: 0; }
 .maf-pferd-item:active { transform: scale(.98); }
 .maf-pferd-item.selected { border-color: #52b788; background: rgba(82,183,136,.06); }
+.maf-pi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .maf-pi-check {
   width: 22px; height: 22px;
   border-radius: 50%;
@@ -3862,19 +3926,34 @@ button.huf-btn-dark {
 .maf-ti-name { font-size: 13px; font-weight: 600; }
 .maf-ti-detail { font-size: 11px; color: var(--m-text-light, #9CA3AF); }
 
+/* minmax(0, …): native date/time inputs haben große Mindestbreite — ohne minmax überlappen die Kästen */
 .maf-datetime-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.85fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr) minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 12px;
+  margin-bottom: 0;
   align-items: end;
 }
-.maf-datetime-row .mhf-f-group { margin-bottom: 0; }
-.maf-time-narrow .mhf-f-input { min-width: 0; }
-@media (max-width: 360px) {
-  .maf-datetime-row { grid-template-columns: 1fr; }
-  .maf-datetime-row .mhf-f-group { margin-bottom: 12px; }
-  .maf-datetime-row .mhf-f-group:last-child { margin-bottom: 0; }
+.maf-datetime-row .mhf-f-group {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.maf-datetime-row .mhf-f-input,
+.maf-datetime-row .mhf-f-select {
+  min-width: 0;
+  max-width: 100%;
+}
+.maf-time-narrow .mhf-f-input {
+  min-width: 0;
+}
+@media (max-width: 380px) {
+  .maf-datetime-row {
+    grid-template-columns: 1fr;
+  }
+  .maf-datetime-row .mhf-f-group {
+    margin-bottom: 0;
+  }
 }
 
 .maf-zf-row {
@@ -4879,6 +4958,8 @@ div.border-gray-200,
   background: #1b1f23;
 }
 .mobile-app .cal-wn-arrow {
+  position: relative;
+  z-index: 2;
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -4902,8 +4983,14 @@ div.border-gray-200,
   font-size: 14px;
   font-weight: 600;
   color: #fff;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mobile-app .cal-wn-today {
+  position: relative;
+  z-index: 2;
   padding: 6px 14px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -4917,6 +5004,21 @@ div.border-gray-200,
 }
 .mobile-app .cal-wn-today:active {
   background: rgba(255, 255, 255, 0.08);
+}
+.mobile-app .cal-filter-week-hint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--m-text-secondary, #6B7280);
+}
+.mobile-app .cal-week-filter-section {
+  margin-bottom: 20px;
+}
+.mobile-app .cal-week-filter-section:last-child {
+  margin-bottom: 0;
+}
+.mobile-app .cal-day-selector--week-filter .cal-day-item:not(.selected) {
+  opacity: 0.55;
 }
 .mobile-app .cal-day-selector {
   display: flex !important;
@@ -5160,11 +5262,8 @@ div.border-gray-200,
 }
 .mobile-app .cal-apt-detail svg,
 .mobile-app .cal-apt-detail .cal-apt-horse-icon {
-  color: var(--m-text-light, #9CA3AF);
+  color: inherit;
   flex-shrink: 0;
-}
-.mobile-app .cal-apt-detail .cal-apt-horse-icon {
-  font-size: 12px;
 }
 .mobile-app .cal-apt-stall {
   font-size: 11px;
@@ -5704,12 +5803,12 @@ div.border-gray-200,
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: var(--apt-accent-bg);
+  background: #edf3ef;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: var(--apt-accent);
+  color: #154226;
   flex-shrink: 0;
 }
 .apt-detail-hi-info {

@@ -1,10 +1,14 @@
 'use client'
 
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
+
 type WeekAppointment = {
   id: string
   customerId: string | null
   customerName: string
-  horseLabel: string
+  linkedAnimals: { name: string; animalType: string | null }[]
   locationLabel: string
   type: string
   status: string
@@ -247,11 +251,15 @@ export default function WeekCalendar({
                     <div
                       className={
                         isPast
-                          ? 'truncate text-[11px] font-normal text-[#6B7280]'
-                          : 'truncate text-[11px] opacity-90'
+                          ? 'appt-animal-icons-8 truncate text-[11px] font-normal text-[#6B7280]'
+                          : 'appt-animal-icons-8 truncate text-[11px] opacity-90'
                       }
                     >
-                      {appointment.horseLabel}
+                      <AppointmentAnimalsInline
+                        animals={appointment.linkedAnimals}
+                        inheritTextStyle
+                        iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                      />
                     </div>
                     <div className={`mt-0.5 truncate text-[10px] ${colors.sub}`}>
                       {appointment.locationLabel}

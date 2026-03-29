@@ -12,22 +12,16 @@ type Customer = {
   phone: string | null
   email: string | null
   city: string | null
-  stable_name?: string | null
-  stable_city?: string | null
 }
 
 export type CustomerCardRow = {
   customer: Customer
+  locationLine: string
   horseCount: number
+  animalsSummary: string
   horseNames: string[]
   nextAppointment: string | null
   nextAppointmentHorseCount: number
-}
-
-function getCustomerLocation(customer: Customer) {
-  return customer.stable_name
-    ? `${customer.stable_city || customer.city || ''} · ${customer.stable_name}`.trim() || '-'
-    : customer.city || '-'
 }
 
 type CustomersCardsAnimatedProps = {
@@ -65,7 +59,7 @@ export default function CustomersCardsAnimated({
       className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 group ${visible ? 'cards-visible' : ''}`}
     >
       {rows.map((row, index) => {
-        const location = getCustomerLocation(row.customer)
+        const location = row.locationLine
         return (
           <Link
             key={row.customer.id}
@@ -91,7 +85,7 @@ export default function CustomersCardsAnimated({
               </div>
 
               <div className="rounded-lg bg-[#edf3ef] px-3 py-1 text-[12px] font-semibold text-[#0f301b]">
-                {row.horseCount} {row.horseCount === 1 ? 'Pferd' : 'Pferde'}
+                {row.animalsSummary}
               </div>
             </div>
 
@@ -124,7 +118,7 @@ export default function CustomersCardsAnimated({
               <span className="truncate text-[12px] text-[#6B7280]">
                 {row.horseNames.length > 0
                   ? row.horseNames.join(' · ')
-                  : 'Keine Pferde'}
+                  : 'Keine Tiere'}
               </span>
               <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#52b788]">
                 Details →

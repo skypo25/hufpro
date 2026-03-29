@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHorse } from '@fortawesome/free-solid-svg-icons'
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
 
 type DayInfo = {
   dateKey: string
@@ -16,7 +17,7 @@ type DayInfo = {
 type AppointmentCard = {
   id: string
   customerName: string
-  horseLabel: string
+  animals: { name: string; animalType: string | null }[]
   stallLabel: string
   time: string
   endTime: string
@@ -116,6 +117,37 @@ function IconPlus() {
   )
 }
 
+/** Kalendertag YYYY-MM-DD ± n Tage (ohne lokale TZ-Verschiebung — konsistent mit Berlin-dateKeys der API). */
+function addDaysToDateKey(dateKey: string, deltaDays: number): string {
+  const parts = dateKey.split('-').map(Number)
+  const y = parts[0]!
+  const m = parts[1]!
+  const d = parts[2]!
+  const t = Date.UTC(y, m - 1, d) + deltaDays * 86400000
+  const nd = new Date(t)
+  const yy = nd.getUTCFullYear()
+  const mm = String(nd.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(nd.getUTCDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
+/** Für Filter „Bestätigt“ / „Vorgeschlagen“: alle passenden Termine der Woche, nach Tag gruppiert (Mo–So). */
+function weekGroupsForBadge(
+  days: DayInfo[],
+  appointmentsByDay: Record<string, AppointmentCard[]>,
+  badge: 'confirmed' | 'suggested'
+): { dateKey: string; isToday: boolean; apts: AppointmentCard[] }[] {
+  const out: { dateKey: string; isToday: boolean; apts: AppointmentCard[] }[] = []
+  for (const day of days) {
+    const raw = appointmentsByDay[day.dateKey] ?? []
+    const apts = raw.filter((a) => a.badge === badge)
+    if (apts.length > 0) {
+      out.push({ dateKey: day.dateKey, isToday: day.isToday, apts })
+    }
+  }
+  return out
+}
+
 type AppointmentDetail = {
   appointment: { id: string; timeRange: string; dateLong: string | null; type: string | null; status: string | null }
   customer: {
@@ -127,7 +159,7 @@ type AppointmentDetail = {
     customerAddressForNav?: string | null
     stableAddressForNavOnly?: string | null
   }
-  horses: Array<{ id: string; name: string | null }>
+  horses: Array<{ id: string; name: string | null; animalType?: string | null }>
   preferredNavApp?: 'apple' | 'google' | 'waze'
 }
 
@@ -196,27 +228,20 @@ export default function MobileCalendar() {
     return () => { document.body.style.overflow = prev }
   }, [selectedAppointmentId])
 
-  function toDateString(d: Date) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
+  function weekNavAnchor(): string | null {
+    return data?.days?.[0]?.dateKey ?? data?.weekStart ?? null
   }
 
   function goPrevWeek() {
-    if (!data?.weekStart) return
-    const [y, m, day] = data.weekStart.split('-').map(Number)
-    const d = new Date(y, m - 1, day)
-    d.setDate(d.getDate() - 7)
-    fetchWeek(toDateString(d))
+    const anchor = weekNavAnchor()
+    if (!anchor) return
+    fetchWeek(addDaysToDateKey(anchor, -7))
   }
 
   function goNextWeek() {
-    if (!data?.weekStart) return
-    const [y, m, day] = data.weekStart.split('-').map(Number)
-    const d = new Date(y, m - 1, day)
-    d.setDate(d.getDate() + 7)
-    fetchWeek(toDateString(d))
+    const anchor = weekNavAnchor()
+    if (!anchor) return
+    fetchWeek(addDaysToDateKey(anchor, 7))
   }
 
   function goToday() {
@@ -228,18 +253,27 @@ export default function MobileCalendar() {
     }
   }
 
-  function filterAppointments(apts: AppointmentCard[]) {
-    if (filter === 'all') return apts
-    if (filter === 'confirmed') return apts.filter((a) => a.badge === 'confirmed')
-    if (filter === 'suggested') return apts.filter((a) => a.badge === 'suggested')
-    return apts
-  }
+  const isWeekStatusFilter = filter === 'confirmed' || filter === 'suggested'
 
   const currentDayApts = selectedDay
-    ? filterAppointments(data?.appointmentsByDay?.[selectedDay] ?? [])
+    ? (data?.appointmentsByDay?.[selectedDay] ?? [])
     : []
   const currentDayInfo = data?.days?.find((d) => d.dateKey === selectedDay)
   const isTodaySelected = currentDayInfo?.isToday ?? false
+
+  const weekStatusGroups =
+    data && isWeekStatusFilter
+      ? weekGroupsForBadge(
+          data.days,
+          data.appointmentsByDay,
+          filter === 'confirmed' ? 'confirmed' : 'suggested'
+        )
+      : []
+
+  function selectDay(dateKey: string) {
+    setSelectedDay(dateKey)
+    if (filter !== 'all') setFilter('all')
+  }
 
   return (
     <div className="cal-page">
@@ -283,13 +317,14 @@ export default function MobileCalendar() {
       </div>
 
       {/* Day Selector */}
-      <div className="cal-day-selector">
+      <div className={`cal-day-selector ${isWeekStatusFilter ? 'cal-day-selector--week-filter' : ''}`}>
         {data?.days?.map((day) => (
           <button
             key={day.dateKey}
             type="button"
             className={`cal-day-item ${day.isToday ? 'today' : ''} ${selectedDay === day.dateKey ? 'selected' : ''}`}
-            onClick={() => setSelectedDay(day.dateKey)}
+            onClick={() => selectDay(day.dateKey)}
+            title={isWeekStatusFilter ? 'Zur Tagesansicht (Alle)' : undefined}
             data-day={day.dayName}
           >
             <span className="cal-di-name">{WEEKDAY_LABELS[day.dayName] ?? day.dayName}</span>
@@ -354,6 +389,89 @@ export default function MobileCalendar() {
             <div className="cal-ed-title">Keine Woche geladen</div>
             <div className="cal-ed-sub">Bitte erneut versuchen</div>
           </div>
+        ) : isWeekStatusFilter ? (
+          weekStatusGroups.length === 0 ? (
+            <div className="cal-empty-day">
+              <IconCalendarX />
+              <div className="cal-ed-title">
+                {filter === 'confirmed' ? 'Keine bestätigten Termine' : 'Keine vorgeschlagenen Termine'}
+              </div>
+              <div className="cal-ed-sub">
+                In dieser Kalenderwoche gibt es keine Einträge mit diesem Status. Tippe auf einen Wochentag
+                oder „Alle“, um die normale Tagesansicht zu öffnen.
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="cal-filter-week-hint">
+                {filter === 'confirmed'
+                  ? 'Alle bestätigten Termine dieser Woche — nach Tag sortiert.'
+                  : 'Alle vorgeschlagenen / noch nicht bestätigten Termine dieser Woche — nach Tag sortiert.'}
+              </p>
+              {weekStatusGroups.map(({ dateKey, isToday, apts }) => (
+                <section key={dateKey} className="cal-week-filter-section">
+                  <div className="cal-day-header">
+                    <span>{formatDayHeader(dateKey, isToday)}</span>
+                    <span className="cal-dh-count">
+                      {apts.length} {apts.length === 1 ? 'Termin' : 'Termine'}
+                    </span>
+                  </div>
+                  <div className="cal-timeline">
+                    <div className="cal-tl-line" />
+                    {apts.map((apt) => {
+                      const isPast = apt.isPast ?? apt.color === 'gray'
+                      const cardContent = (
+                        <>
+                          <div className="cal-tl-dot" />
+                          <div className="cal-apt-body">
+                            <div className="cal-apt-time">
+                              {apt.time} – {apt.endTime}
+                            </div>
+                            <div className="cal-apt-type">{apt.type}</div>
+                            <div className="cal-apt-name">{apt.customerName}</div>
+                            <div className="cal-apt-detail">
+                              <AppointmentAnimalsInline
+                                animals={apt.animals}
+                                inheritTextStyle
+                                iconClassName={`cal-apt-horse-icon ${CALENDAR_OVERVIEW_ICON_CLASS}`}
+                              />
+                            </div>
+                            {apt.stallLabel && (
+                              <div className="cal-apt-stall">
+                                <IconLocation />
+                                {apt.stallLabel}
+                              </div>
+                            )}
+                          </div>
+                          <span className={`cal-apt-badge ${apt.badge}`}>
+                            {apt.badge === 'confirmed' ? 'Bestätigt' : 'Vorgeschlagen'}
+                          </span>
+                        </>
+                      )
+                      return isPast ? (
+                        <Link
+                          key={apt.id}
+                          href={`/appointments/${apt.id}`}
+                          className={`cal-apt-card ${apt.color}`}
+                        >
+                          {cardContent}
+                        </Link>
+                      ) : (
+                        <button
+                          key={apt.id}
+                          type="button"
+                          className={`cal-apt-card ${apt.color}`}
+                          onClick={() => setSelectedAppointmentId(apt.id)}
+                        >
+                          {cardContent}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </>
+          )
         ) : currentDayApts.length === 0 ? (
           <div className="cal-empty-day">
             {isTodaySelected ? (
@@ -392,8 +510,11 @@ export default function MobileCalendar() {
                       <div className="cal-apt-type">{apt.type}</div>
                       <div className="cal-apt-name">{apt.customerName}</div>
                       <div className="cal-apt-detail">
-                        <FontAwesomeIcon icon={faHorse} className="cal-apt-horse-icon" />
-                        {apt.horseLabel}
+                        <AppointmentAnimalsInline
+                          animals={apt.animals}
+                          inheritTextStyle
+                          iconClassName={`cal-apt-horse-icon ${CALENDAR_OVERVIEW_ICON_CLASS}`}
+                        />
                       </div>
                       {apt.stallLabel && (
                         <div className="cal-apt-stall">
@@ -469,9 +590,16 @@ export default function MobileCalendar() {
                     <div className="cal-dp-value">{detailData.customer.name}</div>
                   </div>
                   <div className="cal-dp-section">
-                    <div className="cal-dp-label">Pferde</div>
+                    <div className="cal-dp-label">Tiere</div>
                     <div className="cal-dp-value">
-                      {detailData.horses.map((h) => h.name || 'Pferd').join(', ') || '–'}
+                      <AppointmentAnimalsInline
+                        animals={detailData.horses.map((h) => ({
+                          name: h.name || '–',
+                          animalType: h.animalType ?? null,
+                        }))}
+                        inheritTextStyle
+                        iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                      />
                     </div>
                   </div>
                   <div className="cal-dp-section">
@@ -488,7 +616,7 @@ export default function MobileCalendar() {
                     <div className="cal-dp-actions">
                       {detailData.horses[0] && (
                         <Link
-                          href={`/horses/${detailData.horses[0].id}/records/new?appointmentId=${selectedAppointmentId}`}
+                          href={`/animals/${detailData.horses[0].id}/records/new?appointmentId=${selectedAppointmentId}`}
                           className="cal-dp-btn primary"
                         >
                           <i className="bi bi-file-earmark-plus-fill" />

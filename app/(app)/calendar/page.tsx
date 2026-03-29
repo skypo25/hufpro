@@ -4,25 +4,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import WeekCalendar from '@/components/appointments/calendar/WeekCalendar'
+import AppointmentAnimalsInline, {
+  CALENDAR_OVERVIEW_ICON_CLASS,
+} from '@/components/appointments/AppointmentAnimalsInline'
+import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
+import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
 
 type Appointment = {
   id: string
   customer_id: string | null
   appointment_date: string | null
+  duration_minutes: number | null
   notes: string | null
   type: string | null
   status: string | null
   customers:
     | {
         name: string | null
-        stable_name?: string | null
-        stable_city?: string | null
         city?: string | null
       }
     | {
         name: string | null
-        stable_name?: string | null
-        stable_city?: string | null
         city?: string | null
       }[]
     | null
@@ -35,10 +37,20 @@ type AppointmentHorse = {
     | {
         id: string
         name: string | null
+        animal_type?: string | null
+        stable_name?: string | null
+        stable_city?: string | null
+        stable_street?: string | null
+        stable_zip?: string | null
       }
     | {
         id: string
         name: string | null
+        animal_type?: string | null
+        stable_name?: string | null
+        stable_city?: string | null
+        stable_street?: string | null
+        stable_zip?: string | null
       }[]
     | null
 }
@@ -47,7 +59,7 @@ type CalendarAppointment = {
   id: string
   customerId: string | null
   customerName: string
-  horseLabel: string
+  linkedAnimals: { name: string; animalType: string | null }[]
   locationLabel: string
   type: string
   status: string
@@ -59,14 +71,10 @@ function getCustomerRelation(
   value:
     | {
         name: string | null
-        stable_name?: string | null
-        stable_city?: string | null
         city?: string | null
       }
     | {
         name: string | null
-        stable_name?: string | null
-        stable_city?: string | null
         city?: string | null
       }[]
     | null
@@ -74,13 +82,20 @@ function getCustomerRelation(
   return Array.isArray(value) ? value[0] ?? null : value
 }
 
-function getHorseName(
-  value:
-    | { id: string; name: string | null }
-    | { id: string; name: string | null }[]
-    | null
-) {
-  return Array.isArray(value) ? value[0]?.name ?? null : value?.name ?? null
+type CalendarHorseRow = {
+  id: string
+  name: string | null
+  animal_type?: string | null
+  stable_name?: string | null
+  stable_city?: string | null
+  stable_street?: string | null
+  stable_zip?: string | null
+}
+
+function getHorseRelation(
+  value: CalendarHorseRow | CalendarHorseRow[] | null
+): CalendarHorseRow | null {
+  return Array.isArray(value) ? value[0] ?? null : value
 }
 
 function startOfWeek(date: Date) {
@@ -95,12 +110,6 @@ function startOfWeek(date: Date) {
 function addDays(date: Date, days: number) {
   const copy = new Date(date)
   copy.setDate(copy.getDate() + days)
-  return copy
-}
-
-function addHours(date: Date, hours: number) {
-  const copy = new Date(date)
-  copy.setHours(copy.getHours() + hours)
   return copy
 }
 
@@ -147,14 +156,6 @@ function addMonths(date: Date, months: number) {
 
 function formatGermanMonth(date: Date) {
   return new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric' }).format(date)
-}
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
 }
 
 type ViewMode = 'week' | 'month' | 'list'
@@ -213,13 +214,12 @@ export default function CalendarPage() {
           id,
           customer_id,
           appointment_date,
+          duration_minutes,
           notes,
           type,
           status,
           customers (
             name,
-            stable_name,
-            stable_city,
             city
           )
         `)
@@ -245,7 +245,12 @@ export default function CalendarPage() {
             horse_id,
             horses (
               id,
-              name
+              name,
+              animal_type,
+              stable_name,
+              stable_city,
+              stable_street,
+              stable_zip
             )
           `)
           .eq('user_id', user.id)
@@ -261,14 +266,14 @@ export default function CalendarPage() {
         appointmentHorses = data || []
       }
 
-      const horsesByAppointment = new Map<string, string[]>()
+      const horseRowsByAppointment = new Map<string, CalendarHorseRow[]>()
 
       for (const row of appointmentHorses) {
-        const horseName = getHorseName(row.horses)
-        if (!horseName) continue
+        const horse = getHorseRelation(row.horses)
+        if (!horse?.name) continue
 
-        const existing = horsesByAppointment.get(row.appointment_id) || []
-        horsesByAppointment.set(row.appointment_id, [...existing, horseName])
+        const rowList = horseRowsByAppointment.get(row.appointment_id) || []
+        horseRowsByAppointment.set(row.appointment_id, [...rowList, horse])
       }
 
       const mappedAppointments: CalendarAppointment[] = (appointmentRows || [])
@@ -276,39 +281,41 @@ export default function CalendarPage() {
         .map((appointment) => {
           const customer = getCustomerRelation(appointment.customers)
           const customerName = customer?.name || 'Kunde'
-          const horseNames = horsesByAppointment.get(appointment.id) || []
 
-          let horseLabel = 'Kein Pferd zugeordnet'
-          if (horseNames.length === 1) {
-            horseLabel = horseNames[0]
-          } else if (horseNames.length > 1) {
-            horseLabel = `${horseNames.length} Pferde`
-          }
-
+          const linkedHorses = horseRowsByAppointment.get(appointment.id) || []
+          const linkedAnimals = linkedHorses
+            .filter((h) => h.name)
+            .map((h) => ({
+              name: h.name as string,
+              animalType: h.animal_type ?? null,
+            }))
+          const stallHorse = pickPrimaryStallHorse(linkedHorses)
           const locationLabel =
-            customer?.stable_name ||
-            customer?.stable_city ||
+            stallDisplayLabel(stallHorse ?? {}, customer?.city) ||
             customer?.city ||
             'Kein Ort hinterlegt'
 
-          const start = new Date(appointment.appointment_date as string)
-          const end = addHours(start, 1)
+          const slot = getAppointmentStartEndFromRow(
+            appointment.appointment_date,
+            appointment.duration_minutes
+          )
+          if (!slot) {
+            return null
+          }
 
           return {
             id: appointment.id,
             customerId: appointment.customer_id,
             customerName,
-            horseLabel:
-              horseNames.length > 1
-                ? `${horseNames.join(' + ')}`
-                : horseLabel,
+            linkedAnimals,
             locationLabel,
             type: appointment.type || 'Regeltermin',
             status: appointment.status || 'Bestätigt',
-            start: start.toISOString(),
-            end: end.toISOString(),
+            start: slot.startIso,
+            end: slot.endIso,
           }
         })
+        .filter((x): x is CalendarAppointment => x !== null)
 
       setAppointments(mappedAppointments)
       setLoading(false)
@@ -696,8 +703,12 @@ export default function CalendarPage() {
                             <div className="text-[14px] font-medium text-[#1B1F23]">
                               {a.customerName}
                             </div>
-                            <div className="text-[12px] text-[#6B7280]">
-                              {a.horseLabel}
+                            <div className="appt-animal-icons-8 text-[12px] text-[#6B7280]">
+                              <AppointmentAnimalsInline
+                                animals={a.linkedAnimals}
+                                inheritTextStyle
+                                iconClassName={CALENDAR_OVERVIEW_ICON_CLASS}
+                              />
                               {a.type ? ` · ${a.type}` : ''}
                             </div>
                           </div>

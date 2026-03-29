@@ -20,7 +20,7 @@ export default function MobileFab() {
     () => [
       { href: '/appointments/new', label: 'Neuer Termin' },
       { href: '/customers/new', label: 'Neuer Kunde' },
-      { href: '/horses/new', label: newAnimalFabLabel(profile.terminology) },
+      { href: '/animals/new', label: newAnimalFabLabel(profile.terminology) },
     ],
     [profile.terminology]
   )

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase-client'
 import { type SettingsData, DEFAULT_SETTINGS } from '@/components/settings/SettingsForm'
+import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 
 const TABS = [
   { id: 'betrieb', label: 'Mein Betrieb' },
@@ -605,6 +606,29 @@ export default function MobileSettings() {
               >
                 <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${s.emailReminders !== false ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
+            </div>
+            <div className="mb-3 rounded-lg px-3 py-2.5" style={{ background: 'rgba(82,183,136,.06)', border: '1px solid rgba(82,183,136,.15)' }}>
+              <div className="text-[12px] font-semibold text-[#1B1F23]">Standard bei neuen Terminen</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-2">Voreinstellung im Terminformular (Mobil und Desktop)</div>
+              <select
+                className="w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[14px]"
+                disabled={s.emailReminders === false}
+                value={
+                  s.appointmentReminderDefaultMinutes == null
+                    ? ''
+                    : String(s.appointmentReminderDefaultMinutes)
+                }
+                onChange={(e) => {
+                  const v = e.target.value
+                  update('appointmentReminderDefaultMinutes', v === '' ? null : Number(v))
+                }}
+              >
+                {APPOINTMENT_REMINDER_MINUTES_OPTIONS.map((o) => (
+                  <option key={o.label} value={o.minutes == null ? '' : String(o.minutes)}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div
               className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2.5"

@@ -10,6 +10,7 @@ import ImproveTextButton from '@/components/ImproveTextButton'
 import { processVoiceCommand, applyVoiceCommand } from '@/lib/voiceCommands'
 import type { TherapyType } from '@/lib/aiFormatter'
 import type { PreservedHoofRecordFields } from '@/components/records/TherapyRecordForm'
+import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
 
 function stripHtml(html: string): string {
   return html
@@ -35,9 +36,10 @@ type Horse = {
   breed: string | null
   sex: string | null
   birth_year: number | null
+  stable_name?: string | null
   customers?:
-    | { name: string | null; stable_name: string | null }
-    | { name: string | null; stable_name: string | null }[]
+    | { name: string | null }
+    | { name: string | null }[]
     | null
 }
 
@@ -78,34 +80,68 @@ export default function MobileTherapyRecordForm({
 
       const { data: h } = await supabase
         .from('horses')
-        .select('id, name, breed, sex, birth_year, customers(name, stable_name)')
+        .select('id, name, breed, sex, birth_year, stable_name, customers(name)')
         .eq('id', horseId)
         .eq('user_id', user.id)
         .single()
       if (h) setHorse(h as unknown as Horse)
 
       if (isEdit && recordId) {
-        const { data: rec } = await supabase
-          .from('hoof_records')
-          .select(
-            'record_date, hoof_condition, treatment, notes, general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json'
-          )
-          .eq('id', recordId)
-          .eq('user_id', user.id)
-          .single()
-        if (rec) {
-          if (rec.record_date) setRecordDate(rec.record_date.slice(0, 10))
-          if (rec.hoof_condition) setSummaryText(rec.hoof_condition)
-          if (rec.treatment) setRecommendationText(rec.treatment)
+        const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
+
+        if (docLoad.ok) {
+          if (process.env.NODE_ENV === 'development') {
+            console.info('[mobile-therapy-record-form] Quelle: documentation_*', { recordId })
+          }
+          const record = docLoad.record
+          if (record.record_date) setRecordDate(record.record_date.slice(0, 10))
+          if (record.hoof_condition) setSummaryText(record.hoof_condition)
+          if (record.treatment) setRecommendationText(record.treatment)
+
+          const { data: checklistRow } = await supabase
+            .from('hoof_records')
+            .select('checklist_json')
+            .eq('id', recordId)
+            .eq('horse_id', horseId)
+            .eq('user_id', user.id)
+            .maybeSingle<{ checklist_json?: unknown }>()
+
           setPreserved({
-            general_condition: rec.general_condition ?? null,
-            gait: rec.gait ?? null,
-            handling_behavior: rec.handling_behavior ?? null,
-            horn_quality: rec.horn_quality ?? null,
-            hoofs_json: rec.hoofs_json ?? null,
-            checklist_json: rec.checklist_json ?? null,
-            notes: rec.notes ?? null,
+            general_condition: record.general_condition ?? null,
+            gait: record.gait ?? null,
+            handling_behavior: record.handling_behavior ?? null,
+            horn_quality: record.horn_quality ?? null,
+            hoofs_json: record.hoofs_json ?? null,
+            checklist_json: checklistRow?.checklist_json ?? null,
+            notes: record.notes ?? null,
           })
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[mobile-therapy-record-form] Fallback: hoof_*', { recordId, reason: docLoad.reason })
+          }
+          const { data: rec } = await supabase
+            .from('hoof_records')
+            .select(
+              'record_date, hoof_condition, treatment, notes, general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json'
+            )
+            .eq('id', recordId)
+            .eq('horse_id', horseId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (rec) {
+            if (rec.record_date) setRecordDate(rec.record_date.slice(0, 10))
+            if (rec.hoof_condition) setSummaryText(rec.hoof_condition)
+            if (rec.treatment) setRecommendationText(rec.treatment)
+            setPreserved({
+              general_condition: rec.general_condition ?? null,
+              gait: rec.gait ?? null,
+              handling_behavior: rec.handling_behavior ?? null,
+              horn_quality: rec.horn_quality ?? null,
+              hoofs_json: rec.hoofs_json ?? null,
+              checklist_json: rec.checklist_json ?? null,
+              notes: rec.notes ?? null,
+            })
+          }
         }
       }
     }
@@ -153,7 +189,7 @@ export default function MobileTherapyRecordForm({
       }
 
       router.refresh()
-      router.push(`/horses/${horseId}/records/${targetId}`)
+      router.push(`/animals/${horseId}/records/${targetId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen.')
     } finally {

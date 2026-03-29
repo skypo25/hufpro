@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEllipsisVertical, faCheck, faClock, faBan } from '@fortawesome/free-solid-svg-icons'
+import { faEllipsisVertical, faCheck, faClock, faBan, faPaperPlane } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
 
 type InvoiceListRowWithMenuProps = {
@@ -12,7 +12,15 @@ type InvoiceListRowWithMenuProps = {
   invoiceNumber: string
   customerName: string
   invoiceDate: string
+  sentAt?: string | null
   status: string
+}
+
+function formatDateShort(d: string | null | undefined) {
+  if (!d) return '–'
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return d
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
 const statusLabel = (s: string) =>
@@ -32,11 +40,14 @@ export default function InvoiceListRowWithMenu({
   invoiceNumber,
   customerName,
   invoiceDate,
+  sentAt,
   status,
 }: InvoiceListRowWithMenuProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
+  const [sendingMail, setSendingMail] = useState(false)
+  const [mailMsg, setMailMsg] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -58,24 +69,94 @@ export default function InvoiceListRowWithMenu({
     if (!('error' in result)) router.refresh()
   }
 
+  const handleResend = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (sendingMail) return
+    setMailMsg(null)
+    setSendingMail(true)
+    try {
+      const res = await fetch(`/api/invoices/${id}/send-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
+      const to = (json as { to?: string })?.to
+      setMailMsg(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
+      router.refresh()
+    } catch (err) {
+      setMailMsg(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen')
+    } finally {
+      setSendingMail(false)
+      window.setTimeout(() => setMailMsg(null), 6000)
+    }
+  }
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-[#FAF9F7]">
-      <Link href={status === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`} className="flex flex-1 flex-wrap items-center gap-4 min-w-0">
-        <span className="font-mono text-[14px] font-semibold text-[#52b788]">{invoiceNumber}</span>
-        <span className="text-[14px] text-[#1B1F23]">{customerName}</span>
-      </Link>
-      <div className="flex items-center gap-4">
-        <span className="text-[13px] text-[#6B7280]">{invoiceDate}</span>
-        <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusClass(status)}`}>
+    <div className="relative grid grid-cols-[140px_220px_1fr_120px_44px_52px] items-center gap-6 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[700px]:grid-cols-[130px_1fr_120px_44px_52px] max-[700px]:[&>*:nth-child(2)]:hidden">
+      <Link
+        href={status === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`}
+        className="absolute inset-0 z-0"
+        aria-label={`Rechnung ${invoiceNumber} öffnen`}
+      />
+
+      <div className="pointer-events-none z-10 min-w-0">
+        <div className="text-[13px] text-[#6B7280] tabular-nums">
+          {formatDateShort(invoiceDate)}
+        </div>
+        {sentAt ? (
+          <div className="mt-0.5 truncate text-[11px] font-medium text-[#6B7280]">
+            Gesendet: {formatDateShort(sentAt)}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="pointer-events-none z-10 min-w-0">
+        <div className="truncate text-[13px] font-medium text-[#1B1F23]">{invoiceNumber}</div>
+      </div>
+
+      <div className="pointer-events-none z-10 min-w-0">
+        <div className="truncate text-[13px] font-medium text-[#1B1F23]">{customerName}</div>
+        {mailMsg && (
+          <div className="mt-0.5 truncate text-[11px] text-[#6B7280]">
+            {mailMsg}
+          </div>
+        )}
+      </div>
+
+      <div className="pointer-events-none z-10 flex justify-end pr-3">
+        <span className={`rounded-full px-2.5 py-1 text-center text-[11px] font-medium ${statusClass(status)}`}>
           {statusLabel(status)}
         </span>
+      </div>
+
+      <div className="z-20 flex justify-end">
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={sendingMail || status === 'cancelled'}
+          className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
+          title={status === 'cancelled' ? 'Stornierte Rechnung' : (sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden')}
+          aria-label={sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
+        >
+          <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="z-20 flex justify-end">
         <div className="relative" ref={open ? menuRef : undefined}>
           <button
             type="button"
             data-invoice-menu-toggle
-            onClick={(e) => { e.preventDefault(); setOpen((v) => !v) }}
+            onClick={(e) => {
+              e.preventDefault()
+              setOpen((v) => !v)
+            }}
             disabled={pending}
-            className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
+            className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
             title="Status ändern"
             aria-expanded={open}
             aria-haspopup="true"
@@ -120,6 +201,6 @@ export default function InvoiceListRowWithMenu({
           )}
         </div>
       </div>
-    </li>
+    </div>
   )
 }

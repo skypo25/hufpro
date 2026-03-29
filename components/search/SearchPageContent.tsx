@@ -31,7 +31,6 @@ export type SearchPageContentProps = {
     phone: string | null
     email: string | null
     city?: string | null
-    stable_name?: string | null
   }>
   horses: Array<{
     id: string
@@ -275,9 +274,7 @@ export default function SearchPageContent({
                     <div className="mt-1 flex flex-wrap gap-x-4 text-[13px] text-[#6B7280]">
                       {c.phone && <span>{c.phone}</span>}
                       {c.email && <span>{c.email}</span>}
-                      {(c.city || c.stable_name) && (
-                        <span>{[c.stable_name, c.city].filter(Boolean).join(' · ')}</span>
-                      )}
+                      {c.city && <span>{c.city}</span>}
                     </div>
                   </Link>
                 ))}
@@ -296,7 +293,7 @@ export default function SearchPageContent({
                   return (
                     <Link
                       key={h.id}
-                      href={`/horses/${h.id}`}
+                      href={`/animals/${h.id}`}
                       className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-[#52b788]/50 hover:shadow-sm"
                     >
                       <div className="font-medium text-[#1B1F23]">
@@ -370,7 +367,7 @@ export default function SearchPageContent({
                   return (
                     <Link
                       key={r.id}
-                      href={`/horses/${r.horse_id}/records/${r.id}`}
+                      href={`/animals/${r.horse_id}/records/${r.id}`}
                       className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-[#52b788]/50 hover:shadow-sm"
                     >
                       <div className="font-medium text-[#1B1F23]">
