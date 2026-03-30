@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { redirect } from 'next/navigation'
 import { loadHorseHoofComparePageData } from '@/lib/hoofCompare/loadHorseHoofComparePageData'
-import HoofComparePageClient from '@/components/hoofCompare/HoofComparePageClient'
+
+const HoofComparePageClient = dynamic(() => import('@/components/hoofCompare/HoofComparePageClient'))
 
 type PageProps = {
   params: Promise<{ id: string }>

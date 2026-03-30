@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
+import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import BillingPageClient from '@/components/billing/BillingPageClient'
 
@@ -12,32 +13,32 @@ export default async function BillingPage() {
 
   const { data: row1, error: row1Err } = await supabase
     .from('billing_accounts')
-    .select('*')
+    .select(BILLING_ACCOUNT_COLUMNS)
     .eq('user_id', user.id)
     .maybeSingle()
 
   let initError: string | null = null
-  if (!row1) {
-    if (row1Err) {
-      initError = `Billing-Daten konnten nicht geladen werden: ${row1Err.message}`
-    } else {
-      try {
-        await ensureBillingAccountRow({ userId: user.id, email: user.email })
-      } catch (e) {
-        initError = e instanceof Error ? e.message : 'Billing-Konto konnte nicht initialisiert werden.'
+  let account = (row1 as BillingAccountRow | null) ?? null
+
+  if (row1Err) {
+    initError = `Billing-Daten konnten nicht geladen werden: ${row1Err.message}`
+  } else if (!row1) {
+    try {
+      await ensureBillingAccountRow({ userId: user.id, email: user.email })
+    } catch (e) {
+      initError = e instanceof Error ? e.message : 'Billing-Konto konnte nicht initialisiert werden.'
+    }
+    if (!initError) {
+      const { data: row2, error: row2Err } = await supabase
+        .from('billing_accounts')
+        .select(BILLING_ACCOUNT_COLUMNS)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      account = (row2 as BillingAccountRow | null) ?? null
+      if (row2Err) {
+        initError = `Billing-Daten konnten nicht geladen werden: ${row2Err.message}`
       }
     }
-  }
-
-  const { data: row2, error: row2Err } = await supabase
-    .from('billing_accounts')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const account = (row2 as BillingAccountRow | null) ?? null
-  if (!initError && row2Err) {
-    initError = `Billing-Daten konnten nicht geladen werden: ${row2Err.message}`
   }
 
   return (

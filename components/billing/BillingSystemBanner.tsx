@@ -41,9 +41,17 @@ export default function BillingSystemBanner() {
         if (!cancelled) setLoaded(true)
       }
     }
-    run()
+    const schedule =
+      typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? window.requestIdleCallback(() => run(), { timeout: 2500 })
+        : setTimeout(run, 0)
     return () => {
       cancelled = true
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(schedule as number)
+      } else {
+        clearTimeout(schedule as ReturnType<typeof setTimeout>)
+      }
     }
   }, [])
 

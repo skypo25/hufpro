@@ -1,59 +1,79 @@
 'use client'
 
 import { Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import MobilePlaceholder from './MobilePlaceholder'
-import MobileSearch from './MobileSearch'
-import MobileCalendar from './MobileCalendar'
-import MobileAppointmentDetail from './MobileAppointmentDetail'
-import MobileSettings from './MobileSettings'
-import MobileDashboard from './MobileDashboard'
-import MobileCustomers from './MobileCustomers'
-import MobileHorses from './MobileHorses'
-import MobileHorseDetail from './MobileHorseDetail'
-import MobileCustomerDetail from './MobileCustomerDetail'
-import MobileCustomerEdit from './MobileCustomerEdit'
-import MobileRecordEntry from './MobileRecordEntry'
-import MobileRecordDetail from './MobileRecordDetail'
-import MobileAnimalFormScreen from './MobileAnimalFormScreen'
-import MobileErstanamnese from './MobileErstanamnese'
-import MobileErstanamneseEdit from './MobileErstanamneseEdit'
-import MobileCustomerForm from './MobileCustomerForm'
-import MobileAppointmentForm from './MobileAppointmentForm'
-import MobileHoofCompare from '@/components/hoofCompare/MobileHoofCompare'
-import MobileBilling from './MobileBilling'
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
+      <span className="inline-block h-5 w-5 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
+      Laden…
+    </div>
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dyn = (importer: () => Promise<{ default: React.ComponentType<any> }>) =>
+  dynamic(importer, { loading: () => <RouteFallback /> })
+
+const MobilePlaceholder = dyn(() => import('./MobilePlaceholder'))
+const MobileSearch = dyn(() => import('./MobileSearch'))
+const MobileCalendar = dyn(() => import('./MobileCalendar'))
+const MobileAppointmentDetail = dyn(() => import('./MobileAppointmentDetail'))
+const MobileSettings = dyn(() => import('./MobileSettings'))
+const MobileDashboard = dyn(() => import('./MobileDashboard'))
+const MobileCustomers = dyn(() => import('./MobileCustomers'))
+const MobileHorses = dyn(() => import('./MobileHorses'))
+const MobileHorseDetail = dyn(() => import('./MobileHorseDetail'))
+const MobileCustomerDetail = dyn(() => import('./MobileCustomerDetail'))
+const MobileCustomerEdit = dyn(() => import('./MobileCustomerEdit'))
+const MobileRecordEntry = dyn(() => import('./MobileRecordEntry'))
+const MobileRecordDetail = dyn(() => import('./MobileRecordDetail'))
+const MobileAnimalFormScreen = dyn(() => import('./MobileAnimalFormScreen'))
+const MobileErstanamnese = dyn(() => import('./MobileErstanamnese'))
+const MobileErstanamneseEdit = dyn(() => import('./MobileErstanamneseEdit'))
+const MobileCustomerForm = dyn(() => import('./MobileCustomerForm'))
+const MobileAppointmentForm = dyn(() => import('./MobileAppointmentForm'))
+const MobileHoofCompare = dynamic(() => import('@/components/hoofCompare/MobileHoofCompare'), {
+  loading: () => (
+    <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
+      <i className="bi bi-hourglass-split text-[20px]" aria-hidden />
+      Fotovergleich wird geladen…
+    </div>
+  ),
+})
+const MobileBilling = dyn(() => import('./MobileBilling'))
+
+const compareFallback = (
+  <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
+    <i className="bi bi-hourglass-split text-[20px]" aria-hidden />
+    Fotovergleich wird geladen…
+  </div>
+)
 
 /**
- * Hier werden die Mobile-Seiten pro Route eingetragen.
- * Route für Route wird mit dem gelieferten Layout ergänzt.
+ * Pro Route nur das jeweilige Chunk laden (kein monolithischer Mobile-Bundle).
+ * Registrierung neuer Mobile-Seiten: Bedingung unten ergänzen + dyn()-Zeile oben.
  */
-export function useMobileContent(): ReactNode {
+function useMobileContent(): ReactNode {
   const pathname = usePathname()
 
   const compareMobileMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/compare\/mobile\/?$/)
   if (compareMobileMatch?.[1]) {
     return (
-      <Suspense
-        fallback={
-          <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
-            <i className="bi bi-hourglass-split text-[20px]" aria-hidden />
-            Fotovergleich wird geladen…
-          </div>
-        }
-      >
+      <Suspense fallback={compareFallback}>
         <MobileHoofCompare horseId={compareMobileMatch[1]} />
       </Suspense>
     )
   }
 
-  // Neue Dokumentation erstellen: /animals/[id]/records/new
   const newRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/new$/)
   if (newRecordMatch?.[1]) {
     return <MobileRecordEntry horseId={newRecordMatch[1]} mode="create" />
   }
 
-  // Dokumentation bearbeiten: /animals/[id]/records/[recordId]/edit
   const editRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/([^/?#]+)\/edit$/)
   if (editRecordMatch?.[1] && editRecordMatch?.[2]) {
     return (
@@ -65,7 +85,6 @@ export function useMobileContent(): ReactNode {
     )
   }
 
-  // Dokumentation Detail: /animals/[id]/records/[recordId] (optional trailing slash)
   const recordDetailMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/([^/?#]+)\/?$/)
   if (recordDetailMatch?.[1] && recordDetailMatch?.[2]) {
     return <MobileRecordDetail horseId={recordDetailMatch[1]} recordId={recordDetailMatch[2]} />
@@ -99,7 +118,6 @@ export function useMobileContent(): ReactNode {
     return <MobileCustomerForm />
   }
 
-  // Kunden bearbeiten: /customers/[id]/edit
   const editCustomerMatch = pathname?.match(/^\/customers\/([^/?#]+)\/edit$/)
   if (editCustomerMatch?.[1]) {
     return <MobileCustomerEdit customerId={editCustomerMatch[1]} />
@@ -110,18 +128,15 @@ export function useMobileContent(): ReactNode {
     return <MobileCustomerDetail customerId={customerIdMatch[1]} />
   }
 
-  // Termin anlegen: /appointments/new
   if (pathname === '/appointments/new') {
     return <MobileAppointmentForm mode="create" />
   }
 
-  // Termin bearbeiten: /appointments/[id]/edit
   const editAppointmentMatch = pathname?.match(/^\/appointments\/([^/?#]+)\/edit$/)
   if (editAppointmentMatch?.[1]) {
     return <MobileAppointmentForm mode="edit" appointmentId={editAppointmentMatch[1]} />
   }
 
-  // Termin-Detail: /appointments/[id]
   const appointmentIdMatch = pathname?.match(/^\/appointments\/([^/?#]+)\/?$/)
   if (appointmentIdMatch?.[1]) {
     return <MobileAppointmentDetail appointmentId={appointmentIdMatch[1]} />
@@ -140,8 +155,7 @@ export function useMobileContent(): ReactNode {
   return <MobilePlaceholder />
 }
 
-/**
- * Neue Mobile-Seite registrieren:
- * -> Bedingung oben in useMobileContent ergänzen.
- */
-export {}
+/** Nur in der Mobile-Branch mounten — spart Desktop die komplette Mobile-Route-Logik. */
+export function MobileRouteContent(): ReactNode {
+  return useMobileContent()
+}

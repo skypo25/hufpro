@@ -39,11 +39,25 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   const isMoreActive = pathname?.startsWith('/settings') ?? false
 
   useEffect(() => {
-    fetch('/api/appointments/today-count', { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { if (data?.count != null) setTodayAppointmentCount(data.count) })
-      .catch(() => {})
-  }, [pathname])
+    let cancelled = false
+    const load = () => {
+      fetch('/api/appointments/today-count', { credentials: 'include' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!cancelled && data?.count != null) setTodayAppointmentCount(data.count)
+        })
+        .catch(() => {})
+    }
+    load()
+    const onVis = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [])
 
   return (
     <div className="mobile-app flex min-h-screen flex-col">
