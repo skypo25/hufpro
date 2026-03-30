@@ -1,0 +1,35 @@
+import { NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
+import type { BillingAccountRow } from '@/lib/billing/types'
+
+export async function GET() {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: row1 } = await supabase
+    .from('billing_accounts')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!row1) {
+    await ensureBillingAccountRow({ userId: user.id, email: user.email })
+  }
+
+  const { data: row2, error } = await supabase
+    .from('billing_accounts')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (error) {
+    return NextResponse.json({ error: 'Billing-Daten konnten nicht geladen werden.' }, { status: 500 })
+  }
+
+  return NextResponse.json({ account: (row2 as BillingAccountRow | null) ?? null })
+}
+

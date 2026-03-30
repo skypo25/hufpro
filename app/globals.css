@@ -81,6 +81,23 @@ body {
   font-family: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
 }
 
+/* PWA (iOS): verhindert hellen/weißen Haarstrich unter Statusleiste (Safe Area) */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html {
+    background-color: #1b1f23;
+  }
+  body {
+    background: linear-gradient(
+      180deg,
+      #1b1f23 0,
+      #1b1f23 max(env(safe-area-inset-top, 0px), 1px),
+      var(--background) max(env(safe-area-inset-top, 0px), 1px),
+      var(--background) 100%
+    );
+    background-color: var(--background);
+  }
+}
+
 input, select, textarea, button {
   font-family: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
 }
@@ -3032,6 +3049,9 @@ button.huf-btn-dark {
 }
 .photo-label:first-child { margin-top: 0; }
 .photo-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+.photo-slot.photo-slot--whole-body {
+  aspect-ratio: 4/3;
+}
 .photo-slot {
   aspect-ratio: 9/16;
   border-radius: 8px;

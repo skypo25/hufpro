@@ -29,50 +29,54 @@ function SwitcherContent({
   dateLabel?: string
 }) {
   const current = items[activeIndex] ?? items[0]
+  /** Unter dem Bild statt Verlauf über dem Foto; im Vollbild-Modal steht die Info im Header */
+  const showCaptionBelow = compact
   return (
-    <>
-      <img
-        src={current.imageUrl}
-        alt={current.label}
-        className="h-full w-full object-cover"
-        sizes={compact ? '(max-width: 1024px) 100vw, 380px' : '100vw'}
-      />
+    <div className={showCaptionBelow ? 'flex w-full flex-col overflow-hidden' : 'contents'}>
       <div
-        className="absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-black/75 via-black/30 to-transparent"
-        aria-hidden
-      />
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-0.5">
-        <span className="text-[11px] font-medium leading-tight text-white drop-shadow-sm">{current.label}</span>
-        {dateLabel && (
-          <span className="text-[10px] text-white/90 drop-shadow-sm">{dateLabel}</span>
+        className={`relative w-full overflow-hidden bg-[#E5E2DC] ${
+          showCaptionBelow ? 'aspect-[4/3]' : 'h-full min-h-0'
+        }`}
+      >
+        <img
+          src={current.imageUrl}
+          alt={current.label}
+          className="h-full w-full object-cover"
+          sizes={compact ? '(max-width: 1024px) 100vw, 380px' : '100vw'}
+        />
+        {items.length > 1 && (
+          <div className="absolute bottom-2 right-2 z-10 flex flex-col gap-1.5 drop-shadow-md">
+            {items.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setActiveIndex(i)
+                }}
+                className={`relative shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                  compact ? 'h-12 w-16' : 'h-14 w-[72px]'
+                } ${
+                  i === activeIndex
+                    ? 'border-white shadow-md ring-2 ring-white/50'
+                    : 'border-white/80 opacity-90 hover:opacity-100'
+                }`}
+                aria-label={`${item.label} anzeigen`}
+                aria-current={i === activeIndex ? 'true' : undefined}
+              >
+                <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
-      {items.length > 1 && (
-        <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1.5">
-          {items.map((item, i) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setActiveIndex(i)
-              }}
-              className={`relative overflow-hidden rounded-lg border-2 transition shrink-0 ${
-                compact ? 'h-12 w-16' : 'h-14 w-[72px]'
-              } ${
-                i === activeIndex
-                  ? 'border-white shadow-md ring-2 ring-white/50'
-                  : 'border-white/50 opacity-80 hover:opacity-100 hover:border-white'
-              }`}
-              aria-label={`${item.label} anzeigen`}
-              aria-current={i === activeIndex ? 'true' : undefined}
-            >
-              <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
+      {showCaptionBelow && (
+        <div className="flex shrink-0 flex-col gap-0.5 rounded-b-xl border-t border-[#E5E2DC] bg-[#FAFAF8] px-3 py-2">
+          <span className="text-[11px] font-medium leading-tight text-[#1B1F23]">{current.label}</span>
+          {dateLabel && <span className="text-[10px] text-[#6B7280]">{dateLabel}</span>}
         </div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -112,7 +116,7 @@ export default function WholeBodyPhotoSwitcher({ items, dateLabel }: WholeBodyPh
           tabIndex={0}
           onClick={openModal}
           onKeyDown={handleKeyDown}
-          className="relative block aspect-[4/3] w-full cursor-zoom-in text-left outline-none focus-visible:ring-2 focus-visible:ring-[#52b788] focus-visible:ring-offset-2"
+          className="relative block w-full cursor-zoom-in text-left outline-none focus-visible:ring-2 focus-visible:ring-[#52b788] focus-visible:ring-offset-2"
           aria-label={`${current.label} vergrößern`}
         >
           <SwitcherContent
@@ -160,7 +164,7 @@ export default function WholeBodyPhotoSwitcher({ items, dateLabel }: WholeBodyPh
               className="relative z-10 flex min-h-0 flex-1 items-center justify-center p-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex max-h-full max-w-full items-center justify-center overflow-hidden rounded-xl bg-black/50">
+              <div className="relative flex max-h-full max-w-full items-center justify-center overflow-hidden rounded-xl">
                 <div className="relative aspect-[4/3] max-h-[calc(100vh-120px)] w-full max-w-4xl">
                   <SwitcherContent
                     items={items}

@@ -8,8 +8,15 @@ import { useOfflineDraft, useOnlineStatus } from '@/hooks/useOfflineDraft'
 import OfflineStatusBanner from '@/components/OfflineStatusBanner'
 import { serializeRecordForm, deserializeStagedPhotos } from '@/lib/record-draft-serializer'
 import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
-import { processHoofImage } from '@/components/photos/imageProcessing'
-import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot, type PhotoSlotKey } from '@/lib/photos/photoTypes'
+import { processHoofImage, processWholeBodyImage } from '@/components/photos/imageProcessing'
+import {
+  SLOT_SOLAR,
+  SLOT_LATERAL,
+  SLOT_WHOLE_BODY,
+  SLOT_LABELS,
+  toCanonicalPhotoSlot,
+  type PhotoSlotKey,
+} from '@/lib/photos/photoTypes'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { parseAnnotationsJson, DEFAULT_ANNOTATIONS } from '@/lib/photos/annotations'
 import {
@@ -101,6 +108,10 @@ const HOOF_EMPTY: HoofState = {
 const HOOF_KEYS = ['vl', 'vr', 'hl', 'hr'] as const
 type HoofKey = typeof HOOF_KEYS[number]
 const HOOF_LABELS: Record<HoofKey, string> = { vl: 'VL — Vorne Links', vr: 'VR — Vorne Rechts', hl: 'HL — Hinten Links', hr: 'HR — Hinten Rechts' }
+
+function isWholeBodySlotKey(slot: PhotoSlotKey): boolean {
+  return slot === 'whole_left' || slot === 'whole_right'
+}
 
 // Slot-Keys aus photoTypes – müssen mit Desktop/Detail übereinstimmen (VL_solar, VL_lateral, …)
 
@@ -208,8 +219,14 @@ function HoofAccordionItem({
 // ─── Photo Slot ───────────────────────────────────────────────────────────────
 
 function MobilePhotoSlot({
-  slot, label, signedUrl, staged, uploading,
-  annotations, onAnnotationsChange,
+  slot,
+  label,
+  signedUrl,
+  staged,
+  uploading,
+  annotations,
+  onAnnotationsChange,
+  isWholeBody = false,
   onFileSelect,
 }: {
   slot: PhotoSlotKey
@@ -219,6 +236,8 @@ function MobilePhotoSlot({
   uploading?: boolean
   annotations?: AnnotationsData
   onAnnotationsChange?: (a: AnnotationsData) => void
+  /** Ganzkörper: Querformat, keine Markierungen (wie Desktop PhotoGrid) */
+  isWholeBody?: boolean
   onFileSelect: (slot: PhotoSlotKey, file: File) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -226,8 +245,8 @@ function MobilePhotoSlot({
   const [annotatorOpen, setAnnotatorOpen] = useState(false)
   const displayUrl = staged?.previewUrl ?? signedUrl ?? null
   const hasPhoto = !!displayUrl
-  const imgWidth = staged?.width ?? 900
-  const imgHeight = staged?.height ?? 1600
+  const imgWidth = staged?.width ?? (isWholeBody ? 1000 : 900)
+  const imgHeight = staged?.height ?? (isWholeBody ? 750 : 1600)
 
   function handleTap() {
     if (uploading) return
@@ -241,7 +260,11 @@ function MobilePhotoSlot({
 
   return (
     <>
-      <div className={`photo-slot${hasPhoto ? ' has-photo' : ''}`}>
+      <div
+        className={`photo-slot${hasPhoto ? ' has-photo' : ''}${
+          isWholeBody ? ' photo-slot--whole-body' : ''
+        }`}
+      >
         {/* Fallback native input */}
         <input
           ref={inputRef}
@@ -261,8 +284,8 @@ function MobilePhotoSlot({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={displayUrl!} alt={label} className="absolute inset-0 h-full w-full object-cover" style={{ borderRadius: 6 }} />
-            {/* Annotation overlay preview */}
-            {annotations && annotations.items.length > 0 && (
+            {/* Annotation overlay preview (nur Huf) */}
+            {!isWholeBody && annotations && annotations.items.length > 0 && (
               <svg
                 className="pointer-events-none absolute inset-0 h-full w-full"
                 viewBox={`0 0 ${imgWidth} ${imgHeight}`}
@@ -291,11 +314,13 @@ function MobilePhotoSlot({
                   <circle cx="12" cy="13" r="3" />
                 </svg>
               </button>
-              <button type="button" className={`ps-action-btn${annotations && annotations.items.length > 0 ? ' active' : ''}`} onClick={() => setAnnotatorOpen(true)} title="Markierungen">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
+              {!isWholeBody && (
+                <button type="button" className={`ps-action-btn${annotations && annotations.items.length > 0 ? ' active' : ''}`} onClick={() => setAnnotatorOpen(true)} title="Markierungen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              )}
             </div>
           </>
         ) : (
@@ -304,7 +329,7 @@ function MobilePhotoSlot({
               <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
             </svg>
             <span className="ps-label">{label}</span>
-            <span className="ps-sub">Antippen</span>
+            <span className="ps-sub">{isWholeBody ? 'Querformat · Antippen' : 'Antippen'}</span>
           </div>
         )}
       </div>
@@ -312,6 +337,7 @@ function MobilePhotoSlot({
       {cameraOpen && (
         <MobileCameraCapture
           label={label}
+          subject={isWholeBody ? 'wholeBody' : 'hoof'}
           onCapture={(file) => {
             setCameraOpen(false)
             onFileSelect(slot, file)
@@ -321,7 +347,7 @@ function MobilePhotoSlot({
         />
       )}
 
-      {annotatorOpen && displayUrl && (
+      {annotatorOpen && displayUrl && !isWholeBody && (
         <div className="mcc-overlay" style={{ zIndex: 10000 }}>
           <div className="mcc-container" style={{ flexDirection: 'column', background: '#111' }}>
             {/* Header */}
@@ -440,6 +466,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   const [isSyncing, setIsSyncing] = useState(false)
   const [progressOpen, setProgressOpen] = useState(true)
   const [photoOpen, setPhotoOpen] = useState(false)
+  /** Nur Neuanlage ohne frühere Dokumentation — Ganzkörperfotos wie Desktop */
+  const [isErsttermin, setIsErsttermin] = useState(false)
   const actionRowRef = useRef<HTMLDivElement>(null)
   const draftRestoredRef = useRef(false)
 
@@ -532,6 +560,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
       try {
         const list = await loadRecordListForHorseView(supabase, user.id, horseId)
+        if (!isEdit) {
+          setIsErsttermin(list.recordRows.length === 0)
+        }
         if (isEdit && recordId) {
           setPrevRecordDate(getPreviousVisitRecordDateFromMergedList(list.recordRows, recordId))
         } else {
@@ -551,6 +582,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         const prevRow = isEdit ? prev?.[1] : prev?.[0]
         if (prevRow?.record_date) setPrevRecordDate(prevRow.record_date)
         else setPrevRecordDate(null)
+        if (!isEdit) {
+          setIsErsttermin(!(prev && prev.length > 0))
+        }
       }
 
       if (isEdit && recordId) {
@@ -686,15 +720,15 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   const handlePhotoSelect = useCallback(async (slot: PhotoSlotKey, file: File) => {
     setUploadingSlot(slot)
     setError('')
+    const whole = isWholeBodySlotKey(slot)
     try {
-      const result = await processHoofImage(file)
+      const result = whole ? await processWholeBodyImage(file) : await processHoofImage(file)
       const previewUrl = URL.createObjectURL(result.blob)
       setStagedPhotos((prev) => ({
         ...prev,
         [slot]: { slot, blob: result.blob, width: result.width, height: result.height, previewUrl },
       }))
     } catch (e) {
-      // Fallback: Original-Datei ohne Verarbeitung (z.B. wenn processHoofImage auf manchen Mobilgeräten scheitert)
       try {
         const url = URL.createObjectURL(file)
         const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -706,18 +740,34 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         URL.revokeObjectURL(url)
         const blob = file
         const previewUrl = URL.createObjectURL(blob)
+        const w = img.naturalWidth
+        const h = img.naturalHeight
         setStagedPhotos((prev) => ({
           ...prev,
-          [slot]: { slot, blob, width: img.naturalWidth, height: img.naturalHeight, previewUrl },
+          [slot]: {
+            slot,
+            blob,
+            width: w,
+            height: h,
+            previewUrl,
+          },
         }))
       } catch (fallbackErr) {
-        // Letzter Fallback: Datei ohne Maße (Upload funktioniert trotzdem)
         try {
-          const blob = file.size > 0 ? file : await file.arrayBuffer().then((ab) => new Blob([ab], { type: file.type || 'image/jpeg' }))
+          const blob =
+            file.size > 0
+              ? file
+              : await file.arrayBuffer().then((ab) => new Blob([ab], { type: file.type || 'image/jpeg' }))
           const previewUrl = URL.createObjectURL(blob)
           setStagedPhotos((prev) => ({
             ...prev,
-            [slot]: { slot, blob, width: 1080, height: 1920, previewUrl },
+            [slot]: {
+              slot,
+              blob,
+              width: whole ? 1000 : 1080,
+              height: whole ? 750 : 1920,
+              previewUrl,
+            },
           }))
         } catch (lastErr) {
           console.error('Foto-Verarbeitung fehlgeschlagen:', e, fallbackErr, lastErr)
@@ -894,7 +944,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         </div>
         <div className="mrf-ctx-item">
           <div className="mrf-ctx-label">Terminart</div>
-          <div className="mrf-ctx-value mrf-ctx-accent">Regeltermin</div>
+          <div className="mrf-ctx-value mrf-ctx-accent">
+            {!isEdit && isErsttermin ? 'Ersttermin' : 'Regeltermin'}
+          </div>
         </div>
         <div className="mrf-ctx-item">
           <div className="mrf-ctx-label">Letzter Termin</div>
@@ -1019,7 +1071,11 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
         {/* 3. FOTOS – ausklappbar */}
         {(() => {
-          const totalPhotos = [...SLOT_SOLAR, ...SLOT_LATERAL].filter(s => stagedPhotos[s] || photoUrls[s]).length
+          const hoofSlots = [...SLOT_SOLAR, ...SLOT_LATERAL] as PhotoSlotKey[]
+          const slotsForCount =
+            !isEdit && isErsttermin ? [...hoofSlots, ...SLOT_WHOLE_BODY] : hoofSlots
+          const maxSlots = slotsForCount.length
+          const totalPhotos = slotsForCount.filter((s) => stagedPhotos[s] || photoUrls[s]).length
           return (
             <div className="mrf-card">
               <div className="mrf-s-header" style={{ cursor: 'pointer' }} onClick={() => setPhotoOpen(o => !o)}>
@@ -1027,7 +1083,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
                   <span className="mrf-s-icon"><i className="bi bi-camera-fill" /></span>
                   Fotos aufnehmen
                   {totalPhotos > 0 && (
-                    <span className="mrf-photo-count">{totalPhotos} / 8</span>
+                    <span className="mrf-photo-count">
+                      {totalPhotos} / {maxSlots}
+                    </span>
                   )}
                 </div>
                 <svg
@@ -1072,6 +1130,30 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
                       />
                     ))}
                   </div>
+                  {!isEdit && isErsttermin && (
+                    <>
+                      <div className="photo-label">Ganzkörperfotos (optional)</div>
+                      <p className="mb-2 text-[11px] leading-snug text-[#6B7280]">
+                        Gesamtes Pferd von der Seite — Smartphone{' '}
+                        <strong className="font-semibold text-[#4B5563]">quer halten</strong> (nicht
+                        hochkant), damit das Bildformat passt.
+                      </p>
+                      <div className="photo-grid">
+                        {SLOT_WHOLE_BODY.map((slot) => (
+                          <MobilePhotoSlot
+                            key={slot}
+                            slot={slot}
+                            label={SLOT_LABELS[slot]}
+                            signedUrl={photoUrls[slot]}
+                            staged={stagedPhotos[slot]}
+                            uploading={uploadingSlot === slot}
+                            isWholeBody
+                            onFileSelect={handlePhotoSelect}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { formatAnimalTypeLabel, formatNeuteredLabel, formatWeightKgKg } from '@/lib/animalTypeDisplay'
+import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
 
 type Owner = {
   id: string
@@ -34,6 +35,12 @@ type DokuRow = {
   id: string
   record_date: string | null
   photoCount: number
+}
+
+type WholeBodyPhotoItem = {
+  id: string
+  imageUrl: string
+  label: string
 }
 
 type ViewTab = 'overview' | 'docs'
@@ -141,6 +148,8 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [lastTreatment, setLastTreatment] = useState<string | null>(null)
   const [nextAppointment, setNextAppointment] = useState<string | null>(null)
   const [dokus, setDokus] = useState<DokuRow[]>([])
+  const [wholeBodyPhotos, setWholeBodyPhotos] = useState<WholeBodyPhotoItem[]>([])
+  const [wholeBodyRecordDate, setWholeBodyRecordDate] = useState<string | null>(null)
 
   useEffect(() => {
     const idFromUrl =
@@ -169,6 +178,10 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
         setLastTreatment(data.lastTreatment || null)
         setNextAppointment(data.nextAppointment || null)
         setDokus(Array.isArray(data.dokumentationen) ? data.dokumentationen : [])
+        setWholeBodyPhotos(Array.isArray(data.wholeBodyPhotos) ? data.wholeBodyPhotos : [])
+        setWholeBodyRecordDate(
+          typeof data.wholeBodyRecordDate === 'string' ? data.wholeBodyRecordDate : null
+        )
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : 'Pferd konnte nicht geladen werden.'
@@ -331,6 +344,25 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                   : 'Derzeit ist noch kein nächster Termin geplant.'}
               </div>
             </div>
+
+            {wholeBodyPhotos.length > 0 && (
+              <div className="section">
+                <div className="section-header">
+                  <h3>Ganzkörperfotos</h3>
+                </div>
+                <div className="section-body">
+                  <p className="mb-3 text-[12px] leading-relaxed text-[#6B7280]">
+                    Referenzfotos der jüngsten Dokumentation (links/rechts) — antippen zum Vergrößern.
+                  </p>
+                  <WholeBodyPhotoSwitcher
+                    items={wholeBodyPhotos}
+                    dateLabel={
+                      wholeBodyRecordDate ? formatDate(wholeBodyRecordDate) : undefined
+                    }
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="section">
               <div className="section-header">

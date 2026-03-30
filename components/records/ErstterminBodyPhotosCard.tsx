@@ -57,17 +57,17 @@ export default function ErstterminBodyPhotosCard(props: ErstterminBodyPhotosCard
                 key={photo.url}
                 type="button"
                 onClick={() => setEnlargeUrl(photo.url)}
-                className="relative block w-full overflow-hidden rounded-xl border-0 bg-[#E5E2DC] transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#52b788] focus:ring-offset-2"
+                className="relative block w-full overflow-hidden rounded-xl border border-[#E5E2DC] bg-[#E5E2DC] text-left transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#52b788] focus:ring-offset-2"
               >
                 <img
                   src={photo.url}
                   alt={photo.label}
                   className="aspect-video w-full object-cover"
                 />
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 rounded-b-xl bg-black/50 px-3 py-2 text-white">
-                  <span className="text-[13px] font-medium">{photo.label}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E2DC] bg-[#FAFAF8] px-3 py-2">
+                  <span className="text-[13px] font-medium text-[#1B1F23]">{photo.label}</span>
                   {formattedDate && (
-                    <span className="text-[12px] text-white/90">Aufnahme: {formattedDate}</span>
+                    <span className="text-[12px] text-[#6B7280]">Aufnahme: {formattedDate}</span>
                   )}
                 </div>
               </button>

@@ -17,6 +17,14 @@ import VoiceRecorder from '@/components/VoiceRecorder'
 import ImproveTextButton from '@/components/ImproveTextButton'
 import MinimalRichEditor from '@/components/records/MinimalRichEditor'
 import { processVoiceCommand, applyVoiceCommand } from '@/lib/voiceCommands'
+import type { HoofKey, HoofState } from '@/lib/hoofs'
+import {
+  createInitialHoofs,
+  parseHoofsFromJson,
+  computeHoofOverallStatus,
+  singleHoofStatus,
+  HOOF_STANDARD,
+} from '@/lib/hoofs'
 
 type TextBlock = {
   id: string
@@ -74,19 +82,6 @@ type RecordCreateFormProps = {
   /** Edit mode: existing photos for this record (with signed URLs in existingPhotoUrls) */
   existingPhotos?: ExistingPhoto[]
   existingPhotoUrls?: Record<string, string>
-}
-
-type HoofKey = 'vl' | 'vr' | 'hl' | 'hr'
-
-type HoofState = {
-  hoof_position: HoofKey
-  work_status: string | null
-  angle_deg: number | null
-  toe_alignment: string | null
-  heel_balance: string | null
-  sole_condition: string | null
-  frog_condition: string | null
-  notes: string | null
 }
 
 const GENERAL_CONDITION_OPTIONS = ['Unauffällig', 'Auffällig']
@@ -184,145 +179,6 @@ function formatGermanDate(dateString: string | null) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(dateString))
-}
-
-function createInitialHoofs(): Record<HoofKey, HoofState> {
-  return {
-    vl: {
-      hoof_position: 'vl',
-      work_status: null,
-      angle_deg: null,
-      toe_alignment: null,
-      heel_balance: null,
-      sole_condition: null,
-      frog_condition: null,
-      notes: null,
-    },
-    vr: {
-      hoof_position: 'vr',
-      work_status: null,
-      angle_deg: null,
-      toe_alignment: null,
-      heel_balance: null,
-      sole_condition: null,
-      frog_condition: null,
-      notes: null,
-    },
-    hl: {
-      hoof_position: 'hl',
-      work_status: null,
-      angle_deg: null,
-      toe_alignment: null,
-      heel_balance: null,
-      sole_condition: null,
-      frog_condition: null,
-      notes: null,
-    },
-    hr: {
-      hoof_position: 'hr',
-      work_status: null,
-      angle_deg: null,
-      toe_alignment: null,
-      heel_balance: null,
-      sole_condition: null,
-      frog_condition: null,
-      notes: null,
-    },
-  }
-}
-
-function mapLegacyHeelBalance(v: string | null | undefined): string | null {
-  if (!v) return null
-  if (v === 'ausgeglichen') return 'normal'
-  if (['med. kürzer', 'lat. kürzer'].includes(v)) return 'ungleich'
-  if (v === 'untergeschoben') return 'untergeschoben'
-  if (v === 'normal' || v === 'ungleich') return v
-  return null
-}
-
-function mapLegacyFrogCondition(v: string | null | undefined): string | null {
-  if (!v) return null
-  if (v === 'faulig') return 'faulig'
-  return 'gesund' // eng, rissig, gesund → gesund
-}
-
-function mapLegacySoleCondition(v: string | null | undefined): string | null {
-  if (!v) return null
-  if (v === 'dünn') return 'dünn'
-  return 'stabil' // stabil, flach, gewölbt → stabil
-}
-
-function mapLegacyToeAlignment(v: string | null | undefined): string | null {
-  if (!v) return null
-  if (v === 'bessernd') return 'gerade'
-  if (['gerade', 'medial', 'lateral'].includes(v)) return v
-  return null
-}
-
-function parseHoofsFromJson(json: unknown): Record<HoofKey, HoofState> {
-  const base = createInitialHoofs()
-  if (!json || !Array.isArray(json)) return base
-  for (const item of json) {
-    if (!item || typeof item !== 'object' || !('hoof_position' in item)) continue
-    const pos = (item as { hoof_position?: string }).hoof_position
-    if (pos !== 'vl' && pos !== 'vr' && pos !== 'hl' && pos !== 'hr') continue
-    const raw = item as HoofState
-    base[pos] = {
-      ...base[pos],
-      hoof_position: pos,
-      work_status: raw.work_status ?? null,
-      angle_deg: raw.angle_deg ?? null,
-      toe_alignment: mapLegacyToeAlignment(raw.toe_alignment) ?? raw.toe_alignment,
-      heel_balance: mapLegacyHeelBalance(raw.heel_balance) ?? raw.heel_balance,
-      sole_condition: mapLegacySoleCondition(raw.sole_condition) ?? raw.sole_condition,
-      frog_condition: mapLegacyFrogCondition(raw.frog_condition) ?? raw.frog_condition,
-      notes: raw.notes ?? null,
-    }
-  }
-  return base
-}
-
-/** Standardwerte für „Unauffällig“: Zehe gerade, Trachten normal, Sohle stabil, Strahl gesund */
-const HOOF_STANDARD = {
-  toe_alignment: 'gerade' as const,
-  heel_balance: 'normal' as const,
-  sole_condition: 'stabil' as const,
-  frog_condition: 'gesund' as const,
-}
-
-type HoofOverallStatus = 'unauffaellig' | 'behandlungsbeduerftig' | 'problematisch'
-
-/**
- * Berechnet den Gesamtstatus aus allen vier Hufen.
- * - Problematisch: mindestens ein Huf mit Strahl = faulig (kritisch).
- * - Behandlungsbedürftig: Abweichungen (z. B. Zehe medial/lateral, Trachten untergeschoben/ungleich, Sohle dünn), aber nichts Kritisches.
- * - Unauffällig: alle Hufe auf Standardwerten (oder keine Befunde gesetzt).
- */
-function computeHoofOverallStatus(hoofs: Record<HoofKey, HoofState>): HoofOverallStatus {
-  const arr = [hoofs.vl, hoofs.vr, hoofs.hl, hoofs.hr]
-  for (const h of arr) {
-    if (h.frog_condition === 'faulig') return 'problematisch'
-  }
-  let hasDeviation = false
-  for (const h of arr) {
-    if (h.toe_alignment && h.toe_alignment !== HOOF_STANDARD.toe_alignment) hasDeviation = true
-    const heelStandard = h.heel_balance === HOOF_STANDARD.heel_balance || h.heel_balance === 'ausgeglichen'
-    if (h.heel_balance && !heelStandard) hasDeviation = true
-    if (h.sole_condition && h.sole_condition !== HOOF_STANDARD.sole_condition) hasDeviation = true
-    if (h.frog_condition && h.frog_condition !== HOOF_STANDARD.frog_condition) hasDeviation = true
-  }
-  return hasDeviation ? 'behandlungsbeduerftig' : 'unauffaellig'
-}
-
-function singleHoofStatus(hoof: HoofState): HoofOverallStatus {
-  if (hoof.frog_condition === 'faulig') return 'problematisch'
-  const heelStandard = hoof.heel_balance === HOOF_STANDARD.heel_balance || hoof.heel_balance === 'ausgeglichen'
-  const hasDeviation =
-    (hoof.toe_alignment && hoof.toe_alignment !== HOOF_STANDARD.toe_alignment) ||
-    (hoof.heel_balance && !heelStandard) ||
-    (hoof.sole_condition && hoof.sole_condition !== HOOF_STANDARD.sole_condition) ||
-    (hoof.frog_condition && hoof.frog_condition !== HOOF_STANDARD.frog_condition)
-  return hasDeviation ? 'behandlungsbeduerftig' : 'unauffaellig'
 }
 
 function parseChecklistFromJson(json: unknown): string[] {

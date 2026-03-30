@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { deriveAppProfile } from '@/lib/appProfile'
+import { SLOT_LABELS } from '@/lib/photos/photoTypes'
 
 type CustomerRelation =
   | {
@@ -162,13 +163,44 @@ export async function GET(
   }
 
   let dokuRows: DokuRow[] = []
+  let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
+  let wholeBodyRecordDate: string | null = null
   try {
-    const { recordRows } = await loadRecordListForHorseView(supabase, user.id, horseId)
+    const { recordRows, wholeBodyPhotoSources, latestRecordId } = await loadRecordListForHorseView(
+      supabase,
+      user.id,
+      horseId
+    )
     dokuRows = recordRows.slice(0, 20).map((row) => ({
       id: row.record.id,
       record_date: row.record.record_date,
       photoCount: row.photoCount,
     }))
+    if (latestRecordId && recordRows[0]?.record.record_date) {
+      wholeBodyRecordDate = recordRows[0].record.record_date
+    }
+    if (wholeBodyPhotoSources.length > 0) {
+      const withUrls = await Promise.all(
+        wholeBodyPhotoSources.map(async (p) => {
+          if (!p.file_path) return null
+          const { data: signed } = await supabase.storage
+            .from('hoof-photos')
+            .createSignedUrl(p.file_path, 60 * 60)
+          if (!signed?.signedUrl) return null
+          return {
+            id: p.id,
+            imageUrl: signed.signedUrl,
+            label: (p.photo_type && SLOT_LABELS[p.photo_type]) ?? p.photo_type ?? 'Ganzkörper',
+          }
+        })
+      )
+      wholeBodyPhotos = withUrls.filter(
+        (x): x is { id: string; imageUrl: string; label: string } => x != null
+      )
+      wholeBodyPhotos.sort(
+        (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
+      )
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Dokumentationsliste konnte nicht geladen werden.'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -204,5 +236,7 @@ export async function GET(
     lastTreatment,
     nextAppointment,
     dokumentationen: dokuRows,
+    wholeBodyPhotos,
+    wholeBodyRecordDate,
   })
 }

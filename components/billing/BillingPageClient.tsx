@@ -1,0 +1,645 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import SectionCard from '@/components/ui/SectionCard'
+import BillingStatusBadge from '@/components/billing/BillingStatusBadge'
+import { getBillingState } from '@/lib/billing/state'
+import type { BillingAccountRow, BillingState, PaymentMethodSummary } from '@/lib/billing/types'
+import EmbeddedSubscribe from '@/components/billing/EmbeddedSubscribe'
+
+async function postJson(url: string): Promise<{ url: string } | { error: string }> {
+  const res = await fetch(url, { method: 'POST' })
+  const data = (await res.json().catch(() => null)) as unknown
+  if (!res.ok) {
+    const msg =
+      data && typeof data === 'object' && data && 'error' in data && typeof (data as any).error === 'string'
+        ? (data as any).error
+        : 'Aktion fehlgeschlagen.'
+    return { error: msg }
+  }
+  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as any).url !== 'string') {
+    return { error: 'Unerwartete Antwort vom Server.' }
+  }
+  return { url: (data as any).url as string }
+}
+
+function formatDateDe(d: Date | null): string {
+  if (!d) return '–'
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
+function scrollToId(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+export default function BillingPageClient({
+  account,
+  priceIdMonthly,
+  loadError,
+  stripePublishableKey,
+}: {
+  account: BillingAccountRow | null
+  priceIdMonthly: string | null
+  loadError?: string
+  stripePublishableKey: string | null
+}) {
+  const billingState = useMemo(
+    () => getBillingState({ account, priceIdMonthly }),
+    [account, priceIdMonthly]
+  )
+  const params = useSearchParams()
+  const success = params.get('success') === '1'
+  const canceled = params.get('canceled') === '1'
+  const blocked = params.get('blocked') === '1'
+
+  const [busy, setBusy] = useState<null | 'portal'>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodSummary | null>(null)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(false)
+
+  const subscriptionStatus = billingState.subscription.status
+  const isActive = subscriptionStatus === 'active'
+  const portalCtaLabel = isActive ? 'Abo verwalten' : 'Rechnungen & Zahlungsdaten verwalten'
+  const isTrialActive = billingState.trial.isActive
+
+  const trialTotalDays = 14
+  const trialDaysRemaining = billingState.trial.daysRemaining ?? null
+  const trialProgressPct =
+    typeof trialDaysRemaining === 'number'
+      ? Math.max(0, Math.min(100, Math.round(((trialTotalDays - trialDaysRemaining) / trialTotalDays) * 100)))
+      : 0
+
+  const ui = useMemo(() => {
+    const status = billingState.subscription.status
+    const trialActive = billingState.trial.isActive
+    const trialExpired = billingState.trial.isExpired && status === 'none'
+
+    if (status === 'past_due') {
+      return {
+        key: 'past_due' as const,
+        title: 'Zahlung ausstehend',
+        badgeText: 'Zahlung offen',
+        icon: 'bi-exclamation-triangle-fill',
+        iconTone: 'warn' as const,
+        detail:
+          'Die letzte Abbuchung ist fehlgeschlagen. Bitte aktualisieren Sie Ihre Zahlungsmethode, um eine Unterbrechung zu vermeiden.',
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+    if (isActive) {
+      return {
+        key: 'active' as const,
+        title: 'Abo aktiv',
+        badgeText: 'Aktiv',
+        icon: 'bi-check-circle-fill',
+        iconTone: 'accent' as const,
+        detail:
+          'Ihr AniDocs Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+    if (trialActive) {
+      return {
+        key: 'trialing' as const,
+        title: 'Testphase aktiv',
+        badgeText: 'Testphase',
+        icon: 'bi-clock-fill',
+        iconTone: 'blue' as const,
+        detail:
+          `Ihre 14‑tägige Testphase läuft noch bis zum ` +
+          `${formatDateDe(billingState.trial.endsAt)}. ` +
+          `Alle Funktionen sind freigeschaltet.`,
+        showProgress: true,
+        showNoCharge: true,
+      }
+    }
+    if (trialExpired) {
+      return {
+        key: 'trial_expired' as const,
+        title: 'Testphase beendet',
+        badgeText: 'Abgelaufen',
+        icon: 'bi-exclamation-circle-fill',
+        iconTone: 'danger' as const,
+        detail:
+          `Ihre Testphase ist am ${formatDateDe(billingState.trial.endsAt)} abgelaufen. ` +
+          `Schließen Sie jetzt Ihr Abo ab, um AniDocs weiter vollständig zu nutzen.`,
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+    return {
+      key: 'no_subscription' as const,
+      title: 'Abo nicht aktiv',
+      badgeText: 'Kein Abo',
+      icon: 'bi-credit-card',
+      iconTone: 'muted' as const,
+      detail:
+        'Schließen Sie Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen. Ihre Rechnungen und Zahlungsdaten verwalten Sie sicher über Stripe.',
+      showProgress: false,
+      showNoCharge: false,
+    }
+  }, [billingState, isActive])
+
+  const notice = useMemo(() => {
+    if (success) {
+      return {
+        tone: 'success' as const,
+        text: 'Vielen Dank! Ihr Checkout wurde abgeschlossen. Falls die Anzeige noch nicht aktualisiert ist, versuchen Sie es bitte in ein paar Sekunden erneut.',
+      }
+    }
+    if (canceled) {
+      return {
+        tone: 'neutral' as const,
+        text: 'Der Checkout wurde abgebrochen. Sie können jederzeit erneut abschließen.',
+      }
+    }
+    if (blocked) {
+      return {
+        tone: 'danger' as const,
+        text: 'Für diesen Bereich ist ein aktives Abo erforderlich. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
+      }
+    }
+
+    if (billingState.subscription.status === 'past_due') {
+      return {
+        tone: 'warning' as const,
+        text: 'Es gibt ein Problem mit einer Zahlung. Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.',
+      }
+    }
+    if (billingState.trial.isActive) {
+      const days = billingState.trial.daysRemaining
+      const daysLabel = typeof days === 'number' ? `${days} Tag${days === 1 ? '' : 'e'}` : 'einige Tage'
+      return {
+        tone: 'neutral' as const,
+        text: `Ihr Testzeitraum läuft noch (${daysLabel} verbleibend).`,
+      }
+    }
+    if (billingState.trial.isExpired && !isActive) {
+      return {
+        tone: 'danger' as const,
+        text: 'Ihr Testzeitraum ist abgelaufen. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
+      }
+    }
+    if (isActive) {
+      return {
+        tone: 'success' as const,
+        text: 'Ihr Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
+      }
+    }
+    return null
+  }, [billingState, blocked, canceled, isActive, success])
+
+  const noticeClass =
+    notice?.tone === 'success'
+      ? 'bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]'
+      : notice?.tone === 'warning'
+        ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
+        : notice?.tone === 'danger'
+          ? 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]'
+          : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0]'
+
+  const openPortal = async () => {
+    setError(null)
+    setBusy('portal')
+    const result = await postJson('/api/stripe/portal')
+    setBusy(null)
+    if ('error' in result) {
+      setError(result.error)
+      return
+    }
+    window.location.href = result.url
+  }
+
+  const setDefaultPaymentMethod = async (paymentMethodId: string) => {
+    const res = await fetch('/api/stripe/payment-method/set-default', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ paymentMethodId }),
+    })
+    const data = (await res.json().catch(() => null)) as any
+    if (!res.ok) {
+      throw new Error((data && typeof data.error === 'string' && data.error) || 'Zahlungsmethode konnte nicht gespeichert werden.')
+    }
+    await loadPaymentMethod()
+    setEditingPaymentMethod(false)
+  }
+
+  const loadPaymentMethod = async () => {
+    setPaymentLoading(true)
+    try {
+      const res = await fetch('/api/billing/payment-method', { method: 'GET' })
+      const data = (await res.json().catch(() => null)) as any
+      if (res.ok) {
+        setPaymentMethod((data?.paymentMethod as PaymentMethodSummary | null) ?? null)
+      }
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadPaymentMethod()
+  }, [])
+
+  const createSubscriptionFromPaymentMethod = async (paymentMethodId: string) => {
+    const res = await fetch('/api/stripe/subscription/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ paymentMethodId }),
+    })
+    const data = (await res.json().catch(() => null)) as any
+    if (!res.ok) {
+      throw new Error((data && typeof data.error === 'string' && data.error) || 'Abo konnte nicht erstellt werden.')
+    }
+    await loadPaymentMethod()
+  }
+
+  const showSubscribe =
+    subscriptionStatus !== 'active' &&
+    subscriptionStatus !== 'past_due'
+
+  const showExpiredAlert =
+    ui.key === 'trial_expired'
+
+  return (
+    <div className="space-y-5">
+      {loadError && !error && (
+        <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-[22px] py-4 text-[14px] text-[#B91C1C]">
+          {loadError}
+        </div>
+      )}
+
+      {notice && (
+        <div className={`huf-card border px-[22px] py-4 text-[14px] ${noticeClass}`}>
+          {notice.text}
+        </div>
+      )}
+
+      {error && (
+        <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-[22px] py-4 text-[14px] text-[#B91C1C]">
+          {error}
+        </div>
+      )}
+
+      {showExpiredAlert && (
+        <div className="huf-card border border-[#E8D5B0] bg-[#FDF6EC] px-5 py-4 text-[13px] text-[#B8860B] flex items-start gap-3">
+          <i className="bi bi-exclamation-triangle-fill mt-[2px] text-[18px]" aria-hidden />
+          <div className="flex-1">
+            <div className="font-semibold text-[#92400E]">
+              Ihre Testphase ist abgelaufen.
+            </div>
+            <div className="mt-0.5">
+              Aktivieren Sie jetzt Ihr Abo, um AniDocs weiter nutzen zu können.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg bg-[#B8860B] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-95"
+            onClick={() => scrollToId('billing-payment')}
+          >
+            Abo aktivieren
+          </button>
+        </div>
+      )}
+
+      {ui.key === 'past_due' && (
+        <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-[13px] text-[#B91C1C] flex items-start gap-3">
+          <i className="bi bi-exclamation-circle-fill mt-[2px] text-[18px]" aria-hidden />
+          <div className="flex-1">
+            <div className="font-semibold">
+              Zahlung fehlgeschlagen.
+            </div>
+            <div className="mt-0.5">
+              Bitte aktualisieren Sie Ihre Zahlungsmethode, um eine Unterbrechung zu vermeiden.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg bg-[#B91C1C] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-95"
+            onClick={openPortal}
+            disabled={busy !== null}
+          >
+            Zahlungsmethode ändern
+          </button>
+        </div>
+      )}
+
+      {/* STATUS CARD */}
+      <div className="huf-card border border-[#E5E2DC] px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div
+          className={[
+            'h-[52px] w-[52px] rounded-[14px] flex items-center justify-center text-[22px] shrink-0',
+            ui.iconTone === 'blue'
+              ? 'bg-[rgba(59,130,246,.06)] text-[#3B82F6]'
+              : ui.iconTone === 'accent'
+                ? 'bg-[rgba(82,183,136,.06)] text-[#52b788]'
+                : ui.iconTone === 'warn'
+                  ? 'bg-[#FDF6EC] text-[#B8860B]'
+                  : ui.iconTone === 'danger'
+                    ? 'bg-[#FEF2F2] text-[#DC2626]'
+                    : 'bg-[#F3F4F6] text-[#6B7280]',
+          ].join(' ')}
+        >
+          <i className={`bi ${ui.icon}`} aria-hidden />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="text-[16px] font-bold text-[#1B1F23]">{ui.title}</div>
+          <div className="mt-0.5 text-[13px] text-[#6B7280] leading-[1.5]">
+            {ui.detail}
+          </div>
+
+          {ui.showProgress && typeof trialDaysRemaining === 'number' && (
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-[6px] flex-1 rounded-full bg-[#F0EEEA] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#3B82F6] transition-[width] duration-300"
+                  style={{ width: `${trialProgressPct}%` }}
+                />
+              </div>
+              <div className="text-[11px] text-[#9CA3AF] font-medium whitespace-nowrap">
+                {trialTotalDays - trialDaysRemaining} von {trialTotalDays} Tagen
+              </div>
+            </div>
+          )}
+
+          {ui.showNoCharge && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-[rgba(82,183,136,.15)] bg-[rgba(82,183,136,.06)] px-3 py-2 text-[12px] text-[#2D7A3A]">
+              <i className="bi bi-shield-check mt-[1px]" aria-hidden />
+              <div>
+                Während der Testphase erfolgt keine Abbuchung. Sie können jederzeit kündigen.
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <BillingStatusBadge status={billingState.subscription.status} />
+        </div>
+      </div>
+
+      {/* PLAN CARD */}
+      <div className="huf-card border border-[#E5E2DC] overflow-hidden">
+        <div className="border-b border-[#F0EEEA] px-6 py-5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52b788]">
+            {billingState.plan.label}
+          </div>
+
+          <div className="mt-2 flex items-end gap-2">
+            <div className="font-serif text-[44px] leading-none font-semibold tracking-[-0.02em] text-[#1B1F23]">
+              39,95
+            </div>
+            <div className="pb-1 text-[16px] font-semibold text-[#6B7280]">€</div>
+            <div className="pb-1 text-[14px] text-[#9CA3AF]">/ Monat</div>
+          </div>
+
+          <div className="mt-2 flex items-center gap-2 text-[13px] text-[#6B7280]">
+            <i className="bi bi-gift-fill text-[#52b788]" aria-hidden />
+            14 Tage kostenlos testen — danach monatlich kündbar
+          </div>
+        </div>
+
+        <div className="border-b border-[#F0EEEA] px-6 py-5">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#9CA3AF]">
+            Alles inklusive
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-y-2 gap-x-6 sm:grid-cols-2">
+            {[
+              'Unbegrenzt Tiere & Kunden',
+              'Dokumentation mit Fotos',
+              'PDF-Berichte per Klick',
+              'Rechnungserstellung',
+              'Terminverwaltung',
+              'Offline‑Modus (PWA)',
+              'Verlaufsberichte & Vergleich',
+            ].map((t) => (
+              <div key={t} className="flex items-center gap-2 text-[13px] text-[#6B7280]">
+                <i className="bi bi-check-circle-fill text-[#52b788]" aria-hidden />
+                <span>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          {subscriptionStatus === 'past_due' ? (
+            <button
+              type="button"
+              className="h-[48px] w-full rounded-[12px] bg-[#1B1F23] text-white text-[16px] font-bold hover:bg-black disabled:opacity-60"
+              onClick={openPortal}
+              disabled={busy !== null}
+            >
+              Zahlung & Zahlungsmethode aktualisieren
+            </button>
+          ) : isActive ? (
+            <button
+              type="button"
+              className="h-[48px] w-full rounded-[12px] bg-[#52b788] text-white text-[16px] font-bold hover:opacity-95 disabled:opacity-60"
+              onClick={openPortal}
+              disabled={busy !== null}
+            >
+              Abo verwalten (Stripe)
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={[
+                'h-[48px] w-full rounded-[12px] text-white text-[16px] font-bold hover:opacity-95',
+                ui.key === 'trial_expired' ? 'bg-[#1B1F23]' : 'bg-[#52b788]',
+              ].join(' ')}
+              onClick={() => scrollToId('billing-payment')}
+            >
+              {ui.key === 'trial_expired' ? 'Kostenpflichtig weiter nutzen' : 'Zahlungsmethode hinzufügen'}
+            </button>
+          )}
+
+          <div className="mt-2 text-center text-[12px] text-[#9CA3AF]">
+            Zahlungen werden sicher über Stripe abgewickelt. Kartendaten werden nie auf AniDocs‑Servern gespeichert.
+          </div>
+        </div>
+      </div>
+
+      {/* PAYMENT SECTION */}
+      <div id="billing-payment" className="huf-card border border-[#E5E2DC] overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
+          <i className="bi bi-credit-card-fill text-[#52b788]" aria-hidden />
+          <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Zahlungsmethode</div>
+          <button
+            type="button"
+            className="text-[12px] font-semibold text-[#52b788] hover:underline"
+            onClick={openPortal}
+            disabled={busy !== null}
+          >
+            Im Portal verwalten →
+          </button>
+        </div>
+        <div className="px-6 py-5">
+          {!showSubscribe ? (
+            <div className="text-center text-[13px] text-[#9CA3AF] py-4">
+              <i className="bi bi-credit-card text-[26px] opacity-20 block mb-2" aria-hidden />
+              {subscriptionStatus === 'past_due'
+                ? 'Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.'
+                : 'Ihre Zahlungsmethode verwalten Sie sicher über das Stripe Zahlungsportal.'}
+            </div>
+          ) : (
+            <div className="w-full">
+              {paymentLoading ? (
+                <div className="text-[13px] text-[#9CA3AF]">Wird geladen…</div>
+              ) : (paymentMethod && !editingPaymentMethod) ? (
+                <div className="huf-card bg-[#FAFAF8] border border-[#F0EEEA] px-5 py-4 rounded-[12px]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[12px] font-semibold text-[#6B7280]">Hinterlegte Zahlungsmethode</div>
+                    <button
+                      type="button"
+                      className="rounded-md border border-[#E5E2DC] bg-white px-3 py-2 text-[11px] font-semibold text-[#6B7280] hover:border-[#9CA3AF]"
+                      onClick={() => setEditingPaymentMethod(true)}
+                      disabled={busy !== null}
+                    >
+                      Zahlungsmethode ändern
+                    </button>
+                  </div>
+
+                  <div className="mt-3">
+                    {paymentMethod.kind === 'card' ? (
+                      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+                        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
+                          {(paymentMethod.brand ?? 'CARD').toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
+                            •••• •••• •••• {paymentMethod.last4 ?? '—'}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
+                            Gültig bis {paymentMethod.expMonth ?? '—'}/{paymentMethod.expYear ?? '—'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : paymentMethod.kind === 'sepa_debit' ? (
+                      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+                        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
+                          SEPA
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
+                            IBAN •••• {paymentMethod.last4 ?? '—'}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
+                            {paymentMethod.bankCode ? `Bank ${paymentMethod.bankCode}` : 'Lastschrift'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+                        <div className="text-[13px] text-[#6B7280]">Zahlungsmethode: {paymentMethod.label}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full">
+                  <EmbeddedSubscribe
+                    stripePublishableKey={stripePublishableKey}
+                    title={paymentMethod ? 'Zahlungsmethode ändern' : (isTrialActive ? 'Zahlungsmethode hinterlegen' : 'Abo abschließen')}
+                    ctaLabel={paymentMethod ? 'Zahlungsmethode speichern' : (isTrialActive ? 'Zahlungsmethode speichern' : 'Jetzt Abo abschließen')}
+                    description={
+                      paymentMethod
+                        ? 'Ändern Sie Ihre Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in Ihrem Stripe‑Konto hinterlegt.'
+                        : isTrialActive
+                        ? 'Damit Ihr Abo nach dem Testzeitraum nahtlos weiterläuft, können Sie schon jetzt eine Zahlungsmethode hinterlegen.'
+                        : 'Schließen Sie Ihr AniDocs Abo direkt hier ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
+                    }
+                    prepareUrl={
+                      paymentMethod
+                        ? '/api/stripe/setup-intent/prepare'
+                        : isTrialActive
+                          ? '/api/stripe/setup-intent/prepare'
+                          : '/api/stripe/subscription/prepare'
+                    }
+                    onSetupIntentSucceeded={
+                      paymentMethod
+                        ? setDefaultPaymentMethod
+                        : (isTrialActive ? createSubscriptionFromPaymentMethod : undefined)
+                    }
+                    onCompleted={async () => {
+                      await loadPaymentMethod()
+                      setEditingPaymentMethod(false)
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* INVOICES SECTION */}
+      <div className="huf-card border border-[#E5E2DC] overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
+          <i className="bi bi-receipt text-[#52b788]" aria-hidden />
+          <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Rechnungen</div>
+          <button
+            type="button"
+            className="text-[12px] font-semibold text-[#52b788] hover:underline"
+            onClick={openPortal}
+            disabled={busy !== null}
+          >
+            Stripe Kundenportal →
+          </button>
+        </div>
+        <div className="px-6 py-5">
+          <div className="text-center text-[13px] text-[#9CA3AF] py-3">
+            <i className="bi bi-receipt text-[26px] opacity-20 block mb-2" aria-hidden />
+            Rechnungen können Sie jederzeit sicher im Stripe Kundenportal herunterladen.
+          </div>
+        </div>
+      </div>
+
+      {/* TRUST ROW */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          {
+            icon: 'bi-shield-lock-fill',
+            title: 'Sichere Zahlung',
+            text: 'Alle Zahlungen werden über Stripe verarbeitet. Zahlungsdaten werden nie auf AniDocs‑Servern gespeichert.',
+          },
+          {
+            icon: 'bi-arrow-repeat',
+            title: 'Monatlich kündbar',
+            text: 'Keine Mindestlaufzeit. Sie können jederzeit im Kundenportal kündigen oder verwalten.',
+          },
+          {
+            icon: 'bi-lock-fill',
+            title: 'Daten geschützt',
+            text: 'Ihre Daten gehören Ihnen. Bei Kündigung können Sie sie weiterhin exportieren.',
+          },
+        ].map((t) => (
+          <div key={t.title} className="huf-card border border-[#E5E2DC] px-4 py-3 flex items-start gap-3">
+            <div className="h-9 w-9 rounded-[10px] bg-[#FAFAF8] flex items-center justify-center text-[#9CA3AF] text-[18px] shrink-0">
+              <i className={`bi ${t.icon}`} aria-hidden />
+            </div>
+            <div className="text-[12px] text-[#6B7280] leading-[1.4]">
+              <div className="font-semibold text-[#1B1F23]">{t.title}</div>
+              <div className="mt-0.5">{t.text}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-2 py-2 text-[11px] text-[#9CA3AF]">
+        <span className="inline-flex h-[20px] items-center rounded-full border border-[#E5E2DC] bg-white px-2">
+          Stripe
+        </span>
+        <span>·</span>
+        <span>Zahlungsabwicklung über Stripe · SSL‑verschlüsselt</span>
+      </div>
+    </div>
+  )
+}
+

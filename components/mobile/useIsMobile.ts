@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react'
 
-const MOBILE_BREAKPOINT = 768
+// Desktop-Layout mit Sidebar ist ab Tailwind `lg:` (1024px) gedacht.
+// Für euren gewünschten Tablet-Übergang:
+// Mobile-UI erst ab <960px, damit Tablet-Quer/hochformat Übergänge sauber bleiben.
+const MOBILE_BREAKPOINT = 960
 
 export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false)
@@ -11,7 +14,9 @@ export function useIsMobile(): boolean {
     const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     check()
     window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    return () => {
+      window.removeEventListener('resize', check)
+    }
   }, [])
 
   return isMobile

@@ -135,6 +135,11 @@ export default function PhotoGrid({
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
             Ganzkörperfotos (optional)
           </div>
+          <p className="mb-3 text-[12px] leading-relaxed text-[#6B7280]">
+            Bitte das gesamte Pferd von der Seite erfassen und das Gerät{' '}
+            <strong className="font-medium text-[#4B5563]">im Querformat</strong> halten (Kamera quer, nicht
+            hochkant).
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {SLOT_WHOLE_BODY.map((slot) => {
               const existing = bySlot(slot)

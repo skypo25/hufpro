@@ -14,6 +14,7 @@ import {
   faTableCellsLarge,
   faGear,
   faFileInvoice,
+  faCreditCard,
   faChevronLeft,
   faBars,
 } from '@fortawesome/free-solid-svg-icons'
@@ -38,7 +39,10 @@ function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
     },
     {
       title: 'Finanzen',
-      items: [{ label: 'Rechnungen', href: '/invoices', icon: faFileInvoice }],
+      items: [
+        { label: 'Rechnungen', href: '/invoices', icon: faFileInvoice },
+        { label: 'Billing', href: '/billing', icon: faCreditCard },
+      ],
     },
     {
       title: 'System',
@@ -74,8 +78,12 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-[15px] top-[15px] bottom-[15px] z-50 hidden flex-col overflow-hidden rounded-xl bg-[#1B1F23] text-white shadow-lg transition-[width] duration-200 ease-out lg:flex"
-      style={{ width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH }}
+      className="fixed left-[15px] z-50 hidden flex-col overflow-hidden rounded-xl bg-[#1B1F23] text-white shadow-lg transition-[width] duration-200 ease-out min-[960px]:flex"
+      style={{
+        width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
+        top: 'calc(15px + env(safe-area-inset-top, 0px))',
+        bottom: 'calc(15px + env(safe-area-inset-bottom, 0px))',
+      }}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 pb-4 pt-5">
         <div className="flex min-w-0 items-center gap-3">

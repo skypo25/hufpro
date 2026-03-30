@@ -1,0 +1,7 @@
+export type { HoofCompareView } from './types'
+export { isHoofKey, isHoofCompareView } from './types'
+export { photoSlotKeyFromHoofView } from './slotKey'
+export { pickPhotoForSlot } from './pickPhoto'
+export { diffHoofSides, summarizeDiffGerman, type CompareFieldKey } from './diffHoofSide'
+export { loadSlotTimelineForHorse, type SlotTimelineEntry } from './slotTimeline'
+export { hoofLongLabel, photoOverlayTitle } from './presentation'

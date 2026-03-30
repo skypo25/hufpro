@@ -6,6 +6,7 @@ import type { StagedPhoto } from './usePhotoUpload'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import PhotoAnnotator from './PhotoAnnotator'
 import { processHoofImage, processWholeBodyImage } from './imageProcessing'
+import MobileCameraCapture from '@/components/mobile/MobileCameraCapture'
 
 export type ExistingPhoto = {
   id: string
@@ -56,6 +57,7 @@ export default function PhotoSlot({
 }: PhotoSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [showAnnotateModal, setShowAnnotateModal] = useState(false)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const [localAnnotations, setLocalAnnotations] = useState<AnnotationsData>({ version: 1, items: [] })
 
   const hasPhoto = !!(existingPhoto?.file_path && imageUrl) || !!stagedPhoto
@@ -83,32 +85,65 @@ export default function PhotoSlot({
 
   const aspectClass = isWholeBody ? 'aspect-video' : 'aspect-[9/16]'
 
+  const canUseOverlayCamera =
+    !isWholeBody &&
+    typeof window !== 'undefined' &&
+    // touch devices (iPad etc.) – nicht von getUserMedia abhängig machen,
+    // da MobileCameraCapture intern einen nativen Fallback hat.
+    ((window.matchMedia?.('(pointer: coarse)').matches ?? false) || (navigator.maxTouchPoints ?? 0) > 0)
+
+  const openCamera = () => {
+    if (uploading) return
+    if (canUseOverlayCamera) setCameraOpen(true)
+    else inputRef.current?.click()
+  }
+
   if (!hasPhoto) {
     return (
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] px-3 py-4 transition hover:border-[#52b788] hover:bg-[rgba(21,66,38,0.03)] ${aspectClass}`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        {uploading ? (
-          <span className="text-[13px] text-[#6B7280]">Wird verarbeitet …</span>
-        ) : (
-          <>
-            <div className="mb-1 text-[24px] opacity-50">{isWholeBody ? '🐴' : '📸'}</div>
-            <div className="text-[11px] font-semibold text-[#6B7280]">{slotLabel}</div>
-            <div className="mt-0.5 text-[10px] text-[#9CA3AF]">Antippen zum Hochladen</div>
-          </>
+      <>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={openCamera}
+          onKeyDown={(e) => e.key === 'Enter' && openCamera()}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] px-3 py-4 transition hover:border-[#52b788] hover:bg-[rgba(21,66,38,0.03)] ${aspectClass}`}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {uploading ? (
+            <span className="text-[13px] text-[#6B7280]">Wird verarbeitet …</span>
+          ) : (
+            <>
+              <div className="mb-1 text-[24px] opacity-50">{isWholeBody ? '🐴' : '📸'}</div>
+              <div className="text-[11px] font-semibold text-[#6B7280]">{slotLabel}</div>
+              <div className="mt-0.5 text-center text-[10px] text-[#9CA3AF]">
+                {isWholeBody ? 'Querformat · Antippen zum Hochladen' : 'Antippen zum Hochladen'}
+              </div>
+            </>
+          )}
+        </div>
+
+        {cameraOpen && (
+          <MobileCameraCapture
+            label={slotLabel}
+            subject={isWholeBody ? 'wholeBody' : 'hoof'}
+            onCapture={(file) => {
+              setCameraOpen(false)
+              onFileSelect(file)
+            }}
+            onClose={() => setCameraOpen(false)}
+            onFallback={() => {
+              setCameraOpen(false)
+              inputRef.current?.click()
+            }}
+          />
         )}
-      </div>
+      </>
     )
   }
 
@@ -166,7 +201,7 @@ export default function PhotoSlot({
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                inputRef.current?.click()
+                openCamera()
               }}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/50 text-white hover:bg-black/70"
               title="Ersetzen"
@@ -254,6 +289,22 @@ export default function PhotoSlot({
         className="hidden"
         onChange={handleFileChange}
       />
+
+      {cameraOpen && (
+        <MobileCameraCapture
+          label={slotLabel}
+          subject={isWholeBody ? 'wholeBody' : 'hoof'}
+          onCapture={(file) => {
+            setCameraOpen(false)
+            onFileSelect(file)
+          }}
+          onClose={() => setCameraOpen(false)}
+          onFallback={() => {
+            setCameraOpen(false)
+            inputRef.current?.click()
+          }}
+        />
+      )}
     </div>
   )
 }

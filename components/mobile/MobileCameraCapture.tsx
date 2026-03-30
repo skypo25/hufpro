@@ -2,19 +2,38 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 
+export type MobileCameraSubject = 'hoof' | 'wholeBody'
+
 type Props = {
   onCapture: (file: File) => void
   onClose: () => void
   onFallback?: () => void
   label?: string
+  /**
+   * Huf: 9:16-Rahmen + Fadenkreuz + abgedunkelter Rand (Huf im Sucher zentrieren).
+   * Ganzkörper: voller Kamerablick ohne Overlay; Aufnahme wird auf 4:3 zugeschnitten.
+   */
+  subject?: MobileCameraSubject
 }
 
-export default function MobileCameraCapture({ onCapture, onClose, onFallback, label }: Props) {
+/** width / height */
+const ASPECT_HOOF = 9 / 16
+const ASPECT_WHOLE_BODY = 4 / 3
+
+export default function MobileCameraCapture({
+  onCapture,
+  onClose,
+  onFallback,
+  label,
+  subject = 'hoof',
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const nativeInputRef = useRef<HTMLInputElement>(null)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nativeFallbackMode, setNativeFallbackMode] = useState(false)
 
   // Start camera
   useEffect(() => {
@@ -22,25 +41,106 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
     async function start() {
       // If getUserMedia is unavailable (HTTP / old browser), go straight to native
       if (!navigator.mediaDevices?.getUserMedia) {
-        if (!cancelled && onFallback) { onFallback(); return }
-        if (!cancelled) setError('Kamera nicht verfügbar')
+        if (!cancelled) {
+          setNativeFallbackMode(true)
+          setReady(false)
+          setError(null)
+        }
         return
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', aspectRatio: 9 / 16 },
-          audio: false,
-        })
+        // iOS/iPadOS ist manchmal empfindlich bei Constraints (z. B. aspectRatio).
+        // Wir versuchen mehrere Varianten, bevor wir den nativen Fallback öffnen.
+        const tryGetStream = async (constraints: MediaStreamConstraints) => {
+          return navigator.mediaDevices.getUserMedia(constraints)
+        }
+
+        // iOS ist oft empfindlich bei MediaStreamConstraints.
+        // Daher: aspectRatio als "ideal" und mehrere Stufen ohne zu strikte Vorgaben.
+        const constraintsList: MediaStreamConstraints[] =
+          subject === 'wholeBody'
+            ? [
+                {
+                  video: {
+                    facingMode: { ideal: 'environment' },
+                    aspectRatio: { ideal: ASPECT_WHOLE_BODY },
+                    width: { ideal: 1280 },
+                    height: { ideal: 960 },
+                  },
+                  audio: false,
+                },
+                {
+                  video: {
+                    facingMode: { ideal: 'environment' },
+                    aspectRatio: { ideal: ASPECT_WHOLE_BODY },
+                  },
+                  audio: false,
+                },
+                { video: { facingMode: { ideal: 'environment' } }, audio: false },
+                { video: { aspectRatio: { ideal: ASPECT_WHOLE_BODY } }, audio: false },
+                { video: true, audio: false },
+              ]
+            : [
+                {
+                  video: {
+                    facingMode: { ideal: 'environment' },
+                    aspectRatio: { ideal: ASPECT_HOOF },
+                    width: { ideal: 720 },
+                    height: { ideal: 1280 },
+                  },
+                  audio: false,
+                },
+                {
+                  video: {
+                    facingMode: { ideal: 'environment' },
+                    aspectRatio: { ideal: ASPECT_HOOF },
+                  },
+                  audio: false,
+                },
+                { video: { facingMode: { ideal: 'environment' } }, audio: false },
+                { video: { aspectRatio: { ideal: ASPECT_HOOF } }, audio: false },
+                { video: true, audio: false },
+              ]
+
+        let stream: MediaStream | null = null
+        let lastErr: unknown = null
+        for (const c of constraintsList) {
+          try {
+            stream = await tryGetStream(c)
+            break
+          } catch (err) {
+            lastErr = err
+          }
+        }
+
+        if (!stream) {
+          throw lastErr ?? new Error('Kamera konnte nicht initialisiert werden')
+        }
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
         streamRef.current = stream
         if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.play().then(() => { if (!cancelled) setReady(true) }).catch(() => {})
+          const vid = videoRef.current
+          const onMeta = () => {
+            // iOS kann `play()`-Promises schlucken; Metadata ist oft trotzdem da.
+            if (!cancelled) setReady(true)
+          }
+          vid.addEventListener('loadedmetadata', onMeta)
+          vid.addEventListener('canplay', onMeta)
+
+          vid.srcObject = stream
+          // play versuchen (kann rejecten) – ready wird über Events gesetzt
+          vid.play().catch(() => {})
+
+          // Cleanup Listener via cancelled-Flag im useEffect return.
+          // (Event Listener werden beim unmount/close ohnehin mitgestoppt; das Flag sorgt nur für kein setState.)
         }
       } catch {
         if (cancelled) return
-        // Permission denied or not available → fall back to native
-        if (onFallback) { onFallback() } else { setError('Kamera-Zugriff verweigert') }
+        // Video-Kamera geht hier oft nicht (iOS / unsichere Context). Wir bleiben im Overlay
+        // und nutzen intern den nativen File-Input (capture="environment").
+        setNativeFallbackMode(true)
+        setReady(false)
+        setError('Overlay-Kamera konnte nicht gestartet werden. Wir nutzen die native Kamera.')
       }
     }
     start()
@@ -48,7 +148,74 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
       cancelled = true
       streamRef.current?.getTracks().forEach(t => t.stop())
     }
+  }, [subject])
+
+  const cropNativeFileToAspect = useCallback(async (file: File, targetRatio: number): Promise<File> => {
+    const objectUrl = URL.createObjectURL(file)
+    try {
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Bild konnte nicht geladen werden'))
+        img.src = objectUrl
+      })
+
+      const iw = img.naturalWidth
+      const ih = img.naturalHeight
+
+      // Center crop to targetRatio
+      let sx = 0
+      let sy = 0
+      let sw = iw
+      let sh = ih
+
+      const cropH = Math.round(iw / targetRatio)
+      if (cropH <= ih) {
+        // crop by height
+        sh = cropH
+        sy = Math.round((ih - sh) / 2)
+      } else {
+        // crop by width
+        const cropW = Math.round(ih * targetRatio)
+        sw = cropW
+        sx = Math.round((iw - sw) / 2)
+      }
+
+      const canvas = canvasRef.current ?? document.createElement('canvas')
+      canvas.width = sw
+      canvas.height = sh
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas nicht verfügbar')
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
+      })
+      if (!blob) throw new Error('Bild konnte nicht verarbeitet werden')
+
+      return new File([blob], `huf_${Date.now()}.jpg`, { type: 'image/jpeg' })
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
   }, [])
+
+  const handleNativePick = useCallback(
+    async (file: File | null) => {
+      if (!file) return
+      try {
+        const cropped = await cropNativeFileToAspect(file, subject === 'wholeBody' ? ASPECT_WHOLE_BODY : ASPECT_HOOF)
+        streamRef.current?.getTracks().forEach((t) => t.stop())
+        onCapture(cropped)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Capture fehlgeschlagen'
+        setError(msg)
+      } finally {
+        if (nativeInputRef.current) nativeInputRef.current.value = ''
+      }
+    },
+    [cropNativeFileToAspect, onCapture, subject]
+  )
 
   const handleCapture = useCallback(() => {
     const video = videoRef.current
@@ -57,12 +224,18 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
 
     const vw = video.videoWidth
     const vh = video.videoHeight
+    if (!vw || !vh) {
+      setError('Kamera ist noch nicht bereit. Bitte kurz warten.')
+      return
+    }
 
-    // Crop to 9:16 from center
-    const targetRatio = 9 / 16
+    const targetRatio = subject === 'wholeBody' ? ASPECT_WHOLE_BODY : ASPECT_HOOF
     let cropW = vw
     let cropH = Math.round(vw / targetRatio)
-    if (cropH > vh) { cropH = vh; cropW = Math.round(vh * targetRatio) }
+    if (cropH > vh) {
+      cropH = vh
+      cropW = Math.round(vh * targetRatio)
+    }
     const offsetX = Math.round((vw - cropW) / 2)
     const offsetY = Math.round((vh - cropH) / 2)
 
@@ -78,7 +251,7 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
       streamRef.current?.getTracks().forEach(t => t.stop())
       onCapture(file)
     }, 'image/jpeg', 0.92)
-  }, [onCapture])
+  }, [onCapture, subject])
 
   const handleClose = useCallback(() => {
     streamRef.current?.getTracks().forEach(t => t.stop())
@@ -88,21 +261,32 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
   return (
     <div className="mcc-overlay" onClick={handleClose}>
       <div className="mcc-container" onClick={e => e.stopPropagation()}>
+        {nativeFallbackMode && (
+          <input
+            ref={nativeInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => handleNativePick(e.target.files?.[0] ?? null)}
+          />
+        )}
 
         {/* Live video feed */}
-        <video
-          ref={videoRef}
-          className="mcc-video"
-          playsInline
-          muted
-          autoPlay
-        />
+        {!nativeFallbackMode && (
+          <video
+            ref={videoRef}
+            className="mcc-video"
+            playsInline
+            muted
+            autoPlay
+          />
+        )}
 
         {/* Hidden canvas for capture */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* 9/16 crop frame + crosshair overlay */}
-        {ready && (
+        {subject === 'hoof' && (ready || nativeFallbackMode) && (
           <div className="mcc-frame-overlay">
             {/* dimmed letterbox: Seiten + oben/unten außerhalb des 9:16-Rahmens */}
             <div className="mcc-dim mcc-dim-left" />
@@ -139,13 +323,21 @@ export default function MobileCameraCapture({ onCapture, onClose, onFallback, la
         )}
 
         {/* Label */}
-        {label && ready && (
+        {label && (ready || nativeFallbackMode) && (
           <div className="mcc-label">{label}</div>
         )}
 
         {/* Capture button */}
-        {ready && (
-          <button type="button" className="mcc-shutter" onClick={handleCapture} aria-label="Foto aufnehmen">
+        {(ready || nativeFallbackMode) && (
+          <button
+            type="button"
+            className="mcc-shutter"
+            onClick={() => {
+              if (ready) handleCapture()
+              else nativeInputRef.current?.click()
+            }}
+            aria-label="Foto aufnehmen"
+          >
             <span className="mcc-shutter-inner" />
           </button>
         )}

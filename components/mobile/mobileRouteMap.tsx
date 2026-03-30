@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import MobilePlaceholder from './MobilePlaceholder'
@@ -20,6 +21,8 @@ import MobileErstanamnese from './MobileErstanamnese'
 import MobileErstanamneseEdit from './MobileErstanamneseEdit'
 import MobileCustomerForm from './MobileCustomerForm'
 import MobileAppointmentForm from './MobileAppointmentForm'
+import MobileHoofCompare from '@/components/hoofCompare/MobileHoofCompare'
+import MobileBilling from './MobileBilling'
 
 /**
  * Hier werden die Mobile-Seiten pro Route eingetragen.
@@ -27,6 +30,22 @@ import MobileAppointmentForm from './MobileAppointmentForm'
  */
 export function useMobileContent(): ReactNode {
   const pathname = usePathname()
+
+  const compareMobileMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/compare\/mobile\/?$/)
+  if (compareMobileMatch?.[1]) {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
+            <i className="bi bi-hourglass-split text-[20px]" aria-hidden />
+            Fotovergleich wird geladen…
+          </div>
+        }
+      >
+        <MobileHoofCompare horseId={compareMobileMatch[1]} />
+      </Suspense>
+    )
+  }
 
   // Neue Dokumentation erstellen: /animals/[id]/records/new
   const newRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/new$/)
@@ -114,6 +133,7 @@ export function useMobileContent(): ReactNode {
   if (pathname === '/animals') return <MobileHorses />
 
   if (pathname === '/invoices') return <MobilePlaceholder />
+  if (pathname === '/billing') return <MobileBilling />
   if (pathname === '/settings') return <MobileSettings />
   if (pathname === '/suche') return <MobileSearch />
 

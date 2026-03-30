@@ -8,6 +8,7 @@ import { useAppProfile } from '@/context/AppProfileContext'
 import { animalsNavLabel } from '@/lib/appProfile'
 import MobileFab from './MobileFab'
 import MobileMoreSheet from './MobileMoreSheet'
+import BillingSystemBanner from '@/components/billing/BillingSystemBanner'
 import {
   faTableCellsLarge,
   faCalendarDays,
@@ -45,9 +46,12 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   }, [pathname])
 
   return (
-    <div className="mobile-app flex min-h-screen flex-col md:hidden">
+    <div className="mobile-app flex min-h-screen flex-col">
       {/* Hauptinhalt – Header kommt von der jeweiligen Seite */}
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <BillingSystemBanner />
+        {children}
+      </div>
 
       {/* FAB nur auf Nicht-Formular-Seiten zeigen */}
       {showTabBar && <MobileFab />}
