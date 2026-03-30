@@ -18,7 +18,8 @@ import {
   faChevronLeft,
   faBars,
 } from '@fortawesome/free-solid-svg-icons'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { supabase } from '@/lib/supabase-client'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
@@ -70,6 +71,41 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebarContext()
   const { profile } = useAppProfile()
+  const [userDisplay, setUserDisplay] = useState<{
+    name: string
+    initials: string
+  } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      if (!u || cancelled) return
+      const metaFirst = (u.user_metadata?.first_name as string) || ''
+      const metaLast = (u.user_metadata?.last_name as string) || ''
+      const { data: settingsRow } = await supabase
+        .from('user_settings')
+        .select('settings')
+        .eq('user_id', u.id)
+        .maybeSingle()
+      const s = settingsRow?.settings as { firstName?: string; lastName?: string } | undefined
+      const firstName = s?.firstName || metaFirst
+      const lastName = s?.lastName || metaLast
+      const name =
+        [firstName, lastName].filter(Boolean).join(' ') ||
+        u.email?.split('@')[0] ||
+        'Benutzer'
+      const initials =
+        [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase().slice(0, 2) ||
+        (u.email?.[0]?.toUpperCase() ?? '?')
+      if (!cancelled) setUserDisplay({ name, initials })
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
   const navGroups = useMemo(
     () => buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon),
@@ -172,13 +208,19 @@ export default function Sidebar() {
       <div className="shrink-0 border-t border-white/10 p-2">
         <div className={isCollapsed ? 'flex flex-col items-center gap-2' : 'rounded-lg px-3 py-2'}>
           <div className={isCollapsed ? 'flex flex-col items-center' : 'mb-3 flex items-center gap-3'}>
-            <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white/15">
-              <Image src="/logo-white.svg" alt="Logo" width={22} height={22} className="h-5 w-auto object-contain" />
+            <div
+              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#52b788] text-[11px] font-bold text-white"
+              title={userDisplay?.name ?? undefined}
+              aria-label={userDisplay?.name ? `Profil: ${userDisplay.name}` : 'Profil wird geladen'}
+            >
+              {userDisplay?.initials ?? '…'}
             </div>
 
             {!isCollapsed && (
-              <div className="min-w-0">
-                <Image src="/logo-white.svg" alt="Logo" width={70} height={20} className="h-4 w-auto object-contain" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-semibold text-white" title={userDisplay?.name ?? undefined}>
+                  {userDisplay?.name ?? 'Laden…'}
+                </div>
                 <div className="text-[11px] text-white/45">Angemeldet</div>
               </div>
             )}
