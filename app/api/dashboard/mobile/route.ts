@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import {
   CACHE_REVALIDATE_SECONDS,
@@ -15,6 +14,9 @@ import {
   buildStallNavLineFromHorse,
   pickPrimaryStallHorse,
 } from '@/lib/nav/horseStableAddress'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 function getBerlinDateKey(date: Date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -321,27 +323,21 @@ export async function GET() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    )
   }
 
   try {
-    const payload = await unstable_cache(
-      async () => {
-        // Important: don't call cookies()/auth inside unstable_cache.
-        // The cache key already includes user.id; we keep the cached function pure and use the
-        // already-authenticated Supabase client (RLS) from the outer scope.
-        return buildDashboardMobilePayload(supabase, user)
-      },
-      ['dashboard-mobile', user.id],
-      {
-        revalidate: CACHE_REVALIDATE_SECONDS.dashboardMobile,
-        tags: [dashboardMobileTag(user.id)],
-      }
-    )()
-
-    return NextResponse.json(payload)
+    const payload = await buildDashboardMobilePayload(supabase, user)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Dashboard konnte nicht geladen werden.'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[api/dashboard/mobile]', { userId: user.id, msg })
+    return NextResponse.json(
+      { error: msg },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    )
   }
 }
