@@ -169,12 +169,78 @@ export async function setUserBan(userId: string, formData: FormData) {
   redirect(backTo(userId, { saved: mode === 'ban' ? 'ban' : 'unban' }))
 }
 
-export async function deleteUserAccount(userId: string) {
+export async function deleteUserAccount(userId: string, formData: FormData) {
   const admin = await requireAdmin()
   if (admin.userId === userId) {
     redirect(backTo(userId, { err: 'delete', msg: 'Du kannst dich nicht selbst löschen.' }))
   }
+  const confirmText = String(formData.get('confirm') ?? '').trim()
+  const confirmCheck = String(formData.get('confirm_check') ?? '') === 'on'
+  if (!confirmCheck || confirmText !== userId) {
+    redirect(
+      backTo(userId, {
+        err: 'delete',
+        msg: 'Bestätigung fehlt. Bitte Checkbox aktivieren und die User-ID exakt eingeben.',
+      })
+    )
+  }
   const db = createSupabaseServiceRoleClient()
+
+  // Hard delete: remove app data + storage objects before deleting auth user.
+  // Best-effort: if some tables/buckets are missing, continue.
+  const chunk = <T,>(arr: T[], size: number) => {
+    const out: T[][] = []
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+    return out
+  }
+
+  try {
+    const [hoof, docPhotos] = await Promise.all([
+      db.from('hoof_photos').select('file_path').eq('user_id', userId),
+      db.from('documentation_photos').select('file_path').eq('user_id', userId),
+    ])
+    const paths = [
+      ...((hoof.data as any[] | null | undefined) ?? []).map((r) => String(r.file_path || '')).filter(Boolean),
+      ...((docPhotos.data as any[] | null | undefined) ?? []).map((r) => String(r.file_path || '')).filter(Boolean),
+    ]
+    for (const part of chunk(Array.from(new Set(paths)), 100)) {
+      // Photos live in storage bucket 'hoof-photos'
+      await db.storage.from('hoof-photos').remove(part).catch(() => null)
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    // user logos are stored as `${userId}/logo.ext`
+    const bucket = db.storage.from('user-logos')
+    const list = await bucket.list(userId, { limit: 1000 }).catch(() => null)
+    const names = (list as any)?.data as Array<{ name: string }> | undefined
+    const rm = (names ?? []).map((o) => `${userId}/${o.name}`)
+    for (const part of chunk(rm, 100)) {
+      await bucket.remove(part).catch(() => null)
+    }
+  } catch {
+    // ignore
+  }
+
+  // Delete domain data (order matters when no FKs exist everywhere).
+  const deletes: Array<Promise<any>> = []
+  deletes.push(db.from('appointment_horses').delete().eq('user_id', userId))
+  deletes.push(db.from('appointments').delete().eq('user_id', userId))
+  deletes.push(db.from('hoof_photos').delete().eq('user_id', userId))
+  deletes.push(db.from('documentation_photos').delete().eq('user_id', userId))
+  deletes.push(db.from('hoof_records').delete().eq('user_id', userId))
+  deletes.push(db.from('documentation_records').delete().eq('user_id', userId))
+  deletes.push(db.from('horses').delete().eq('user_id', userId))
+  deletes.push(db.from('invoices').delete().eq('user_id', userId))
+  deletes.push(db.from('customers').delete().eq('user_id', userId))
+  // Tables with FK cascade will be cleaned up automatically too; these calls are harmless if already gone.
+  deletes.push(db.from('billing_accounts').delete().eq('user_id', userId))
+  deletes.push(db.from('user_settings').delete().eq('user_id', userId))
+  deletes.push(db.from('admin_user_meta').delete().eq('user_id', userId))
+  deletes.push(db.from('password_reset_tokens').delete().eq('user_id', userId))
+  await Promise.allSettled(deletes)
 
   const { error } = await db.auth.admin.deleteUser(userId)
   if (error) redirect(backTo(userId, { err: 'delete', msg: safeErr(error.message) }))
@@ -182,7 +248,7 @@ export async function deleteUserAccount(userId: string) {
   await logAdminAuditEvent({
     actorUserId: admin.userId,
     targetUserId: userId,
-    action: 'account.delete',
+    action: 'account.delete_hard',
   })
 
   revalidatePath('/admin/users')

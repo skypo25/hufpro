@@ -33,6 +33,15 @@ export default function RegisterPage() {
       },
     })
     if (error) { setError(translateAuthError(error.message)); setLoading(false); return }
+    // Supabase can return a "successful" signUp response for an already-registered email
+    // (e.g. when the user exists but is not confirmed). In that case identities is empty.
+    // We intentionally show a clear SaaS-style message instead of a misleading "confirm your email" hint.
+    if (data?.user && Array.isArray((data.user as any).identities) && ((data.user as any).identities?.length ?? 0) === 0) {
+      setError('Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an.')
+      setSuccess('')
+      setLoading(false)
+      return
+    }
     setSuccess('')
     if (data.session) {
       router.push('/onboarding')
@@ -128,6 +137,42 @@ export default function RegisterPage() {
         </label>
 
         {error && <ErrorMsg>{error}</ErrorMsg>}
+        {error && error.includes('bereits registriert') ? (
+          <div style={{ display: 'flex', gap: 10, marginTop: -6 }}>
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              style={{
+                flex: 1,
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1.5px solid #cdcdd0',
+                background: '#fff',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Zum Login
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/forgot-password')}
+              style={{
+                flex: 1,
+                padding: '12px 14px',
+                borderRadius: 12,
+                border: '1.5px solid #cdcdd0',
+                background: '#fff',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Passwort vergessen
+            </button>
+          </div>
+        ) : null}
         {success && (
           <p style={{
             fontSize: 14, color: '#166534', padding: '12px 14px',

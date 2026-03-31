@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { billingBucketLabel, fetchAdminUserDetail } from '@/lib/admin/data'
 import { formatGermanDate, formatGermanDateTime, formatStorageBytesShort } from '@/lib/format'
 import { formatAdminLastActivity } from '@/lib/admin/lastActivity'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
 import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, toggleAdminUserFlag } from './actions'
@@ -74,6 +75,47 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
 
   const { user, name, profession, billing, billingBucket, counts, adminMeta, storageBytes } = detail as any
   const meta = user.user_metadata as { first_name?: string; last_name?: string } | undefined
+
+  const purgePreview = await (async () => {
+    try {
+      const db = createSupabaseServiceRoleClient()
+      const [
+        customers,
+        horses,
+        appointments,
+        appointmentHorses,
+        hoofRecords,
+        hoofPhotos,
+        docRecords,
+        docPhotos,
+        invoices,
+      ] = await Promise.all([
+        db.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('horses').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('appointments').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('appointment_horses').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('hoof_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('hoof_photos').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('documentation_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('documentation_photos').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', id),
+      ])
+      const safe = (r: any) => (typeof r?.count === 'number' ? r.count : 0)
+      return {
+        customers: safe(customers),
+        horses: safe(horses),
+        appointments: safe(appointments),
+        appointmentHorses: safe(appointmentHorses),
+        hoofRecords: safe(hoofRecords),
+        hoofPhotos: safe(hoofPhotos),
+        docRecords: safe(docRecords),
+        docPhotos: safe(docPhotos),
+        invoices: safe(invoices),
+      }
+    } catch {
+      return null
+    }
+  })()
 
   const stripeCustomerUrl = billing?.stripe_customer_id
     ? `https://dashboard.stripe.com/customers/${billing.stripe_customer_id}`
@@ -509,6 +551,31 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             <div className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">
               Änderungen wirken sofort auf Login / Zugriff. Aktionen werden im Admin-Audit-Log protokolliert.
             </div>
+            <div className="mt-4 rounded-xl border border-[rgba(220,38,38,.18)] bg-white p-4">
+              <div className="text-[13px] font-semibold text-[#1B1F23]">Hard Delete (GDPR) – Vorschau</div>
+              <div className="mt-1 text-[12px] text-[#6B7280]">
+                Das löscht App-Daten + Storage-Dateien und entfernt danach den Auth-User. Diese Aktion ist nicht rückgängig zu machen.
+              </div>
+              {purgePreview ? (
+                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-[12px] text-[#374151]">
+                  <div className="flex items-center justify-between gap-3"><span>Kunden</span><span className="font-semibold text-[#1B1F23]">{purgePreview.customers}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Tiere</span><span className="font-semibold text-[#1B1F23]">{purgePreview.horses}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Termine</span><span className="font-semibold text-[#1B1F23]">{purgePreview.appointments}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Termin↔Tier</span><span className="font-semibold text-[#1B1F23]">{purgePreview.appointmentHorses}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Huf-Records</span><span className="font-semibold text-[#1B1F23]">{purgePreview.hoofRecords}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Huf-Fotos (DB)</span><span className="font-semibold text-[#1B1F23]">{purgePreview.hoofPhotos}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Dokumentationen</span><span className="font-semibold text-[#1B1F23]">{purgePreview.docRecords}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Doku-Fotos (DB)</span><span className="font-semibold text-[#1B1F23]">{purgePreview.docPhotos}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Rechnungen</span><span className="font-semibold text-[#1B1F23]">{purgePreview.invoices}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Storage bytes</span><span className="font-semibold text-[#1B1F23]">{formatStorageBytesShort(typeof storageBytes === 'number' ? storageBytes : 0)}</span></div>
+                </div>
+              ) : (
+                <div className="mt-3 text-[12px] text-[#9CA3AF]">Vorschau konnte nicht geladen werden.</div>
+              )}
+              <div className="mt-3 rounded-lg bg-[rgba(220,38,38,.06)] px-3 py-2 text-[12px] text-[#7F1D1D]">
+                <strong className="font-semibold">Bestätigung erforderlich:</strong> Checkbox setzen und die User-ID exakt eingeben.
+              </div>
+            </div>
             <div className="mt-4 flex flex-col gap-2">
               <form action={setUserBan.bind(null, user.id)}>
                 <input type="hidden" name="mode" value="ban" />
@@ -530,13 +597,27 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   Account aktivieren
                 </button>
               </form>
-              <form action={deleteUserAccount.bind(null, user.id)}>
+              <form action={deleteUserAccount.bind(null, user.id)} className="rounded-xl border border-[rgba(220,38,38,.18)] bg-white p-3">
+                <label className="flex items-start gap-3 text-[13px] text-[#374151]">
+                  <input name="confirm_check" type="checkbox" className="mt-1 h-4 w-4 accent-[#DC2626]" />
+                  <span>
+                    Ich verstehe, dass diese Aktion <strong className="font-semibold">nicht rückgängig</strong> gemacht werden kann.
+                  </span>
+                </label>
+                <div className="mt-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">User-ID zur Bestätigung</div>
+                  <input
+                    name="confirm"
+                    placeholder={user.id}
+                    className="mt-1 w-full rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-mono text-[#1B1F23] outline-none focus:border-[#DC2626]"
+                  />
+                </div>
                 <button
                   type="submit"
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[rgba(220,38,38,.25)] bg-white px-4 py-2.5 text-[14px] font-medium text-[#DC2626] hover:bg-[rgba(220,38,38,.08)]"
                 >
                   <i className="bi bi-trash3-fill" aria-hidden />
-                  Account löschen
+                  Account endgültig löschen
                 </button>
               </form>
             </div>

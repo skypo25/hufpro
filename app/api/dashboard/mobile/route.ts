@@ -327,14 +327,10 @@ export async function GET() {
   try {
     const payload = await unstable_cache(
       async () => {
-        const s = await createSupabaseServerClient()
-        const {
-          data: { user: u },
-        } = await s.auth.getUser()
-        if (!u || u.id !== user.id) {
-          throw new Error('Unauthorized')
-        }
-        return buildDashboardMobilePayload(s, u)
+        // Important: don't call cookies()/auth inside unstable_cache.
+        // The cache key already includes user.id; we keep the cached function pure and use the
+        // already-authenticated Supabase client (RLS) from the outer scope.
+        return buildDashboardMobilePayload(supabase, user)
       },
       ['dashboard-mobile', user.id],
       {
@@ -345,9 +341,7 @@ export async function GET() {
 
     return NextResponse.json(payload)
   } catch (e) {
-    if (e instanceof Error && e.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    throw e
+    const msg = e instanceof Error ? e.message : 'Dashboard konnte nicht geladen werden.'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

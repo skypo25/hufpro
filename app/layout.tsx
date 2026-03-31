@@ -20,13 +20,40 @@ const dmSans = DM_Sans({
   display: 'swap',
 })
 
+function appBaseUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://app.anidocs.de'
+  const url = raw.startsWith('http') ? raw : `https://${raw}`
+  return url.replace(/\/+$/, '')
+}
 
 export const metadata: Metadata = {
   title: 'AniDocs',
   description: 'AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe',
-  icons: { icon: '/icon.png' },
+  metadataBase: new URL(appBaseUrl()),
+  icons: {
+    icon: [
+      { url: '/icon.png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    shortcut: ['/icon.png'],
+  },
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'AniDocs', statusBarStyle: 'black-translucent' },
+  openGraph: {
+    type: 'website',
+    siteName: 'AniDocs',
+    title: 'AniDocs',
+    description: 'AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe',
+    images: [{ url: '/icons/icon-512.png', width: 512, height: 512, alt: 'AniDocs' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'AniDocs',
+    description: 'AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe',
+    images: ['/icons/icon-512.png'],
+  },
 }
 
 export const viewport: Viewport = {
