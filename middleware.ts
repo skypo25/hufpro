@@ -34,6 +34,26 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+
+  const adminIds = (process.env.ADMIN_USER_IDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const isAdminUser = !!(user && adminIds.includes(user.id))
+
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    if (!isAdminUser) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    return response
+  }
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
   const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
@@ -99,5 +119,6 @@ export const config = {
     '/settings/:path*',
     '/appointments/:path*',
     '/termin-bestaetigen/:path*',
+    '/admin/:path*',
   ],
 }

@@ -72,3 +72,21 @@ export function formatCustomerNumber(
   const p = (prefix ?? 'K-').trim() || 'K-'
   return `${p}${String(customerNumber).padStart(4, '0')}`
 }
+
+/** Kurzformat für Admin-Speicheranzeige (z. B. 1,2G, 480M). */
+export function formatStorageBytesShort(bytes: number | null | undefined): string {
+  const n = Math.max(0, bytes ?? 0)
+  if (n < 1024) return `${n} B`
+  const kb = n / 1024
+  if (kb < 1024) return `${kb < 10 ? kb.toFixed(1).replace('.', ',') : Math.round(kb)}K`
+  const mb = n / (1024 * 1024)
+  if (mb < 1024) return `${mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)}M`
+  const gb = n / (1024 * 1024 * 1024)
+  return `${gb.toFixed(1).replace('.', ',')}G`
+}
+
+/** Tage zwischen zwei Zeitpunkten (für „seit X Tagen“ / Account-Alter). */
+export function daysBetweenFloor(from: Date, to: Date): number {
+  const ms = to.getTime() - from.getTime()
+  return Math.max(0, Math.floor(ms / (24 * 60 * 60 * 1000)))
+}

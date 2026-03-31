@@ -63,7 +63,10 @@ function LoginContent() {
         <SocialBtn onClick={() => handleOAuth('google')} icon={<GoogleIcon />}>
           Mit Google anmelden
         </SocialBtn>
-        <SocialBtn onClick={() => handleOAuth('apple')} icon={<AppleIcon />}>
+        <SocialBtn
+          onClick={() => handleOAuth('apple')}
+          icon={<i className="bi bi-apple" aria-hidden style={{ fontSize: 18, lineHeight: 1, marginTop: -1 }} />}
+        >
           Mit Apple anmelden
         </SocialBtn>
       </div>
@@ -90,6 +93,15 @@ function LoginContent() {
           {loading ? 'Anmelden…' : 'Anmelden'}
         </PrimaryBtn>
       </form>
+
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+        <Link
+          href="/forgot-password"
+          style={{ color: '#6b7280', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}
+        >
+          Passwort vergessen?
+        </Link>
+      </div>
 
       <FooterText>
         Noch kein Konto?{' '}
@@ -203,14 +215,6 @@ function GoogleIcon() {
       <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
       <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-    </svg>
-  )
-}
-
-function AppleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.3-150.3-109.7C45 528 26 355.4 26 270.5c0-214.4 141.4-327.8 280.1-327.8 74.8 0 137 49.1 184.4 49.1 45.5 0 117.8-52 205-52 32.4 0 134.5 3.2 204.7 96.1zM522.7 73.3c9.1 29.9 14.4 64.4 14.4 87.7s-5.2 47.8-14.4 68.1c-36.5 12.3-98 45.5-98 148.2 0 0 2.6 2.6 2.6 5.2 37 0 78.2-22.1 109.7-45.5 0-3.2 3.2-6.5 3.2-9.7.6-2.6 1.3-5.8 1.3-8.4 0-29.9-5.8-62.2-18.2-88.3z"/>
     </svg>
   )
 }

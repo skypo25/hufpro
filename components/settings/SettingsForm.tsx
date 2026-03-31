@@ -233,6 +233,57 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
     setInvoicePreviewReady(true)
   }, [])
 
+  // Konto & Sicherheit: Passwort ändern (App-Login)
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNext, setPwNext] = useState('')
+  const [pwNext2, setPwNext2] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwOk, setPwOk] = useState<string | null>(null)
+  const [pwErr, setPwErr] = useState<string | null>(null)
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPwOk(null)
+    setPwErr(null)
+    const email = (userEmail ?? s.email ?? '').toString().trim()
+    if (!email) {
+      setPwErr('Deine E-Mail konnte nicht ermittelt werden.')
+      return
+    }
+    if (pwNext.trim().length < 8) {
+      setPwErr('Das neue Passwort muss mindestens 8 Zeichen lang sein.')
+      return
+    }
+    if (pwNext.trim() !== pwNext2.trim()) {
+      setPwErr('Die Passwort-Bestätigung stimmt nicht überein.')
+      return
+    }
+    setPwLoading(true)
+    try {
+      // Re-Auth: supabase verlangt für sensitive Änderungen eine frische Authentifizierung.
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email,
+        password: pwCurrent,
+      })
+      if (reauthErr) {
+        setPwErr('Aktuelles Passwort ist falsch oder Login nicht möglich.')
+        return
+      }
+
+      const { error: updErr } = await supabase.auth.updateUser({ password: pwNext.trim() })
+      if (updErr) {
+        setPwErr('Passwort konnte nicht geändert werden. Bitte versuche es erneut.')
+        return
+      }
+      setPwCurrent('')
+      setPwNext('')
+      setPwNext2('')
+      setPwOk('Passwort geändert.')
+    } finally {
+      setPwLoading(false)
+    }
+  }
+
   const update = (key: keyof SettingsData, value: unknown) => {
     setS((prev) => ({ ...prev, [key]: value }))
     setSaved(false)
@@ -948,9 +999,47 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
         </div>
       )}
       {activeTab === 'konto' && (
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-8 text-center text-[#6B7280]">
-          Konto & Sicherheit — Inhalt folgt
-        </div>
+        <>
+          <FormSection icon="🔒" iconBg="bg-[#ECFDF5] text-[#059669]" title="Konto & Sicherheit" badge="Sicherheitsbereich" badgeClass="bg-[#D1FAE5] text-[#065F46]">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <h4 className="text-[14px] font-semibold text-[#1B1F23]">Passwort ändern</h4>
+                <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
+                  Wenn du dich mit Google/Apple anmeldest, hast du ggf. kein App-Passwort gesetzt. In dem Fall kannst du hier
+                  später ein Passwort definieren (oder weiterhin OAuth nutzen).
+                </p>
+              </div>
+              <form onSubmit={handleChangePassword} className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Aktuelles Passwort</label>
+                  <input type="password" className={inputClass()} value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} autoComplete="current-password" required />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Neues Passwort</label>
+                    <input type="password" className={inputClass()} value={pwNext} onChange={(e) => setPwNext(e.target.value)} autoComplete="new-password" required />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Bestätigung</label>
+                    <input type="password" className={inputClass()} value={pwNext2} onChange={(e) => setPwNext2(e.target.value)} autoComplete="new-password" required />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={pwLoading}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
+                  >
+                    {pwLoading ? 'Speichern…' : 'Passwort speichern'}
+                  </button>
+                  {pwOk && <span className="text-sm text-[#34A853]">✓ {pwOk}</span>}
+                  {pwErr && <span className="text-sm text-[#EF4444]">{pwErr}</span>}
+                </div>
+              </form>
+            </div>
+          </FormSection>
+        </>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#E5E2DC] pt-6">

@@ -1,6 +1,6 @@
 /**
  * Clientseitige Bildverarbeitung vor dem Upload:
- * - Zuschneiden auf Zielseitenverhältnis (9:16 Huf, 16:9 Ganzkörper)
+ * - Zuschneiden auf Zielseitenverhältnis (9:16 Huf, 4:3 Ganzkörper quer)
  * - Skalieren (max. Kantenlänge)
  * - Komprimieren (JPEG)
  */
@@ -87,7 +87,7 @@ export async function processImage(
   file: File,
   options: ProcessOptions
 ): Promise<{ blob: Blob; width: number; height: number }> {
-  const quality = Math.min(1, Math.max(0, options.quality ?? 0.88))
+  const quality = Math.min(1, Math.max(0, options.quality ?? 0.72))
   const objectUrl = URL.createObjectURL(file)
   let img: HTMLImageElement
   try {
@@ -133,17 +133,17 @@ export async function processHoofImage(
 ): Promise<{ blob: Blob; width: number; height: number }> {
   return processImage(file, {
     aspectRatio: 9 / 16,
-    maxDimension: 1080,
-    quality: 0.88,
+    maxDimension: 850,
+    quality: 0.72,
   })
 }
 
-/** Ganzkörper: feste Ausgabe 1000×750 px */
-const WHOLE_BODY_WIDTH = 1000
-const WHOLE_BODY_HEIGHT = 750
+/** Ganzkörper (quer): max. Breite 850 px, 4:3 */
+const WHOLE_BODY_WIDTH = 850
+const WHOLE_BODY_HEIGHT = Math.round((WHOLE_BODY_WIDTH * 3) / 4)
 
 /**
- * Ganzkörper: exakt 1000×750 px (Seitenverhältnis 4:3)
+ * Ganzkörper: max. 850 px breit (4:3)
  */
 export async function processWholeBodyImage(
   file: File
@@ -151,6 +151,6 @@ export async function processWholeBodyImage(
   return processImage(file, {
     aspectRatio: WHOLE_BODY_WIDTH / WHOLE_BODY_HEIGHT,
     maxDimension: WHOLE_BODY_WIDTH,
-    quality: 0.88,
+    quality: 0.75,
   })
 }

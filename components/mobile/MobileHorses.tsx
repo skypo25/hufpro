@@ -21,7 +21,8 @@ import {
 } from '@/lib/animalTypeDisplay'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
-const LIMIT = 20
+const INITIAL_LIMIT = 5
+const LOAD_MORE_STEP = 10
 
 type HorseItem = {
   id: string
@@ -164,11 +165,12 @@ export default function MobileHorses() {
   }, [q])
 
   const fetchData = useCallback(
-    async (offset: number, append: boolean) => {
+    async (offset: number, append: boolean, limitOverride?: number) => {
       const params = new URLSearchParams()
       if (debouncedQ) params.set('q', debouncedQ)
       params.set('sort', sort)
-      params.set('limit', String(LIMIT))
+      const limit = limitOverride ?? (offset === 0 ? INITIAL_LIMIT : LOAD_MORE_STEP)
+      params.set('limit', String(limit))
       params.set('offset', String(offset))
       const res = await fetch(`/api/horses/mobile?${params}`, { credentials: 'include' })
       if (!res.ok) return
@@ -196,13 +198,13 @@ export default function MobileHorses() {
 
   useEffect(() => {
     setLoading(true)
-    fetchData(0, false).finally(() => setLoading(false))
+    fetchData(0, false, INITIAL_LIMIT).finally(() => setLoading(false))
   }, [fetchData])
 
   const loadMore = useCallback(() => {
     if (loadingMore || horses.length >= total) return
     setLoadingMore(true)
-    fetchData(horses.length, true).finally(() => setLoadingMore(false))
+    fetchData(horses.length, true, LOAD_MORE_STEP).finally(() => setLoadingMore(false))
   }, [loadingMore, horses.length, total, fetchData])
 
   const hasMore = total > horses.length

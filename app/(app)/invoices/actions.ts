@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { revalidateDashboardMobileForUser } from '@/lib/cache/tags'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'cancelled'
@@ -52,6 +53,7 @@ export async function updateInvoiceStatus(
   revalidatePath('/invoices')
   revalidatePath(`/invoices/${invoiceId}`)
   revalidatePath('/dashboard')
+  revalidateDashboardMobileForUser(user.id)
   if (row.customer_id) {
     revalidatePath(`/customers/${row.customer_id}/invoices`)
   }

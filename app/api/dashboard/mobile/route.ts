@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import {
+  CACHE_REVALIDATE_SECONDS,
+  dashboardMobileTag,
+} from '@/lib/cache/tags'
 import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
 import {
   dashboardAnimalsBetreutLabel,
@@ -106,16 +111,9 @@ function buildNavAddressForAppointment(
   return stall || billing || ''
 }
 
-export async function GET() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+type SupabaseServer = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+async function buildDashboardMobilePayload(supabase: SupabaseServer, user: { id: string }) {
   const { data: settingsRow } = await supabase
     .from('user_settings')
     .select('settings')
@@ -300,7 +298,7 @@ export async function GET() {
     },
   ]
 
-  return NextResponse.json({
+  return {
     userFirstName,
     dateLabel,
     preferredNavApp,
@@ -313,5 +311,43 @@ export async function GET() {
     stats,
     todayAppointments,
     upcomingAppointments,
-  })
+  }
+}
+
+export async function GET() {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const payload = await unstable_cache(
+      async () => {
+        const s = await createSupabaseServerClient()
+        const {
+          data: { user: u },
+        } = await s.auth.getUser()
+        if (!u || u.id !== user.id) {
+          throw new Error('Unauthorized')
+        }
+        return buildDashboardMobilePayload(s, u)
+      },
+      ['dashboard-mobile', user.id],
+      {
+        revalidate: CACHE_REVALIDATE_SECONDS.dashboardMobile,
+        tags: [dashboardMobileTag(user.id)],
+      }
+    )()
+
+    return NextResponse.json(payload)
+  } catch (e) {
+    if (e instanceof Error && e.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    throw e
+  }
 }

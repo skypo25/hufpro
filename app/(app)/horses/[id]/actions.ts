@@ -2,7 +2,12 @@
 
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import {
+  revalidateDashboardMobileForUser,
+  revalidateHoofCompareForHorse,
+} from '@/lib/cache/tags'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
+import { removeAnimalProfilePhotoFromStorageSafe } from '@/lib/animals/animalProfilePhotoUpload'
 
 /** Löscht Tier inkl. Dokumentationen, Fotos, Termine; leitet nach /animals um. */
 export async function deleteHorseAndRedirect(horseId: string) {
@@ -56,13 +61,16 @@ export async function deleteHorseAndRedirect(horseId: string) {
     await supabase.from('appointments').delete().eq('user_id', user.id).in('id', aptIds)
   }
 
-  await supabase.storage.from('hoof-photos').remove([`${user.id}/${horseId}/animal-profile.jpg`])
+  await removeAnimalProfilePhotoFromStorageSafe(supabase, user.id, horseId)
 
   const { error } = await supabase.from('horses').delete().eq('id', horseId).eq('user_id', user.id)
 
   if (error) {
     throw new Error(`Fehler beim Löschen: ${error.message}`)
   }
+
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
 
   redirect('/animals')
 }

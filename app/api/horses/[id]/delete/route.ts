@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import {
+  revalidateDashboardMobileForUser,
+  revalidateHoofCompareForHorse,
+} from '@/lib/cache/tags'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
+import { removeAnimalProfilePhotoFromStorageSafe } from '@/lib/animals/animalProfilePhotoUpload'
 
 /** Liefert Termin-Info für den Lösch-Dialog (nächster künftiger Termin). */
 export async function GET(
@@ -93,9 +98,7 @@ export async function DELETE(
   }
 
   // 2b. Allgemeines Tierfoto (AnimalForm), falls vorhanden
-  await supabase.storage
-    .from('hoof-photos')
-    .remove([`${user.id}/${horseId}/animal-profile.jpg`])
+  await removeAnimalProfilePhotoFromStorageSafe(supabase, user.id, horseId)
 
   // 3. Pferd löschen
   const { error } = await supabase.from('horses').delete().eq('id', horseId).eq('user_id', user.id)
@@ -105,6 +108,9 @@ export async function DELETE(
       { status: 500 }
     )
   }
+
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
 
   return NextResponse.json({ ok: true })
 }

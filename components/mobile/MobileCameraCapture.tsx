@@ -190,7 +190,8 @@ export default function MobileCameraCapture({
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
 
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92)
+        const q = targetRatio === ASPECT_WHOLE_BODY ? 0.75 : 0.72
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', q)
       })
       if (!blob) throw new Error('Bild konnte nicht verarbeitet werden')
 
@@ -250,7 +251,7 @@ export default function MobileCameraCapture({
       const file = new File([blob], `huf_${Date.now()}.jpg`, { type: 'image/jpeg' })
       streamRef.current?.getTracks().forEach(t => t.stop())
       onCapture(file)
-    }, 'image/jpeg', 0.92)
+    }, 'image/jpeg', subject === 'wholeBody' ? 0.75 : 0.72)
   }, [onCapture, subject])
 
   const handleClose = useCallback(() => {

@@ -10,6 +10,10 @@ import {
 import DeleteRecordForm from './DeleteRecordForm'
 import { SLOT_LABELS, SLOT_SOLAR, SLOT_LATERAL } from '@/lib/photos/photoTypes'
 import { formatCustomerNumber } from '@/lib/format'
+import {
+  revalidateDashboardMobileForUser,
+  revalidateHoofCompareForHorse,
+} from '@/lib/cache/tags'
 import PhotoLightbox from '@/components/photos/PhotoLightbox'
 
 type RecordDetailPageProps = {
@@ -175,6 +179,8 @@ async function deleteRecord(horseId: string, recordId: string) {
   }
   await deleteDocumentationRecordByLegacyHoofId(supabase, recordId, user.id)
   await supabase.from('hoof_records').delete().eq('id', recordId).eq('horse_id', horseId).eq('user_id', user.id)
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
   redirect(`/animals/${horseId}`)
 }
 

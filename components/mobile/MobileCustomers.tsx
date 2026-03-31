@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { searchCustomersPlaceholder, type Terminology } from '@/lib/appProfile'
 
-const LIMIT = 20
+const INITIAL_LIMIT = 5
+const LOAD_MORE_STEP = 10
 
 type CustomerItem = {
   id: string
@@ -160,12 +161,13 @@ export default function MobileCustomers() {
   }, [q])
 
   const fetchData = useCallback(
-    async (offset: number, append: boolean) => {
+    async (offset: number, append: boolean, limitOverride?: number) => {
       const params = new URLSearchParams()
       if (debouncedQ) params.set('q', debouncedQ)
       params.set('filter', filter)
       params.set('sort', sort)
-      params.set('limit', String(LIMIT))
+      const limit = limitOverride ?? (offset === 0 ? INITIAL_LIMIT : LOAD_MORE_STEP)
+      params.set('limit', String(limit))
       params.set('offset', String(offset))
       const res = await fetch(`/api/customers/mobile?${params}`, { credentials: 'include' })
       if (!res.ok) return
@@ -185,13 +187,13 @@ export default function MobileCustomers() {
 
   useEffect(() => {
     setLoading(true)
-    fetchData(0, false).finally(() => setLoading(false))
+    fetchData(0, false, INITIAL_LIMIT).finally(() => setLoading(false))
   }, [fetchData])
 
   const loadMore = useCallback(() => {
     if (loadingMore || customers.length >= total) return
     setLoadingMore(true)
-    fetchData(customers.length, true).finally(() => setLoadingMore(false))
+    fetchData(customers.length, true, LOAD_MORE_STEP).finally(() => setLoadingMore(false))
   }, [loadingMore, customers.length, total, fetchData])
 
   useEffect(() => {

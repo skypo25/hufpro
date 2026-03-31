@@ -36,7 +36,7 @@ async function base64ToBlob(base64: string, mime = 'image/jpeg'): Promise<Blob> 
   return res.blob()
 }
 
-/** Komprimiert ein Blob für Offline-Speicherung (resize auf max 1200px). */
+/** Komprimiert ein Blob für Offline-Speicherung (max. längere Kante 850 px, wie Huf-Upload). */
 async function compressForDraft(blob: Blob): Promise<string> {
   try {
     if (typeof createImageBitmap === 'undefined' || typeof OffscreenCanvas === 'undefined') {
@@ -44,7 +44,7 @@ async function compressForDraft(blob: Blob): Promise<string> {
       return b64.length * 0.75 <= MAX_BASE64_SIZE ? b64 : ''
     }
     const img = await createImageBitmap(blob)
-    const max = 1200
+    const max = 850
     let w = img.width
     let h = img.height
     if (w > max || h > max) {
@@ -64,7 +64,7 @@ async function compressForDraft(blob: Blob): Promise<string> {
     }
     ctx.drawImage(img, 0, 0, w, h)
     img.close()
-    const compressed = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.75 })
+    const compressed = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 })
     const b64 = await blobToBase64(compressed)
     if (b64.length * 0.75 > MAX_BASE64_SIZE) return ''
     return b64

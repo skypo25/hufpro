@@ -2,6 +2,10 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import {
+  revalidateDashboardMobileForUser,
+  revalidateHoofCompareForHorse,
+} from '@/lib/cache/tags'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { upsertDocumentationMirrorFromHoofRow } from '@/lib/documentation/upsertDocumentationMirror'
 import { deleteDocumentationPhotosMirroringHoofRows } from '@/lib/documentation/mirrorDocumentationPhotos'
@@ -132,6 +136,8 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
 
   revalidatePath(`/animals/${horseId}`)
   revalidatePath(`/animals/${horseId}/records/${data.id}`)
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
   return { recordId: data.id }
 }
 
@@ -224,6 +230,8 @@ export async function updateRecord(
   }
 
   revalidatePath(`/animals/${horseId}/records/${recordId}`)
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
 }
 
 export async function deleteRecordPhotos(
@@ -264,4 +272,6 @@ export async function deleteRecordPhotos(
   }
 
   revalidatePath(`/animals/${horseId}/records/${recordId}`)
+  revalidateDashboardMobileForUser(user.id)
+  revalidateHoofCompareForHorse(user.id, horseId)
 }

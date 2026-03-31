@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { revalidateDashboardMobileForUser } from '@/lib/cache/tags'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 function priceStringToCents(s: string): number {
@@ -137,6 +138,7 @@ export async function createInvoice(
 
   revalidatePath('/invoices')
   revalidatePath('/dashboard')
+  revalidateDashboardMobileForUser(user.id)
   revalidatePath(`/customers/${customerId}/invoices`)
   return { invoiceId: inv.id }
 }

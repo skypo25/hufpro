@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { formatCustomerNumber } from '@/lib/format'
+import { removeAnimalProfilePhotoFromStorageSafe } from '@/lib/animals/animalProfilePhotoUpload'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -227,6 +228,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
         await deleteDocumentationRecordsForLegacyHoofIds(supabase, recordIds, user.id)
         await supabase.from('hoof_records').delete().eq('horse_id', horseId).eq('user_id', user.id)
       }
+      await removeAnimalProfilePhotoFromStorageSafe(supabase, user.id, horseId)
       await supabase.from('appointment_horses').delete().eq('horse_id', horseId)
     }
     await supabase.from('appointments').delete().eq('customer_id', customerId).eq('user_id', user.id)

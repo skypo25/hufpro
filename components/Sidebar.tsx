@@ -17,6 +17,7 @@ import {
   faCreditCard,
   faChevronLeft,
   faBars,
+  faChartPie,
 } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
@@ -75,6 +76,22 @@ export default function Sidebar() {
     name: string
     initials: string
   } | null>(null)
+  const [showAdminNav, setShowAdminNav] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/admin/session')
+      .then((r) => r.json())
+      .then((d: { admin?: boolean }) => {
+        if (!cancelled) setShowAdminNav(!!d.admin)
+      })
+      .catch(() => {
+        if (!cancelled) setShowAdminNav(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -107,10 +124,18 @@ export default function Sidebar() {
   }, [])
 
   const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
-  const navGroups = useMemo(
-    () => buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon),
-    [profile.terminology, animalsIcon]
-  )
+  const navGroups = useMemo(() => {
+    const base = buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon)
+    if (!showAdminNav) return base
+    return base.map((group) =>
+      group.title === 'System'
+        ? {
+            ...group,
+            items: [...group.items, { label: 'Admin', href: '/admin', icon: faChartPie }],
+          }
+        : group
+    )
+  }, [profile.terminology, animalsIcon, showAdminNav])
 
   return (
     <aside

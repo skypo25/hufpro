@@ -52,11 +52,15 @@ export function toCanonicalPhotoSlot(photoType: string | null): PhotoSlotKey | n
 
 /** Zielseitenverhältnis: Hufbilder hochkant 9:16 */
 export const ASPECT_HOOF = 9 / 16
-/** Ganzkörper Querformat 16:9 */
-export const ASPECT_WHOLE = 16 / 9
+/** Ganzkörper Querformat 4:3 (wie processWholeBodyImage) */
+export const ASPECT_WHOLE = 4 / 3
 
-/** Max Kantenlänge nach Verarbeitung (scharf, aber klein) */
-export const MAX_DIMENSION_HOOF = 1080
-export const MAX_DIMENSION_WHOLE = 1440
-/** JPEG-Qualität (0–1) */
-export const JPEG_QUALITY = 0.88
+/** Max. längere Kante Huf (9:16) */
+export const MAX_DIMENSION_HOOF = 850
+/** Max. Breite Ganzkörper (quer, 4:3) */
+export const MAX_DIMENSION_WHOLE = 850
+/** JPEG-Qualität Huf / Ganzkörper (imageProcessing) */
+export const JPEG_QUALITY_HOOF = 0.72
+export const JPEG_QUALITY_WHOLE = 0.75
+/** @deprecated Nutze JPEG_QUALITY_HOOF */
+export const JPEG_QUALITY = JPEG_QUALITY_HOOF

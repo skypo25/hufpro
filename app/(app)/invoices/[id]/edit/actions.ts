@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { revalidateDashboardMobileForUser } from '@/lib/cache/tags'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export type InvoiceItemInput = {
@@ -98,6 +99,7 @@ export async function updateInvoice(
   revalidatePath('/invoices')
   revalidatePath(`/invoices/${invoiceId}`)
   revalidatePath('/dashboard')
+  revalidateDashboardMobileForUser(user.id)
   revalidatePath(`/customers/${customerId}/invoices`)
   return { invoiceId }
 }
