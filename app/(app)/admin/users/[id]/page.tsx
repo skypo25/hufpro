@@ -314,7 +314,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <form action={extendTrial.bind(null, user.id)} className="flex items-center gap-2">
+                <form action={extendTrial} className="flex items-center gap-2">
+                  <input type="hidden" name="userId" value={user.id} />
                   <select
                     name="days"
                     defaultValue="7"
@@ -518,7 +519,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
           </SectionCard>
 
           <SectionCard title="Interne Notizen" bodyClassName="px-[22px] py-[18px]">
-            <form action={saveAdminUserNote.bind(null, user.id)}>
+            <form action={saveAdminUserNote}>
+              <input type="hidden" name="userId" value={user.id} />
               <textarea
                 name="admin_note"
                 defaultValue={note}
@@ -578,7 +580,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               </div>
             </div>
             <div className="mt-4 flex flex-col gap-2">
-              <form action={setUserBan.bind(null, user.id)}>
+              <form action={setUserBan}>
+                <input type="hidden" name="userId" value={user.id} />
                 <input type="hidden" name="mode" value="ban" />
                 <button
                   type="submit"
@@ -588,7 +591,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   Account deaktivieren
                 </button>
               </form>
-              <form action={setUserBan.bind(null, user.id)}>
+              <form action={setUserBan}>
+                <input type="hidden" name="userId" value={user.id} />
                 <input type="hidden" name="mode" value="unban" />
                 <button
                   type="submit"
@@ -598,7 +602,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   Account aktivieren
                 </button>
               </form>
-              <form action={deleteUserAccount.bind(null, user.id)} className="rounded-xl border border-[rgba(220,38,38,.18)] bg-white p-3">
+              <form action={deleteUserAccount} className="rounded-xl border border-[rgba(220,38,38,.18)] bg-white p-3">
+                <input type="hidden" name="userId" value={user.id} />
                 <label className="flex items-start gap-3 text-[13px] text-[#374151]">
                   <input name="confirm_check" type="checkbox" className="mt-1 h-4 w-4 accent-[#DC2626]" />
                   <span>
@@ -656,7 +661,8 @@ function FlagRow(props: { userId: string; flag: string; title: string; desc: str
         <div className="text-[14px] font-medium text-[#1B1F23]">{props.title}</div>
         <div className="mt-0.5 text-[12px] text-[#6B7280]">{props.desc}</div>
       </div>
-      <form action={toggleAdminUserFlag.bind(null, props.userId)} className="shrink-0">
+      <form action={toggleAdminUserFlag} className="shrink-0">
+        <input type="hidden" name="userId" value={props.userId} />
         <input type="hidden" name="flag" value={props.flag} />
         <button
           type="submit"

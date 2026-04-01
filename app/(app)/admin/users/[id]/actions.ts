@@ -18,7 +18,13 @@ function safeErr(err: unknown) {
   return msg.slice(0, 180)
 }
 
-export async function saveAdminUserNote(userId: string, formData: FormData) {
+function readUserId(formData: FormData): string {
+  return String(formData.get('userId') ?? '').trim()
+}
+
+export async function saveAdminUserNote(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=note')
   const admin = await requireAdmin()
   const db = createSupabaseServiceRoleClient()
   const noteRaw = String(formData.get('admin_note') ?? '')
@@ -48,7 +54,9 @@ export async function saveAdminUserNote(userId: string, formData: FormData) {
   redirect(backTo(userId, { saved: 'note' }))
 }
 
-export async function toggleAdminUserFlag(userId: string, formData: FormData) {
+export async function toggleAdminUserFlag(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=flag')
   const admin = await requireAdmin()
   const db = createSupabaseServiceRoleClient()
   const key = String(formData.get('flag') ?? '').trim()
@@ -91,7 +99,9 @@ export async function toggleAdminUserFlag(userId: string, formData: FormData) {
   redirect(backTo(userId, { saved: 'flag' }))
 }
 
-export async function extendTrial(userId: string, formData: FormData) {
+export async function extendTrial(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=trial')
   const admin = await requireAdmin()
   const db = createSupabaseServiceRoleClient()
   const days = Number(formData.get('days') ?? 0)
@@ -197,7 +207,9 @@ export async function endTrialNow(formData: FormData) {
   redirect(backTo(userId, { saved: 'trial_end' }))
 }
 
-export async function setUserBan(userId: string, formData: FormData) {
+export async function setUserBan(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=ban')
   const admin = await requireAdmin()
   if (admin.userId === userId) {
     redirect(backTo(userId, { err: 'ban', msg: 'Du kannst dich nicht selbst deaktivieren.' }))
@@ -221,7 +233,9 @@ export async function setUserBan(userId: string, formData: FormData) {
   redirect(backTo(userId, { saved: mode === 'ban' ? 'ban' : 'unban' }))
 }
 
-export async function deleteUserAccount(userId: string, formData: FormData) {
+export async function deleteUserAccount(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=delete')
   const admin = await requireAdmin()
   if (admin.userId === userId) {
     redirect(backTo(userId, { err: 'delete', msg: 'Du kannst dich nicht selbst löschen.' }))
