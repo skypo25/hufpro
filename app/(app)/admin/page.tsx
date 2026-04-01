@@ -47,6 +47,9 @@ export default async function AdminDashboardPage() {
   }
 
   const now = formatGermanDateTime(new Date().toISOString())
+  const stripeWebhookUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '')}/api/stripe/webhook`
+    : null
 
   const maxProf = data?.professionBars?.[0]?.[1] ?? 1
 
@@ -180,7 +183,23 @@ export default async function AdminDashboardPage() {
                 {data.webhookError ? (
                   <p className="text-[13px] text-[#6B7280]">Webhook-Tabelle: {data.webhookError}</p>
                 ) : data.webhookRows.length === 0 ? (
-                  <p className="text-[13px] text-[#6B7280]">Noch keine Einträge in stripe_webhook_events.</p>
+                  <div className="space-y-2 text-[12px] leading-relaxed text-[#6B7280]">
+                    <p>
+                      Hier erscheinen nur <strong className="font-semibold text-[#475569]">eingehende Stripe-Webhooks</strong>{' '}
+                      (POST auf eure App). Aktionen im Admin (z.&nbsp;B. „Trial beenden“) rufen die Stripe-API direkt auf — dafür
+                      gibt es <strong className="font-semibold text-[#475569]">keinen Eintrag</strong> in dieser Liste.
+                    </p>
+                    <p>
+                      Wenn dauerhaft nichts ankommt: In Stripe unter{' '}
+                      <span className="font-medium text-[#334155]">Entwickler → Webhooks</span> muss die Endpoint-URL auf diese
+                      App zeigen (Test- und Livemodus getrennt), und{' '}
+                      <code className="rounded bg-[#F1F5F9] px-1 py-0.5 font-mono text-[11px]">STRIPE_WEBHOOK_SECRET</code> muss
+                      zum Signing Secret des Endpoints passen.
+                    </p>
+                    {stripeWebhookUrl ? (
+                      <p className="font-mono text-[11px] text-[#64748B] break-all">Erwartete URL: {stripeWebhookUrl}</p>
+                    ) : null}
+                  </div>
                 ) : (
                   <ul className="space-y-2">
                     {data.webhookRows.map((w) => (

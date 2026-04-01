@@ -25,6 +25,9 @@ export default async function AdminSystemPage(props: {
   }
 
   const now = formatGermanDateTime(new Date().toISOString())
+  const stripeWebhookUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '')}/api/stripe/webhook`
+    : null
   const db = createSupabaseServiceRoleClient()
   const { data: smtpRow } = await db.from('system_smtp').select('*').eq('id', 1).maybeSingle()
 
@@ -90,7 +93,20 @@ export default async function AdminSystemPage(props: {
             {webhookErr ? (
               <p className="text-[13px] text-[#6B7280]">{webhookErr}</p>
             ) : webhookRows.length === 0 ? (
-              <p className="text-[13px] text-[#6B7280]">Noch keine Events in `stripe_webhook_events`.</p>
+              <div className="space-y-2 text-[12px] leading-relaxed text-[#6B7280]">
+                <p>
+                  Nur <strong className="font-semibold text-[#475569]">eingehende Stripe-Webhooks</strong> landen hier — nicht
+                  Admin-Aktionen an der Stripe-API.
+                </p>
+                <p>
+                  Stripe: Endpoint in Test/Live auf diese App setzen,{' '}
+                  <code className="rounded bg-[#F1F5F9] px-1 py-0.5 font-mono text-[11px]">STRIPE_WEBHOOK_SECRET</code> zum
+                  Signing Secret.
+                </p>
+                {stripeWebhookUrl ? (
+                  <p className="font-mono text-[11px] text-[#64748B] break-all">URL: {stripeWebhookUrl}</p>
+                ) : null}
+              </div>
             ) : (
               <ul className="space-y-2">
                 {webhookRows.slice(0, 8).map((w) => (

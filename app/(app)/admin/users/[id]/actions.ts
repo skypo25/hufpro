@@ -122,6 +122,7 @@ export async function extendTrial(userId: string, formData: FormData) {
 
   revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/users')
+  revalidatePath('/admin')
   redirect(backTo(userId, { saved: 'trial' }))
 }
 
@@ -157,7 +158,7 @@ export async function endTrialNow(formData: FormData) {
       const trialEndIso = trialEndUnix
         ? new Date(trialEndUnix * 1000).toISOString()
         : nowIso
-      const { error: upErr } = await db
+      const { data: updatedRows, error: upErr } = await db
         .from('billing_accounts')
         .update({
           subscription_status: sub.status ?? null,
@@ -168,7 +169,11 @@ export async function endTrialNow(formData: FormData) {
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
+        .select('user_id')
       if (upErr) redirect(backTo(userId, { err: 'trial', msg: safeErr(upErr.message) }))
+      if (!updatedRows?.length) {
+        redirect(backTo(userId, { err: 'trial', msg: 'Kein billing_accounts-Datensatz für diesen Nutzer.' }))
+      }
     } catch (e) {
       redirect(backTo(userId, { err: 'trial', msg: `Stripe: ${safeErr(e)}` }))
     }
@@ -188,6 +193,7 @@ export async function endTrialNow(formData: FormData) {
 
   revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/users')
+  revalidatePath('/admin')
   redirect(backTo(userId, { saved: 'trial_end' }))
 }
 
