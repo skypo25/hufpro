@@ -140,22 +140,39 @@ export async function endTrialNow(userId: string) {
   if (subId) {
     try {
       const stripe = getStripe()
-      const sub = await stripe.subscriptions.retrieve(subId)
+      let sub = await stripe.subscriptions.retrieve(subId)
       const st = (sub.status ?? '').toString()
-      // Ohne Stripe-Update bliebe status "trialing" → App würde Zugriff weiter gewähren (siehe getBillingState).
+      // Trial bei Stripe sofort beenden — sonst bleibt das Abo "trialing" und weicht von billing_accounts ab.
       if (st === 'trialing') {
-        const nowSec = Math.floor(Date.now() / 1000)
-        await stripe.subscriptions.update(subId, { trial_end: nowSec })
+        await stripe.subscriptions.update(subId, { trial_end: 'now' })
+        sub = await stripe.subscriptions.retrieve(subId)
       }
+      const trialEndUnix = (sub as unknown as { trial_end?: number | null }).trial_end
+      const periodEndUnix = (sub as unknown as { current_period_end?: number | null }).current_period_end
+      const trialEndIso = trialEndUnix
+        ? new Date(trialEndUnix * 1000).toISOString()
+        : nowIso
+      const { error: upErr } = await db
+        .from('billing_accounts')
+        .update({
+          subscription_status: sub.status ?? null,
+          trial_ends_at: trialEndIso,
+          subscription_current_period_end: periodEndUnix
+            ? new Date(periodEndUnix * 1000).toISOString()
+            : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+      if (upErr) redirect(backTo(userId, { err: 'trial', msg: safeErr(upErr.message) }))
     } catch (e) {
       redirect(backTo(userId, { err: 'trial', msg: `Stripe: ${safeErr(e)}` }))
     }
+  } else {
+    const { error } = await db
+      .from('billing_accounts')
+      .upsert({ user_id: userId, trial_ends_at: nowIso, updated_at: nowIso }, { onConflict: 'user_id' })
+    if (error) redirect(backTo(userId, { err: 'trial', msg: safeErr(error.message) }))
   }
-
-  const { error } = await db
-    .from('billing_accounts')
-    .upsert({ user_id: userId, trial_ends_at: nowIso, updated_at: nowIso }, { onConflict: 'user_id' })
-  if (error) redirect(backTo(userId, { err: 'trial', msg: safeErr(error.message) }))
 
   await logAdminAuditEvent({
     actorUserId: admin.userId,

@@ -63,8 +63,9 @@ export default function BillingPageClient({
   const [subscribing, setSubscribing] = useState(false)
 
   const subscriptionStatus = billingState.subscription.status
-  const isActive = isSubscriptionStatusLive(subscriptionStatus)
-  const portalCtaLabel = isActive ? 'Abo verwalten' : 'Rechnungen & Zahlungsdaten verwalten'
+  /** Stripe: Abo zahlt oder Stripe-Testphase — nicht mit „nur App-Test“ verwechseln. */
+  const hasLiveSubscription = isSubscriptionStatusLive(subscriptionStatus)
+  const portalCtaLabel = hasLiveSubscription ? 'Abo verwalten' : 'Rechnungen & Zahlungsdaten verwalten'
   const isTrialActive = billingState.trial.isActive
 
   const trialTotalDays = 14
@@ -92,7 +93,35 @@ export default function BillingPageClient({
         showNoCharge: false,
       }
     }
-    if (isActive) {
+    // Stripe-Status trialing ≠ „Abo voll aktiv“ — sonst wirkt es wie Widerspruch zum Stripe-Dashboard.
+    if (status === 'trialing' && billingState.trial.isExpired) {
+      return {
+        key: 'trialing_sync' as const,
+        title: 'Abgleich mit Stripe',
+        badgeText: 'Hinweis',
+        icon: 'bi-arrow-repeat',
+        iconTone: 'warn' as const,
+        detail:
+          'In der App ist der Testzeitraum beendet, Stripe zeigt die Änderung ggf. noch mit Verzögerung. Bitte Seite neu laden oder das Stripe-Dashboard prüfen.',
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+    if (status === 'trialing') {
+      return {
+        key: 'stripe_trialing' as const,
+        title: 'Testphase (Abo)',
+        badgeText: 'Testphase',
+        icon: 'bi-clock-fill',
+        iconTone: 'blue' as const,
+        detail: `Ihr Abo läuft in der kostenlosen Testphase bei Stripe${
+          billingState.trial.endsAt ? ` (bis zum ${formatDateDe(billingState.trial.endsAt)})` : ''
+        }. Rechnungen und Zahlungsdaten verwalten Sie im Stripe-Kundenportal.`,
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+    if (status === 'active') {
       return {
         key: 'active' as const,
         title: 'Abo aktiv',
@@ -105,7 +134,7 @@ export default function BillingPageClient({
         showNoCharge: false,
       }
     }
-    if (trialActive) {
+    if (trialActive && status === 'none') {
       return {
         key: 'trialing' as const,
         title: 'Testphase aktiv',
@@ -145,7 +174,7 @@ export default function BillingPageClient({
       showProgress: false,
       showNoCharge: false,
     }
-  }, [billingState, isActive])
+  }, [billingState])
 
   const notice = useMemo(() => {
     if (success) {
@@ -173,7 +202,25 @@ export default function BillingPageClient({
         text: 'Es gibt ein Problem mit einer Zahlung. Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.',
       }
     }
-    if (billingState.trial.isActive) {
+    if (billingState.subscription.status === 'trialing' && billingState.trial.isExpired) {
+      return {
+        tone: 'warning' as const,
+        text: 'Testzeitraum in der App beendet — Stripe kann die Anzeige kurz verzögern. Bitte Seite neu laden.',
+      }
+    }
+    if (billingState.subscription.status === 'trialing') {
+      return {
+        tone: 'neutral' as const,
+        text: 'Ihr Abo befindet sich in der kostenlosen Testphase bei Stripe (siehe auch Stripe-Dashboard).',
+      }
+    }
+    if (billingState.subscription.status === 'active') {
+      return {
+        tone: 'success' as const,
+        text: 'Ihr Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
+      }
+    }
+    if (billingState.trial.isActive && billingState.subscription.status === 'none') {
       const days = billingState.trial.daysRemaining
       const daysLabel = typeof days === 'number' ? `${days} Tag${days === 1 ? '' : 'e'}` : 'einige Tage'
       return {
@@ -181,20 +228,14 @@ export default function BillingPageClient({
         text: `Ihr Testzeitraum läuft noch (${daysLabel} verbleibend).`,
       }
     }
-    if (billingState.trial.isExpired && !isActive) {
+    if (billingState.trial.isExpired && !hasLiveSubscription) {
       return {
         tone: 'danger' as const,
         text: 'Ihr Testzeitraum ist abgelaufen. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
       }
     }
-    if (isActive) {
-      return {
-        tone: 'success' as const,
-        text: 'Ihr Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
-      }
-    }
     return null
-  }, [billingState, blocked, canceled, isActive, success])
+  }, [billingState, blocked, canceled, hasLiveSubscription, success])
 
   const noticeClass =
     notice?.tone === 'success'
@@ -439,7 +480,7 @@ export default function BillingPageClient({
             >
               Zahlung & Zahlungsmethode aktualisieren
             </button>
-          ) : isActive ? (
+          ) : hasLiveSubscription ? (
             <button
               type="button"
               className="h-[48px] w-full rounded-[12px] bg-[#52b788] text-white text-[16px] font-bold hover:opacity-95 disabled:opacity-60"
