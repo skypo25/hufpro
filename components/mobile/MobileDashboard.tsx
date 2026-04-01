@@ -207,6 +207,9 @@ const DEFAULT_STATS: StatItem[] = [
   { label: 'Dokumentationen', value: '0', sub: 'erfasst', subClass: 'red' },
 ]
 
+const DASH_CACHE_KEY = 'anidocs:mobileDashboard:v1'
+const DASH_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000 // 12h
+
 export default function MobileDashboard() {
   const { profile } = useAppProfile()
   const term = profile.terminology
@@ -220,6 +223,39 @@ export default function MobileDashboard() {
   const [todayAppointments, setTodayAppointments] = useState<TodayAppointment[]>([])
   const [upcomingItems, setUpcomingItems] = useState<UpcomingItem[]>([])
   const [preferredNavApp, setPreferredNavApp] = useState<'apple' | 'google' | 'waze'>('google')
+
+  // Instant-start: hydrate from last known payload (avoids "Du" + zeros while network warms up).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DASH_CACHE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as {
+        ts?: number
+        userFirstName?: string | null
+        dateLabel?: string
+        preferredNavApp?: 'apple' | 'google' | 'waze'
+        todayStrip?: { termine: number; pferde: number; kunden: number }
+        stats?: StatItem[]
+        todayAppointments?: TodayAppointment[]
+        upcomingAppointments?: UpcomingItem[]
+        monthlyCents?: number[]
+        totalCents?: number
+      }
+      const ts = Number(parsed.ts)
+      if (!Number.isFinite(ts) || Date.now() - ts > DASH_CACHE_MAX_AGE_MS) return
+      setUserFirstName(parsed.userFirstName ?? null)
+      setDateLabel(parsed.dateLabel ?? '')
+      setPreferredNavApp(parsed.preferredNavApp ?? 'google')
+      setTodayStrip(parsed.todayStrip ?? DEFAULT_STRIP)
+      setStats(Array.isArray(parsed.stats) ? parsed.stats : DEFAULT_STATS)
+      setTodayAppointments(Array.isArray(parsed.todayAppointments) ? parsed.todayAppointments : [])
+      setUpcomingItems(Array.isArray(parsed.upcomingAppointments) ? parsed.upcomingAppointments : [])
+      if (Array.isArray(parsed.monthlyCents)) setMonthlyRevenueCents(parsed.monthlyCents)
+      if (typeof parsed.totalCents === 'number') setTotalRevenueCents(parsed.totalCents)
+    } catch {
+      // ignore cache
+    }
+  }, [])
 
   useEffect(() => {
     const animalsLabel = dashboardAnimalsBetreutLabel(term)
@@ -254,6 +290,28 @@ export default function MobileDashboard() {
         setStats(Array.isArray(data.stats) ? data.stats : DEFAULT_STATS)
         setTodayAppointments(Array.isArray(data.todayAppointments) ? data.todayAppointments : [])
         setUpcomingItems(Array.isArray(data.upcomingAppointments) ? data.upcomingAppointments : [])
+
+        // Persist partial cache (revenue comes from separate endpoint below).
+        try {
+          const existingRaw = localStorage.getItem(DASH_CACHE_KEY)
+          const existing = existingRaw ? (JSON.parse(existingRaw) as any) : {}
+          localStorage.setItem(
+            DASH_CACHE_KEY,
+            JSON.stringify({
+              ...existing,
+              ts: Date.now(),
+              userFirstName: data.userFirstName ?? null,
+              dateLabel: data.dateLabel ?? '',
+              preferredNavApp: data.preferredNavApp ?? 'google',
+              todayStrip: data.todayStrip ?? DEFAULT_STRIP,
+              stats: Array.isArray(data.stats) ? data.stats : DEFAULT_STATS,
+              todayAppointments: Array.isArray(data.todayAppointments) ? data.todayAppointments : [],
+              upcomingAppointments: Array.isArray(data.upcomingAppointments) ? data.upcomingAppointments : [],
+            })
+          )
+        } catch {
+          // ignore
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -274,6 +332,21 @@ export default function MobileDashboard() {
         if (cancelled) return
         setMonthlyRevenueCents(Array.isArray(data.monthlyCents) ? data.monthlyCents : Array(12).fill(0))
         setTotalRevenueCents(Number(data.totalCents) || 0)
+        try {
+          const existingRaw = localStorage.getItem(DASH_CACHE_KEY)
+          const existing = existingRaw ? (JSON.parse(existingRaw) as any) : {}
+          localStorage.setItem(
+            DASH_CACHE_KEY,
+            JSON.stringify({
+              ...existing,
+              ts: Date.now(),
+              monthlyCents: Array.isArray(data.monthlyCents) ? data.monthlyCents : Array(12).fill(0),
+              totalCents: Number(data.totalCents) || 0,
+            })
+          )
+        } catch {
+          // ignore
+        }
       })
       .catch(() => {
         if (!cancelled) {
