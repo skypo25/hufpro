@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import SectionCard from '@/components/ui/SectionCard'
 import BillingStatusBadge from '@/components/billing/BillingStatusBadge'
-import { getBillingState } from '@/lib/billing/state'
+import { getBillingState, isSubscriptionStatusLive } from '@/lib/billing/state'
 import type { BillingAccountRow, BillingState, PaymentMethodSummary } from '@/lib/billing/types'
 import EmbeddedSubscribe from '@/components/billing/EmbeddedSubscribe'
 
@@ -63,7 +63,7 @@ export default function BillingPageClient({
   const [subscribing, setSubscribing] = useState(false)
 
   const subscriptionStatus = billingState.subscription.status
-  const isActive = subscriptionStatus === 'active'
+  const isActive = isSubscriptionStatusLive(subscriptionStatus)
   const portalCtaLabel = isActive ? 'Abo verwalten' : 'Rechnungen & Zahlungsdaten verwalten'
   const isTrialActive = billingState.trial.isActive
 
@@ -262,7 +262,7 @@ export default function BillingPageClient({
   }
 
   const showSubscribe =
-    subscriptionStatus !== 'active' &&
+    !isSubscriptionStatusLive(subscriptionStatus) &&
     subscriptionStatus !== 'past_due'
 
   const showExpiredAlert =

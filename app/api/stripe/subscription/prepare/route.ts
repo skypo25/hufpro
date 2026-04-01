@@ -42,8 +42,8 @@ export async function POST() {
 
   const account = (accountRow as BillingAccountRow | null) ?? null
   const status = (account?.subscription_status ?? null)?.toString() ?? 'none'
-  if (status === 'active') {
-    return NextResponse.json({ error: 'Abo ist bereits aktiv.' }, { status: 409 })
+  if (status === 'active' || status === 'trialing') {
+    return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 
   let customerId = account?.stripe_customer_id ?? null
@@ -122,6 +122,16 @@ export async function POST() {
 
   const secrets = resolveSecretsFromSubscription(subscription as any)
   if (!secrets) {
+    const st = (subscription?.status ?? '').toString()
+    if (st === 'active' || st === 'trialing') {
+      return NextResponse.json(
+        {
+          error:
+            'Für Ihr Konto ist kein weiterer Zahlungsschritt nötig. Bitte laden Sie die Seite neu oder öffnen Sie das Stripe-Kundenportal.',
+        },
+        { status: 409 }
+      )
+    }
     return NextResponse.json({ error: 'Zahlung konnte nicht initialisiert werden.' }, { status: 500 })
   }
 

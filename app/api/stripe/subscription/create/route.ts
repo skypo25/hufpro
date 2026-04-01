@@ -48,8 +48,8 @@ export async function POST(request: Request) {
 
   const account = (accountRow as BillingAccountRow | null) ?? null
   const status = (account?.subscription_status ?? null)?.toString() ?? 'none'
-  if (status === 'active') {
-    return NextResponse.json({ error: 'Abo ist bereits aktiv.' }, { status: 409 })
+  if (status === 'active' || status === 'trialing') {
+    return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 
   const customerId = account?.stripe_customer_id ?? null

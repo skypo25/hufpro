@@ -88,3 +88,11 @@ export function canAccessApp(state: BillingState): boolean {
   return state.access.allowed
 }
 
+/** Stripe: Abo läuft (Zahlung oder Testphase des Abos). Nicht verwechseln mit `trial` aus billing_accounts vor Abo-Abschluss. */
+export function isSubscriptionStatusLive(
+  status: BillingState['subscription']['status'] | null | undefined
+): boolean {
+  const s = (status ?? 'none').toString()
+  return s === 'active' || s === 'trialing'
+}
+
