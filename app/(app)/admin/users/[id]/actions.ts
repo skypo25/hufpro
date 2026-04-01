@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/admin/requireAdmin'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
+import { getStripe } from '@/lib/stripe/stripe'
 
 function backTo(userId: string, q: Record<string, string> = {}) {
   const p = new URLSearchParams(q)
@@ -128,6 +129,29 @@ export async function endTrialNow(userId: string) {
   const admin = await requireAdmin()
   const db = createSupabaseServiceRoleClient()
   const nowIso = new Date().toISOString()
+
+  const { data: bill } = await db
+    .from('billing_accounts')
+    .select('stripe_subscription_id, subscription_status')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const subId = (bill?.stripe_subscription_id as string | null) ?? null
+  if (subId) {
+    try {
+      const stripe = getStripe()
+      const sub = await stripe.subscriptions.retrieve(subId)
+      const st = (sub.status ?? '').toString()
+      // Ohne Stripe-Update bliebe status "trialing" → App würde Zugriff weiter gewähren (siehe getBillingState).
+      if (st === 'trialing') {
+        const nowSec = Math.floor(Date.now() / 1000)
+        await stripe.subscriptions.update(subId, { trial_end: nowSec })
+      }
+    } catch (e) {
+      redirect(backTo(userId, { err: 'trial', msg: `Stripe: ${safeErr(e)}` }))
+    }
+  }
+
   const { error } = await db
     .from('billing_accounts')
     .upsert({ user_id: userId, trial_ends_at: nowIso, updated_at: nowIso }, { onConflict: 'user_id' })
@@ -137,7 +161,7 @@ export async function endTrialNow(userId: string) {
     actorUserId: admin.userId,
     targetUserId: userId,
     action: 'trial.end_now',
-    metadata: { at: nowIso },
+    metadata: { at: nowIso, stripe_subscription_id: subId },
   })
 
   revalidatePath(`/admin/users/${userId}`)

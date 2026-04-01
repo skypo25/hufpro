@@ -61,7 +61,9 @@ export async function GET() {
   const subId = account?.stripe_subscription_id ?? null
   if (subId) {
     try {
-      const sub = await stripe.subscriptions.retrieve(subId)
+      const sub = await stripe.subscriptions.retrieve(subId, {
+        expand: ['default_payment_method'],
+      })
       const dpm = (sub.default_payment_method as any) ?? null
       if (typeof dpm === 'string') paymentMethodId = dpm
       else if (dpm && typeof dpm.id === 'string') paymentMethodId = dpm.id
@@ -72,10 +74,26 @@ export async function GET() {
 
   if (!paymentMethodId) {
     try {
-      const cust = await stripe.customers.retrieve(customerId)
+      const cust = await stripe.customers.retrieve(customerId, {
+        expand: ['invoice_settings.default_payment_method'],
+      })
       const dpm = (cust as any).invoice_settings?.default_payment_method ?? null
       if (typeof dpm === 'string') paymentMethodId = dpm
       else if (dpm && typeof dpm.id === 'string') paymentMethodId = dpm.id
+    } catch {
+      // ignore
+    }
+  }
+
+  // Nach SetupIntent ist die Karte oft nur angehängt, aber noch nicht als Default gesetzt.
+  if (!paymentMethodId) {
+    try {
+      const attached = await stripe.paymentMethods.list({
+        customer: customerId,
+        limit: 5,
+      })
+      const first = attached.data?.[0]
+      if (first?.id) paymentMethodId = first.id
     } catch {
       // ignore
     }
