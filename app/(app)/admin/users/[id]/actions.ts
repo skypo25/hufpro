@@ -125,7 +125,12 @@ export async function extendTrial(userId: string, formData: FormData) {
   redirect(backTo(userId, { saved: 'trial' }))
 }
 
-export async function endTrialNow(userId: string) {
+export async function endTrialNow(formData: FormData) {
+  const userId = String(formData.get('userId') ?? '').trim()
+  if (!userId) {
+    redirect('/admin/users?err=trial')
+  }
+
   const admin = await requireAdmin()
   const db = createSupabaseServiceRoleClient()
   const nowIso = new Date().toISOString()

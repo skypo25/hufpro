@@ -332,7 +332,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                     Verlängern
                   </button>
                 </form>
-                <form action={endTrialNow.bind(null, user.id)}>
+                <form action={endTrialNow}>
+                  <input type="hidden" name="userId" value={user.id} />
                   <button
                     type="submit"
                     className="inline-flex items-center gap-2 rounded-lg border border-[rgba(184,134,11,.25)] bg-white px-3 py-2 text-[13px] font-medium text-[#B8860B] hover:bg-[rgba(184,134,11,.08)]"
