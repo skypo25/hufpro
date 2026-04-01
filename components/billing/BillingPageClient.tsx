@@ -35,6 +35,70 @@ function scrollToId(id: string) {
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+type BillingInvoiceRow = {
+  id: string
+  number: string | null
+  status: string | null
+  amountPaidCents: number
+  currency: string
+  createdUnix: number
+  hostedInvoiceUrl: string | null
+  invoicePdfUrl: string | null
+}
+
+function formatMoneyCents(cents: number, currency: string) {
+  try {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(cents / 100)
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency}`
+  }
+}
+
+function PaymentMethodPreview({ pm }: { pm: PaymentMethodSummary }) {
+  if (pm.kind === 'card') {
+    return (
+      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
+          {(pm.brand ?? 'CARD').toUpperCase()}
+        </div>
+        <div className="flex-1">
+          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
+            •••• •••• •••• {pm.last4 ?? '—'}
+          </div>
+          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
+            Gültig bis {pm.expMonth ?? '—'}/{pm.expYear ?? '—'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  if (pm.kind === 'sepa_debit') {
+    return (
+      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
+          SEPA
+        </div>
+        <div className="flex-1">
+          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
+            IBAN •••• {pm.last4 ?? '—'}
+          </div>
+          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
+            {pm.bankCode ? `Bank ${pm.bankCode}` : 'Lastschrift'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
+      <div className="text-[13px] text-[#6B7280]">Zahlungsmethode: {pm.label}</div>
+    </div>
+  )
+}
+
 export default function BillingPageClient({
   account,
   priceIdMonthly,
@@ -285,8 +349,22 @@ export default function BillingPageClient({
     }
   }
 
+  const loadInvoices = async () => {
+    setInvoicesLoading(true)
+    try {
+      const res = await fetch('/api/billing/invoices', { method: 'GET' })
+      const data = (await res.json().catch(() => null)) as { invoices?: BillingInvoiceRow[] } | null
+      if (res.ok && data && Array.isArray(data.invoices)) {
+        setInvoices(data.invoices)
+      }
+    } finally {
+      setInvoicesLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadPaymentMethod()
+    loadInvoices()
   }, [])
 
   const createSubscriptionFromPaymentMethod = async (paymentMethodId: string) => {
@@ -532,11 +610,27 @@ export default function BillingPageClient({
         </div>
         <div className="px-6 py-5">
           {!showSubscribe ? (
-            <div className="text-center text-[13px] text-[#9CA3AF] py-4">
-              <i className="bi bi-credit-card text-[26px] opacity-20 block mb-2" aria-hidden />
-              {subscriptionStatus === 'past_due'
-                ? 'Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.'
-                : 'Ihre Zahlungsmethode verwalten Sie sicher über das Stripe Zahlungsportal.'}
+            <div className="space-y-3">
+              {paymentLoading ? (
+                <div className="text-[13px] text-[#9CA3AF] py-2">Zahlungsmethode wird geladen…</div>
+              ) : paymentMethod ? (
+                <div className="huf-card bg-[#FAFAF8] border border-[#F0EEEA] px-5 py-4 rounded-[12px]">
+                  <div className="text-[12px] font-semibold text-[#6B7280]">Hinterlegte Zahlungsmethode</div>
+                  <div className="mt-3">
+                    <PaymentMethodPreview pm={paymentMethod} />
+                  </div>
+                  <p className="mt-3 text-[11px] text-[#9CA3AF]">
+                    Änderungen nehmen Sie über „Im Portal verwalten“ vor — Kartendaten liegen bei Stripe, nicht auf AniDocs.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center text-[13px] text-[#9CA3AF] py-4">
+                  <i className="bi bi-credit-card text-[26px] opacity-20 block mb-2" aria-hidden />
+                  {subscriptionStatus === 'past_due'
+                    ? 'Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.'
+                    : 'Keine Zahlungsmethode per API gefunden — bitte im Stripe-Kundenportal prüfen oder hinterlegen.'}
+                </div>
+              )}
             </div>
           ) : (
             <div className="w-full">
@@ -557,39 +651,7 @@ export default function BillingPageClient({
                   </div>
 
                   <div className="mt-3">
-                    {paymentMethod.kind === 'card' ? (
-                      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
-                        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
-                          {(paymentMethod.brand ?? 'CARD').toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
-                            •••• •••• •••• {paymentMethod.last4 ?? '—'}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
-                            Gültig bis {paymentMethod.expMonth ?? '—'}/{paymentMethod.expYear ?? '—'}
-                          </div>
-                        </div>
-                      </div>
-                    ) : paymentMethod.kind === 'sepa_debit' ? (
-                      <div className="flex items-center gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
-                        <div className="h-[28px] w-[42px] rounded-[6px] bg-[#1B1F23] text-white text-[10px] font-bold flex items-center justify-center">
-                          SEPA
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-[14px] font-semibold text-[#1B1F23] tabular-nums">
-                            IBAN •••• {paymentMethod.last4 ?? '—'}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
-                            {paymentMethod.bankCode ? `Bank ${paymentMethod.bankCode}` : 'Lastschrift'}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#F0EEEA] bg-white px-4 py-3">
-                        <div className="text-[13px] text-[#6B7280]">Zahlungsmethode: {paymentMethod.label}</div>
-                      </div>
-                    )}
+                    <PaymentMethodPreview pm={paymentMethod} />
                   </div>
 
                   {ui.key === 'trial_expired' || billingState.trial.isExpired ? (
@@ -679,10 +741,50 @@ export default function BillingPageClient({
           </button>
         </div>
         <div className="px-6 py-5">
-          <div className="text-center text-[13px] text-[#9CA3AF] py-3">
-            <i className="bi bi-receipt text-[26px] opacity-20 block mb-2" aria-hidden />
-            Rechnungen können Sie jederzeit sicher im Stripe Kundenportal herunterladen.
-          </div>
+          {invoicesLoading ? (
+            <div className="text-[13px] text-[#9CA3AF] py-2">Rechnungen werden geladen…</div>
+          ) : invoices.length > 0 ? (
+            <ul className="divide-y divide-[#F0EEEA]">
+              {invoices.map((inv) => {
+                const href = inv.hostedInvoiceUrl ?? inv.invoicePdfUrl
+                const date =
+                  inv.createdUnix > 0
+                    ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' }).format(new Date(inv.createdUnix * 1000))
+                    : '—'
+                const label = inv.number ? `Rechnung ${inv.number}` : `Rechnung ${inv.id.slice(-8)}`
+                return (
+                  <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-[13px]">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[#1B1F23]">{label}</div>
+                      <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
+                        {date}
+                        {inv.status ? ` · ${inv.status}` : ''} · {formatMoneyCents(inv.amountPaidCents, inv.currency)}
+                      </div>
+                    </div>
+                    {href ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#52b788] hover:border-[#52b788]"
+                      >
+                        Ansehen / PDF
+                      </a>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <div className="text-center text-[13px] text-[#9CA3AF] py-3">
+              <i className="bi bi-receipt text-[26px] opacity-20 block mb-2" aria-hidden />
+              Noch keine Rechnungen von Stripe gelistet — sobald Abbuchungen laufen, erscheinen sie hier (Download weiterhin bei
+              Stripe gehostet).
+            </div>
+          )}
+          <p className="mt-3 text-[11px] leading-relaxed text-[#9CA3AF]">
+            PDFs und Zahlungsbelege liegen bei Stripe; AniDocs speichert keine Rechnungs-PDFs auf eigenen Servern.
+          </p>
         </div>
       </div>
 
