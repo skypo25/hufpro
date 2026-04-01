@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ saved?: string; err?: string; msg?: string }>
+  searchParams: Promise<{ saved?: string; err?: string; msg?: string; hint?: string }>
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -154,22 +154,32 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
       />
 
       {sp.saved ? (
-        <section className="huf-card border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-[22px] py-4 text-[14px] text-[#154227]">
-          <strong className="font-semibold">Gespeichert.</strong>{' '}
-          {sp.saved === 'flag'
-            ? 'Feature-Flag aktualisiert.'
-            : sp.saved === 'note'
-              ? 'Notiz gespeichert.'
-              : sp.saved === 'trial'
-                ? 'Trial verlängert.'
-                : sp.saved === 'trial_end'
-                  ? 'Trial beendet.'
-                  : sp.saved === 'ban'
-                    ? 'Account deaktiviert.'
-                    : sp.saved === 'unban'
-                      ? 'Account wieder aktiviert.'
-                  : 'Aktualisierung durchgeführt.'}
-        </section>
+        sp.saved === 'trial_end_db' ? (
+          <section className="huf-card border border-amber-200 bg-amber-50 px-[22px] py-4 text-[14px] text-amber-950">
+            <strong className="font-semibold">Nur Datenbank.</strong>{' '}
+            Der Trial wurde in AniDocs beendet, aber es wurde <strong className="font-semibold">keine Stripe-Subscription</strong>{' '}
+            gefunden (kein Kunde oder keine aktive Subscription in Stripe). Prüfe im Nutzer-Bereich die Stripe Customer ID und im
+            Stripe-Dashboard den Kunden — ggf. Test-/Live-Modus und API-Key.
+            {sp.msg ? <div className="mt-2 text-[12px] text-amber-900/90">Code: {sp.msg}</div> : null}
+          </section>
+        ) : (
+          <section className="huf-card border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-[22px] py-4 text-[14px] text-[#154227]">
+            <strong className="font-semibold">Gespeichert.</strong>{' '}
+            {sp.saved === 'flag'
+              ? 'Feature-Flag aktualisiert.'
+              : sp.saved === 'note'
+                ? 'Notiz gespeichert.'
+                : sp.saved === 'trial'
+                  ? 'Trial verlängert.'
+                  : sp.saved === 'trial_end'
+                    ? 'Trial in der App und bei Stripe aktualisiert (sofern Subscription gefunden).'
+                    : sp.saved === 'ban'
+                      ? 'Account deaktiviert.'
+                      : sp.saved === 'unban'
+                        ? 'Account wieder aktiviert.'
+                        : 'Aktualisierung durchgeführt.'}
+          </section>
+        )
       ) : null}
       {sp.err ? (
         <section className="huf-card border border-red-200 bg-red-50 px-[22px] py-4 text-[14px] text-red-900">

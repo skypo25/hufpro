@@ -136,6 +136,15 @@ export async function extendTrial(formData: FormData) {
   redirect(backTo(userId, { saved: 'trial' }))
 }
 
+function subscriptionTrialStillActive(sub: { status?: string | null; trial_end?: number | null }): boolean {
+  const st = (sub.status ?? '').toString()
+  const te = sub.trial_end
+  const nowSec = Math.floor(Date.now() / 1000)
+  if (st === 'trialing') return true
+  if (typeof te === 'number' && te > nowSec) return true
+  return false
+}
+
 export async function endTrialNow(formData: FormData) {
   const userId = String(formData.get('userId') ?? '').trim()
   if (!userId) {
@@ -148,36 +157,95 @@ export async function endTrialNow(formData: FormData) {
 
   const { data: bill } = await db
     .from('billing_accounts')
-    .select('stripe_subscription_id, subscription_status')
+    .select('stripe_subscription_id, stripe_customer_id, subscription_status')
     .eq('user_id', userId)
     .maybeSingle()
 
-  const subId = (bill?.stripe_subscription_id as string | null) ?? null
-  if (subId) {
+  let stripeSubIdTouched: string | null = null
+  let stripeUpdateAttempted = false
+
+  const storedSubId = (bill?.stripe_subscription_id as string | null) ?? null
+  const customerId = (bill?.stripe_customer_id as string | null) ?? null
+
+  const resolveTargetSubscriptionId = async (
+    stripe: ReturnType<typeof getStripe>
+  ): Promise<string | null> => {
+    if (customerId) {
+      const list = await stripe.subscriptions.list({ customer: customerId, limit: 20 })
+      const idStillValid = (id: string | null | undefined): string | null => {
+        if (!id) return null
+        const m = list.data.find((s) => s.id === id)
+        if (!m) return null
+        const st = (m.status ?? '').toString()
+        if (st === 'canceled' || st === 'incomplete_expired') return null
+        return id
+      }
+      const fromDb = idStillValid(storedSubId)
+      if (fromDb) return fromDb
+
+      const trialing = list.data.find((s) => (s.status ?? '').toString() === 'trialing')
+      if (trialing?.id) return trialing.id
+
+      const withFutureTrial = list.data.find((s) => subscriptionTrialStillActive(s))
+      if (withFutureTrial?.id) return withFutureTrial.id
+
+      return (
+        list.data.find((s) => {
+          const st = (s.status ?? '').toString()
+          return st !== 'canceled' && st !== 'incomplete_expired'
+        })?.id ?? null
+      )
+    }
+    return storedSubId
+  }
+
+  if (storedSubId || customerId) {
     try {
       const stripe = getStripe()
-      let sub = await stripe.subscriptions.retrieve(subId)
-      const st = (sub.status ?? '').toString()
-      // Trial bei Stripe sofort beenden — sonst bleibt das Abo "trialing" und weicht von billing_accounts ab.
-      if (st === 'trialing') {
-        await stripe.subscriptions.update(subId, { trial_end: 'now' })
-        sub = await stripe.subscriptions.retrieve(subId)
+      const targetSubId = await resolveTargetSubscriptionId(stripe)
+      if (!targetSubId) {
+        const { error } = await db
+          .from('billing_accounts')
+          .upsert({ user_id: userId, trial_ends_at: nowIso, updated_at: nowIso }, { onConflict: 'user_id' })
+        if (error) redirect(backTo(userId, { err: 'trial', msg: safeErr(error.message) }))
+        await logAdminAuditEvent({
+          actorUserId: admin.userId,
+          targetUserId: userId,
+          action: 'trial.end_now',
+          message: 'db_only_no_stripe_subscription',
+          metadata: { at: nowIso, stripe_customer_id: customerId },
+        })
+        revalidatePath(`/admin/users/${userId}`)
+        revalidatePath('/admin/users')
+        revalidatePath('/admin')
+        redirect(backTo(userId, { saved: 'trial_end_db', msg: 'stripe_sub_missing' }))
       }
+
+      let sub = await stripe.subscriptions.retrieve(targetSubId)
+      if (subscriptionTrialStillActive(sub)) {
+        stripeUpdateAttempted = true
+        // Stripe: Trial sofort beenden — 'now' ist laut Doku zuverlässiger als nur Unix-Sekunden.
+        await stripe.subscriptions.update(targetSubId, { trial_end: 'now' })
+        sub = await stripe.subscriptions.retrieve(targetSubId)
+      }
+      stripeSubIdTouched = targetSubId
+
       const trialEndUnix = (sub as unknown as { trial_end?: number | null }).trial_end
       const periodEndUnix = (sub as unknown as { current_period_end?: number | null }).current_period_end
-      const trialEndIso = trialEndUnix
-        ? new Date(trialEndUnix * 1000).toISOString()
-        : nowIso
+      const trialEndIso = trialEndUnix ? new Date(trialEndUnix * 1000).toISOString() : nowIso
+
+      const patch: Record<string, unknown> = {
+        stripe_subscription_id: targetSubId,
+        subscription_status: sub.status ?? null,
+        trial_ends_at: trialEndIso,
+        subscription_current_period_end: periodEndUnix
+          ? new Date(periodEndUnix * 1000).toISOString()
+          : null,
+        updated_at: new Date().toISOString(),
+      }
       const { data: updatedRows, error: upErr } = await db
         .from('billing_accounts')
-        .update({
-          subscription_status: sub.status ?? null,
-          trial_ends_at: trialEndIso,
-          subscription_current_period_end: periodEndUnix
-            ? new Date(periodEndUnix * 1000).toISOString()
-            : null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(patch)
         .eq('user_id', userId)
         .select('user_id')
       if (upErr) redirect(backTo(userId, { err: 'trial', msg: safeErr(upErr.message) }))
@@ -198,7 +266,11 @@ export async function endTrialNow(formData: FormData) {
     actorUserId: admin.userId,
     targetUserId: userId,
     action: 'trial.end_now',
-    metadata: { at: nowIso, stripe_subscription_id: subId },
+    metadata: {
+      at: nowIso,
+      stripe_subscription_id: stripeSubIdTouched ?? storedSubId,
+      stripe_update_attempted: stripeUpdateAttempted,
+    },
   })
 
   revalidatePath(`/admin/users/${userId}`)
