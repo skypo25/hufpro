@@ -115,6 +115,37 @@ function buildNavAddressForAppointment(
 
 type SupabaseServer = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
+async function revenueForUser(supabase: SupabaseServer, userId: string) {
+  const monthly = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  const year = new Date().getFullYear()
+  const { data: revenueInvoices } = await supabase
+    .from('invoices')
+    .select('id, invoice_date')
+    .eq('user_id', userId)
+    .in('status', ['paid', 'sent'])
+    .gte('invoice_date', `${year}-01-01`)
+    .lt('invoice_date', `${year + 1}-01-01`)
+
+  const ids = (revenueInvoices ?? []).map((r) => r.id)
+  if (ids.length > 0) {
+    const { data: items } = await supabase
+      .from('invoice_items')
+      .select('invoice_id, amount_cents')
+      .in('invoice_id', ids)
+    const sumByInvoice = new Map<string, number>()
+    for (const row of items ?? []) {
+      sumByInvoice.set(row.invoice_id, (sumByInvoice.get(row.invoice_id) ?? 0) + (row.amount_cents ?? 0))
+    }
+    for (const inv of revenueInvoices ?? []) {
+      const month = new Date(inv.invoice_date).getMonth()
+      monthly[month] = (monthly[month] ?? 0) + (sumByInvoice.get(inv.id) ?? 0)
+    }
+  }
+
+  const totalCents = monthly.reduce((a, b) => a + b, 0)
+  return { monthlyCents: monthly, totalCents }
+}
+
 async function buildDashboardMobilePayload(supabase: SupabaseServer, user: { id: string }) {
   const { data: settingsRow } = await supabase
     .from('user_settings')
@@ -146,6 +177,7 @@ async function buildDashboardMobilePayload(supabase: SupabaseServer, user: { id:
     { count: horsesCount },
     recordsCount,
     { count: appointmentsWeekCount },
+    revenue,
   ] = await Promise.all([
     supabase.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('horses').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
@@ -156,6 +188,7 @@ async function buildDashboardMobilePayload(supabase: SupabaseServer, user: { id:
       .eq('user_id', user.id)
       .gte('appointment_date', startOfWeek.toISOString())
       .lt('appointment_date', endOfWeek.toISOString()),
+    revenueForUser(supabase, user.id),
   ])
 
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
@@ -305,6 +338,8 @@ async function buildDashboardMobilePayload(supabase: SupabaseServer, user: { id:
     dateLabel,
     preferredNavApp,
     terminology: term,
+    monthlyCents: revenue.monthlyCents,
+    totalCents: revenue.totalCents,
     todayStrip: {
       termine: todayCount,
       pferde: horsesCount ?? 0,

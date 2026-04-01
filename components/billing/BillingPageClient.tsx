@@ -60,6 +60,7 @@ export default function BillingPageClient({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodSummary | null>(null)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [editingPaymentMethod, setEditingPaymentMethod] = useState(false)
+  const [subscribing, setSubscribing] = useState(false)
 
   const subscriptionStatus = billingState.subscription.status
   const isActive = subscriptionStatus === 'active'
@@ -454,9 +455,17 @@ export default function BillingPageClient({
                 'h-[48px] w-full rounded-[12px] text-white text-[16px] font-bold hover:opacity-95',
                 ui.key === 'trial_expired' ? 'bg-[#1B1F23]' : 'bg-[#52b788]',
               ].join(' ')}
-              onClick={() => scrollToId('billing-payment')}
+              onClick={() => {
+                // If a payment method already exists, guide to "subscribe now" (not "add payment method").
+                if (paymentMethod) setSubscribing(true)
+                scrollToId('billing-payment')
+              }}
             >
-              {ui.key === 'trial_expired' ? 'Kostenpflichtig weiter nutzen' : 'Zahlungsmethode hinzufügen'}
+              {paymentMethod
+                ? 'Abo jetzt abschließen'
+                : ui.key === 'trial_expired'
+                  ? 'Kostenpflichtig weiter nutzen'
+                  : 'Zahlungsmethode hinzufügen'}
             </button>
           )}
 
@@ -492,7 +501,7 @@ export default function BillingPageClient({
             <div className="w-full">
               {paymentLoading ? (
                 <div className="text-[13px] text-[#9CA3AF]">Wird geladen…</div>
-              ) : (paymentMethod && !editingPaymentMethod) ? (
+              ) : (paymentMethod && !editingPaymentMethod && !subscribing) ? (
                 <div className="huf-card bg-[#FAFAF8] border border-[#F0EEEA] px-5 py-4 rounded-[12px]">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[12px] font-semibold text-[#6B7280]">Hinterlegte Zahlungsmethode</div>
@@ -541,35 +550,70 @@ export default function BillingPageClient({
                       </div>
                     )}
                   </div>
+
+                  {ui.key === 'trial_expired' || billingState.trial.isExpired ? (
+                    <div className="mt-4 flex flex-col gap-2">
+                      <div className="text-[12px] text-[#6B7280]">
+                        Ihre Testphase ist beendet. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiter zu nutzen.
+                      </div>
+                      <button
+                        type="button"
+                        className="h-[44px] w-full rounded-[12px] bg-[#1B1F23] px-5 text-[14px] font-semibold text-white hover:bg-black disabled:opacity-60"
+                        onClick={() => setSubscribing(true)}
+                        disabled={busy !== null}
+                      >
+                        Abo jetzt abschließen
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="w-full">
                   <EmbeddedSubscribe
                     stripePublishableKey={stripePublishableKey}
-                    title={paymentMethod ? 'Zahlungsmethode ändern' : (isTrialActive ? 'Zahlungsmethode hinterlegen' : 'Abo abschließen')}
-                    ctaLabel={paymentMethod ? 'Zahlungsmethode speichern' : (isTrialActive ? 'Zahlungsmethode speichern' : 'Jetzt Abo abschließen')}
+                    title={
+                      subscribing
+                        ? 'Abo abschließen'
+                        : paymentMethod
+                          ? 'Zahlungsmethode ändern'
+                          : (isTrialActive ? 'Zahlungsmethode hinterlegen' : 'Abo abschließen')
+                    }
+                    ctaLabel={
+                      subscribing
+                        ? 'Jetzt Abo abschließen'
+                        : paymentMethod
+                          ? 'Zahlungsmethode speichern'
+                          : (isTrialActive ? 'Zahlungsmethode speichern' : 'Jetzt Abo abschließen')
+                    }
                     description={
-                      paymentMethod
-                        ? 'Ändern Sie Ihre Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in Ihrem Stripe‑Konto hinterlegt.'
-                        : isTrialActive
-                        ? 'Damit Ihr Abo nach dem Testzeitraum nahtlos weiterläuft, können Sie schon jetzt eine Zahlungsmethode hinterlegen.'
-                        : 'Schließen Sie Ihr AniDocs Abo direkt hier ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
+                      subscribing
+                        ? 'Schließen Sie Ihr AniDocs Abo jetzt ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
+                        : paymentMethod
+                          ? 'Ändern Sie Ihre Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in Ihrem Stripe‑Konto hinterlegt.'
+                          : isTrialActive
+                            ? 'Damit Ihr Abo nach dem Testzeitraum nahtlos weiterläuft, können Sie schon jetzt eine Zahlungsmethode hinterlegen.'
+                            : 'Schließen Sie Ihr AniDocs Abo direkt hier ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
                     }
                     prepareUrl={
-                      paymentMethod
-                        ? '/api/stripe/setup-intent/prepare'
-                        : isTrialActive
+                      subscribing
+                        ? '/api/stripe/subscription/prepare'
+                        : paymentMethod
                           ? '/api/stripe/setup-intent/prepare'
-                          : '/api/stripe/subscription/prepare'
+                          : isTrialActive
+                            ? '/api/stripe/setup-intent/prepare'
+                            : '/api/stripe/subscription/prepare'
                     }
                     onSetupIntentSucceeded={
-                      paymentMethod
-                        ? setDefaultPaymentMethod
-                        : (isTrialActive ? createSubscriptionFromPaymentMethod : undefined)
+                      subscribing
+                        ? undefined
+                        : paymentMethod
+                          ? setDefaultPaymentMethod
+                          : (isTrialActive ? createSubscriptionFromPaymentMethod : undefined)
                     }
                     onCompleted={async () => {
                       await loadPaymentMethod()
                       setEditingPaymentMethod(false)
+                      setSubscribing(false)
                     }}
                   />
                 </div>

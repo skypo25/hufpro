@@ -281,6 +281,8 @@ export default function MobileDashboard() {
         stats?: StatItem[]
         todayAppointments?: TodayAppointment[]
         upcomingAppointments?: UpcomingItem[]
+        monthlyCents?: number[]
+        totalCents?: number
       } | null) => {
         if (cancelled || !data) return
         setUserFirstName(data.userFirstName ?? null)
@@ -290,6 +292,8 @@ export default function MobileDashboard() {
         setStats(Array.isArray(data.stats) ? data.stats : DEFAULT_STATS)
         setTodayAppointments(Array.isArray(data.todayAppointments) ? data.todayAppointments : [])
         setUpcomingItems(Array.isArray(data.upcomingAppointments) ? data.upcomingAppointments : [])
+        if (Array.isArray(data.monthlyCents)) setMonthlyRevenueCents(data.monthlyCents)
+        if (typeof data.totalCents === 'number') setTotalRevenueCents(Number(data.totalCents) || 0)
 
         // Persist partial cache (revenue comes from separate endpoint below).
         try {
@@ -307,6 +311,8 @@ export default function MobileDashboard() {
               stats: Array.isArray(data.stats) ? data.stats : DEFAULT_STATS,
               todayAppointments: Array.isArray(data.todayAppointments) ? data.todayAppointments : [],
               upcomingAppointments: Array.isArray(data.upcomingAppointments) ? data.upcomingAppointments : [],
+              monthlyCents: Array.isArray(data.monthlyCents) ? data.monthlyCents : existing?.monthlyCents,
+              totalCents: typeof data.totalCents === 'number' ? Number(data.totalCents) || 0 : existing?.totalCents,
             })
           )
         } catch {
@@ -324,38 +330,7 @@ export default function MobileDashboard() {
     return () => { cancelled = true }
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/dashboard/revenue', { credentials: 'include' })
-      .then((res) => res.ok ? res.json() : { monthlyCents: Array(12).fill(0), totalCents: 0 })
-      .then((data: { monthlyCents?: number[]; totalCents?: number }) => {
-        if (cancelled) return
-        setMonthlyRevenueCents(Array.isArray(data.monthlyCents) ? data.monthlyCents : Array(12).fill(0))
-        setTotalRevenueCents(Number(data.totalCents) || 0)
-        try {
-          const existingRaw = localStorage.getItem(DASH_CACHE_KEY)
-          const existing = existingRaw ? (JSON.parse(existingRaw) as any) : {}
-          localStorage.setItem(
-            DASH_CACHE_KEY,
-            JSON.stringify({
-              ...existing,
-              ts: Date.now(),
-              monthlyCents: Array.isArray(data.monthlyCents) ? data.monthlyCents : Array(12).fill(0),
-              totalCents: Number(data.totalCents) || 0,
-            })
-          )
-        } catch {
-          // ignore
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMonthlyRevenueCents(Array(12).fill(0))
-          setTotalRevenueCents(0)
-        }
-      })
-    return () => { cancelled = true }
-  }, [])
+  // Revenue is included in /api/dashboard/mobile now (single request startup).
 
   const greeting = getGreeting(userFirstName)
   const displayName = (userFirstName ?? '').trim() || 'Du'
