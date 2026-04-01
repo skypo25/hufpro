@@ -1,14 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 export default function RouteLoader() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const [fading, setFading] = useState(false)
+  const didMount = useRef(false)
 
   useEffect(() => {
+    // Don't show on initial mount (avoids "white screen → loader" on first load).
+    if (!didMount.current) {
+      didMount.current = true
+      return
+    }
     // Show loader on route change
     setFading(false)
     setVisible(true)

@@ -7,12 +7,12 @@ export default function Preloader() {
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
-    // Show for 2s, then fade out over 0.6s
+    // Keep this splash short; the app already has real data loaders.
     const t1 = setTimeout(() => {
       setFading(true)
       const t2 = setTimeout(() => setVisible(false), 600)
       return () => clearTimeout(t2)
-    }, 2000)
+    }, 450)
     return () => clearTimeout(t1)
   }, [])
 
