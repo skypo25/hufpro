@@ -125,6 +125,8 @@ export default function BillingPageClient({
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [editingPaymentMethod, setEditingPaymentMethod] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
+  const [invoices, setInvoices] = useState<BillingInvoiceRow[]>([])
+  const [invoicesLoading, setInvoicesLoading] = useState(false)
 
   const subscriptionStatus = billingState.subscription.status
   /** Stripe: Abo zahlt oder Stripe-Testphase — nicht mit „nur App-Test“ verwechseln. */
@@ -751,7 +753,8 @@ export default function BillingPageClient({
                   inv.createdUnix > 0
                     ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' }).format(new Date(inv.createdUnix * 1000))
                     : '—'
-                const label = inv.number ? `Rechnung ${inv.number}` : `Rechnung ${inv.id.slice(-8)}`
+                const idShort = (inv.id && inv.id.length >= 8 ? inv.id.slice(-8) : inv.id) || '—'
+                const label = inv.number ? `Rechnung ${inv.number}` : `Rechnung ${idShort}`
                 return (
                   <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-[13px]">
                     <div className="min-w-0">

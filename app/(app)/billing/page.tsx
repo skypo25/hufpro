@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
@@ -60,12 +61,20 @@ export default async function BillingPage() {
         </p>
       </div>
 
-      <BillingPageClient
-        account={account}
-        priceIdMonthly={process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null}
-        loadError={initError ?? undefined}
-        stripePublishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || null}
-      />
+      <Suspense
+        fallback={
+          <div className="huf-card border border-[#E5E2DC] px-6 py-10 text-center text-[14px] text-[#6B7280]">
+            Billing wird geladen…
+          </div>
+        }
+      >
+        <BillingPageClient
+          account={account}
+          priceIdMonthly={process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null}
+          loadError={initError ?? undefined}
+          stripePublishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || null}
+        />
+      </Suspense>
     </div>
   )
 }
