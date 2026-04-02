@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import SectionCard from '@/components/ui/SectionCard'
 
 type PrepareResponse =
+  | { completed: true; subscriptionId?: string; customerId?: string }
   | { clientSecret: string; intentType: 'payment' | 'setup'; subscriptionId: string; customerId: string }
   | { error: string }
 
@@ -14,6 +15,13 @@ async function postPrepare(url: string): Promise<PrepareResponse> {
   const data = (await res.json().catch(() => null)) as any
   if (!res.ok) {
     return { error: (data && typeof data.error === 'string' && data.error) || 'Aktion fehlgeschlagen.' }
+  }
+  if (data && data.completed === true) {
+    return {
+      completed: true,
+      subscriptionId: typeof data.subscriptionId === 'string' ? data.subscriptionId : undefined,
+      customerId: typeof data.customerId === 'string' ? data.customerId : undefined,
+    }
   }
   if (!data || typeof data.clientSecret !== 'string') {
     return { error: 'Unerwartete Antwort vom Server.' }
@@ -162,6 +170,9 @@ export default function EmbeddedSubscribe({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [elementsKey, setElementsKey] = useState(0)
+  const [finishedWithoutPaymentElement, setFinishedWithoutPaymentElement] = useState(false)
+  const onCompletedRef = useRef(onCompleted)
+  onCompletedRef.current = onCompleted
 
   const stripePromise = useMemo(() => {
     if (!stripePublishableKey) return null
@@ -180,6 +191,11 @@ export default function EmbeddedSubscribe({
       setLoading(false)
       if ('error' in res) {
         setError(res.error)
+        return
+      }
+      if ('completed' in res && res.completed) {
+        setFinishedWithoutPaymentElement(true)
+        onCompletedRef.current?.()
         return
       }
       setClientSecret(res.clientSecret)
@@ -205,6 +221,11 @@ export default function EmbeddedSubscribe({
       setError(res.error)
       return
     }
+    if ('completed' in res && res.completed) {
+      setFinishedWithoutPaymentElement(true)
+      onCompletedRef.current?.()
+      return
+    }
     setClientSecret(res.clientSecret)
     setIntentType(res.intentType)
     setElementsKey((k) => k + 1)
@@ -220,6 +241,9 @@ export default function EmbeddedSubscribe({
     }
     if (disabledReason) {
       return <div className="text-[14px] text-[#6B7280]">{disabledReason}</div>
+    }
+    if (finishedWithoutPaymentElement) {
+      return <div className="text-[14px] text-[#6B7280]">Abo wurde aktiviert. Seite wird gleich aktualisiert…</div>
     }
     if (loading) {
       return <div className="text-[14px] text-[#6B7280]">Zahlung wird vorbereitet…</div>

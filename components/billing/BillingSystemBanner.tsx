@@ -12,13 +12,14 @@ function toneStyles(tone: BannerTone) {
   if (tone === 'danger') {
     return {
       wrap: 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]',
-      btn: 'bg-[#B91C1C] text-white',
+      /** Explizit !text-white: sonst erbt das <a> die Banner-Textfarbe → roter Text auf rotem Button (unsichtbar). */
+      btn: 'bg-[#B91C1C] !text-white',
       icon: 'bi-exclamation-circle-fill',
     }
   }
   return {
     wrap: 'border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]',
-    btn: 'bg-[#B8860B] text-white',
+    btn: 'bg-[#B8860B] !text-white',
     icon: 'bi-exclamation-triangle-fill',
   }
 }
@@ -100,21 +101,24 @@ export default function BillingSystemBanner() {
 
   return (
     <div className="px-4 pt-3 pb-1">
-      <div className={`huf-card border px-4 py-3 text-[13px] ${s.wrap}`}>
+      <Link
+        href="/billing"
+        aria-label={`${banner.title}. ${banner.cta}`}
+        className={`huf-card block border px-4 py-3 text-[13px] no-underline transition-opacity hover:opacity-95 ${s.wrap}`}
+      >
         <div className="flex items-start gap-3">
-          <i className={`bi ${s.icon} mt-[1px] text-[16px]`} aria-hidden />
+          <i className={`bi ${s.icon} mt-[1px] shrink-0 text-[16px]`} aria-hidden />
           <div className="min-w-0 flex-1">
             <div className="font-semibold">{banner.title}</div>
             <div className="mt-0.5">{banner.text}</div>
           </div>
-          <Link
-            href="/billing"
-            className={`shrink-0 rounded-lg px-3 py-2 text-[12px] font-semibold hover:opacity-95 ${s.btn}`}
+          <span
+            className={`pointer-events-none shrink-0 rounded-lg px-3 py-2 text-[12px] font-semibold ${s.btn}`}
           >
             {banner.cta}
-          </Link>
+          </span>
         </div>
-      </div>
+      </Link>
     </div>
   )
 }

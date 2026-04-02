@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import SectionCard from '@/components/ui/SectionCard'
 import BillingStatusBadge from '@/components/billing/BillingStatusBadge'
 import { getBillingState, isSubscriptionStatusLive } from '@/lib/billing/state'
@@ -110,6 +110,7 @@ export default function BillingPageClient({
   loadError?: string
   stripePublishableKey: string | null
 }) {
+  const router = useRouter()
   const billingState = useMemo(
     () => getBillingState({ account, priceIdMonthly }),
     [account, priceIdMonthly]
@@ -715,6 +716,7 @@ export default function BillingPageClient({
                       await loadPaymentMethod()
                       setEditingPaymentMethod(false)
                       setSubscribing(false)
+                      router.refresh()
                     }}
                   />
                 </div>

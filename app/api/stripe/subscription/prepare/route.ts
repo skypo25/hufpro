@@ -7,6 +7,7 @@ import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import type Stripe from 'stripe'
 import { buildIdempotencyKey } from '@/lib/stripe/idempotency'
+import { tryFinalizeSubscriptionWithDefaultPaymentMethod } from '@/lib/stripe/customerDefaultPaymentMethod'
 import {
   isAppTrialEnded,
   resolveSubscriptionPaymentSecrets,
@@ -130,15 +131,43 @@ export async function POST() {
     secrets = await resolveSubscriptionPaymentSecrets(stripe, subscription)
   }
   if (!secrets) {
+    const finalized = await tryFinalizeSubscriptionWithDefaultPaymentMethod(
+      stripe,
+      customerId,
+      subscription as Stripe.Subscription
+    )
+    if (finalized) {
+      subscription = finalized
+      secrets = await resolveSubscriptionPaymentSecrets(stripe, subscription)
+    }
+  }
+
+  if (!secrets) {
     const st = (subscription?.status ?? '').toString()
     if (st === 'active' || st === 'trialing') {
-      return NextResponse.json(
-        {
-          error:
-            'Für Ihr Konto ist kein weiterer Zahlungsschritt nötig. Bitte laden Sie die Seite neu oder öffnen Sie das Stripe-Kundenportal.',
-        },
-        { status: 409 }
-      )
+      const { error: saveActiveErr } = await supabaseAdmin
+        .from('billing_accounts')
+        .update({
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status ?? 'incomplete',
+          subscription_price_id: priceId,
+          subscription_current_period_end: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : null,
+          trial_ends_at: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000).toISOString()
+            : (account?.trial_ends_at ?? null),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+      if (saveActiveErr) {
+        return NextResponse.json({ error: 'Subscription konnte nicht gespeichert werden.' }, { status: 500 })
+      }
+      return NextResponse.json({
+        completed: true as const,
+        subscriptionId: subscription.id,
+        customerId,
+      })
     }
     return NextResponse.json({ error: 'Zahlung konnte nicht initialisiert werden.' }, { status: 500 })
   }
