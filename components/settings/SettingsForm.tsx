@@ -145,6 +145,8 @@ type SettingsFormProps = {
   initialSettings: Record<string, unknown> | null
   userEmail?: string
   customers?: SettingsCustomer[]
+  /** ZIP-Vollexport (/api/export/full), wenn Nutzer die App nutzen darf. */
+  canExportData?: boolean
 }
 
 const TABS = [
@@ -207,7 +209,12 @@ function inputClass() {
   return 'w-full rounded-lg border border-[#E5E2DC] bg-white px-3.5 py-2.5 text-sm text-[#1B1F23] outline-none transition-colors placeholder:text-[#9CA3AF] focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10'
 }
 
-export default function SettingsForm({ initialSettings, userEmail, customers = [] }: SettingsFormProps) {
+export default function SettingsForm({
+  initialSettings,
+  userEmail,
+  customers = [],
+  canExportData = false,
+}: SettingsFormProps) {
   const merged: SettingsData = {
     ...DEFAULT_SETTINGS,
     ...(initialSettings as Partial<SettingsData>),
@@ -1038,6 +1045,34 @@ export default function SettingsForm({ initialSettings, userEmail, customers = [
                 </div>
               </form>
             </div>
+
+            {canExportData && (
+              <div className="mt-6 border-t border-[#E5E2DC] pt-6">
+                <div className="grid gap-6 md:grid-cols-2 md:items-start">
+                  <div>
+                    <h4 className="text-[14px] font-semibold text-[#1B1F23]">Datenexport</h4>
+                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
+                      Laden Sie eine Kopie Ihrer Daten als ZIP herunter (Tabellen als CSV/JSON, Bilder im Ordner{' '}
+                      <span className="whitespace-nowrap">fotos/</span>
+                      ). Entspricht dem Export unter Billing.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 md:items-start md:pt-0">
+                    <a
+                      href="/api/export/full"
+                      className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1F23] transition-colors hover:border-[#52b788] hover:bg-[#F7FCF9]"
+                      download
+                    >
+                      <i className="bi bi-download" aria-hidden />
+                      ZIP exportieren
+                    </a>
+                    <p className="text-[11px] text-[#9CA3AF]">
+                      Persönliche Daten — sicher aufbewahren (z. B. DSGVO / GoBD).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </FormSection>
         </>
       )}

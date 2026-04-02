@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase-client'
 import { type SettingsData, DEFAULT_SETTINGS } from '@/components/settings/SettingsForm'
+import { canAccessApp, getBillingState } from '@/lib/billing/state'
+import type { BillingAccountRow } from '@/lib/billing/types'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 
 const TABS = [
@@ -146,7 +148,26 @@ export default function MobileSettings() {
   const [error, setError] = useState<string | null>(null)
   const [s, setS] = useState<SettingsData | null>(null)
   const [activeTab, setActiveTab] = useState('betrieb')
+  const [canExportData, setCanExportData] = useState(false)
   const logoInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/billing/account', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { account?: BillingAccountRow | null } | null) => {
+        if (cancelled || !data) return
+        const state = getBillingState({
+          account: data.account ?? null,
+          priceIdMonthly: null,
+        })
+        setCanExportData(canAccessApp(state))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -680,6 +701,22 @@ export default function MobileSettings() {
             <FGroup label="Passwort bestätigen">
               <input className={inputClass} type="password" placeholder="Neues Passwort wiederholen" />
             </FGroup>
+            {canExportData && (
+              <div className="mt-4 border-t border-[#F0EEEA] pt-4">
+                <div className="text-[12px] font-semibold text-[#1B1F23]">Datenexport</div>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#6B7280]">
+                  ZIP mit Tabellen (CSV/JSON) und Fotos — wie unter Billing.
+                </p>
+                <a
+                  href="/api/export/full"
+                  className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23]"
+                  download
+                >
+                  <i className="bi bi-download" aria-hidden />
+                  ZIP exportieren
+                </a>
+              </div>
+            )}
             <div className="mt-4 border-t border-[#F0EEEA] pt-4">
               <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#DC2626] cursor-pointer">
                 <i className="bi bi-trash3-fill" /> Konto löschen
