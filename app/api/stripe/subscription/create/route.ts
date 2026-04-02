@@ -57,25 +57,56 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Stripe-Kunde fehlt.' }, { status: 500 })
   }
 
-  // Hard guard: if we already have a subscription id, do not create another one.
   const existingSubId = account?.stripe_subscription_id ?? null
-  if (existingSubId) {
-    try {
-      const sub = await stripe.subscriptions.retrieve(existingSubId)
-      const s = (sub.status ?? '').toString()
-      if (s && s !== 'canceled' && s !== 'incomplete_expired' && s !== 'unpaid') {
-        return NextResponse.json({ subscriptionId: sub.id, status: sub.status })
-      }
-    } catch {
-      // ignore, proceed to create below
-    }
-  }
 
-  // Attach PM to customer if needed
   try {
     await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId })
   } catch {
     // ignore if already attached
+  }
+
+  /** Offenes / fehlgeschlagenes Abo: Zahlungsmethode setzen statt zweites Abo anlegen. */
+  if (existingSubId) {
+    try {
+      const existing = await stripe.subscriptions.retrieve(existingSubId, {
+        expand: ['latest_invoice.payment_intent'],
+      })
+      const s = (existing.status ?? '').toString()
+      if (s === 'active' || s === 'trialing') {
+        return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
+      }
+      if (['incomplete', 'unpaid', 'past_due'].includes(s)) {
+        const updated = await stripe.subscriptions.update(existingSubId, {
+          default_payment_method: paymentMethodId,
+          payment_settings: { save_default_payment_method: 'on_subscription' },
+          expand: ['latest_invoice.payment_intent'],
+        })
+        const { error: saveErr } = await supabaseAdmin
+          .from('billing_accounts')
+          .update({
+            stripe_subscription_id: updated.id,
+            subscription_status: updated.status ?? null,
+            subscription_price_id: priceId,
+            subscription_current_period_end: updated.current_period_end
+              ? new Date(updated.current_period_end * 1000).toISOString()
+              : null,
+            trial_ends_at: updated.trial_end
+              ? new Date(updated.trial_end * 1000).toISOString()
+              : (account?.trial_ends_at ?? null),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id)
+        if (saveErr) {
+          return NextResponse.json({ error: 'Subscription konnte nicht gespeichert werden.' }, { status: 500 })
+        }
+        return NextResponse.json({
+          subscriptionId: updated.id,
+          status: updated.status,
+        })
+      }
+    } catch {
+      // Neues Abo anlegen
+    }
   }
 
   const trialEnd = trialEndUnixFromIso(account?.trial_ends_at ?? null)

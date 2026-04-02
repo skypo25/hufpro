@@ -681,14 +681,14 @@ export default function BillingPageClient({
                         ? 'Abo abschließen'
                         : paymentMethod
                           ? 'Zahlungsmethode ändern'
-                          : (isTrialActive ? 'Zahlungsmethode hinterlegen' : 'Abo abschließen')
+                          : 'Zahlungsmethode hinterlegen'
                     }
                     ctaLabel={
                       subscribing
                         ? 'Jetzt Abo abschließen'
                         : paymentMethod
                           ? 'Zahlungsmethode speichern'
-                          : (isTrialActive ? 'Zahlungsmethode speichern' : 'Jetzt Abo abschließen')
+                          : 'Zahlungsmethode speichern'
                     }
                     description={
                       subscribing
@@ -697,23 +697,19 @@ export default function BillingPageClient({
                           ? 'Ändern Sie Ihre Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in Ihrem Stripe‑Konto hinterlegt.'
                           : isTrialActive
                             ? 'Damit Ihr Abo nach dem Testzeitraum nahtlos weiterläuft, können Sie schon jetzt eine Zahlungsmethode hinterlegen.'
-                            : 'Schließen Sie Ihr AniDocs Abo direkt hier ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
+                            : 'Hinterlegen Sie zuerst eine Zahlungsmethode. Danach wird Ihr AniDocs‑Abo eingerichtet und die erste Zahlung ausgelöst (3D‑Secure kann kurz erscheinen).'
                     }
                     prepareUrl={
                       subscribing
                         ? '/api/stripe/subscription/prepare'
-                        : paymentMethod
-                          ? '/api/stripe/setup-intent/prepare'
-                          : isTrialActive
-                            ? '/api/stripe/setup-intent/prepare'
-                            : '/api/stripe/subscription/prepare'
+                        : '/api/stripe/setup-intent/prepare'
                     }
                     onSetupIntentSucceeded={
                       subscribing
                         ? undefined
                         : paymentMethod
                           ? setDefaultPaymentMethod
-                          : (isTrialActive ? createSubscriptionFromPaymentMethod : undefined)
+                          : createSubscriptionFromPaymentMethod
                     }
                     onCompleted={async () => {
                       await loadPaymentMethod()
