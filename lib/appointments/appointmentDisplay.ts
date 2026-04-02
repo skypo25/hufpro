@@ -52,9 +52,10 @@ export function getAppointmentStartEndFromRow(
   }
 }
 
-const DE_TIME = new Intl.DateTimeFormat('de-DE', {
+const DE_TIME_BERLIN = new Intl.DateTimeFormat('de-DE', {
   hour: '2-digit',
   minute: '2-digit',
+  timeZone: 'Europe/Berlin',
 })
 
 /**
@@ -66,5 +67,5 @@ export function formatAppointmentTimeRangeDe(
 ): string {
   const slot = getAppointmentStartEndFromRow(appointmentDate, durationMinutes)
   if (!slot) return ''
-  return `${DE_TIME.format(slot.start)} – ${DE_TIME.format(slot.end)} Uhr`
+  return `${DE_TIME_BERLIN.format(slot.start)} – ${DE_TIME_BERLIN.format(slot.end)} Uhr`
 }
