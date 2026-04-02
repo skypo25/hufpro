@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase-client'
 import { type SettingsData, DEFAULT_SETTINGS } from '@/components/settings/SettingsForm'
+import DataExportButton from '@/components/export/DataExportButton'
 import { canAccessApp, getBillingState } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
@@ -707,14 +708,10 @@ export default function MobileSettings() {
                 <p className="mt-1 text-[11px] leading-relaxed text-[#6B7280]">
                   ZIP mit Tabellen (CSV/JSON) und Fotos — wie unter Billing.
                 </p>
-                <a
-                  href="/api/export/full"
-                  className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23]"
-                  download
-                >
+                <DataExportButton className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23] disabled:opacity-60">
                   <i className="bi bi-download" aria-hidden />
                   ZIP exportieren
-                </a>
+                </DataExportButton>
               </div>
             )}
             <div className="mt-4 border-t border-[#F0EEEA] pt-4">

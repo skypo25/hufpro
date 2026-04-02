@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { rowsToCsv } from '@/lib/export/csv'
+import type { ExportProgress } from '@/lib/export/exportProgress'
 import {
   BUCKET_HOOF,
   BUCKET_LOGOS,
@@ -13,8 +14,8 @@ const README = `AniDocs – Datenexport
 
 Dieses Archiv enthält Ihre Stammdaten und Dokumentationen als CSV- und JSON-Dateien.
 
-- CSV: Trennzeichen ist das Semikolon (;), für Excel in DE geeignet.
-- JSON: vollständige Strukturen (z. B. Dokumentationen) für Weiterverarbeitung oder Backup.
+- CSV: Trennzeichen ist das Semikolon (;), für Excel in DE geeignet (pro Tabelle nur, wenn Zeilen vorhanden; Ausnahme rechnungspositionen.csv bei fehlenden Rechnungen).
+- JSON: vollständige Strukturen (z. B. Dokumentationen) für Weiterverarbeitung oder Backup; rechnungspositionen.json ist immer enthalten (ggf. leeres Array).
 - Ordner fotos/: Bilddateien aus dem Supabase-Storage (Buckets hoof-photos und user-logos).
   Die Pfade im Archiv entsprechen dem Storage-Pfad unterhalb des Bucket-Namens; die Tabellen
   hoof_photos / documentation_photos verweisen mit file_path auf hoof-photos.
@@ -34,7 +35,14 @@ async function appendStorageFilesToZip(
   supabase: ServerSupabase,
   bucket: string,
   storagePaths: string[],
-  missingLines: string[]
+  missingLines: string[],
+  args?: {
+    labelBase: string
+    /** Fortschritt innerhalb [fromPct, toPct] über alle Batches */
+    fromPct: number
+    toPct: number
+    onProgress?: (p: ExportProgress) => void
+  }
 ): Promise<void> {
   const seen = new Set<string>()
   const unique: string[] = []
@@ -45,8 +53,24 @@ async function appendStorageFilesToZip(
     unique.push(p)
   }
 
+  const batches: string[][] = []
   for (let i = 0; i < unique.length; i += STORAGE_DOWNLOAD_CONCURRENCY) {
-    const batch = unique.slice(i, i + STORAGE_DOWNLOAD_CONCURRENCY)
+    batches.push(unique.slice(i, i + STORAGE_DOWNLOAD_CONCURRENCY))
+  }
+  if (batches.length === 0 && args?.onProgress) {
+    args.onProgress({ percent: args.toPct, label: `${args.labelBase}: keine Dateien` })
+  }
+
+  for (let bi = 0; bi < batches.length; bi++) {
+    const batch = batches[bi]
+    if (args?.onProgress && batches.length > 0) {
+      const t = (bi + 1) / batches.length
+      const pct = Math.round(args.fromPct + t * (args.toPct - args.fromPct))
+      args.onProgress({
+        percent: pct,
+        label: `${args.labelBase}: ${bi + 1}/${batches.length} (${unique.length} Dateien)`,
+      })
+    }
     await Promise.all(
       batch.map(async (path) => {
         const { data, error } = await supabase.storage.from(bucket).download(path)
@@ -69,12 +93,24 @@ async function listUserLogoPaths(supabase: ServerSupabase, userId: string): Prom
     .map((f) => `${userId}/${f.name}`)
 }
 
-export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
+export type BuildUserExportZipOptions = {
+  onProgress?: (p: ExportProgress) => void
+}
+
+export async function buildUserDataExportZip(
+  userId: string,
+  options?: BuildUserExportZipOptions
+): Promise<Buffer> {
+  const onProgress = options?.onProgress
+  const report = (percent: number, label: string) => onProgress?.({ percent, label })
+
   const supabase = await createSupabaseServerClient()
   const zip = new JSZip()
+  report(1, 'Export wird vorbereitet …')
   zip.file('README.txt', README)
 
-  async function tableJson(name: string, table: string) {
+  async function tableJson(name: string, table: string, labelDe: string, pct: number) {
+    report(pct, labelDe)
     const { data, error } = await supabase.from(table).select('*').eq('user_id', userId)
     if (error) throw new Error(`${table}: ${error.message}`)
     const rows = (data ?? []) as Record<string, unknown>[]
@@ -84,15 +120,16 @@ export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
     }
   }
 
-  await tableJson('kunden', 'customers')
-  await tableJson('tiere', 'horses')
-  await tableJson('termine', 'appointments')
-  await tableJson('termin_tier_verknuepfungen', 'appointment_horses')
-  await tableJson('hufdokumentationen', 'hoof_records')
-  await tableJson('huf_fotos_metadaten', 'hoof_photos')
-  await tableJson('dokumentationen', 'documentation_records')
-  await tableJson('dokumentationsfotos_metadaten', 'documentation_photos')
+  await tableJson('kunden', 'customers', 'Kunden werden gelesen …', 6)
+  await tableJson('tiere', 'horses', 'Tiere werden gelesen …', 11)
+  await tableJson('termine', 'appointments', 'Termine werden gelesen …', 16)
+  await tableJson('termin_tier_verknuepfungen', 'appointment_horses', 'Termin-Verknüpfungen …', 21)
+  await tableJson('hufdokumentationen', 'hoof_records', 'Hufdokumentationen …', 26)
+  await tableJson('huf_fotos_metadaten', 'hoof_photos', 'Huf-Foto-Metadaten …', 31)
+  await tableJson('dokumentationen', 'documentation_records', 'Dokumentationen …', 36)
+  await tableJson('dokumentationsfotos_metadaten', 'documentation_photos', 'Dokumentationsfotos (Meta) …', 41)
 
+  report(44, 'Rechnungen werden gelesen …')
   const { data: invoices, error: invErr } = await supabase.from('invoices').select('*').eq('user_id', userId)
   if (invErr) throw new Error(`invoices: ${invErr.message}`)
   const invRows = (invoices ?? []) as Record<string, unknown>[]
@@ -103,6 +140,7 @@ export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
 
   const invIds = invRows.map((r) => r.id as string).filter(Boolean)
   if (invIds.length > 0) {
+    report(48, 'Rechnungspositionen werden gelesen …')
     const { data: items, error: itErr } = await supabase.from('invoice_items').select('*').in('invoice_id', invIds)
     if (itErr) throw new Error(`invoice_items: ${itErr.message}`)
     const itemRows = (items ?? []) as Record<string, unknown>[]
@@ -110,8 +148,15 @@ export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
     if (itemRows.length > 0) {
       zip.file('rechnungspositionen.csv', rowsToCsv(itemRows))
     }
+  } else {
+    zip.file('rechnungspositionen.json', '[]\n')
+    zip.file(
+      'rechnungspositionen.csv',
+      'Hinweis;Inhalt\nKeine Rechnungen;Es liegen keine Rechnungen vor – deshalb keine Positionen.\n'
+    )
   }
 
+  report(52, 'Einstellungen werden gelesen …')
   const { data: settings, error: setErr } = await supabase.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
   if (setErr) throw new Error(`user_settings: ${setErr.message}`)
   if (settings) {
@@ -120,6 +165,7 @@ export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
 
   const missingFiles: string[] = []
 
+  report(55, 'Foto-Pfade werden ermittelt …')
   const [{ data: hpPathRows }, { data: dpPathRows }, { data: horseRows }] = await Promise.all([
     supabase.from('hoof_photos').select('file_path').eq('user_id', userId),
     supabase.from('documentation_photos').select('file_path').eq('user_id', userId),
@@ -133,15 +179,32 @@ export async function buildUserDataExportZip(userId: string): Promise<Buffer> {
     horseIds: (horseRows ?? []).map((r) => r.id as string),
   })
 
-  await appendStorageFilesToZip(zip, supabase, BUCKET_HOOF, hoofPaths, missingFiles)
+  await appendStorageFilesToZip(zip, supabase, BUCKET_HOOF, hoofPaths, missingFiles, {
+    labelBase: 'Huf-Fotos aus Speicher',
+    fromPct: 58,
+    toPct: 78,
+    onProgress,
+  })
 
   const logoPaths = await listUserLogoPaths(supabase, userId)
-  await appendStorageFilesToZip(zip, supabase, BUCKET_LOGOS, logoPaths, missingFiles)
+  await appendStorageFilesToZip(zip, supabase, BUCKET_LOGOS, logoPaths, missingFiles, {
+    labelBase: 'Logos aus Speicher',
+    fromPct: 79,
+    toPct: 86,
+    onProgress,
+  })
 
   if (missingFiles.length > 0) {
     zip.file('fotos/_fehlende_dateien.txt', missingFiles.join('\n'))
+  } else if (hoofPaths.length === 0 && logoPaths.length === 0) {
+    zip.file(
+      'fotos/README.txt',
+      'In diesem Export waren keine Bilddateien im Speicher verknüpft (oder es gibt noch keine Fotos/Logos).\n'
+    )
   }
 
+  report(88, 'ZIP-Archiv wird erzeugt …')
   const buf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
+  report(92, 'Export ist fertig.')
   return Buffer.from(buf)
 }

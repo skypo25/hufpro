@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import DataExportButton from '@/components/export/DataExportButton'
 import { supabase } from '@/lib/supabase-client'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 
@@ -145,7 +146,7 @@ type SettingsFormProps = {
   initialSettings: Record<string, unknown> | null
   userEmail?: string
   customers?: SettingsCustomer[]
-  /** ZIP-Vollexport (/api/export/full), wenn Nutzer die App nutzen darf. */
+  /** ZIP-Vollexport (mit Fortschritt), wenn Nutzer die App nutzen darf. */
   canExportData?: boolean
 }
 
@@ -1058,14 +1059,10 @@ export default function SettingsForm({
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 md:items-start md:pt-0">
-                    <a
-                      href="/api/export/full"
-                      className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1F23] transition-colors hover:border-[#52b788] hover:bg-[#F7FCF9]"
-                      download
-                    >
+                    <DataExportButton className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1F23] transition-colors hover:border-[#52b788] hover:bg-[#F7FCF9] disabled:opacity-60">
                       <i className="bi bi-download" aria-hidden />
                       ZIP exportieren
-                    </a>
+                    </DataExportButton>
                     <p className="text-[11px] text-[#9CA3AF]">
                       Persönliche Daten — sicher aufbewahren (z. B. DSGVO / GoBD).
                     </p>

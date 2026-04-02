@@ -1,5 +1,7 @@
 'use client'
 
+import DataExportButton from '@/components/export/DataExportButton'
+
 function formatDateTimeDe(iso: string): string {
   try {
     const d = new Date(iso)
@@ -36,13 +38,9 @@ export default function ReadOnlyGraceBanner({ graceEndsAtIso }: { graceEndsAtIso
           </span>
         </div>
       </div>
-      <a
-        href="/api/export/full"
-        className="shrink-0 rounded-lg border border-[#93C5FD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC]"
-        download
-      >
+      <DataExportButton className="shrink-0 rounded-lg border border-[#93C5FD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC] disabled:opacity-60">
         ZIP exportieren
-      </a>
+      </DataExportButton>
     </div>
   )
 }

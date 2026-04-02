@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SectionCard from '@/components/ui/SectionCard'
+import DataExportButton from '@/components/export/DataExportButton'
 import BillingStatusBadge from '@/components/billing/BillingStatusBadge'
 import { getBillingState, isSubscriptionStatusLive } from '@/lib/billing/state'
 import type { BillingAccountRow, BillingState, PaymentMethodSummary } from '@/lib/billing/types'
@@ -501,14 +502,10 @@ export default function BillingPageClient({
           <p className="text-[13px] leading-relaxed text-[#6B7280]">
             Laden Sie eine Kopie Ihrer Stammdaten, Dokumentationen und Bilder aus dem Speicher (ZIP mit CSV, JSON und Ordner fotos/).
           </p>
-          <a
-            href="/api/export/full"
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-semibold text-white hover:opacity-95"
-            download
-          >
+          <DataExportButton className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-semibold text-white hover:opacity-95 disabled:opacity-60">
             <i className="bi bi-download" aria-hidden />
             ZIP exportieren
-          </a>
+          </DataExportButton>
         </SectionCard>
       )}
 
