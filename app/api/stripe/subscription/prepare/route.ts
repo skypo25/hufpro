@@ -7,6 +7,10 @@ import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import type Stripe from 'stripe'
 import { buildIdempotencyKey } from '@/lib/stripe/idempotency'
+import {
+  isAppTrialEnded,
+  resolveSubscriptionPaymentSecrets,
+} from '@/lib/stripe/subscriptionPaymentSecrets'
 
 function trialEndUnixFromIso(iso: string | null | undefined): number | undefined {
   if (!iso) return undefined
@@ -42,7 +46,11 @@ export async function POST() {
 
   const account = (accountRow as BillingAccountRow | null) ?? null
   const status = (account?.subscription_status ?? null)?.toString() ?? 'none'
-  if (status === 'active' || status === 'trialing') {
+  const appTrialEnded = isAppTrialEnded(account?.trial_ends_at ?? null)
+  /** Stripe „trialing“ blockt nur, solange die App-Testphase noch läuft — sonst Zahlung nach Ablauf ermöglichen. */
+  const blockAsAlreadyCovered =
+    status === 'active' || (status === 'trialing' && !appTrialEnded)
+  if (blockAsAlreadyCovered) {
     return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 
@@ -67,19 +75,6 @@ export async function POST() {
     }
   }
 
-  const resolveSecretsFromSubscription = (sub: any): { clientSecret: string; intentType: 'payment' | 'setup' } | null => {
-    const latestInvoice = sub?.latest_invoice as any
-    const paymentIntent = latestInvoice?.payment_intent as { client_secret?: string } | null | undefined
-    const paymentClientSecret = paymentIntent?.client_secret ?? null
-    if (paymentClientSecret) return { clientSecret: paymentClientSecret, intentType: 'payment' }
-
-    const pendingSetupIntent = sub?.pending_setup_intent as { client_secret?: string } | null | undefined
-    const setupClientSecret = pendingSetupIntent?.client_secret ?? null
-    if (setupClientSecret) return { clientSecret: setupClientSecret, intentType: 'setup' }
-
-    return null
-  }
-
   let subscription: Stripe.Subscription | null = null
   const existingSubId = account?.stripe_subscription_id ?? null
   if (existingSubId) {
@@ -90,6 +85,13 @@ export async function POST() {
     } catch {
       subscription = null
     }
+  }
+
+  if (subscription && appTrialEnded && subscription.status === 'trialing') {
+    await stripe.subscriptions.update(subscription.id, { trial_end: 'now' })
+    subscription = await stripe.subscriptions.retrieve(subscription.id, {
+      expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+    })
   }
 
   // If no usable subscription exists, create one (default_incomplete so we can collect payment method in-app).
@@ -120,7 +122,13 @@ export async function POST() {
     )
   }
 
-  const secrets = resolveSecretsFromSubscription(subscription as any)
+  let secrets = await resolveSubscriptionPaymentSecrets(stripe, subscription as Stripe.Subscription)
+  if (!secrets) {
+    subscription = await stripe.subscriptions.retrieve((subscription as Stripe.Subscription).id, {
+      expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+    })
+    secrets = await resolveSubscriptionPaymentSecrets(stripe, subscription)
+  }
   if (!secrets) {
     const st = (subscription?.status ?? '').toString()
     if (st === 'active' || st === 'trialing') {
