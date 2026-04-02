@@ -316,16 +316,7 @@ export async function POST(request: Request) {
     : ''
 
   const contactBox = hasPhone || hasEmail
-    ? `<!-- Hinweis -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td style="font-size:13px;line-height:1.6;color:#9CA3AF;padding-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    Falls Sie den Termin nicht wahrnehmen k&ouml;nnen, melden Sie sich bitte rechtzeitig:
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Kontaktdaten -->
+    ? `<!-- Kontaktdaten -->
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom:24px;">
                 <tr>
                   <td style="background-color:#f7f7f7;border-radius:10px;padding:16px 20px;">

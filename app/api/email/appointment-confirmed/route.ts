@@ -218,12 +218,18 @@ export async function POST(request: Request) {
     horseNames.length > 0 ? `${animalPluralLabel}: ${horseList}` : null,
     appointment.notes ? `Notizen: ${appointment.notes}` : null,
     '',
-    'Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
+    'Viele Grüße',
+    [settings.firstName, settings.lastName].filter(Boolean).join(' ').trim() ||
+      (fromName || 'AniDocs').toString().trim() ||
+      'AniDocs',
   ]
     .filter(Boolean)
     .join('\n')
 
   const practitionerName = (fromName || 'AniDocs').toString().trim() || 'AniDocs'
+  const practitionerFullName =
+    [settings.firstName, settings.lastName].filter(Boolean).join(' ').trim() ||
+    practitionerName
   const customerFirstName =
     (customer.first_name ?? '').toString().trim() ||
     (customer.name ?? '').toString().trim() ||
@@ -364,7 +370,7 @@ export async function POST(request: Request) {
                 </tr>
                 <tr>
                   <td style="font-size:15px;line-height:1.7;color:#6B7280;padding-bottom:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    Ihr Termin bei ${escapeHtml(practitionerName)} ist best&auml;tigt.
+                    Ihr Termin ist best&auml;tigt.
                   </td>
                 </tr>
               </table>
@@ -396,30 +402,12 @@ export async function POST(request: Request) {
                       <tr>
                         <td style="border-top:1px solid #E5E2DC;padding-top:12px;">
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                            <!-- Behandler -->
-                            <tr>
-                              <td width="80" valign="top" style="font-size:13px;color:#9CA3AF;padding-bottom:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                                Bei
-                              </td>
-                              <td style="font-size:13px;font-weight:600;color:#1A1A1A;padding-bottom:6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                                ${escapeHtml(practitionerName)}
-                              </td>
-                            </tr>
                             ${horsesRow}
                             ${notesRow}
                           </table>
                         </td>
                       </tr>
                     </table>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Hinweis -->
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td style="font-size:13px;line-height:1.6;color:#9CA3AF;padding-bottom:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    Falls sich etwas &auml;ndert, melden Sie sich bitte direkt bei ${escapeHtml(practitionerName)}.
                   </td>
                 </tr>
               </table>
@@ -438,7 +426,7 @@ export async function POST(request: Request) {
                 <tr>
                   <td style="font-size:14px;line-height:1.7;color:#6B7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                     Viele Gr&uuml;&szlig;e<br />
-                    <strong style="color:#1A1A1A;">${escapeHtml(practitionerName)}</strong>
+                    <strong style="color:#1A1A1A;">${escapeHtml(practitionerFullName)}</strong>
                   </td>
                 </tr>
               </table>

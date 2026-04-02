@@ -35,7 +35,7 @@ export default function TerminConfirmForm({ token }: { token: string }) {
     return (
       <div className="mt-8 rounded-xl border border-[#52b788]/30 bg-[#edf3ef] p-5">
         <p className="font-medium text-[#52b788]">
-          Sie haben den Termin bestätigt. Vielen Dank.
+          Ihr Termin ist bestätigt.
         </p>
         <p className="mt-2 text-[14px] text-[#0f301b]">
           Sie erhalten in Kürze eine Bestätigungs-E-Mail.
