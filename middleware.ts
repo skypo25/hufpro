@@ -109,6 +109,7 @@ export const config = {
     '/login',
     '/register',
     '/auth/callback/:path*',
+    '/auth/confirm/:path*',
     '/onboarding',
     '/dashboard/:path*',
     '/customers/:path*',

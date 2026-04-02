@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  /** E-Mail-Templates nutzen oft /auth/confirm; die App verarbeitet unter /auth/callback. */
+  async rewrites() {
+    return [{ source: '/auth/confirm', destination: '/auth/callback' }]
+  },
 }
 
 export default withSerwist(nextConfig)
