@@ -17,8 +17,8 @@ export type BillingAccountRow = {
   subscription_price_id: string | null
   subscription_current_period_end: string | null
   trial_ends_at: string | null
-  /** Nach Kündigung: Ende des 10-Tage-Exportfensters (UTC, aus Webhook). */
-  post_cancel_access_until: string | null
+  /** Nach Kündigung: Ende des 10-Tage-Exportfensters (UTC, aus Webhook). Fehlt, solange Migration nicht angewendet. */
+  post_cancel_access_until?: string | null
   billing_email: string | null
   last_stripe_event_at: string | null
   created_at: string
