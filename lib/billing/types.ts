@@ -17,6 +17,8 @@ export type BillingAccountRow = {
   subscription_price_id: string | null
   subscription_current_period_end: string | null
   trial_ends_at: string | null
+  /** Nach Kündigung: Ende des 10-Tage-Exportfensters (UTC, aus Webhook). */
+  post_cancel_access_until: string | null
   billing_email: string | null
   last_stripe_event_at: string | null
   created_at: string
@@ -43,13 +45,18 @@ export type BillingState = {
   }
   access: {
     allowed: boolean
+    /** full = normal; read_only = gekündigt, nur Lesen + Export bis graceEndsAt; none = gesperrt */
+    mode: 'full' | 'read_only' | 'none'
     reason:
       | 'active_subscription'
       | 'trial_active'
       | 'past_due_grace'
       | 'trial_expired_no_subscription'
       | 'subscription_inactive'
+      | 'post_cancel_readonly'
       | 'unknown'
+    /** Nur bei mode read_only: Export bis inkl. dieses Zeitpunkts */
+    graceEndsAt: Date | null
   }
 }
 

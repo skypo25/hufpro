@@ -148,6 +148,21 @@ export default function BillingPageClient({
     const trialActive = billingState.trial.isActive
     const trialExpired = billingState.trial.isExpired && status === 'none'
 
+    if (billingState.access.mode === 'read_only') {
+      const until = billingState.access.graceEndsAt
+      return {
+        key: 'post_cancel_grace' as const,
+        title: 'Abo gekündigt',
+        badgeText: 'Nur Lesen',
+        icon: 'bi-box-arrow-down',
+        iconTone: 'muted' as const,
+        detail:
+          `Ihr Zugriff ist nur noch lesend. Sie können Ihre Daten bis zum ${formatDateDe(until)} als ZIP-Archiv exportieren (CSV und JSON).`,
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
+
     if (status === 'past_due') {
       return {
         key: 'past_due' as const,
@@ -323,7 +338,10 @@ export default function BillingPageClient({
       setError(result.error)
       return
     }
-    window.location.href = result.url
+    const w = window.open(result.url, '_blank', 'noopener,noreferrer')
+    if (!w) {
+      window.location.href = result.url
+    }
   }
 
   const setDefaultPaymentMethod = async (paymentMethodId: string) => {
@@ -452,6 +470,22 @@ export default function BillingPageClient({
             Zahlungsmethode ändern
           </button>
         </div>
+      )}
+
+      {billingState.access.mode === 'read_only' && (
+        <SectionCard title="Datenexport" bodyClassName="px-[22px] py-5">
+          <p className="text-[13px] leading-relaxed text-[#6B7280]">
+            Laden Sie eine Kopie Ihrer Stammdaten, Dokumentationen und Bilder aus dem Speicher (ZIP mit CSV, JSON und Ordner fotos/).
+          </p>
+          <a
+            href="/api/export/full"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-semibold text-white hover:opacity-95"
+            download
+          >
+            <i className="bi bi-download" aria-hidden />
+            ZIP exportieren
+          </a>
+        </SectionCard>
       )}
 
       {/* STATUS CARD */}

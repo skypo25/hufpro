@@ -8,9 +8,13 @@ import { MobileRouteContent } from './mobileRouteMap'
  * Wird von AppLayoutClient nur bei schmalem Viewport geladen — Desktop lädt weder
  * useMobileContent noch die großen Mobile-Page-Chunks.
  */
-export default function MobileAppBranch() {
+export default function MobileAppBranch({
+  readOnlyBanner = null,
+}: {
+  readOnlyBanner?: { graceEndsAtIso: string } | null
+}) {
   return (
-    <MobileShell>
+    <MobileShell readOnlyBanner={readOnlyBanner}>
       <MobileRouteContent />
     </MobileShell>
   )

@@ -12,6 +12,7 @@ type BillingUpdate = {
   subscription_price_id?: string | null
   subscription_current_period_end?: string | null
   trial_ends_at?: string | null
+  post_cancel_access_until?: string | null
   billing_email?: string | null
   last_stripe_event_at?: string | null
   updated_at?: string
@@ -129,6 +130,17 @@ export async function POST(request: Request) {
     if (!userId) return
 
     const priceId = sub.items.data[0]?.price?.id ?? null
+    const st = (sub.status ?? '').toString()
+    /** Nach Kündigung: 10 Tage nur Lesen + Export (ab Periodenende bzw. jetzt). */
+    let postCancelAccessUntil: string | null | undefined
+    if (st === 'canceled') {
+      const periodEndSec = sub.current_period_end
+      const baseMs = periodEndSec ? Math.max(Date.now(), periodEndSec * 1000) : Date.now()
+      postCancelAccessUntil = new Date(baseMs + 10 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (st === 'active' || st === 'trialing') {
+      postCancelAccessUntil = null
+    }
+
     await applyBillingUpdate({
       supabaseAdmin,
       userId,
@@ -139,6 +151,7 @@ export async function POST(request: Request) {
         subscription_price_id: priceId,
         subscription_current_period_end: asIsoSeconds(sub.current_period_end) ?? null,
         trial_ends_at: asIsoSeconds(sub.trial_end) ?? null,
+        ...(postCancelAccessUntil !== undefined ? { post_cancel_access_until: postCancelAccessUntil } : {}),
         last_stripe_event_at: nowIso,
       },
     })

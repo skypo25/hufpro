@@ -1,5 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
+import { getBillingState, canAccessApp } from '@/lib/billing/state'
+import type { BillingAccountRow } from '@/lib/billing/types'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -57,6 +60,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
   const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
+  const isBillingPath = pathname === '/billing' || pathname.startsWith('/billing/')
   const isProtectedPage =
     pathname === '/' ||
     pathname.startsWith('/dashboard') ||
@@ -67,7 +71,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/suche') ||
     pathname.startsWith('/invoices') ||
     pathname.startsWith('/settings') ||
-    pathname.startsWith('/appointments')
+    pathname.startsWith('/appointments') ||
+    isBillingPath
+
+  const priceIdMonthly = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
 
   // Unauthenticated → send to login
   if (!user && (isProtectedPage || isOnboarding) && !isPublicConfirm) {
@@ -92,11 +99,32 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Authenticated on protected page but onboarding not complete → send to onboarding
-    if (isProtectedPage && !onboardingComplete) {
+    // Authenticated on protected page but onboarding not complete → send to onboarding (Billing ausgenommen)
+    if (isProtectedPage && !onboardingComplete && !isBillingPath) {
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding'
       return NextResponse.redirect(url)
+    }
+
+    // Nach Onboarding: ohne App-Zugriff (z. B. Test abgelaufen) nur noch Billing + Export-Fenster
+    if (user && isProtectedPage && onboardingComplete && !isBillingPath) {
+      const { data: billingRow } = await supabase
+        .from('billing_accounts')
+        .select(BILLING_ACCOUNT_COLUMNS)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      const billingState = getBillingState({
+        account: (billingRow as BillingAccountRow | null) ?? null,
+        priceIdMonthly,
+      })
+
+      if (!canAccessApp(billingState)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/billing'
+        url.searchParams.set('blocked', '1')
+        return NextResponse.redirect(url)
+      }
     }
   }
 
@@ -120,6 +148,8 @@ export const config = {
     '/invoices/:path*',
     '/settings/:path*',
     '/appointments/:path*',
+    '/billing',
+    '/billing/:path*',
     '/termin-bestaetigen/:path*',
     '/admin/:path*',
   ],

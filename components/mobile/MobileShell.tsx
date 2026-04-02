@@ -9,6 +9,7 @@ import { animalsNavLabel } from '@/lib/appProfile'
 import MobileFab from './MobileFab'
 import MobileMoreSheet from './MobileMoreSheet'
 import BillingSystemBanner from '@/components/billing/BillingSystemBanner'
+import ReadOnlyGraceBanner from '@/components/billing/ReadOnlyGraceBanner'
 import {
   faTableCellsLarge,
   faCalendarDays,
@@ -18,7 +19,13 @@ import {
   faGear,
 } from '@fortawesome/free-solid-svg-icons'
 
-export default function MobileShell({ children }: { children: React.ReactNode }) {
+export default function MobileShell({
+  children,
+  readOnlyBanner = null,
+}: {
+  children: React.ReactNode
+  readOnlyBanner?: { graceEndsAtIso: string } | null
+}) {
   const pathname = usePathname()
   const { profile } = useAppProfile()
   const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
@@ -64,6 +71,11 @@ export default function MobileShell({ children }: { children: React.ReactNode })
       {/* Hauptinhalt – Header kommt von der jeweiligen Seite */}
       <div className="min-h-0 flex-1 overflow-auto">
         <BillingSystemBanner />
+        {readOnlyBanner ? (
+          <div className="px-4 pt-1 pb-1">
+            <ReadOnlyGraceBanner graceEndsAtIso={readOnlyBanner.graceEndsAtIso} />
+          </div>
+        ) : null}
         {children}
       </div>
 

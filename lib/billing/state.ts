@@ -31,27 +31,43 @@ export function getBillingState(args: {
 
   const isActiveSub = status === 'active' || status === 'trialing'
   const isPastDue = status === 'past_due'
+  const postCancelEnd = parseDate(args.account?.post_cancel_access_until ?? null)
+  const inPostCancelGrace =
+    status === 'canceled' && !!postCancelEnd && now.getTime() < postCancelEnd.getTime()
 
   let allowed = false
+  let mode: BillingState['access']['mode'] = 'none'
   let reason: BillingState['access']['reason'] = 'unknown'
+  let graceEndsAt: Date | null = null
 
   if (isActiveSub) {
     allowed = true
+    mode = 'full'
     reason = 'active_subscription'
   } else if (trialIsActive) {
     allowed = true
+    mode = 'full'
     reason = 'trial_active'
   } else if (isPastDue) {
     allowed = true
+    mode = 'full'
     reason = 'past_due_grace'
+  } else if (inPostCancelGrace) {
+    allowed = true
+    mode = 'read_only'
+    reason = 'post_cancel_readonly'
+    graceEndsAt = postCancelEnd
   } else if (trialExpired && status === 'none') {
     allowed = false
+    mode = 'none'
     reason = 'trial_expired_no_subscription'
   } else if (status !== 'none') {
     allowed = false
+    mode = 'none'
     reason = 'subscription_inactive'
   } else {
     allowed = false
+    mode = 'none'
     reason = 'trial_expired_no_subscription'
   }
 
@@ -75,7 +91,9 @@ export function getBillingState(args: {
     },
     access: {
       allowed,
+      mode,
       reason,
+      graceEndsAt,
     },
   }
 }
@@ -86,6 +104,11 @@ export function isTrialExpired(state: BillingState): boolean {
 
 export function canAccessApp(state: BillingState): boolean {
   return state.access.allowed
+}
+
+/** Schreibzugriff (CRUD) — bei gekündigtem Abo gesperrt (RLS + UI). */
+export function canWriteAppData(state: BillingState): boolean {
+  return state.access.allowed && state.access.mode === 'full'
 }
 
 /** Stripe: Abo läuft (Zahlung oder Testphase des Abos). Nicht verwechseln mit `trial` aus billing_accounts vor Abo-Abschluss. */

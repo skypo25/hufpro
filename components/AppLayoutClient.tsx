@@ -6,6 +6,7 @@ import { AppProfileProvider } from '@/context/AppProfileContext'
 import { SidebarProvider, useSidebarContext } from '@/context/SidebarContext'
 import { useIsMobile } from '@/components/mobile/useIsMobile'
 import BillingSystemBanner from '@/components/billing/BillingSystemBanner'
+import ReadOnlyGraceBanner from '@/components/billing/ReadOnlyGraceBanner'
 
 const MobileAppBranch = dynamic(() => import('./mobile/MobileAppBranch'), {
   loading: () => (
@@ -16,7 +17,13 @@ const MobileAppBranch = dynamic(() => import('./mobile/MobileAppBranch'), {
   ),
 })
 
-function MainWithMargin({ children }: { children: React.ReactNode }) {
+function MainWithMargin({
+  children,
+  readOnlyBanner,
+}: {
+  children: React.ReactNode
+  readOnlyBanner: { graceEndsAtIso: string } | null
+}) {
   const { isCollapsed } = useSidebarContext()
   const mlClass = isCollapsed ? 'min-[960px]:ml-[87px]' : 'min-[960px]:ml-[275px]' // 15+72 / 15+260
 
@@ -25,6 +32,7 @@ function MainWithMargin({ children }: { children: React.ReactNode }) {
       <main className="min-h-screen p-6 md:p-8 xl:p-10">
         <div className="mx-0 w-full max-w-[1280px] min-w-0 space-y-4">
           <BillingSystemBanner />
+          {readOnlyBanner ? <ReadOnlyGraceBanner graceEndsAtIso={readOnlyBanner.graceEndsAtIso} /> : null}
           {children}
         </div>
       </main>
@@ -32,7 +40,13 @@ function MainWithMargin({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DesktopLayout({ children }: { children: React.ReactNode }) {
+function DesktopLayout({
+  children,
+  readOnlyBanner,
+}: {
+  children: React.ReactNode
+  readOnlyBanner: { graceEndsAtIso: string } | null
+}) {
   return (
     <SidebarProvider>
       <div
@@ -48,19 +62,29 @@ function DesktopLayout({ children }: { children: React.ReactNode }) {
         />
         <Sidebar />
         <div className="relative z-10">
-          <MainWithMargin>{children}</MainWithMargin>
+          <MainWithMargin readOnlyBanner={readOnlyBanner}>{children}</MainWithMargin>
         </div>
       </div>
     </SidebarProvider>
   )
 }
 
-export default function AppLayoutClient({ children }: { children: React.ReactNode }) {
+export default function AppLayoutClient({
+  children,
+  readOnlyBanner = null,
+}: {
+  children: React.ReactNode
+  readOnlyBanner?: { graceEndsAtIso: string } | null
+}) {
   const isMobile = useIsMobile()
 
   return (
     <AppProfileProvider>
-      {isMobile ? <MobileAppBranch /> : <DesktopLayout>{children}</DesktopLayout>}
+      {isMobile ? (
+        <MobileAppBranch readOnlyBanner={readOnlyBanner} />
+      ) : (
+        <DesktopLayout readOnlyBanner={readOnlyBanner}>{children}</DesktopLayout>
+      )}
     </AppProfileProvider>
   )
 }

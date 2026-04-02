@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
+import { getBillingState } from '@/lib/billing/state'
+import type { BillingAccountRow } from '@/lib/billing/types'
 import SettingsForm from '@/components/settings/SettingsForm'
 import SeedTestDataButton from '@/components/settings/SeedTestDataButton'
 
@@ -22,6 +25,17 @@ export default async function SettingsPage() {
       delete initialSettings.smtpPassword
     }
   }
+
+  const { data: billingRow } = await supabase
+    .from('billing_accounts')
+    .select(BILLING_ACCOUNT_COLUMNS)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const billingState = getBillingState({
+    account: (billingRow as BillingAccountRow | null) ?? null,
+    priceIdMonthly: process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null,
+  })
+  const showDataExport = billingState.access.mode === 'read_only'
 
   const { data: customerRows } = await supabase
     .from('customers')
@@ -59,6 +73,22 @@ export default async function SettingsPage() {
           Deine Betriebsdaten, Rechnungseinstellungen und Profil
         </p>
       </div>
+
+      {showDataExport && (
+        <div className="huf-card border border-[#BFDBFE] bg-[#EFF6FF] px-5 py-4 text-[13px] text-[#1E3A5F]">
+          <div className="font-semibold">Datenexport (nur Lesen)</div>
+          <p className="mt-1 text-[#334155]">
+            Während der Exportphase nach Kündigung können Sie hier dieselbe ZIP-Datei wie unter Billing herunterladen.
+          </p>
+          <a
+            href="/api/export/full"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#93C5FD] bg-white px-3 py-2 text-[12px] font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC]"
+            download
+          >
+            ZIP exportieren
+          </a>
+        </div>
+      )}
 
       <SettingsForm
         initialSettings={initialSettings}
