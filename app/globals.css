@@ -4254,8 +4254,9 @@ button.huf-btn-dark {
 .route-loader-dots span:nth-child(2) { animation-delay: .15s; }
 .route-loader-dots span:nth-child(3) { animation-delay: .3s; }
 
+/* Keep route loader on light background even in system dark mode (PWA / mobile). */
 @media (prefers-color-scheme: dark) {
-  .route-loader-inner { background: #111315; }
+  .route-loader-inner { background: transparent; }
 }
 
 @keyframes splash-breathe {
@@ -4279,11 +4280,12 @@ button.huf-btn-dark {
   .splash-dots, .splash-bottom { animation: none; opacity: 1; transform: none; }
   .splash-dots span { animation: none; opacity: .5; }
 }
+/* Splash stays on brand light bg; avoid black splash on phones with dark mode. */
 @media (prefers-color-scheme: dark) {
-  .splash-overlay { background: #111315; }
-  .splash-brand { color: #F1F2F0; }
-  .splash-tagline { color: #6B7280; }
-  .splash-bottom { color: #3A3D40; }
+  .splash-overlay { background: #f7f7f7; }
+  .splash-brand { color: #1c1c1c; }
+  .splash-tagline { color: #9CA3AF; }
+  .splash-bottom { color: #D1D5DB; }
 }
 
 /* ─── Mobile Camera Capture ──────────────────────────────────────────────── */
