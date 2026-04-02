@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { fetchInvoicePdfData } from "@/lib/pdf/invoiceData"
 import InvoicePdfDocument from "@/components/pdf/InvoicePdfDocument"
+import { embedZugferdIntoPdf } from "@/lib/einvoice/zugferd"
 import { renderToBuffer } from "@react-pdf/renderer"
 import React from "react"
 
@@ -30,9 +31,13 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfBuffer = await renderToBuffer(element as any)
-  const pdfUint8 = new Uint8Array(pdfBuffer)
-
   const url = new URL(request.url)
+  const withZugferd = url.searchParams.get("zugferd") !== "0"
+  const finalPdfBuffer = withZugferd
+    ? await embedZugferdIntoPdf(Buffer.from(pdfBuffer), data)
+    : Buffer.from(pdfBuffer)
+  const pdfUint8 = new Uint8Array(finalPdfBuffer)
+
   const disposition = url.searchParams.get("preview") === "1" ? "inline" : "attachment"
   const filename = `Rechnung-${data.invoiceNumber}.pdf`
 

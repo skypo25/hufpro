@@ -5,6 +5,7 @@ import { fetchInvoicePdfData } from '@/lib/pdf/invoiceData'
 import InvoicePdfDocument from '@/components/pdf/InvoicePdfDocument'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
+import { embedZugferdIntoPdf } from '@/lib/einvoice/zugferd'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -146,6 +147,7 @@ export async function POST(
   const element = React.createElement(InvoicePdfDocument, { data: pdfData })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfBuffer = await renderToBuffer(element as any)
+  const pdfWithZugferd = await embedZugferdIntoPdf(Buffer.from(pdfBuffer), pdfData)
 
   const filename = `Rechnung-${pdfData.invoiceNumber}.pdf`
   const customerName =
@@ -439,7 +441,7 @@ export async function POST(
         attachments: [
           {
             filename,
-            content: pdfBuffer,
+            content: pdfWithZugferd,
             contentType: 'application/pdf',
           },
         ],
