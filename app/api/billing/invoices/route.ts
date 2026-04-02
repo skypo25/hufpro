@@ -9,7 +9,10 @@ export type BillingInvoiceRow = {
   id: string
   number: string | null
   status: string | null
+  /** Bezahlter Betrag (bei Entwürfen oft 0) */
   amountPaidCents: number
+  /** Gesamtbetrag laut Stripe (für Entwürfe/offen aussagekräftiger als amount_paid) */
+  totalCents: number
   currency: string
   createdUnix: number
   /** Stripe-hosted page (PDF-Download dort) — nicht auf AniDocs gespeichert */
@@ -51,16 +54,21 @@ export async function GET() {
       customer: customerId,
       limit: 24,
     })
-    const invoices: BillingInvoiceRow[] = list.data.map((inv) => ({
+    const raw = list.data.map((inv) => ({
       id: inv.id,
       number: inv.number ?? null,
       status: inv.status ?? null,
       amountPaidCents: inv.amount_paid ?? 0,
+      totalCents: inv.total ?? 0,
       currency: (inv.currency ?? 'eur').toLowerCase(),
       createdUnix: inv.created ?? 0,
       hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
       invoicePdfUrl: inv.invoice_pdf ?? null,
     }))
+    /** Test Clock / Stripe legt manchmal leere Entwürfe an — ohne Nutzen in der Liste. */
+    const invoices: BillingInvoiceRow[] = raw.filter(
+      (row) => !(row.status === 'draft' && row.totalCents === 0 && row.amountPaidCents === 0)
+    )
     return NextResponse.json({ invoices })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Rechnungen konnten nicht geladen werden.'

@@ -164,6 +164,7 @@ export async function POST() {
         return NextResponse.json({ error: 'Subscription konnte nicht gespeichert werden.' }, { status: 500 })
       }
       return NextResponse.json({
+        success: true as const,
         completed: true as const,
         subscriptionId: subscription.id,
         customerId,

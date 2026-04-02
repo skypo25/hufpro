@@ -10,23 +10,52 @@ type PrepareResponse =
   | { clientSecret: string; intentType: 'payment' | 'setup'; subscriptionId: string; customerId: string }
   | { error: string }
 
+function isPrepareCompletedBody(data: unknown): data is { subscriptionId?: string; customerId?: string } {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  if (d.completed === true || d.completed === 'true') return true
+  if (d.success === true && typeof d.subscriptionId === 'string') return true
+  return false
+}
+
 async function postPrepare(url: string): Promise<PrepareResponse> {
   const res = await fetch(url, { method: 'POST' })
-  const data = (await res.json().catch(() => null)) as any
-  if (!res.ok) {
-    return { error: (data && typeof data.error === 'string' && data.error) || 'Aktion fehlgeschlagen.' }
+  let data: unknown = null
+  try {
+    const text = await res.text()
+    if (text) data = JSON.parse(text) as unknown
+  } catch {
+    data = null
   }
-  if (data && data.completed === true) {
+  const payload = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
+
+  if (!res.ok) {
+    const msg =
+      payload && typeof payload.error === 'string' && payload.error
+        ? payload.error
+        : 'Aktion fehlgeschlagen.'
+    return { error: msg }
+  }
+
+  if (isPrepareCompletedBody(data)) {
+    const p = data as Record<string, unknown>
     return {
       completed: true,
-      subscriptionId: typeof data.subscriptionId === 'string' ? data.subscriptionId : undefined,
-      customerId: typeof data.customerId === 'string' ? data.customerId : undefined,
+      subscriptionId: typeof p.subscriptionId === 'string' ? p.subscriptionId : undefined,
+      customerId: typeof p.customerId === 'string' ? p.customerId : undefined,
     }
   }
-  if (!data || typeof data.clientSecret !== 'string') {
-    return { error: 'Unerwartete Antwort vom Server.' }
+
+  if (
+    payload &&
+    typeof payload.clientSecret === 'string' &&
+    payload.clientSecret.length > 0 &&
+    (payload.intentType === 'payment' || payload.intentType === 'setup')
+  ) {
+    return data as PrepareResponse
   }
-  return data as PrepareResponse
+
+  return { error: 'Unerwartete Antwort vom Server.' }
 }
 
 function InnerForm({
@@ -173,6 +202,7 @@ export default function EmbeddedSubscribe({
   const [finishedWithoutPaymentElement, setFinishedWithoutPaymentElement] = useState(false)
   const onCompletedRef = useRef(onCompleted)
   onCompletedRef.current = onCompleted
+  const prepareRequestGen = useRef(0)
 
   const stripePromise = useMemo(() => {
     if (!stripePublishableKey) return null
@@ -180,14 +210,15 @@ export default function EmbeddedSubscribe({
   }, [stripePublishableKey])
 
   useEffect(() => {
-    let cancelled = false
+    prepareRequestGen.current += 1
+    const gen = prepareRequestGen.current
     const run = async () => {
       if (!stripePromise) return
       if (disabledReason) return
       setLoading(true)
       setError(null)
       const res = await postPrepare(prepareUrl)
-      if (cancelled) return
+      if (gen !== prepareRequestGen.current) return
       setLoading(false)
       if ('error' in res) {
         setError(res.error)
@@ -203,9 +234,6 @@ export default function EmbeddedSubscribe({
       setElementsKey((k) => k + 1)
     }
     run()
-    return () => {
-      cancelled = true
-    }
   }, [stripePromise, disabledReason, prepareUrl])
 
   const retry = async () => {

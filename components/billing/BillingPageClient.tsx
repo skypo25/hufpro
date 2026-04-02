@@ -40,6 +40,7 @@ type BillingInvoiceRow = {
   number: string | null
   status: string | null
   amountPaidCents: number
+  totalCents: number
   currency: string
   createdUnix: number
   hostedInvoiceUrl: string | null
@@ -753,13 +754,19 @@ export default function BillingPageClient({
                     : '—'
                 const idShort = (inv.id && inv.id.length >= 8 ? inv.id.slice(-8) : inv.id) || '—'
                 const label = inv.number ? `Rechnung ${inv.number}` : `Rechnung ${idShort}`
+                const betragCents =
+                  inv.status === 'paid'
+                    ? inv.amountPaidCents
+                    : typeof inv.totalCents === 'number'
+                      ? inv.totalCents
+                      : inv.amountPaidCents
                 return (
                   <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-[13px]">
                     <div className="min-w-0">
                       <div className="font-semibold text-[#1B1F23]">{label}</div>
                       <div className="mt-0.5 text-[11px] text-[#9CA3AF]">
                         {date}
-                        {inv.status ? ` · ${inv.status}` : ''} · {formatMoneyCents(inv.amountPaidCents, inv.currency)}
+                        {inv.status ? ` · ${inv.status}` : ''} · {formatMoneyCents(betragCents, inv.currency)}
                       </div>
                     </div>
                     {href ? (
@@ -785,6 +792,7 @@ export default function BillingPageClient({
           )}
           <p className="mt-3 text-[11px] leading-relaxed text-[#9CA3AF]">
             PDFs und Zahlungsbelege liegen bei Stripe; AniDocs speichert keine Rechnungs-PDFs auf eigenen Servern.
+            Leere Stripe-Entwürfe (Testuhr / Sandbox) werden nicht angezeigt; der bezahlte Posten (z.&nbsp;B. 39,95&nbsp;€) ist maßgeblich.
           </p>
         </div>
       </div>
