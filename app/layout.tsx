@@ -72,6 +72,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={`${dmSans.variable} ${outfit.variable}`}>
+      <head>
+        {/* Erste Pixel: Hintergrund sofort, ohne auf globals.css zu warten */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html,body{background:#f7f7f7;color:#1c1c1c;margin:0;min-height:100%}
+              @media (prefers-color-scheme: dark){
+                html,body{background:#111315;color:#f1f2f0}
+              }
+            `,
+          }}
+        />
+        <link rel="preload" href="/icon.png" as="image" />
+      </head>
       <body>
         <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
           <Preloader />

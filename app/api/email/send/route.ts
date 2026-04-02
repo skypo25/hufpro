@@ -60,7 +60,11 @@ export async function POST(request: Request) {
   const port = Number(useBody ? body.smtpPort ?? settings.smtpPort : settings.smtpPort) || 587
   const secure = Boolean(useBody ? body.smtpSecure ?? settings.smtpSecure : settings.smtpSecure)
   const smtpUser = ((useBody ? body.smtpUser ?? settings.smtpUser : settings.smtpUser) ?? '').toString().trim()
-  const smtpPassword = ((useBody ? body.smtpPassword ?? settings.smtpPassword : settings.smtpPassword) ?? '').toString().trim()
+  // UX: `smtpPassword` wird in der Settings-UI bewusst nicht vorbefüllt.
+  // Wenn beim Test-Versand kein Passwort mitgeschickt wird, nutzen wir das gespeicherte.
+  const bodyPw = ((useBody ? body.smtpPassword : undefined) ?? '').toString().trim()
+  const storedPw = (settings.smtpPassword ?? '').toString().trim()
+  const smtpPassword = (useBody ? (bodyPw || storedPw) : storedPw)
 
   if (!host || !smtpUser || !smtpPassword) {
     return NextResponse.json(
@@ -83,7 +87,7 @@ export async function POST(request: Request) {
       )
     }
     try {
-      await sendMail(
+      const out = await sendMail(
         {
           host,
           port,
@@ -100,7 +104,22 @@ export async function POST(request: Request) {
           html: '<p>Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.</p>',
         }
       )
-      return NextResponse.json({ ok: true })
+      return NextResponse.json({
+        ok: true,
+        debug: {
+          host,
+          port,
+          secure,
+          smtpUser,
+          fromEmail: fromEmailTrim,
+          fromName: fromNameTrim,
+          to,
+          messageId: out.messageId ?? null,
+          accepted: out.accepted ?? null,
+          rejected: out.rejected ?? null,
+          response: out.response ?? null,
+        },
+      })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Versand fehlgeschlagen'
       return NextResponse.json({ error: message }, { status: 500 })
@@ -119,7 +138,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await sendMail(
+    const out = await sendMail(
       {
         host,
         port,
@@ -131,7 +150,13 @@ export async function POST(request: Request) {
       },
       { to, subject, text, html }
     )
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({
+      ok: true,
+      messageId: out.messageId ?? null,
+      accepted: out.accepted ?? null,
+      rejected: out.rejected ?? null,
+      response: out.response ?? null,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Versand fehlgeschlagen'
     return NextResponse.json({ error: message }, { status: 500 })

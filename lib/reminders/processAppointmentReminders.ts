@@ -16,6 +16,10 @@ type SettingsRow = {
   firstName?: string
   lastName?: string
   companyName?: string
+  phone?: string
+  email?: string
+  profession?: unknown
+  animal_focus?: unknown
   emailReminders?: boolean
 }
 
@@ -204,6 +208,10 @@ export async function processAppointmentReminders(
       customer?.name?.trim() ||
       [customer?.first_name, customer?.last_name].filter(Boolean).join(' ') ||
       ''
+    const customerFirstName =
+      (customer?.first_name ?? '').toString().trim() ||
+      (customer?.name ?? '').toString().trim() ||
+      ''
 
     const { data: claimed, error: claimErr } = await supabase
       .from('appointments')
@@ -256,12 +264,17 @@ export async function processAppointmentReminders(
       await sendAppointmentReminderEmail(smtp, {
         toEmail,
         customerName,
+        customerFirstName,
         appointmentDate: apt.appointment_date,
         durationMinutes: apt.duration_minutes,
         appointmentType: apt.type,
         notes: apt.notes,
         horseNames,
         fromName,
+        practitionerPhone: (settings?.phone ?? '').toString().trim() || null,
+        practitionerEmail: (settings?.email ?? '').toString().trim() || null,
+        profession: settings?.profession ?? null,
+        animalFocus: settings?.animal_focus ?? null,
       })
       result.sent += 1
     } catch (e) {
