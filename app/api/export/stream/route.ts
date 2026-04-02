@@ -1,7 +1,6 @@
-import { randomUUID } from 'crypto'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { buildUserDataExportZip } from '@/lib/export/buildUserExportZip'
-import { DATA_EXPORTS_BUCKET } from '@/lib/export/dataExportsBucket'
+import { uploadExportZipAndSign } from '@/lib/export/uploadExportZip'
 import { requireExportAccess } from '@/lib/export/exportAccess.server'
 
 export const runtime = 'nodejs'
@@ -32,29 +31,12 @@ export async function GET() {
         send({ type: 'progress', percent: 94, label: 'Upload für sicheren Download …' })
 
         const admin = createSupabaseServiceRoleClient()
-        const objectPath = `${userId}/${randomUUID()}.zip`
-        const { error: upErr } = await admin.storage.from(DATA_EXPORTS_BUCKET).upload(objectPath, buf, {
-          contentType: 'application/zip',
-          upsert: false,
-        })
-        if (upErr) {
-          throw new Error(
-            `Export-Speicher (${DATA_EXPORTS_BUCKET}): ${upErr.message}. Ist die Storage-Migration ausgeführt?`
-          )
-        }
-
-        const { data: signed, error: signErr } = await admin.storage
-          .from(DATA_EXPORTS_BUCKET)
-          .createSignedUrl(objectPath, 600)
-
-        if (signErr || !signed?.signedUrl) {
-          throw new Error(signErr?.message ?? 'Signierte Download-URL konnte nicht erstellt werden.')
-        }
+        const { signedUrl } = await uploadExportZipAndSign({ admin, userId, buf })
 
         const day = new Date().toISOString().slice(0, 10)
         send({
           type: 'complete',
-          downloadUrl: signed.signedUrl,
+          downloadUrl: signedUrl,
           filename: `anidocs-export-${day}.zip`,
         })
       } catch (e) {
