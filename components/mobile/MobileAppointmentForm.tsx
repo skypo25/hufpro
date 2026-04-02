@@ -14,6 +14,10 @@ const MAF_TAGES_ANIMAL_ICON_CLASS = 'h-[6px] w-[6px] shrink-0'
 import { getInitials, formatCustomerNumber } from '@/lib/format'
 import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
 import {
+  isoToLocalDateInputValue,
+  localDateTimeToUtcIso,
+} from '@/lib/datetime/localDateTime'
+import {
   APPOINTMENT_DURATION_CHOICES,
   durationLabelToMinutesForWrite,
   getSuggestedDurationLabelMobile,
@@ -212,7 +216,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
         }
         setCustomerId(apt.customer_id || '')
         setAppointmentType((apt.type as AppointmentTypeOption['value']) || 'Regeltermin')
-        setAppointmentDate(apt.appointment_date ? apt.appointment_date.slice(0, 10) : '')
+        setAppointmentDate(isoToLocalDateInputValue(apt.appointment_date) || '')
         setAppointmentTime(formatTime(apt.appointment_date) || '09:00')
         setDuration(minutesToDurationLabelMobile(apt.duration_minutes))
         setStatus((apt.status as typeof STATUS_OPTIONS[number]) || 'Bestätigt')
@@ -395,7 +399,7 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
       return
     }
 
-    const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`
+    const appointmentDateTime = localDateTimeToUtcIso(appointmentDate, appointmentTime)
     const durationMinutes = durationLabelToMinutesForWrite(duration)
     const prevReminderStored = editBaseline
       ? formValueToReminderMinutesBefore(editBaseline.reminder)

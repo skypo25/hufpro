@@ -11,6 +11,7 @@ import AppointmentTypePicker from './AppointmentTypePicker'
 import AppointmentSidebar from './AppointmentSidebar'
 import TimePicker from '@/components/form/TimePicker'
 import type { AppointmentFormProps } from './types'
+import { localDateTimeToUtcIso } from '@/lib/datetime/localDateTime'
 import {
   durationLabelToMinutesForWrite,
   getSuggestedDurationLabelDesktop,
@@ -141,7 +142,7 @@ export default function AppointmentForm({
       return
     }
 
-    const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`
+    const appointmentDateTime = localDateTimeToUtcIso(appointmentDate, appointmentTime)
     const durationMinutes = durationLabelToMinutesForWrite(duration)
     const prevReminderStored = initialData.reminderMinutesBefore ?? null
     const nextReminder =
@@ -206,7 +207,7 @@ export default function AppointmentForm({
         return
       }
 
-      const prevIso = `${initialData.appointmentDate}T${initialData.appointmentTime}:00`
+      const prevIso = localDateTimeToUtcIso(initialData.appointmentDate, initialData.appointmentTime)
       const clearReminderSent =
         prevIso !== appointmentDateTime || prevReminderStored !== nextReminder
 

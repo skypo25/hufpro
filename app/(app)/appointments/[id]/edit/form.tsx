@@ -4,6 +4,12 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import TimePicker from '@/components/form/TimePicker'
+import {
+  isoToLocalDateInputValue,
+  isoToLocalTimeInputValue,
+  localDateTimeToUtcIso,
+  localDateToUtcIsoStartOfDay,
+} from '@/lib/datetime/localDateTime'
 
 type Customer = {
   id: string
@@ -45,11 +51,11 @@ export default function EditAppointmentForm({
   const [horseIds, setHorseIds] = useState<string[]>(selectedHorseIds)
 
   const [date, setDate] = useState(
-    appointment.appointment_date?.slice(0, 10) || ''
+    isoToLocalDateInputValue(appointment.appointment_date) || ''
   )
 
   const [time, setTime] = useState(
-    appointment.appointment_date?.slice(11, 16) || ''
+    isoToLocalTimeInputValue(appointment.appointment_date) || ''
   )
 
   const [notes, setNotes] = useState(appointment.notes || '')
@@ -83,8 +89,8 @@ export default function EditAppointmentForm({
 
     if (date) {
       appointmentDateTime = time
-        ? `${date}T${time}:00`
-        : `${date}T00:00:00`
+        ? localDateTimeToUtcIso(date, time)
+        : localDateToUtcIsoStartOfDay(date)
     }
 
     await supabase

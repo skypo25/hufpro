@@ -211,6 +211,11 @@ export async function POST(request: Request) {
     [settings.firstName, settings.lastName].filter(Boolean).join(' ') ||
     (settings.companyName ?? 'AniDocs').toString().trim()
 
+  const practitionerName = (fromName || 'AniDocs').toString().trim() || 'AniDocs'
+  const practitionerFullName =
+    [settings.firstName, settings.lastName].filter(Boolean).join(' ').trim() || practitionerName
+  const companyNameLine = (settings.companyName ?? '').toString().trim()
+
   const dateStr = formatDate(appointment.appointment_date)
   const timeStr =
     formatAppointmentTimeRangeDe(
@@ -244,12 +249,15 @@ export async function POST(request: Request) {
     '',
     `Der Link ist ${TOKEN_EXPIRY_DAYS} Tage gültig.`,
     '',
-    'Bei Fragen stehen wir Ihnen gerne zur Verfügung.',
+    'Passt der Termin nicht? Melden Sie sich direkt bei mir.',
+    '',
+    'Viele Grüße',
+    practitionerFullName,
+    ...(companyNameLine ? [companyNameLine] : []),
   ]
     .filter(Boolean)
     .join('\n')
 
-  const practitionerName = (fromName || 'AniDocs').toString().trim() || 'AniDocs'
   const customerFirstName =
     (customer.first_name ?? '').toString().trim() ||
     (customer.name ?? '').toString().trim() ||
@@ -365,7 +373,7 @@ export async function POST(request: Request) {
 
   <!-- PREVIEW TEXT -->
   <div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
-    ${escapeHtml(practitionerName)} hat Ihnen einen Termin vorgeschlagen.
+    ${escapeHtml(practitionerFullName)} hat Ihnen einen Termin vorgeschlagen.
     &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
   </div>
 
@@ -390,7 +398,7 @@ export async function POST(request: Request) {
                 </tr>
                 <tr>
                   <td style="font-size:15px;line-height:1.7;color:#6B7280;padding-bottom:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    ${escapeHtml(practitionerName)} hat Ihnen einen Termin vorgeschlagen:
+                    ${escapeHtml(practitionerFullName)} hat Ihnen einen Termin vorgeschlagen:
                   </td>
                 </tr>
               </table>
@@ -459,7 +467,7 @@ export async function POST(request: Request) {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td align="center" style="font-size:13px;color:#9CA3AF;padding-bottom:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    Passt der Termin nicht? Melden Sie sich direkt bei ${escapeHtml(practitionerName)}.
+                    Passt der Termin nicht? Melden Sie sich direkt bei mir.
                   </td>
                 </tr>
               </table>
@@ -478,7 +486,7 @@ export async function POST(request: Request) {
                 <tr>
                   <td style="font-size:14px;line-height:1.7;color:#6B7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                     Viele Grüße<br />
-                    <strong style="color:#1A1A1A;">${escapeHtml(practitionerName)}</strong>
+                    <strong style="color:#1A1A1A;">${escapeHtml(practitionerFullName)}</strong>${companyNameLine ? `<br /><span style="color:#6B7280;">${escapeHtml(companyNameLine)}</span>` : ''}
                   </td>
                 </tr>
               </table>

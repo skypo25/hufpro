@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import TimePicker from '@/components/form/TimePicker'
+import { localDateTimeToUtcIso, localDateToUtcIsoStartOfDay } from '@/lib/datetime/localDateTime'
 
 type Customer = {
   id: string
@@ -83,8 +84,8 @@ export default function NewAppointmentForm({
 
     if (appointmentDate) {
       appointmentDateTime = appointmentTime
-        ? `${appointmentDate}T${appointmentTime}:00`
-        : `${appointmentDate}T00:00:00`
+        ? localDateTimeToUtcIso(appointmentDate, appointmentTime)
+        : localDateToUtcIsoStartOfDay(appointmentDate)
     }
 
     const leadHorseId = selectedHorseIds[0] || null

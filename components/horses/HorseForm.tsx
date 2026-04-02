@@ -9,6 +9,7 @@ import { formatCustomerNumber } from '@/lib/format'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
 import DeleteHorseForm from '@/app/(app)/horses/[id]/DeleteHorseForm'
 import { HorseIcon } from '@/components/icons/HorseIcon'
+import { localDateTimeToUtcIso } from '@/lib/datetime/localDateTime'
 
 type HorseFormMode = 'create' | 'edit'
 
@@ -543,7 +544,10 @@ export default function HorseForm({
       }
 
       if (planFirstAppointment && firstAppointmentDate) {
-        const iso = `${firstAppointmentDate}T${firstAppointmentTime || '09:00'}:00`
+        const iso = localDateTimeToUtcIso(
+          firstAppointmentDate,
+          (firstAppointmentTime || '09:00').trim() || '09:00'
+        )
 
         const { data: appointmentData, error: appointmentError } = await supabase
           .from('appointments')
