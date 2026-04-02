@@ -51,6 +51,22 @@ function formatDate(d: string | null | undefined): string | null {
   return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
 }
 
+function coerceBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase()
+    if (v === 'true') return true
+    if (v === 'false') return false
+    if (v === '1') return true
+    if (v === '0') return false
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true
+    if (value === 0) return false
+  }
+  return fallback
+}
+
 function sellerFromSettings(s: Record<string, unknown> | null): InvoicePdfSeller {
   const o = s ?? {}
   const firstName = (o.firstName as string) ?? ""
@@ -71,7 +87,7 @@ function sellerFromSettings(s: Record<string, unknown> | null): InvoicePdfSeller
     taxNumber: (o.taxNumber as string) ?? null,
     taxOffice: (o.taxOffice as string) ?? null,
     ustId: (o.ustId as string) ?? null,
-    kleinunternehmer: (o.kleinunternehmer as boolean) ?? true,
+    kleinunternehmer: coerceBoolean(o.kleinunternehmer, true),
     kleinunternehmerText: (o.kleinunternehmerText as string) ?? null,
     bank: (o.bank as string) ?? null,
     accountHolder: (o.accountHolder as string) ?? null,
