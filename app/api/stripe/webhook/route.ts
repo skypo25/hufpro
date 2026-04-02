@@ -11,6 +11,8 @@ type BillingUpdate = {
   subscription_status?: string | null
   subscription_price_id?: string | null
   subscription_current_period_end?: string | null
+  subscription_cancel_at_period_end?: boolean
+  subscription_cancel_at?: string | null
   trial_ends_at?: string | null
   post_cancel_access_until?: string | null
   billing_email?: string | null
@@ -150,6 +152,8 @@ export async function POST(request: Request) {
         subscription_status: sub.status ?? null,
         subscription_price_id: priceId,
         subscription_current_period_end: asIsoSeconds(sub.current_period_end) ?? null,
+        subscription_cancel_at_period_end: sub.cancel_at_period_end ?? false,
+        subscription_cancel_at: asIsoSeconds(sub.cancel_at) ?? null,
         trial_ends_at: asIsoSeconds(sub.trial_end) ?? null,
         ...(postCancelAccessUntil !== undefined ? { post_cancel_access_until: postCancelAccessUntil } : {}),
         last_stripe_event_at: nowIso,

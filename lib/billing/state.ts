@@ -24,6 +24,10 @@ export function getBillingState(args: {
   const status: StripeSubscriptionStatus | 'none' = statusRaw ? statusRaw : 'none'
 
   const currentPeriodEnd = parseDate(args.account?.subscription_current_period_end ?? null)
+  const cancelAtPeriodEnd = args.account?.subscription_cancel_at_period_end === true
+  const cancelAtStripe = parseDate(args.account?.subscription_cancel_at ?? null)
+  /** Ende des Zugangs bei „Kündigung zum Periodenende“: Stripe cancel_at, sonst Periodenende. */
+  const cancelAt: Date | null = cancelAtPeriodEnd ? (cancelAtStripe ?? currentPeriodEnd) : cancelAtStripe
   const trialEndsAt = parseDate(args.account?.trial_ends_at ?? null)
   const trialIsActive = !!trialEndsAt && trialEndsAt.getTime() > now.getTime()
   const trialDaysRemaining = trialEndsAt ? daysBetweenCeil(now, trialEndsAt) : null
@@ -82,6 +86,8 @@ export function getBillingState(args: {
       status,
       currentPeriodEnd,
       priceId: args.account?.subscription_price_id ?? null,
+      cancelAtPeriodEnd,
+      cancelAt,
     },
     trial: {
       isActive: trialIsActive,

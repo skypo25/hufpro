@@ -1,9 +1,24 @@
 import type { ReactNode } from 'react'
 
-export default function BillingStatusBadge({ status }: { status: string }): ReactNode {
+export default function BillingStatusBadge({
+  status,
+  cancelAtPeriodEnd,
+}: {
+  status: string
+  /** Stripe: Abo noch active, Kündigung zum Laufzeitende vorgemerkt. */
+  cancelAtPeriodEnd?: boolean
+}): ReactNode {
   const s = status || 'none'
   const base =
     'inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium ring-1 ring-inset'
+
+  if (s === 'active' && cancelAtPeriodEnd) {
+    return (
+      <span className={`${base} bg-[#FFFBEB] text-[#92400E] ring-[#FDE68A]`}>
+        Kündigung vorgemerkt
+      </span>
+    )
+  }
 
   if (s === 'trialing') {
     return (

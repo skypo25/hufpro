@@ -19,6 +19,10 @@ export type BillingAccountRow = {
   trial_ends_at: string | null
   /** Nach Kündigung: Ende des 10-Tage-Exportfensters (UTC, aus Webhook). Fehlt, solange Migration nicht angewendet. */
   post_cancel_access_until?: string | null
+  /** Stripe: Kündigung zum Periodenende — Status bleibt oft noch "active". */
+  subscription_cancel_at_period_end?: boolean | null
+  /** Stripe subscription.cancel_at (UTC). */
+  subscription_cancel_at?: string | null
   billing_email: string | null
   last_stripe_event_at: string | null
   created_at: string
@@ -36,6 +40,10 @@ export type BillingState = {
     status: StripeSubscriptionStatus | 'none'
     currentPeriodEnd: Date | null
     priceId: string | null
+    /** true = Kündigung vorgemerkt (Stripe-Status oft noch active). */
+    cancelAtPeriodEnd: boolean
+    /** Ende des Zugangs bei vorgemerktem Ende (cancel_at oder Periodenende). */
+    cancelAt: Date | null
   }
   trial: {
     isActive: boolean

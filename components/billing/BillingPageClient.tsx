@@ -204,6 +204,21 @@ export default function BillingPageClient({
         showNoCharge: false,
       }
     }
+    if (status === 'active' && billingState.subscription.cancelAtPeriodEnd) {
+      const end = billingState.subscription.cancelAt
+      return {
+        key: 'active_cancel_scheduled' as const,
+        title: 'Kündigung vorgemerkt',
+        badgeText: 'Läuft aus',
+        icon: 'bi-calendar-x',
+        iconTone: 'warn' as const,
+        detail:
+          `Ihr Abo ist noch aktiv, wurde aber gekündigt. Der volle Zugang endet am ${formatDateDe(end)} — bis dahin können Sie AniDocs wie gewohnt nutzen. ` +
+          `Rechnungen und Zahlungsdaten verwalten Sie im Stripe-Portal.`,
+        showProgress: false,
+        showNoCharge: false,
+      }
+    }
     if (status === 'active') {
       return {
         key: 'active' as const,
@@ -295,6 +310,15 @@ export default function BillingPageClient({
       return {
         tone: 'neutral' as const,
         text: 'Ihr Abo befindet sich in der kostenlosen Testphase bei Stripe (siehe auch Stripe-Dashboard).',
+      }
+    }
+    if (
+      billingState.subscription.status === 'active' &&
+      billingState.subscription.cancelAtPeriodEnd
+    ) {
+      return {
+        tone: 'warning' as const,
+        text: `Kündigung vorgemerkt: Ihr Abo läuft am ${formatDateDe(billingState.subscription.cancelAt)} aus. Bis dahin bleiben alle Funktionen aktiv.`,
       }
     }
     if (billingState.subscription.status === 'active') {
@@ -538,7 +562,10 @@ export default function BillingPageClient({
         </div>
 
         <div className="shrink-0">
-          <BillingStatusBadge status={billingState.subscription.status} />
+          <BillingStatusBadge
+            status={billingState.subscription.status}
+            cancelAtPeriodEnd={billingState.subscription.cancelAtPeriodEnd}
+          />
         </div>
       </div>
 
