@@ -96,7 +96,7 @@ function parseHoofsJson(raw: unknown): RecordPdfHoof[] {
     .filter((h): h is RecordPdfHoof => h !== null)
 }
 
-function sellerFromSettings(s: Record<string, unknown> | null): RecordPdfSeller {
+export function sellerFromSettings(s: Record<string, unknown> | null): RecordPdfSeller {
   const o = s ?? {}
   const firstName = (o.firstName as string) ?? ""
   const lastName = (o.lastName as string) ?? ""
@@ -323,5 +323,157 @@ export async function fetchRecordPdfData(
       summaryNotes: recordBase.hoof_condition ?? null,
     },
     photos,
+  }
+}
+
+/** Relativer img-Pfad von `05_Dokumentationen/HTML/*.html` zum Bild im ZIP. */
+function hrefForExportStoragePath(
+  filePath: string | null | undefined,
+  pathToZipRel: Map<string, string>
+): string | null {
+  if (!filePath?.trim()) return null
+  const zipRel = pathToZipRel.get(filePath.trim())
+  if (!zipRel) return null
+  return `../../${zipRel.replace(/\\/g, "/")}`
+}
+
+function buildPhotoHrefByType(
+  rows: { file_path: string | null; photo_type: string | null }[],
+  pathToZipRel: Map<string, string>
+): Map<string, string | null> {
+  const m = new Map<string, string | null>()
+  for (const p of rows) {
+    if (!p.photo_type) continue
+    m.set(p.photo_type, hrefForExportStoragePath(p.file_path, pathToZipRel))
+  }
+  return m
+}
+
+export type RecordHtmlExportPayload = {
+  horse: RecordPdfData["horse"]
+  customer: RecordPdfData["customer"]
+  seller: RecordPdfData["seller"]
+  record: RecordPdfData["record"]
+  /** Schlüssel = photo_type (z. B. VL_solar), Wert = relativer href oder null */
+  photoHrefByType: Map<string, string | null>
+}
+
+/**
+ * Gleiche Datenbasis wie das Befund-PDF, aber ohne Bild-Download (Pfade aus Export-Plan).
+ */
+export async function fetchRecordHtmlExportPayload(
+  supabase: SupabaseClient,
+  userId: string,
+  horseId: string,
+  recordId: string,
+  pathToZipRel: Map<string, string>
+): Promise<RecordHtmlExportPayload | null> {
+  const ctx = await loadSharedContext(supabase, userId, horseId, recordId)
+  if (!ctx) return null
+
+  const { horseRow, seller, lastRecordDate, customer, birthYear, ageYears } = ctx
+
+  const docLoad = await loadRecordDetailFromDocumentation(supabase, userId, horseId, recordId)
+
+  if (docLoad.ok) {
+    const r = docLoad.record
+    const photoRows = docLoad.photos.map((p: RecordDetailHoofPhoto) => ({
+      file_path: p.file_path,
+      photo_type: p.photo_type,
+    }))
+    const photoHrefByType = buildPhotoHrefByType(photoRows, pathToZipRel)
+    const hoofs = parseHoofsJson(r.hoofs_json)
+
+    return {
+      horse: {
+        name: horseRow.name ?? "–",
+        breed: horseRow.breed ?? null,
+        sex: horseRow.sex ?? null,
+        birthYear,
+        ageYears,
+      },
+      customer: {
+        customerNumber: customer?.customer_number ?? null,
+        name: customer?.name ?? "–",
+        stableName: horseRow.stable_name ?? null,
+        stableCity: horseRow.stable_city ?? null,
+        city: customer?.city ?? null,
+      },
+      seller,
+      record: {
+        recordDate: r.record_date,
+        recordType: r.record_type ?? null,
+        docNumber: r.doc_number ?? buildDocNumber(recordId, r.record_date),
+        lastRecordDate,
+        generalCondition: r.general_condition ?? null,
+        gait: r.gait ?? null,
+        handlingBehavior: r.handling_behavior ?? null,
+        hornQuality: r.horn_quality ?? null,
+        hoofs,
+        summaryNotes: r.hoof_condition ?? null,
+      },
+      photoHrefByType,
+    }
+  }
+
+  const { data: recordBase } = await supabase
+    .from("hoof_records")
+    .select("id, record_date, hoof_condition, treatment, notes, record_type")
+    .eq("id", recordId)
+    .eq("horse_id", horseId)
+    .eq("user_id", userId)
+    .single<HoofRecordRow>()
+
+  if (!recordBase) return null
+
+  let extended: Partial<HoofRecordRow> = {}
+  const { data: extRow } = await supabase
+    .from("hoof_records")
+    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json")
+    .eq("id", recordId)
+    .eq("horse_id", horseId)
+    .eq("user_id", userId)
+    .maybeSingle<Partial<HoofRecordRow>>()
+  if (extRow) extended = extRow
+
+  const { data: photoRowsRaw } = await supabase
+    .from("hoof_photos")
+    .select("file_path, photo_type")
+    .eq("hoof_record_id", recordId)
+    .eq("user_id", userId)
+    .returns<HoofPhotoRow[]>()
+
+  const photoHrefByType = buildPhotoHrefByType(photoRowsRaw ?? [], pathToZipRel)
+  const hoofs = parseHoofsJson(extended.hoofs_json)
+
+  return {
+    horse: {
+      name: horseRow.name ?? "–",
+      breed: horseRow.breed ?? null,
+      sex: horseRow.sex ?? null,
+      birthYear,
+      ageYears,
+    },
+    customer: {
+      customerNumber: customer?.customer_number ?? null,
+      name: customer?.name ?? "–",
+      stableName: horseRow.stable_name ?? null,
+      stableCity: horseRow.stable_city ?? null,
+      city: customer?.city ?? null,
+    },
+    seller,
+    record: {
+      recordDate: recordBase.record_date,
+      recordType: recordBase.record_type ?? null,
+      docNumber: buildDocNumber(recordId, recordBase.record_date),
+      lastRecordDate,
+      generalCondition: extended.general_condition ?? null,
+      gait: extended.gait ?? null,
+      handlingBehavior: extended.handling_behavior ?? null,
+      hornQuality: extended.horn_quality ?? null,
+      hoofs,
+      summaryNotes: recordBase.hoof_condition ?? null,
+    },
+    photoHrefByType,
   }
 }

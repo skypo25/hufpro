@@ -5,6 +5,7 @@ export function rowsToCsv(rows: Record<string, unknown>[], delimiter = ';'): str
   const esc = (v: unknown): string => {
     if (v === null || v === undefined) return ''
     const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    if (s === 'undefined' || s === 'null') return ''
     if (s.includes('"') || s.includes('\n') || s.includes(delimiter)) {
       return `"${s.replace(/"/g, '""')}"`
     }
@@ -13,4 +14,11 @@ export function rowsToCsv(rows: Record<string, unknown>[], delimiter = ';'): str
   const header = keys.map((k) => esc(k)).join(delimiter)
   const lines = rows.map((row) => keys.map((k) => esc(row[k])).join(delimiter))
   return [header, ...lines].join('\n')
+}
+
+/** UTF-8 mit BOM — Excel erkennt Umlaute zuverlässig beim Öffnen per Doppelklick. */
+export function rowsToCsvUtf8Bom(rows: Record<string, unknown>[], delimiter = ';'): string {
+  const body = rowsToCsv(rows, delimiter)
+  if (!body) return ''
+  return `\uFEFF${body}`
 }
