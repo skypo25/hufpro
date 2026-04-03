@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import SectionCard from '@/components/ui/SectionCard'
 import DataExportButton from '@/components/export/DataExportButton'
+import DataExportDownloadsPanel from '@/components/export/DataExportDownloadsPanel'
 import BillingStatusBadge from '@/components/billing/BillingStatusBadge'
 import { getBillingState, isSubscriptionStatusLive } from '@/lib/billing/state'
 import type { BillingAccountRow, BillingState, PaymentMethodSummary } from '@/lib/billing/types'
@@ -499,13 +500,22 @@ export default function BillingPageClient({
 
       {billingState.access.mode === 'read_only' && (
         <SectionCard title="Datenexport" bodyClassName="px-[22px] py-5">
-          <p className="text-[13px] leading-relaxed text-[#6B7280]">
-            Laden Sie eine Kopie Ihrer Stammdaten, Dokumentationen und Bilder aus dem Speicher (ZIP mit CSV, JSON und Ordner fotos/).
-          </p>
-          <DataExportButton className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-semibold text-white hover:opacity-95 disabled:opacity-60">
-            <i className="bi bi-download" aria-hidden />
-            ZIP exportieren
-          </DataExportButton>
+          <div id="datenexport-downloads" className="scroll-mt-24">
+            <p className="text-[13px] leading-relaxed text-[#6B7280]">
+              ZIP mit Stammdaten, Dokumentationen und Bildern. Der Export läuft auf dem Server — Sie erhalten eine E-Mail,
+              wenn die Datei fertig ist. Den Download finden Sie unten unter „Ihre Exporte“ oder in den Einstellungen.
+            </p>
+            <DataExportButton className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1B1F23] px-4 py-2.5 text-[13px] font-semibold text-white hover:opacity-95 disabled:opacity-60">
+              <i className="bi bi-download" aria-hidden />
+              ZIP exportieren
+            </DataExportButton>
+            <div className="mt-6 border-t border-[#E5E2DC] pt-5">
+              <h3 className="text-[14px] font-semibold text-[#1B1F23]">Ihre Exporte</h3>
+              <div className="mt-3">
+                <DataExportDownloadsPanel />
+              </div>
+            </div>
+          </div>
         </SectionCard>
       )}
 

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isAdminUserId } from '@/lib/admin/config'
+import { fetchAdminUserDirectoryStats } from '@/lib/admin/data'
 
-/** Liefert, ob die aktuelle Session ein Admin ist (für Sidebar-Link). */
+/** Liefert, ob die Session Admin ist; optional Nutzeranzahl für Sidebar-Badge. */
 export async function GET() {
   const supabase = await createSupabaseServerClient()
   const {
@@ -11,5 +12,15 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ admin: false })
   }
-  return NextResponse.json({ admin: isAdminUserId(user.id) })
+  if (!isAdminUserId(user.id)) {
+    return NextResponse.json({ admin: false })
+  }
+  let userCount: number | undefined
+  try {
+    const stats = await fetchAdminUserDirectoryStats()
+    userCount = stats.total
+  } catch {
+    userCount = undefined
+  }
+  return NextResponse.json({ admin: true, userCount })
 }

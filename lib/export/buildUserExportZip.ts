@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { rowsToCsv, rowsToCsvUtf8Bom } from '@/lib/export/csv'
 import type { ExportProgress } from '@/lib/export/exportProgress'
@@ -42,6 +43,8 @@ function technicalStorageZipPath(bucket: string, storagePath: string): string {
 
 export type BuildUserExportZipOptions = {
   onProgress?: (p: ExportProgress) => void
+  /** Wenn gesetzt (z. B. Service Role), kein Request-Cookie nötig — z. B. Hintergrund-Export. */
+  supabaseClient?: SupabaseClient
 }
 
 export async function buildUserDataExportZip(
@@ -51,7 +54,8 @@ export async function buildUserDataExportZip(
   const onProgress = options?.onProgress
   const report = (percent: number, label: string) => onProgress?.({ percent, label })
 
-  const supabase = await createSupabaseServerClient()
+  const supabase =
+    options?.supabaseClient ?? (await createSupabaseServerClient())
   const zip = new JSZip()
   report(1, 'Export wird vorbereitet …')
 

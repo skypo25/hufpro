@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import DataExportButton from '@/components/export/DataExportButton'
+import DataExportDownloadsPanel from '@/components/export/DataExportDownloadsPanel'
 import { supabase } from '@/lib/supabase-client'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 
@@ -1048,14 +1049,14 @@ export default function SettingsForm({
             </div>
 
             {canExportData && (
-              <div className="mt-6 border-t border-[#E5E2DC] pt-6">
+              <div id="datenexport-downloads" className="mt-6 scroll-mt-24 border-t border-[#E5E2DC] pt-6">
                 <div className="grid gap-6 md:grid-cols-2 md:items-start">
                   <div>
                     <h4 className="text-[14px] font-semibold text-[#1B1F23]">Datenexport</h4>
                     <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
-                      Laden Sie eine Kopie Ihrer Daten als ZIP herunter (Tabellen als CSV/JSON, Bilder im Ordner{' '}
-                      <span className="whitespace-nowrap">fotos/</span>
-                      ). Entspricht dem Export unter Billing.
+                      ZIP mit Tabellen (CSV/JSON) und Fotos. Der Lauf erfolgt auf dem Server — Sie erhalten eine E-Mail,
+                      wenn die Datei fertig ist. Den Download starten Sie hier unter „Ihre Exporte“. Entspricht dem Export
+                      unter Abrechnung.
                     </p>
                   </div>
                   <div className="flex flex-col gap-3 md:items-start md:pt-0">
@@ -1066,6 +1067,12 @@ export default function SettingsForm({
                     <p className="text-[11px] text-[#9CA3AF]">
                       Persönliche Daten — sicher aufbewahren (z. B. DSGVO / GoBD).
                     </p>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <h5 className="text-[13px] font-semibold text-[#1B1F23]">Ihre Exporte</h5>
+                  <div className="mt-3">
+                    <DataExportDownloadsPanel />
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin/requireAdmin'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
 import { sendMail } from '@/lib/email'
+import { coerceDataExportRetentionDays } from '@/lib/export/dataExportRetention'
 
 function back(q: Record<string, string> = {}) {
   const p = new URLSearchParams(q)
@@ -124,5 +125,36 @@ export async function testSystemSmtp(formData: FormData) {
 
   revalidatePath('/admin/system')
   redirect(back({ saved: 'smtp_test' }))
+}
+
+export async function saveDataExportRetention(formData: FormData) {
+  const admin = await requireAdmin()
+  const db = createSupabaseServiceRoleClient()
+
+  const raw = Number(formData.get('data_export_retention_days'))
+  const days = coerceDataExportRetentionDays(raw)
+
+  const { error } = await db.from('system_settings').upsert(
+    {
+      id: 1,
+      data_export_retention_days: days,
+      updated_at: new Date().toISOString(),
+      updated_by: admin.userId,
+    },
+    { onConflict: 'id' }
+  )
+  if (error) {
+    redirect(back({ err: 'retention', msg: error.message.slice(0, 180) }))
+  }
+
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: null,
+    action: 'system_settings.data_export_retention',
+    metadata: { data_export_retention_days: days },
+  })
+
+  revalidatePath('/admin/system')
+  redirect(back({ saved: 'retention' }))
 }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import DataExportButton from '@/components/export/DataExportButton'
 
 function formatDateTimeDe(iso: string): string {
@@ -36,6 +37,18 @@ export default function ReadOnlyGraceBanner({ graceEndsAtIso }: { graceEndsAtIso
             — Ihr Abo ist gekündigt. Änderungen sind nicht mehr möglich. Datenexport bis{' '}
             <time dateTime={graceEndsAtIso}>{formatDateTimeDe(graceEndsAtIso)}</time>.
           </span>
+          <div className="mt-1.5 text-[12px] text-[#334155]">
+            Fertige ZIPs:{' '}
+            <Link href="/billing#datenexport-downloads" className="font-medium text-[#1D4ED8] underline hover:no-underline">
+              Abrechnung
+            </Link>
+            {' · '}
+            <Link href="/settings#datenexport-downloads" className="font-medium text-[#1D4ED8] underline hover:no-underline">
+              Einstellungen
+            </Link>
+            {' '}
+            unter „Ihre Exporte“.
+          </div>
         </div>
       </div>
       <DataExportButton className="shrink-0 rounded-lg border border-[#93C5FD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC] disabled:opacity-60">

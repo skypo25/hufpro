@@ -18,12 +18,14 @@ import {
   faChevronLeft,
   faBars,
   faChartPie,
+  faHouse,
 } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
+import { ADMIN_APP_NAV_LINKS } from '@/lib/admin/adminNavLinks'
 
 function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
   return [
@@ -60,8 +62,28 @@ function isItemActive(pathname: string, href: string) {
   if (href === '/dashboard') {
     return pathname === '/dashboard'
   }
+  if (href === '/admin') {
+    return pathname === '/admin' || pathname === '/admin/'
+  }
 
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+type NavItem = { label: string; href: string; icon: typeof faTableCellsLarge }
+
+function buildAdminNavGroups(adminUserCount: number | null): { title: string; items: NavItem[] }[] {
+  const adminItems: NavItem[] = ADMIN_APP_NAV_LINKS.map((l) => ({
+    label: l.label,
+    href: l.href,
+    icon: l.href === '/admin' ? faChartPie : l.href === '/admin/users' ? faUsers : faGear,
+  }))
+  return [
+    { title: 'Administration', items: adminItems },
+    {
+      title: 'Wechseln',
+      items: [{ label: 'Zur Anwendung', href: '/dashboard', icon: faHouse }],
+    },
+  ]
 }
 
 const SIDEBAR_WIDTH = 260
@@ -77,16 +99,22 @@ export default function Sidebar() {
     initials: string
   } | null>(null)
   const [showAdminNav, setShowAdminNav] = useState(false)
+  const [adminUserCount, setAdminUserCount] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
     fetch('/api/admin/session')
       .then((r) => r.json())
-      .then((d: { admin?: boolean }) => {
-        if (!cancelled) setShowAdminNav(!!d.admin)
+      .then((d: { admin?: boolean; userCount?: number }) => {
+        if (cancelled) return
+        setShowAdminNav(!!d.admin)
+        setAdminUserCount(typeof d.userCount === 'number' ? d.userCount : null)
       })
       .catch(() => {
-        if (!cancelled) setShowAdminNav(false)
+        if (!cancelled) {
+          setShowAdminNav(false)
+          setAdminUserCount(null)
+        }
       })
     return () => {
       cancelled = true
@@ -125,6 +153,9 @@ export default function Sidebar() {
 
   const animalsIcon = profile.terminology === 'tier' ? faPaw : faHorse
   const navGroups = useMemo(() => {
+    if (pathname.startsWith('/admin')) {
+      return buildAdminNavGroups(adminUserCount)
+    }
     const base = buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon)
     if (!showAdminNav) return base
     return base.map((group) =>
@@ -135,7 +166,7 @@ export default function Sidebar() {
           }
         : group
     )
-  }, [profile.terminology, animalsIcon, showAdminNav])
+  }, [pathname, profile.terminology, animalsIcon, showAdminNav, adminUserCount])
 
   return (
     <aside
@@ -189,6 +220,10 @@ export default function Sidebar() {
             <div className="space-y-[2px]">
               {group.items.map((item) => {
                 const active = isItemActive(pathname, item.href)
+                const showUserBadge =
+                  pathname.startsWith('/admin') &&
+                  item.href === '/admin/users' &&
+                  typeof adminUserCount === 'number'
 
                 return (
                   <Link
@@ -221,7 +256,16 @@ export default function Sidebar() {
                       style={{ width: 16, height: 16, minWidth: 16 }}
                     />
 
-                    {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                    {!isCollapsed && (
+                      <span className="flex min-w-0 flex-1 items-center justify-between gap-2 font-medium">
+                        <span className="truncate">{item.label}</span>
+                        {showUserBadge ? (
+                          <span className="shrink-0 rounded-full bg-[#3B82F6] px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                            {adminUserCount > 999 ? '999+' : adminUserCount}
+                          </span>
+                        ) : null}
+                      </span>
+                    )}
                   </Link>
                 )
               })}

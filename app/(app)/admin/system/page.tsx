@@ -3,7 +3,7 @@ import { fetchAdminGlobalCounts } from '@/lib/admin/data'
 import { formatGermanDateTime } from '@/lib/format'
 import { adminCardClass, adminMutedClass, adminPageTitleClass, adminSectionHeaderClass } from '@/components/admin/adminStyles'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
-import { saveSystemSmtp, testSystemSmtp } from './actions'
+import { saveDataExportRetention, saveSystemSmtp, testSystemSmtp } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +30,7 @@ export default async function AdminSystemPage(props: {
     : null
   const db = createSupabaseServiceRoleClient()
   const { data: smtpRow } = await db.from('system_smtp').select('*').eq('id', 1).maybeSingle()
+  const { data: systemSettingsRow } = await db.from('system_settings').select('*').eq('id', 1).maybeSingle()
 
   return (
     <div className="space-y-5">
@@ -45,6 +46,10 @@ export default async function AdminSystemPage(props: {
       ) : sp.saved === 'smtp_test' ? (
         <div className="rounded-xl border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-4 py-3 text-[13px] text-[#154227]">
           <strong className="font-semibold">OK.</strong> Test-E-Mail wurde versendet.
+        </div>
+      ) : sp.saved === 'retention' ? (
+        <div className="rounded-xl border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-4 py-3 text-[13px] text-[#154227]">
+          <strong className="font-semibold">Gespeichert.</strong> Aufbewahrungsdauer für Datenexporte wurde aktualisiert.
         </div>
       ) : null}
       {sp.err ? (
@@ -196,6 +201,54 @@ export default async function AdminSystemPage(props: {
               </button>
             </form>
           </div>
+        </div>
+      </div>
+
+      <div className={adminCardClass}>
+        <div className={adminSectionHeaderClass}>
+          <i className="bi bi-archive text-[15px] text-[#52b788]" aria-hidden />
+          <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+            Datenexport (Aufbewahrung)
+          </h2>
+        </div>
+        <div className="space-y-3 px-5 py-4 text-[13px] text-[#374151]">
+          <p className="text-[12px] leading-relaxed text-[#6B7280]">
+            Fertige ZIP-Dateien im Export-Storage werden nach dieser Frist automatisch gelöscht (täglicher Cron). Der
+            Download-Link in der Fertig-Mail ist genauso lange gültig (bis zu 365 Tage).
+          </p>
+          <p className="text-[12px] leading-relaxed text-[#6B7280]">
+            Für Links nur unter eurer App-Domain (ohne sichtbaren Supabase-Host in der Mail): in der Server-Umgebung{' '}
+            <code className="rounded bg-[#F1F5F9] px-1 font-mono text-[11px]">DATA_EXPORT_DOWNLOAD_SECRET</code> setzen
+            (mindestens 16 Zeichen, z. B. <span className="whitespace-nowrap font-mono text-[11px]">openssl rand -hex 32</span>
+            ). Ohne dieses Secret nutzt die Mail vorübergehend eine direkte signierte Storage-URL.
+          </p>
+          <form action={saveDataExportRetention} className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+                Tage bis automatische Löschung
+              </span>
+              <input
+                name="data_export_retention_days"
+                type="number"
+                min={1}
+                max={365}
+                defaultValue={(systemSettingsRow as { data_export_retention_days?: number } | null)?.data_export_retention_days ?? 14}
+                className="w-28 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]"
+                required
+              />
+            </label>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#0f301b]"
+            >
+              <i className="bi bi-check-lg" aria-hidden />
+              Speichern
+            </button>
+          </form>
+          <p className="text-[11px] leading-relaxed text-[#9CA3AF]">
+            Optional: <code className="rounded bg-[#F1F5F9] px-1 font-mono text-[11px]">DATA_EXPORT_RETENTION_DAYS</code>{' '}
+            in der Server-Umgebung wirkt nur als Fallback, falls die Einstellung hier nicht gelesen werden kann.
+          </p>
         </div>
       </div>
 

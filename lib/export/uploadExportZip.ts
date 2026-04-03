@@ -16,7 +16,7 @@ export async function uploadExportZipAndSign(args: {
   userId: string
   buf: Buffer
   expiresSec?: number
-}): Promise<{ signedUrl: string }> {
+}): Promise<{ signedUrl: string; bucket: string; objectPath: string }> {
   const { admin, userId, buf } = args
   const expiresSec = args.expiresSec ?? 600
   const objectPath = `${userId}/${randomUUID()}.zip`
@@ -31,7 +31,7 @@ export async function uploadExportZipAndSign(args: {
     if (error || !data?.signedUrl) {
       throw new Error(error?.message ?? 'Signierte Download-URL konnte nicht erstellt werden.')
     }
-    return { signedUrl: data.signedUrl }
+    return { signedUrl: data.signedUrl, bucket: DATA_EXPORTS_BUCKET, objectPath }
   }
 
   const fbPath = `${FALLBACK_PREFIX}/${userId}/${randomUUID()}.zip`
@@ -57,5 +57,5 @@ export async function uploadExportZipAndSign(args: {
   if (error || !data?.signedUrl) {
     throw new Error(error?.message ?? 'Signierte URL (Fallback-Speicher) fehlgeschlagen.')
   }
-  return { signedUrl: data.signedUrl }
+  return { signedUrl: data.signedUrl, bucket: FALLBACK_BUCKET, objectPath: fbPath }
 }

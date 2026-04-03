@@ -1,12 +1,14 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { AppProfileProvider } from '@/context/AppProfileContext'
 import { SidebarProvider, useSidebarContext } from '@/context/SidebarContext'
 import { useIsMobile } from '@/components/mobile/useIsMobile'
 import BillingSystemBanner from '@/components/billing/BillingSystemBanner'
 import ReadOnlyGraceBanner from '@/components/billing/ReadOnlyGraceBanner'
+import { AdminAppChromeMobile } from '@/components/admin/AdminAppChrome'
 
 const MobileAppBranch = dynamic(() => import('./mobile/MobileAppBranch'), {
   loading: () => (
@@ -24,15 +26,17 @@ function MainWithMargin({
   children: React.ReactNode
   readOnlyBanner: { graceEndsAtIso: string } | null
 }) {
+  const pathname = usePathname()
   const { isCollapsed } = useSidebarContext()
   const mlClass = isCollapsed ? 'min-[960px]:ml-[87px]' : 'min-[960px]:ml-[275px]' // 15+72 / 15+260
+  const isAdmin = Boolean(pathname?.startsWith('/admin'))
 
   return (
     <div className={`min-h-screen transition-[margin-left] duration-200 ease-out ${mlClass}`}>
       <main className="min-h-screen p-6 md:p-8 xl:p-10">
         <div className="mx-0 w-full max-w-[1280px] min-w-0 space-y-4">
-          <BillingSystemBanner />
-          {readOnlyBanner ? <ReadOnlyGraceBanner graceEndsAtIso={readOnlyBanner.graceEndsAtIso} /> : null}
+          {!isAdmin ? <BillingSystemBanner /> : null}
+          {!isAdmin && readOnlyBanner ? <ReadOnlyGraceBanner graceEndsAtIso={readOnlyBanner.graceEndsAtIso} /> : null}
           {children}
         </div>
       </main>
@@ -77,6 +81,16 @@ export default function AppLayoutClient({
   readOnlyBanner?: { graceEndsAtIso: string } | null
 }) {
   const isMobile = useIsMobile()
+  const pathname = usePathname()
+  const isAdminSection = Boolean(pathname?.startsWith('/admin'))
+
+  if (isAdminSection && isMobile) {
+    return (
+      <AppProfileProvider>
+        <AdminAppChromeMobile>{children}</AdminAppChromeMobile>
+      </AppProfileProvider>
+    )
+  }
 
   return (
     <AppProfileProvider>

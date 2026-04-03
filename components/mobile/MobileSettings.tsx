@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase-client'
 import { type SettingsData, DEFAULT_SETTINGS } from '@/components/settings/SettingsForm'
 import DataExportButton from '@/components/export/DataExportButton'
+import DataExportDownloadsPanel from '@/components/export/DataExportDownloadsPanel'
 import { canAccessApp, getBillingState } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
@@ -703,15 +704,21 @@ export default function MobileSettings() {
               <input className={inputClass} type="password" placeholder="Neues Passwort wiederholen" />
             </FGroup>
             {canExportData && (
-              <div className="mt-4 border-t border-[#F0EEEA] pt-4">
+              <div id="datenexport-downloads" className="mt-4 scroll-mt-20 border-t border-[#F0EEEA] pt-4">
                 <div className="text-[12px] font-semibold text-[#1B1F23]">Datenexport</div>
                 <p className="mt-1 text-[11px] leading-relaxed text-[#6B7280]">
-                  ZIP mit Tabellen (CSV/JSON) und Fotos — wie unter Billing.
+                  Läuft auf dem Server — E-Mail bei Fertigstellung. Download unten unter „Ihre Exporte“.
                 </p>
                 <DataExportButton className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23] disabled:opacity-60">
                   <i className="bi bi-download" aria-hidden />
                   ZIP exportieren
                 </DataExportButton>
+                <div className="mt-4">
+                  <div className="text-[11px] font-semibold text-[#1B1F23]">Ihre Exporte</div>
+                  <div className="mt-2">
+                    <DataExportDownloadsPanel />
+                  </div>
+                </div>
               </div>
             )}
             <div className="mt-4 border-t border-[#F0EEEA] pt-4">
