@@ -3081,8 +3081,36 @@ button.huf-btn-dark {
 .photo-slot:active { transform: scale(.97); }
 .photo-slot .ps-label { font-size: 8px; font-weight: 600; color: #6B7280; text-align: center; }
 .photo-slot .ps-sub { font-size: 7px; color: #9CA3AF; text-align: center; }
-.photo-slot.has-photo { border-style: solid; border-color: #2D7A3A; }
-.photo-slot.has-photo .ps-label { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.photo-slot.has-photo {
+  border-style: solid;
+  border-color: #2D7A3A;
+  display: block;
+}
+.photo-slot.has-photo .photo-slot-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  z-index: 0;
+}
+.photo-slot.has-photo > svg {
+  z-index: 1;
+}
+.photo-slot.has-photo .ps-label {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.photo-slot.has-photo .ps-label--on-photo {
+  position: absolute;
+  bottom: 5px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  z-index: 2;
+  pointer-events: none;
+}
 .photo-slot .ps-badge {
   position: absolute;
   top: 4px;

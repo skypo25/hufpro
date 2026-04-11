@@ -197,16 +197,28 @@ function HoofAccordion({ hoof }: { hoof: HoofEntry }) {
 }
 
 function PhotoSlotView({
-  slot, photoUrl, annotations, imgWidth, imgHeight,
+  slot,
+  photoUrl,
+  annotations,
+  imgWidth,
+  imgHeight,
+  onPhotoUrlInvalid,
 }: {
   slot: PhotoSlotKey
   photoUrl?: string | null
   annotations?: AnnotationsData
   imgWidth: number
   imgHeight: number
+  /** z. B. abgelaufene URL oder 404 — Slot wird wieder als „leer“ angezeigt */
+  onPhotoUrlInvalid?: (slot: PhotoSlotKey) => void
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const label = SLOT_LABELS[slot] ?? slot
+
+  const handleImgError = useCallback(() => {
+    setLightboxOpen(false)
+    onPhotoUrlInvalid?.(slot)
+  }, [onPhotoUrlInvalid, slot])
 
   return (
     <>
@@ -218,7 +230,15 @@ function PhotoSlotView({
         {photoUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl} alt={label} className="absolute inset-0 h-full w-full object-cover" style={{ borderRadius: 6 }} />
+            <img
+              key={photoUrl}
+              src={photoUrl}
+              alt={label}
+              className="photo-slot-img"
+              loading="eager"
+              decoding="async"
+              onError={handleImgError}
+            />
             {annotations && annotations.items.length > 0 && (
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${imgWidth} ${imgHeight}`} preserveAspectRatio="xMidYMid meet">
                 {annotations.items.map((item, idx) => {
@@ -235,7 +255,7 @@ function PhotoSlotView({
               </svg>
             )}
             <span className="ps-badge">✓</span>
-            <span className="ps-label" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
+            <span className="ps-label ps-label--on-photo">{label}</span>
           </>
         ) : (
           <>
@@ -270,7 +290,15 @@ function PhotoSlotView({
             onClick={e => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl} alt={label} className="h-full w-full rounded-xl object-contain" />
+            <img
+              key={photoUrl}
+              src={photoUrl}
+              alt={label}
+              className="h-full w-full rounded-xl object-contain"
+              loading="eager"
+              decoding="async"
+              onError={handleImgError}
+            />
             {annotations && annotations.items.length > 0 && (
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${imgWidth} ${imgHeight}`} preserveAspectRatio="xMidYMid meet">
                 {annotations.items.map((item, idx) => {
@@ -305,12 +333,30 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   const [deleting, setDeleting] = useState(false)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const invalidatePhotoSlot = useCallback((slot: PhotoSlotKey) => {
+    setPhotoUrls((prev) => {
+      if (!prev[slot]) return prev
+      const next = { ...prev }
+      delete next[slot]
+      return next
+    })
+    setPhotoMeta((prev) => {
+      if (!prev[slot]) return prev
+      const next = { ...prev }
+      delete next[slot]
+      return next
+    })
+  }, [])
+
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setLoading(false)
       return
     }
+
+    setPhotoUrls({})
+    setPhotoMeta({})
 
     const [horseRes, docLoad] = await Promise.all([
       supabase
@@ -694,11 +740,13 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
             <div className="photo-grid">
               {SLOT_SOLAR.map(slot => (
                 <PhotoSlotView
-                  key={slot} slot={slot}
+                  key={slot}
+                  slot={slot}
                   photoUrl={photoUrls[slot]}
                   annotations={photoMeta[slot]?.annotations}
                   imgWidth={photoMeta[slot]?.width ?? 900}
                   imgHeight={photoMeta[slot]?.height ?? 1600}
+                  onPhotoUrlInvalid={invalidatePhotoSlot}
                 />
               ))}
             </div>
@@ -706,11 +754,13 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
             <div className="photo-grid">
               {SLOT_LATERAL.map(slot => (
                 <PhotoSlotView
-                  key={slot} slot={slot}
+                  key={slot}
+                  slot={slot}
                   photoUrl={photoUrls[slot]}
                   annotations={photoMeta[slot]?.annotations}
                   imgWidth={photoMeta[slot]?.width ?? 900}
                   imgHeight={photoMeta[slot]?.height ?? 1600}
+                  onPhotoUrlInvalid={invalidatePhotoSlot}
                 />
               ))}
             </div>
