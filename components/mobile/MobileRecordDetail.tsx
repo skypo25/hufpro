@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef, type SyntheticEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordByLegacyHoofId } from '@/lib/documentation/mirrorDocumentationPhotos'
@@ -47,6 +47,40 @@ type HoofPhoto = {
   width?: number | null
   height?: number | null
 }
+
+/** Installierte PWA / iOS „Zum Home-Bildschirm“ (kein Safari-Chrome). */
+function isStandaloneDisplayMode(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return (
+      window.matchMedia?.('(display-mode: standalone)')?.matches === true ||
+      window.matchMedia?.('(display-mode: fullscreen)')?.matches === true ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Gestaffeltes Grid-Decode in Standalone abschalten: `localStorage.setItem('hufpflege_photo_disable_stagger','1')` */
+function readPhotoGridStaggerDisabled(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('hufpflege_photo_disable_stagger') === '1'
+  } catch {
+    return false
+  }
+}
+
+/** Einmaliges Grid-Img-Remount in Standalone abschalten: `hufpflege_photo_disable_grid_remount` */
+function readPhotoGridRemountDisabled(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('hufpflege_photo_disable_grid_remount') === '1'
+  } catch {
+    return false
+  }
+}
+
+const GRID_PHOTO_STAGGER_MS = 52
 
 /** Diagnose: `localStorage.setItem('hufpflege_debug_photos','1')` oder `?debugPhotos=1` in der URL, dann Konsole. */
 function isPhotoDocumentationDebugEnabled(): boolean {
@@ -252,6 +286,7 @@ function PhotoSlotView({
   imgWidth,
   imgHeight,
   onPhotoUrlInvalid,
+  gridDecodeIndex,
 }: {
   slot: PhotoSlotKey
   photoUrl?: string | null
@@ -260,8 +295,15 @@ function PhotoSlotView({
   imgHeight: number
   /** z. B. abgelaufene URL oder 404 — Slot wird wieder als „leer“ angezeigt */
   onPhotoUrlInvalid?: (slot: PhotoSlotKey) => void
+  /** 0…7: gestaffeltes Mounting in Standalone-PWA (weniger parallele WebKit-Decodes). */
+  gridDecodeIndex: number
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [inView, setInView] = useState(false)
+  const [staggerReady, setStaggerReady] = useState(false)
+  const [remountEpoch, setRemountEpoch] = useState(0)
+  const slotRootRef = useRef<HTMLDivElement | null>(null)
+  const standaloneGridRemountScheduled = useRef(false)
   const label = SLOT_LABELS[slot] ?? slot
 
   const handleImgError = useCallback(() => {
@@ -269,38 +311,156 @@ function PhotoSlotView({
     onPhotoUrlInvalid?.(slot)
   }, [onPhotoUrlInvalid, slot])
 
+  /** Vor Paint: im Browser-Tab sofort sichtbar, ohne IO-Flackern (SSR/Hydration-sicher). */
+  useLayoutEffect(() => {
+    if (!photoUrl) {
+      setInView(false)
+      return
+    }
+    if (!isStandaloneDisplayMode()) {
+      setInView(true)
+    }
+  }, [photoUrl])
+
+  useEffect(() => {
+    standaloneGridRemountScheduled.current = false
+    setRemountEpoch(0)
+    if (!photoUrl) {
+      setInView(false)
+      setStaggerReady(false)
+      return
+    }
+    if (!isStandaloneDisplayMode()) {
+      return
+    }
+    setInView(false)
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const en of entries) {
+          if (en.isIntersecting) setInView(true)
+        }
+      },
+      { root: null, rootMargin: '100px 0px 140px 0px', threshold: 0 }
+    )
+    const raf = requestAnimationFrame(() => {
+      const el = slotRootRef.current
+      if (el) io.observe(el)
+    })
+    return () => {
+      cancelAnimationFrame(raf)
+      io.disconnect()
+    }
+  }, [photoUrl])
+
+  useEffect(() => {
+    if (!photoUrl || !inView) {
+      setStaggerReady(false)
+      return
+    }
+    if (!isStandaloneDisplayMode() || readPhotoGridStaggerDisabled()) {
+      setStaggerReady(true)
+      return
+    }
+    setStaggerReady(false)
+    const ms = gridDecodeIndex * GRID_PHOTO_STAGGER_MS
+    const t = window.setTimeout(() => setStaggerReady(true), ms)
+    return () => window.clearTimeout(t)
+  }, [photoUrl, inView, gridDecodeIndex])
+
+  const showGridImg = !!(photoUrl && inView && staggerReady)
+  const decodeWait = !!(photoUrl && (!inView || !staggerReady))
+
+  const logGridImgDiagnostics = useCallback(
+    async (phase: string, el: HTMLImageElement) => {
+      if (!isPhotoDocumentationDebugEnabled()) return
+      let decodeResult: true | 'no-decode-api' | 'rejected' = 'no-decode-api'
+      if (typeof el.decode === 'function') {
+        try {
+          await el.decode()
+          decodeResult = true
+        } catch {
+          decodeResult = 'rejected'
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.info(`[hufpflege_debug_photos] Grid-Img ${phase}`, {
+        slot,
+        gridDecodeIndex,
+        standalone: isStandaloneDisplayMode(),
+        src: el.getAttribute('src'),
+        currentSrc: el.currentSrc,
+        complete: el.complete,
+        naturalWidth: el.naturalWidth,
+        naturalHeight: el.naturalHeight,
+        clientWidth: el.clientWidth,
+        clientHeight: el.clientHeight,
+        decode: decodeResult,
+      })
+    },
+    [slot, gridDecodeIndex]
+  )
+
+  const onGridImgLoad = useCallback(
+    async (e: SyntheticEvent<HTMLImageElement>) => {
+      const el = e.currentTarget
+      await logGridImgDiagnostics('onLoad', el)
+      if (
+        isStandaloneDisplayMode() &&
+        !readPhotoGridRemountDisabled() &&
+        !standaloneGridRemountScheduled.current
+      ) {
+        standaloneGridRemountScheduled.current = true
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setRemountEpoch(1))
+        })
+      }
+    },
+    [logGridImgDiagnostics]
+  )
+
+  const onGridImgLoadStart = useCallback(
+    (e: SyntheticEvent<HTMLImageElement>) => {
+      if (!isPhotoDocumentationDebugEnabled()) return
+      const el = e.currentTarget
+      // eslint-disable-next-line no-console
+      console.info('[hufpflege_debug_photos] Grid-Img onLoadStart', {
+        slot,
+        complete: el.complete,
+        currentSrc: el.currentSrc,
+      })
+    },
+    [slot]
+  )
+
+  const standalone = isStandaloneDisplayMode()
+
   return (
     <>
       <div
-        className={`photo-slot${photoUrl ? ' has-photo' : ''}`}
+        ref={slotRootRef}
+        className={`photo-slot${photoUrl ? ' has-photo' : ''}${decodeWait ? ' photo-slot--decode-wait' : ''}`}
         onClick={() => photoUrl && setLightboxOpen(true)}
         style={{ cursor: photoUrl ? 'zoom-in' : 'default' }}
       >
         {photoUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              key={photoUrl}
-              src={photoUrl}
-              alt={label}
-              className="photo-slot-img"
-              loading="eager"
-              decoding="async"
-              onError={handleImgError}
-              onLoad={(e) => {
-                if (!isPhotoDocumentationDebugEnabled()) return
-                const el = e.currentTarget
-                // eslint-disable-next-line no-console
-                console.info('[hufpflege_debug_photos] Grid-Img nach Laden (Layout-Hinweis: natural vs. client)', {
-                  slot,
-                  naturalWidth: el.naturalWidth,
-                  naturalHeight: el.naturalHeight,
-                  clientWidth: el.clientWidth,
-                  clientHeight: el.clientHeight,
-                })
-              }}
-            />
-            {annotations && annotations.items.length > 0 && (
+            {showGridImg && (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={`${photoUrl}#e${remountEpoch}`}
+                  src={photoUrl}
+                  alt={label}
+                  className="photo-slot-img"
+                  loading="eager"
+                  decoding={standalone ? 'sync' : 'async'}
+                  onError={handleImgError}
+                  onLoadStart={onGridImgLoadStart}
+                  onLoad={onGridImgLoad}
+                />
+              </>
+            )}
+            {showGridImg && annotations && annotations.items.length > 0 && (
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${imgWidth} ${imgHeight}`} preserveAspectRatio="xMidYMid meet">
                 {annotations.items.map((item, idx) => {
                   if ((item.type === 'line' || item.type === 'axis') && item.points?.length >= 2) {
@@ -357,7 +517,7 @@ function PhotoSlotView({
               alt={label}
               className="h-full w-full rounded-xl object-contain"
               loading="eager"
-              decoding="async"
+              decoding={standalone ? 'sync' : 'async'}
               onError={handleImgError}
             />
             {annotations && annotations.items.length > 0 && (
@@ -802,7 +962,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
           <div className="mrd-s-body">
             <div className="photo-label">Sohlenansicht (Solar)</div>
             <div className="photo-grid">
-              {SLOT_SOLAR.map(slot => (
+              {SLOT_SOLAR.map((slot, i) => (
                 <PhotoSlotView
                   key={slot}
                   slot={slot}
@@ -811,12 +971,13 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   imgWidth={photoMeta[slot]?.width ?? 900}
                   imgHeight={photoMeta[slot]?.height ?? 1600}
                   onPhotoUrlInvalid={invalidatePhotoSlot}
+                  gridDecodeIndex={i}
                 />
               ))}
             </div>
             <div className="photo-label">Seitenansicht (Lateral)</div>
             <div className="photo-grid">
-              {SLOT_LATERAL.map(slot => (
+              {SLOT_LATERAL.map((slot, i) => (
                 <PhotoSlotView
                   key={slot}
                   slot={slot}
@@ -825,6 +986,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   imgWidth={photoMeta[slot]?.width ?? 900}
                   imgHeight={photoMeta[slot]?.height ?? 1600}
                   onPhotoUrlInvalid={invalidatePhotoSlot}
+                  gridDecodeIndex={SLOT_SOLAR.length + i}
                 />
               ))}
             </div>
