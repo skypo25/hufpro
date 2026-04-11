@@ -16,18 +16,36 @@ type SettingsSmtp = {
   companyName?: string
 }
 
+const isProduction = process.env.NODE_ENV === 'production'
+
+function auditEmailSendApi(entry: {
+  userId?: string
+  kind: 'smtp_test' | 'relay_blocked' | 'unauthenticated'
+  ok: boolean
+  statusCode: number
+}) {
+  console.info(
+    JSON.stringify({
+      event: 'email_send_api',
+      ...entry,
+      at: new Date().toISOString(),
+    })
+  )
+}
+
+/**
+ * Nur noch SMTP-Testversand (test: true). Kein freies Relay.
+ * Nächster Schritt bei Bedarf: Rate-Limiting (z. B. pro userId/IP).
+ */
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
+    auditEmailSendApi({ kind: 'unauthenticated', ok: false, statusCode: 401 })
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   }
 
   let body: {
-    to?: string
-    subject?: string
-    text?: string
-    html?: string
     test?: boolean
     smtpHost?: string
     smtpPort?: number
@@ -47,6 +65,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
   }
 
+  if (body.test !== true) {
+    auditEmailSendApi({
+      userId: user.id,
+      kind: 'relay_blocked',
+      ok: false,
+      statusCode: 403,
+    })
+    return NextResponse.json(
+      {
+        error:
+          'Freies Versenden über diesen Endpunkt ist deaktiviert. Nur der SMTP-Testversand (test: true) ist erlaubt.',
+      },
+      { status: 403 }
+    )
+  }
+
   const { data: row } = await supabase
     .from('user_settings')
     .select('settings')
@@ -54,85 +88,44 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   const settings = (row?.settings ?? {}) as SettingsSmtp
-  // Beim Test-Versand können die aktuellen Formularwerte mitgeschickt werden (Passwort wird nie zurückgegeben)
-  const useBody = body.test === true
-  const host = ((useBody ? body.smtpHost ?? settings.smtpHost : settings.smtpHost) ?? '').toString().trim()
-  const port = Number(useBody ? body.smtpPort ?? settings.smtpPort : settings.smtpPort) || 587
-  const secure = Boolean(useBody ? body.smtpSecure ?? settings.smtpSecure : settings.smtpSecure)
-  const smtpUser = ((useBody ? body.smtpUser ?? settings.smtpUser : settings.smtpUser) ?? '').toString().trim()
-  // UX: `smtpPassword` wird in der Settings-UI bewusst nicht vorbefüllt.
-  // Wenn beim Test-Versand kein Passwort mitgeschickt wird, nutzen wir das gespeicherte.
-  const bodyPw = ((useBody ? body.smtpPassword : undefined) ?? '').toString().trim()
+  const host = ((body.smtpHost ?? settings.smtpHost) ?? '').toString().trim()
+  const port = Number(body.smtpPort ?? settings.smtpPort) || 587
+  const secure = Boolean(body.smtpSecure ?? settings.smtpSecure)
+  const smtpUser = ((body.smtpUser ?? settings.smtpUser) ?? '').toString().trim()
+  const bodyPw = (body.smtpPassword ?? '').toString().trim()
   const storedPw = (settings.smtpPassword ?? '').toString().trim()
-  const smtpPassword = (useBody ? (bodyPw || storedPw) : storedPw)
+  const smtpPassword = bodyPw || storedPw
 
   if (!host || !smtpUser || !smtpPassword) {
     return NextResponse.json(
-      { error: 'SMTP-Einstellungen unvollständig. Bitte unter Einstellungen → Benachrichtigungen Host, Benutzer und Passwort eintragen.' },
+      {
+        error:
+          'SMTP-Einstellungen unvollständig. Bitte unter Einstellungen → Benachrichtigungen Host, Benutzer und Passwort eintragen.',
+      },
       { status: 400 }
     )
   }
 
-  const fromEmail = (useBody ? body.smtpFromEmail ?? settings.smtpFromEmail : settings.smtpFromEmail) || (useBody ? body.email ?? settings.email : settings.email) || smtpUser
-  const fromName = (useBody ? body.smtpFromName ?? settings.smtpFromName : settings.smtpFromName) || (useBody ? [body.firstName, body.lastName].filter(Boolean).join(' ') : [settings.firstName, settings.lastName].filter(Boolean).join(' ')) || (useBody ? body.companyName : settings.companyName) || 'AniDocs'
+  const fromEmail =
+    (body.smtpFromEmail ?? settings.smtpFromEmail) ||
+    (body.email ?? settings.email) ||
+    smtpUser
+  const fromName =
+    (body.smtpFromName ?? settings.smtpFromName) ||
+    [body.firstName ?? settings.firstName, body.lastName ?? settings.lastName].filter(Boolean).join(' ') ||
+    (body.companyName ?? settings.companyName) ||
+    'AniDocs'
   const fromEmailTrim = (fromEmail ?? '').toString().trim()
   const fromNameTrim = (fromName ?? '').toString().trim()
 
-  if (body.test === true) {
-    const to = ((useBody ? body.email ?? settings.email : settings.email) || user.email || '').toString().trim()
-    if (!to) {
-      return NextResponse.json(
-        { error: 'Keine E-Mail-Adresse hinterlegt. Bitte unter Einstellungen → Mein Betrieb deine E-Mail eintragen.' },
-        { status: 400 }
-      )
-    }
-    try {
-      const out = await sendMail(
-        {
-          host,
-          port,
-          secure,
-          user: smtpUser,
-          password: smtpPassword,
-          fromEmail: fromEmailTrim,
-          fromName: fromNameTrim,
-        },
-        {
-          to,
-          subject: 'AniDocs – Test-E-Mail',
-          text: 'Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.',
-          html: '<p>Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.</p>',
-        }
-      )
-      return NextResponse.json({
-        ok: true,
-        debug: {
-          host,
-          port,
-          secure,
-          smtpUser,
-          fromEmail: fromEmailTrim,
-          fromName: fromNameTrim,
-          to,
-          messageId: out.messageId ?? null,
-          accepted: out.accepted ?? null,
-          rejected: out.rejected ?? null,
-          response: out.response ?? null,
-        },
-      })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Versand fehlgeschlagen'
-      return NextResponse.json({ error: message }, { status: 500 })
-    }
-  }
-
-  const to = (body.to ?? '').trim()
-  const subject = (body.subject ?? '').trim()
-  const text = body.text?.trim()
-  const html = body.html?.trim()
-  if (!to || !subject || (!text && !html)) {
+  // Empfänger nur aus vertrauenswürdigen Quellen — niemals frei aus dem Request-Body (kein Relay).
+  const to = ((user.email ?? '').toString().trim() || (settings.email ?? '').toString().trim())
+  if (!to) {
     return NextResponse.json(
-      { error: 'Angaben unvollständig: Empfänger, Betreff und Text oder HTML erforderlich.' },
+      {
+        error:
+          'Keine Zieladresse: Bitte in deinem Konto eine E-Mail hinterlegen oder unter Einstellungen → Mein Betrieb eine E-Mail speichern.',
+      },
       { status: 400 }
     )
   }
@@ -148,17 +141,41 @@ export async function POST(request: Request) {
         fromEmail: fromEmailTrim,
         fromName: fromNameTrim,
       },
-      { to, subject, text, html }
+      {
+        to,
+        subject: 'AniDocs – Test-E-Mail',
+        text: 'Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.',
+        html: '<p>Diese E-Mail wurde über deine SMTP-Einstellungen versendet. Wenn du sie erhalten hast, ist die Konfiguration korrekt.</p>',
+      }
     )
+    auditEmailSendApi({ userId: user.id, kind: 'smtp_test', ok: true, statusCode: 200 })
+
+    if (isProduction) {
+      return NextResponse.json({
+        ok: true,
+        messageId: out.messageId ?? null,
+      })
+    }
+
     return NextResponse.json({
       ok: true,
-      messageId: out.messageId ?? null,
-      accepted: out.accepted ?? null,
-      rejected: out.rejected ?? null,
-      response: out.response ?? null,
+      debug: {
+        host,
+        port,
+        secure,
+        smtpUser,
+        fromEmail: fromEmailTrim,
+        fromName: fromNameTrim,
+        to,
+        messageId: out.messageId ?? null,
+        accepted: out.accepted ?? null,
+        rejected: out.rejected ?? null,
+        response: out.response ?? null,
+      },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Versand fehlgeschlagen'
+    auditEmailSendApi({ userId: user.id, kind: 'smtp_test', ok: false, statusCode: 500 })
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

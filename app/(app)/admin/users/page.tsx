@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import AdminNextLink from '@/components/admin/AdminNextLink'
 import {
   fetchAdminUserDirectoryStats,
   fetchAdminUserList,
@@ -196,7 +196,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                           ? 'text-[#9CA3AF]'
                           : ''
               return (
-                <Link
+                <AdminNextLink
                   key={f.id}
                   href={href}
                   className={[
@@ -208,7 +208,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                 >
                   {f.dot ? <i className={`bi bi-circle-fill text-[6px] ${dotClass}`} aria-hidden /> : null}
                   {f.label} <span className="text-[#9CA3AF]">({count})</span>
-                </Link>
+                </AdminNextLink>
               )
             })}
           </div>
@@ -275,7 +275,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   key={r.id}
                   className={`relative grid grid-cols-[minmax(0,1.35fr)_150px_120px_220px_140px_140px_200px_68px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1.35fr)_150px_220px_140px_200px_68px] max-[1100px]:[&>*:nth-child(3)]:hidden max-[1100px]:[&>*:nth-child(6)]:hidden max-[900px]:grid-cols-[minmax(0,1fr)_220px_200px_68px] max-[900px]:[&>*:nth-child(2)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden max-[900px]:[&>*:nth-child(6)]:hidden ${rowTint}`}
                 >
-                  <Link
+                  <AdminNextLink
                     href={`/admin/users/${r.id}`}
                     className="absolute inset-0 z-0"
                     aria-label={`Nutzer ${r.name} öffnen`}
@@ -357,13 +357,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   </div>
 
                   <div className="relative z-20 flex justify-end gap-1">
-                    <Link
+                    <AdminNextLink
                       href={`/admin/users/${r.id}`}
                       className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
                       title="Details"
                     >
                       <i className="bi bi-eye-fill text-[14px]" aria-hidden />
-                    </Link>
+                    </AdminNextLink>
                     {stripeUrl ? (
                       <a
                         href={stripeUrl}
@@ -475,7 +475,7 @@ function PaginationLink(props: {
     )
   }
   return (
-    <Link
+    <AdminNextLink
       href={props.href}
       aria-label={props['aria-label']}
       className={[
@@ -484,6 +484,6 @@ function PaginationLink(props: {
       ].join(' ')}
     >
       {props.children}
-    </Link>
+    </AdminNextLink>
   )
 }

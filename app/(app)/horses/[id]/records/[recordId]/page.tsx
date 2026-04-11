@@ -15,6 +15,7 @@ import {
   revalidateHoofCompareForHorse,
 } from '@/lib/cache/tags'
 import PhotoLightbox from '@/components/photos/PhotoLightbox'
+import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
 
 type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
@@ -149,15 +150,6 @@ function hornColor(v: string | null): DotColor {
   const l = v.toLowerCase()
   if (l.includes('stabil') || l.includes('gut')) return 'green'
   return 'yellow'
-}
-
-/** Basic HTML sanitiser – strips script/style tags but keeps bold/italic/p/br */
-function sanitiseHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/on\w+='[^']*'/gi, '')
 }
 
 function hasRealContent(html: string | null | undefined): boolean {
@@ -595,7 +587,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
             <SectionCard title={`${nextSection()}. Maßnahmen & Beobachtungen`}>
               <div
                 className="px-5 py-5 text-[14px] leading-7 text-[#374151] [&_strong]:font-semibold [&_strong]:text-[#1B1F23] [&_b]:font-semibold [&_b]:text-[#1B1F23] [&_p]:mb-3 [&_p:last-child]:mb-0"
-                dangerouslySetInnerHTML={{ __html: sanitiseHtml(record.hoof_condition!) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeUserHtml(record.hoof_condition!) }}
               />
             </SectionCard>
           )}

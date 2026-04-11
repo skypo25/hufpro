@@ -19,6 +19,7 @@ import {
   faBars,
   faChartPie,
   faHouse,
+  faAddressBook,
 } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
@@ -30,29 +31,25 @@ import { ADMIN_APP_NAV_LINKS } from '@/lib/admin/adminNavLinks'
 function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
   return [
     {
-      title: 'Übersicht',
+      title: 'Allgemein',
       items: [{ label: 'Dashboard', href: '/dashboard', icon: faTableCellsLarge }],
     },
     {
-      title: 'Verwaltung',
+      title: 'App',
       items: [
         { label: 'Kunden', href: '/customers', icon: faUsers },
         { label: animalsListLabel, href: '/animals', icon: animalsIcon },
         { label: 'Termine', href: '/calendar', icon: faCalendarDays },
-      ],
-    },
-    {
-      title: 'Finanzen',
-      items: [
         { label: 'Rechnungen', href: '/invoices', icon: faFileInvoice },
         { label: 'Billing', href: '/billing', icon: faCreditCard },
+        { label: 'Suche', href: '/suche', icon: faMagnifyingGlass },
+        { label: 'Einstellungen', href: '/settings', icon: faGear },
       ],
     },
     {
-      title: 'System',
+      title: 'Verzeichnis',
       items: [
-        { label: 'Suche', href: '/suche', icon: faMagnifyingGlass },
-        { label: 'Einstellungen', href: '/settings', icon: faGear },
+        { label: 'Mein Profil', href: '/directory/mein-profil', icon: faAddressBook },
       ],
     },
   ]
@@ -75,15 +72,31 @@ function buildAdminNavGroups(adminUserCount: number | null): { title: string; it
   const adminItems: NavItem[] = ADMIN_APP_NAV_LINKS.map((l) => ({
     label: l.label,
     href: l.href,
-    icon: l.href === '/admin' ? faChartPie : l.href === '/admin/users' ? faUsers : faGear,
+    icon:
+      l.href === '/admin'
+        ? faChartPie
+        : l.href === '/admin/users'
+          ? faUsers
+          : l.href.startsWith('/admin/directory/')
+            ? faAddressBook
+            : faGear,
   }))
-  return [
-    { title: 'Administration', items: adminItems },
-    {
-      title: 'Wechseln',
-      items: [{ label: 'Zur Anwendung', href: '/dashboard', icon: faHouse }],
-    },
-  ]
+
+  const general = adminItems.filter((i) => i.href === '/admin')
+  const directory = adminItems.filter((i) => i.href.startsWith('/admin/directory/'))
+  const app = adminItems.filter((i) => i.href !== '/admin' && !i.href.startsWith('/admin/directory/'))
+
+  const groups: { title: string; items: NavItem[] }[] = []
+  if (general.length) groups.push({ title: 'Allgemein', items: general })
+  if (directory.length) groups.push({ title: 'Verzeichnis', items: directory })
+  if (app.length) groups.push({ title: 'App', items: app })
+
+  groups.push({
+    title: 'Wechseln',
+    items: [{ label: 'Zur Anwendung', href: '/dashboard', icon: faHouse }],
+  })
+
+  return groups
 }
 
 const SIDEBAR_WIDTH = 260

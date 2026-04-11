@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireUserSession } from '@/lib/auth/requireUserSession.server'
 
 /** Allowlist für Einstellungs-Keys – nur diese werden akzeptiert (Sicherheitshärtung). */
 const ALLOWED_SETTINGS_KEYS = new Set([
@@ -16,11 +16,9 @@ const ALLOWED_SETTINGS_KEYS = new Set([
 ])
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
-  }
+  const session = await requireUserSession()
+  if (!session.ok) return session.response
+  const { user, supabase } = session
 
   let body: unknown
   try {

@@ -3,12 +3,8 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { EmailOtpType } from '@supabase/supabase-js'
+import { safeNextPath } from '@/lib/auth/safeNextPath'
 import { supabase } from '@/lib/supabase-client'
-
-function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/onboarding'
-  return raw
-}
 
 function isEmailOtpType(v: string | null): v is EmailOtpType {
   return (
@@ -30,7 +26,7 @@ function AuthCallbackInner() {
     let cancelled = false
 
     async function finish() {
-      const next = safeNext(searchParams.get('next'))
+      const next = safeNextPath(searchParams.get('next'), '/onboarding')
 
       const code = searchParams.get('code')
       if (code) {

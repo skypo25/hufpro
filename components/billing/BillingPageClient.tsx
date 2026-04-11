@@ -122,6 +122,7 @@ export default function BillingPageClient({
   const success = params.get('success') === '1'
   const canceled = params.get('canceled') === '1'
   const blocked = params.get('blocked') === '1'
+  const billingCheckFailed = params.get('billing_check') === 'failed'
 
   const [busy, setBusy] = useState<null | 'portal'>(null)
   const [error, setError] = useState<string | null>(null)
@@ -277,6 +278,12 @@ export default function BillingPageClient({
   }, [billingState])
 
   const notice = useMemo(() => {
+    if (billingCheckFailed) {
+      return {
+        tone: 'warning' as const,
+        text: 'Ihr Zahlungs- und Zugriffsstatus konnte vorübergehend nicht geprüft werden. Bitte laden Sie die Seite neu oder versuchen Sie es in Kürze erneut.',
+      }
+    }
     if (success) {
       return {
         tone: 'success' as const,
@@ -344,7 +351,7 @@ export default function BillingPageClient({
       }
     }
     return null
-  }, [billingState, blocked, canceled, hasLiveSubscription, success])
+  }, [billingState, billingCheckFailed, blocked, canceled, hasLiveSubscription, success])
 
   const noticeClass =
     notice?.tone === 'success'

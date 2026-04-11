@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Outfit, DM_Sans } from 'next/font/google'
 import './globals.css'
+/* Direkt importieren: verschachteltes @import nach tailwindcss wird sonst oft nicht gebündelt → /behandler wirkt „ohne CSS“. */
+import './behandler-verzeichnis.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import Preloader from '@/components/Preloader'
 import RouteLoader from '@/components/RouteLoader'

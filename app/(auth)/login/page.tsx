@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { safeNextPath } from '@/lib/auth/safeNextPath'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
@@ -34,15 +35,25 @@ function LoginContent() {
         .maybeSingle()
       onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
     }
-    router.push(onboardingComplete ? '/dashboard' : '/onboarding')
+    const nextParam = searchParams.get('next')
+    if (onboardingComplete) {
+      router.push(nextParam ? safeNextPath(nextParam, '/dashboard') : '/dashboard')
+    } else {
+      router.push('/onboarding')
+    }
     router.refresh()
   }
 
   async function handleOAuth(provider: 'google' | 'apple') {
     setError('')
+    const nextParam = searchParams.get('next')
+    const nextPath = nextParam ? safeNextPath(nextParam, '/dashboard') : '/onboarding'
+    const callbackNext = encodeURIComponent(nextPath)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${callbackNext}`,
+      },
     })
     if (error) setError(translateAuthError(error.message))
   }

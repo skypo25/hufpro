@@ -1,8 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { safeNextPath } from '@/lib/auth/safeNextPath'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import { getBillingState, canAccessApp } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
+
+/** `public/directory/*` (Hero, Kategorie-SVGs): gleicher URL-Prefix wie geschützte App-Routen unter `/directory/…`. */
+function isDirectoryPublicStaticAsset(pathname: string): boolean {
+  return /^\/directory\/[^/]+\.(svg|png|jpe?g|webp|gif|ico)$/i.test(pathname)
+}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -44,6 +50,17 @@ export async function middleware(request: NextRequest) {
     .filter(Boolean)
   const isAdminUser = !!(user && adminIds.includes(user.id))
 
+  let accessScope: 'app' | 'directory_only' = 'app'
+  if (user) {
+    const { data: scopeRow } = await supabase
+      .from('directory_user_access')
+      .select('access_scope')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const raw = (scopeRow?.access_scope as string | null | undefined) ?? null
+    if (raw === 'directory_only') accessScope = 'directory_only'
+  }
+
   if (pathname.startsWith('/admin')) {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -57,6 +74,33 @@ export async function middleware(request: NextRequest) {
     }
     return response
   }
+
+  // Directory-only Nutzer: nur /directory (Profilpflege) + Auth/Callback
+  if (user && !isAdminUser && accessScope === 'directory_only') {
+    const isAuthCallback = pathname.startsWith('/auth/')
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+    const isBehandlerPublic =
+      pathname === '/behandler' || pathname.startsWith('/behandler/')
+    const isDirectoryInternal =
+      pathname === '/directory' ||
+      pathname.startsWith('/directory/') ||
+      isBehandlerPublic
+    if (isAuthCallback) return response
+    if (isAuthPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/directory/mein-profil'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+    if (!isDirectoryInternal) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/directory/mein-profil'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+    return response
+  }
+
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
   const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
@@ -72,6 +116,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/invoices') ||
     pathname.startsWith('/settings') ||
     pathname.startsWith('/appointments') ||
+    (pathname.startsWith('/directory') && !isDirectoryPublicStaticAsset(pathname)) ||
     isBillingPath
 
   const priceIdMonthly = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
@@ -92,10 +137,17 @@ export async function middleware(request: NextRequest) {
       .maybeSingle()
     const onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
 
-    // Authenticated on auth pages → send to onboarding or dashboard
+    // Authenticated on auth pages → send to onboarding or Ziel aus ?next=
     if (isAuthPage) {
       const url = request.nextUrl.clone()
-      url.pathname = onboardingComplete ? '/dashboard' : '/onboarding'
+      if (onboardingComplete) {
+        const next = request.nextUrl.searchParams.get('next')
+        url.pathname = safeNextPath(next, '/dashboard')
+        url.search = ''
+      } else {
+        url.pathname = '/onboarding'
+        url.search = ''
+      }
       return NextResponse.redirect(url)
     }
 
@@ -114,9 +166,20 @@ export async function middleware(request: NextRequest) {
         .eq('user_id', user.id)
         .maybeSingle()
 
-      // Bei DB-/Schema-Fehlern Navigation nicht blockieren (sonst „nur Billing“ ohne Nutzbarkeit).
       if (billingFetchError) {
-        return response
+        console.warn(
+          JSON.stringify({
+            event: 'billing_middleware_fetch_failed',
+            at: new Date().toISOString(),
+            userId: user.id,
+            code: billingFetchError.code ?? null,
+          })
+        )
+        const url = request.nextUrl.clone()
+        url.pathname = '/billing'
+        url.search = ''
+        url.searchParams.set('billing_check', 'failed')
+        return NextResponse.redirect(url)
       }
 
       const billingState = getBillingState({
@@ -153,6 +216,8 @@ export const config = {
     '/invoices/:path*',
     '/settings/:path*',
     '/appointments/:path*',
+    '/directory',
+    '/directory/:path*',
     '/billing',
     '/billing/:path*',
     '/termin-bestaetigen/:path*',

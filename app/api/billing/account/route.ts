@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireUserSession } from '@/lib/auth/requireUserSession.server'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import type { BillingAccountRow } from '@/lib/billing/types'
 
 export async function GET() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const session = await requireUserSession()
+  if (!session.ok) return session.response
+  const { user, supabase } = session
 
   const { data: row1, error: err1 } = await supabase
     .from('billing_accounts')

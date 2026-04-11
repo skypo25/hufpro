@@ -57,6 +57,51 @@ async function applyBillingUpdate(args: {
   }
 }
 
+async function applyDirectoryTopProfileFromCheckout(args: {
+  supabaseAdmin: ReturnType<typeof createSupabaseServiceRoleClient>
+  userId: string
+  directoryProfileId: string
+  durationDays: number
+}): Promise<void> {
+  const { data: prof, error: profErr } = await args.supabaseAdmin
+    .from('directory_profiles')
+    .select('id, claimed_by_user_id')
+    .eq('id', args.directoryProfileId)
+    .maybeSingle()
+
+  if (profErr || !prof) return
+  const owner = (prof as { claimed_by_user_id?: string | null }).claimed_by_user_id ?? null
+  if (owner !== args.userId) return
+
+  const now = Date.now()
+  const addMs = Math.max(1, Math.floor(args.durationDays)) * 86400000
+
+  // Extend (or create) directory_subscription entitlement.
+  const { data: ent } = await args.supabaseAdmin
+    .from('directory_profile_top_entitlements')
+    .select('active_until')
+    .eq('directory_profile_id', args.directoryProfileId)
+    .eq('source', 'directory_subscription')
+    .maybeSingle()
+
+  const existingUntilIso = (ent as { active_until?: string | null } | null)?.active_until ?? null
+  const existingUntilMs = existingUntilIso ? new Date(existingUntilIso).getTime() : NaN
+  const baseMs = Number.isFinite(existingUntilMs) && existingUntilMs > now ? existingUntilMs : now
+  const nextUntilIso = new Date(baseMs + addMs).toISOString()
+
+  await args.supabaseAdmin
+    .from('directory_profile_top_entitlements')
+    .upsert(
+      {
+        directory_profile_id: args.directoryProfileId,
+        source: 'directory_subscription',
+        active_until: nextUntilIso,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'directory_profile_id,source' }
+    )
+}
+
 export async function POST(request: Request) {
   const stripe = getStripe()
   const secret = requireEnv('STRIPE_WEBHOOK_SECRET')
@@ -97,6 +142,8 @@ export async function POST(request: Request) {
 
   const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
     const userId = session.metadata?.supabase_user_id?.toString() || null
+    const directoryProfileId = session.metadata?.directory_profile_id?.toString() || null
+    const topDaysRaw = session.metadata?.directory_top_profile_days?.toString() || null
     const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
     const subscriptionId =
       typeof session.subscription === 'string'
@@ -120,6 +167,18 @@ export async function POST(request: Request) {
       },
     })
 
+    if (directoryProfileId) {
+      const durationDays = topDaysRaw ? Number(topDaysRaw) : NaN
+      if (Number.isFinite(durationDays) && durationDays > 0) {
+        await applyDirectoryTopProfileFromCheckout({
+          supabaseAdmin,
+          userId,
+          directoryProfileId,
+          durationDays,
+        })
+      }
+    }
+
     await supabaseAdmin
       .from('stripe_webhook_events')
       .update({ user_id: userId })
@@ -130,6 +189,14 @@ export async function POST(request: Request) {
     const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
     const userId = await resolveUserIdForCustomer({ supabaseAdmin, stripeCustomerId: customerId })
     if (!userId) return
+
+    const appMonthlyPriceId = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
+    const itemPriceIds = sub.items.data
+      .map((it) => it.price?.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    /** Nur das App-Monatsabo soll app_subscription setzen/löschen — nicht andere Stripe-Subscriptions desselben Customers. */
+    const isAppMonthlySubscription =
+      !appMonthlyPriceId || itemPriceIds.includes(appMonthlyPriceId)
 
     const priceId = sub.items.data[0]?.price?.id ?? null
     const st = (sub.status ?? '').toString()
@@ -159,6 +226,46 @@ export async function POST(request: Request) {
         last_stripe_event_at: nowIso,
       },
     })
+
+    // App-Subscription => Top-Profil automatisch aktiv (Quelle: app_subscription)
+    if (isAppMonthlySubscription) {
+      const st2 = (sub.status ?? '').toString()
+      if (st2 === 'active' || st2 === 'trialing' || st2 === 'past_due') {
+        const { data: ownedProfiles } = await supabaseAdmin
+          .from('directory_profiles')
+          .select('id')
+          .eq('claimed_by_user_id', userId)
+
+        const untilIso = asIsoSeconds(sub.current_period_end) ?? null
+        const rows =
+          (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => ({
+            directory_profile_id: p.id,
+            source: 'app_subscription',
+            active_until: untilIso,
+            updated_at: nowIso,
+          })) ?? []
+
+        if (rows.length > 0) {
+          await supabaseAdmin
+            .from('directory_profile_top_entitlements')
+            .upsert(rows, { onConflict: 'directory_profile_id,source' })
+        }
+      } else {
+        // Subscription nicht live => app_subscription entitlement entfernen
+        const { data: ownedProfiles } = await supabaseAdmin
+          .from('directory_profiles')
+          .select('id')
+          .eq('claimed_by_user_id', userId)
+        const ids = (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => p.id) ?? []
+        if (ids.length > 0) {
+          await supabaseAdmin
+            .from('directory_profile_top_entitlements')
+            .delete()
+            .in('directory_profile_id', ids)
+            .eq('source', 'app_subscription')
+        }
+      }
+    }
 
     await supabaseAdmin
       .from('stripe_webhook_events')

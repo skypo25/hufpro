@@ -13,6 +13,7 @@ import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot } from '@/l
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import type { AnnotationsData } from '@/lib/photos/annotations'
+import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,15 +87,6 @@ function overallStatus(hoofs: HoofEntry[]): 'ok' | 'warn' | 'critical' {
   if (statuses.includes('critical')) return 'critical'
   if (statuses.includes('warn')) return 'warn'
   return 'ok'
-}
-
-/** Basic HTML sanitiser – strips script/style tags but keeps bold/italic/p/br (XSS-Schutz) */
-function sanitiseHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/on\w+='[^']*'/gi, '')
 }
 
 function gcColor(v: string | null): 'green' | 'yellow' | 'red' | 'neutral' {
@@ -675,7 +667,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
             <div className="mrd-s-body">
               <div
                 className="mrd-rich-text"
-                dangerouslySetInnerHTML={{ __html: sanitiseHtml(record.summary_notes!) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeUserHtml(record.summary_notes!) }}
               />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireUserSession } from '@/lib/auth/requireUserSession.server'
 
 const PHOTON_URL = 'https://photon.komoot.io/api'
 
@@ -8,9 +8,9 @@ const PHOTON_URL = 'https://photon.komoot.io/api'
  * Wird von der Adress-Autovervollständigung genutzt, um "ca. X km" anzuzeigen.
  */
 export async function GET() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await requireUserSession()
+  if (!session.ok) return session.response
+  const { user, supabase } = session
 
   const { data: row } = await supabase
     .from('user_settings')

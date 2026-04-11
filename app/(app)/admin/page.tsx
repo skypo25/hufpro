@@ -60,12 +60,26 @@ export default async function AdminDashboardPage() {
           <h1 className={adminPageTitleClass}>Admin-Dashboard</h1>
           <p className={`${adminMutedClass} mt-1`}>Stand: {now}</p>
         </div>
-        <Link
-          href="/admin/users"
-          className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
-        >
-          Nutzerübersicht
-        </Link>
+        <div className="flex flex-wrap gap-2 self-start">
+          <Link
+            href="/admin/users"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
+          >
+            Nutzerübersicht
+          </Link>
+          <Link
+            href="/admin/directory/claims"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
+          >
+            Verzeichnis · Claims
+          </Link>
+          <Link
+            href="/admin/directory/profiles"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
+          >
+            Verzeichnis · Profile
+          </Link>
+        </div>
       </div>
 
       {loadError ? (

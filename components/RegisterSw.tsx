@@ -6,7 +6,7 @@ export default function RegisterSw() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('/serwist/sw.js')
       .then(() => {})
       .catch(() => {})
   }, [])
