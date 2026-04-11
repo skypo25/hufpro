@@ -3081,10 +3081,25 @@ button.huf-btn-dark {
 .photo-slot:active { transform: scale(.97); }
 .photo-slot .ps-label { font-size: 8px; font-weight: 600; color: #6B7280; text-align: center; }
 .photo-slot .ps-sub { font-size: 7px; color: #9CA3AF; text-align: center; }
+/* Nur absolute Kinder: WebKit setzt die Slot-Höhe sonst auf ~0 → schmaler Bildstreifen.
+   In-flow ::before + padding-bottom (bezogen auf die Breite) erzwingt 9:16 bzw. 4:3. */
 .photo-slot.has-photo {
   border-style: solid;
   border-color: #2D7A3A;
   display: block;
+  aspect-ratio: unset;
+}
+.photo-slot.has-photo:not(.photo-slot--whole-body)::before {
+  content: '';
+  display: block;
+  width: 100%;
+  padding-bottom: calc(100% * 16 / 9);
+}
+.photo-slot.photo-slot--whole-body.has-photo::before {
+  content: '';
+  display: block;
+  width: 100%;
+  padding-bottom: calc(100% * 3 / 4);
 }
 .photo-slot.has-photo .photo-slot-img {
   position: absolute;
