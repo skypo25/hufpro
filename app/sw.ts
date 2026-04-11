@@ -11,6 +11,19 @@ function isOpenstreetmapRasterTile(o: { url: URL; request: Request }): boolean {
   return /^[abc]\.tile\.openstreetmap\.fr$/i.test(host) && o.url.pathname.includes('/hot/')
 }
 
+/**
+ * Supabase Storage (signiert/öffentlich): nicht über Serwist-`defaultCache` cachen.
+ * Sonst greifen u. a. StaleWhileRevalidate / NetworkFirst auf *.jpg — bei installierter PWA
+ * (aktiver Service Worker) können so veraltete oder abgebrochene Antworten die Kachel-`<img>`
+ * stören, während ein erneuter Request (z. B. Lightbox) frischer wirkt.
+ */
+function isSupabaseStorageObjectGet(o: { url: URL; request: Request }): boolean {
+  if (o.request.method !== 'GET') return false
+  const host = o.url.hostname.toLowerCase()
+  if (!host.endsWith('.supabase.co') && !host.endsWith('.supabase.in')) return false
+  return o.url.pathname.includes('/storage/v1/object/')
+}
+
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
     __SW_MANIFEST: (PrecacheEntry | string)[] | undefined
@@ -24,7 +37,11 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: [{ matcher: isOpenstreetmapRasterTile, handler: new NetworkOnly() }, ...defaultCache],
+  runtimeCaching: [
+    { matcher: isOpenstreetmapRasterTile, handler: new NetworkOnly() },
+    { matcher: isSupabaseStorageObjectGet, handler: new NetworkOnly() },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {

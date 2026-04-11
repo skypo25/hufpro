@@ -48,6 +48,55 @@ type HoofPhoto = {
   height?: number | null
 }
 
+/** Diagnose: `localStorage.setItem('hufpflege_debug_photos','1')` oder `?debugPhotos=1` in der URL, dann Konsole. */
+function isPhotoDocumentationDebugEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    if (localStorage.getItem('hufpflege_debug_photos') === '1') return true
+    return new URLSearchParams(window.location.search).get('debugPhotos') === '1'
+  } catch {
+    return false
+  }
+}
+
+type PhotoRowLike = { file_path: string | null; photo_type: string | null; width?: number | null; height?: number | null }
+
+function logPhotoDocumentationSignedUrls(rows: PhotoRowLike[], urls: Partial<Record<PhotoSlotKey, string>>) {
+  if (!isPhotoDocumentationDebugEnabled()) return
+  if (typeof window !== 'undefined') {
+    const nav = window.navigator as Navigator & { standalone?: boolean }
+    const displayStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches === true
+    // eslint-disable-next-line no-console
+    console.info('[hufpflege_debug_photos] PWA-Kontext', {
+      display_mode_standalone: displayStandalone,
+      ios_navigator_standalone: nav.standalone === true,
+      service_worker_controls_page: !!navigator.serviceWorker?.controller,
+    })
+  }
+  const entries = rows
+    .map((p) => {
+      if (!p.file_path || !p.photo_type) return null
+      const slot = toCanonicalPhotoSlot(p.photo_type)
+      if (!slot) return null
+      const signed = urls[slot] ?? null
+      return {
+        slot,
+        storage_file_path: p.file_path,
+        db_width: p.width ?? null,
+        db_height: p.height ?? null,
+        signed_url_length: signed?.length ?? 0,
+        /** Grid und Lightbox lesen dieselbe React-State-URL (`photoUrls[slot]`). */
+        signed_url_snippet: signed ? `${signed.slice(0, 72)}…${signed.slice(-40)}` : null,
+      }
+    })
+    .filter((x): x is NonNullable<typeof x> => x != null)
+  // eslint-disable-next-line no-console
+  console.info(
+    '[hufpflege_debug_photos] Keine separaten Thumbnail-URLs: `createSignedUrl` auf Bucket `hoof-photos` → gleicher String für Kachel-`<img>` und Lightbox.',
+    entries
+  )
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string | null | undefined): string {
@@ -238,6 +287,18 @@ function PhotoSlotView({
               loading="eager"
               decoding="async"
               onError={handleImgError}
+              onLoad={(e) => {
+                if (!isPhotoDocumentationDebugEnabled()) return
+                const el = e.currentTarget
+                // eslint-disable-next-line no-console
+                console.info('[hufpflege_debug_photos] Grid-Img nach Laden (Layout-Hinweis: natural vs. client)', {
+                  slot,
+                  naturalWidth: el.naturalWidth,
+                  naturalHeight: el.naturalHeight,
+                  clientWidth: el.clientWidth,
+                  clientHeight: el.clientHeight,
+                })
+              }}
             />
             {annotations && annotations.items.length > 0 && (
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${imgWidth} ${imgHeight}`} preserveAspectRatio="xMidYMid meet">
@@ -470,6 +531,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   }
                 }
               }
+              logPhotoDocumentationSignedUrls(again.photos, urls)
               setPhotoUrls(urls)
               setPhotoMeta(meta)
             }
@@ -497,6 +559,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   }
                 }
               }
+              logPhotoDocumentationSignedUrls(retryPhotos as PhotoRowLike[], urls)
               setPhotoUrls(urls)
               setPhotoMeta(meta)
             }
@@ -522,6 +585,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
           }
         }
       }
+      logPhotoDocumentationSignedUrls(rows, urls)
       setPhotoUrls(urls)
       setPhotoMeta(meta)
     }
