@@ -1,7 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { safeInternalPath, safeNextPath } from '@/lib/auth/safeNextPath'
-import { isDirectoryBehandlerProfilFlowReturnPath } from '@/lib/directory/public/appBaseUrl'
+import {
+  DIRECTORY_WIZARD_PAKET_COOKIE,
+  safeInternalPath,
+  safeNextPath,
+} from '@/lib/auth/safeNextPath'
+import {
+  directoryPublicPaketFromUserMetadata,
+  isDirectoryBehandlerProfilFlowReturnPath,
+} from '@/lib/directory/public/appBaseUrl'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import { getBillingState, canAccessApp } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
@@ -9,6 +16,20 @@ import type { BillingAccountRow } from '@/lib/billing/types'
 /** `public/directory/*` (Hero, Kategorie-SVGs): gleicher URL-Prefix wie geschützte App-Routen unter `/directory/…`. */
 function isDirectoryPublicStaticAsset(pathname: string): boolean {
   return /^\/directory\/[^/]+\.(svg|png|jpe?g|webp|gif|ico)$/i.test(pathname)
+}
+
+function directoryPaketFromCookie(request: NextRequest): 'gratis' | 'premium' | null {
+  const v = request.cookies.get(DIRECTORY_WIZARD_PAKET_COOKIE)?.value?.trim().toLowerCase()
+  return v === 'premium' ? 'premium' : v === 'gratis' ? 'gratis' : null
+}
+
+function redirectWizardClearPaketCookie(request: NextRequest, paket: 'gratis' | 'premium'): NextResponse {
+  const url = request.nextUrl.clone()
+  url.pathname = '/behandler/profil/erstellen'
+  url.search = `?paket=${paket}`
+  const res = NextResponse.redirect(url)
+  res.cookies.set(DIRECTORY_WIZARD_PAKET_COOKIE, '', { path: '/', maxAge: 0 })
+  return res
 }
 
 export async function middleware(request: NextRequest) {
@@ -166,8 +187,21 @@ export async function middleware(request: NextRequest) {
         url.search = q === -1 ? '' : `?${internal.slice(q + 1)}`
         return NextResponse.redirect(url)
       }
+      const dirPaketMeta = directoryPublicPaketFromUserMetadata(user)
+      const dirPaketCookie = directoryPaketFromCookie(request)
       if (onboardingComplete) {
         url.pathname = safeNextPath(nextRaw, '/dashboard')
+        url.search = ''
+      } else if (!internal && dirPaketMeta) {
+        url.pathname = '/behandler/profil/erstellen'
+        url.search = `?paket=${dirPaketMeta}`
+      } else if (!internal && dirPaketCookie) {
+        return redirectWizardClearPaketCookie(request, dirPaketCookie)
+      } else if (pathname.startsWith('/login') && !internal) {
+        /** Sonst Falle: eingeloggt, kein `next`, kein Verzeichnis-Meta → /login war bisher unmöglich (immer → Onboarding). */
+        return response
+      } else if (!internal) {
+        url.pathname = '/onboarding'
         url.search = ''
       } else {
         url.pathname = '/onboarding'
@@ -185,6 +219,17 @@ export async function middleware(request: NextRequest) {
       !isDirectoryMeinProfil &&
       !isBehandlerPublicTree
     ) {
+      const dirPaketMeta = directoryPublicPaketFromUserMetadata(user)
+      const dirPaketCookie = directoryPaketFromCookie(request)
+      if (dirPaketMeta) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/behandler/profil/erstellen'
+        url.search = `?paket=${dirPaketMeta}`
+        return NextResponse.redirect(url)
+      }
+      if (dirPaketCookie) {
+        return redirectWizardClearPaketCookie(request, dirPaketCookie)
+      }
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding'
       return NextResponse.redirect(url)

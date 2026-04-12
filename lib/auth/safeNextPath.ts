@@ -15,3 +15,9 @@ export const AUTH_RETURN_SESSION_KEY = 'anidocs_auth_return' as const
 
 /** Client-only: Paketwahl für Rückkehr nach fehlgeschlagenem Auth-Callback (ohne App-Routen). */
 export const DIRECTORY_WIZARD_PAKET_SESSION_KEY = 'anidocs_wizard_paket' as const
+
+/**
+ * HttpOnly-frei, damit Middleware nach Registrierung das Paket lesen kann (SessionStorage reicht dort nicht).
+ * Kurzer Name; SameSite=Lax.
+ */
+export const DIRECTORY_WIZARD_PAKET_COOKIE = 'anidocs_directory_paket' as const

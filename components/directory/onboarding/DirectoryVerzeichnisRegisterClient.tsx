@@ -5,10 +5,15 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   AUTH_RETURN_SESSION_KEY,
+  DIRECTORY_WIZARD_PAKET_COOKIE,
   DIRECTORY_WIZARD_PAKET_SESSION_KEY,
 } from '@/lib/auth/safeNextPath'
 import { translateAuthError } from '@/lib/auth/translateAuthError'
-import { directoryProfileWizardHref } from '@/lib/directory/public/appBaseUrl'
+import {
+  DIRECTORY_PUBLIC_PAKET_USER_META_KEY,
+  directoryAuthEmailRedirectUrl,
+  directoryProfileWizardHref,
+} from '@/lib/directory/public/appBaseUrl'
 import { supabase } from '@/lib/supabase-client'
 
 const SALUTATION_OPTIONS = [
@@ -45,6 +50,9 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
     try {
       sessionStorage.setItem(AUTH_RETURN_SESSION_KEY, wizardAfterAuth)
       sessionStorage.setItem(DIRECTORY_WIZARD_PAKET_SESSION_KEY, paket)
+      const maxAge = 60 * 60 * 24 * 7
+      const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : ''
+      document.cookie = `${DIRECTORY_WIZARD_PAKET_COOKIE}=${paket}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`
     } catch {
       /* ignore */
     }
@@ -58,7 +66,8 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
 
   function callbackUrl(): string {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${origin}/auth/callback?next=${encodeURIComponent(wizardAfterAuth)}`
+    /** Kurz (`?vz=`), damit Supabase-Redirect-Allowlist + E-Mail-Links `next` nicht verlieren. */
+    return directoryAuthEmailRedirectUrl(origin, paket)
   }
 
   async function handleRegister(e: FormEvent) {
@@ -83,6 +92,7 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           salutation: salutation.trim() || null,
+          [DIRECTORY_PUBLIC_PAKET_USER_META_KEY]: paket,
         },
         emailRedirectTo: callbackUrl(),
       },
@@ -118,7 +128,10 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
     setAwaitingEmail(false)
     const { error: oErr } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: callbackUrl() },
+      options: {
+        redirectTo: callbackUrl(),
+        data: { [DIRECTORY_PUBLIC_PAKET_USER_META_KEY]: paket },
+      },
     })
     if (oErr) setError(translateAuthError(oErr.message))
   }

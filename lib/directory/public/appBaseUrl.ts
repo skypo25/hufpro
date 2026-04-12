@@ -70,6 +70,35 @@ export function clientDirectoryWizardHrefFromPaketSession(): string | null {
   return null
 }
 
+/** In Auth-Metadaten bei Verzeichnis-Registrierung (E-Mail-Link / neues Gerät ohne SessionStorage). */
+export const DIRECTORY_PUBLIC_PAKET_USER_META_KEY = 'directory_public_paket' as const
+
+export function directoryPublicPaketFromUserMetadata(
+  user: { user_metadata?: Record<string, unknown> } | null | undefined
+): 'gratis' | 'premium' | null {
+  const p = user?.user_metadata?.[DIRECTORY_PUBLIC_PAKET_USER_META_KEY]
+  return p === 'premium' ? 'premium' : p === 'gratis' ? 'gratis' : null
+}
+
+/**
+ * Kurzer Query-Name für `emailRedirectTo` / OAuth: viele Supabase-„Redirect URLs“ matchen nur
+ * `/auth/callback` ohne langes `?next=…` — Mail-Clients kürzen lange Links sonst auch.
+ */
+export const DIRECTORY_EMAIL_REDIRECT_PARAM = 'vz' as const
+
+export function directoryPaketFromEmailRedirectParam(
+  raw: string | null | undefined
+): 'gratis' | 'premium' | null {
+  const v = raw?.trim().toLowerCase()
+  return v === 'premium' ? 'premium' : v === 'gratis' ? 'gratis' : null
+}
+
+/** E-Mail-Bestätigung & OAuth: möglichst kurze Callback-URL für die Supabase-Allowlist. */
+export function directoryAuthEmailRedirectUrl(origin: string, paket: 'gratis' | 'premium'): string {
+  const base = origin.replace(/\/+$/, '')
+  return `${base}/auth/callback?${DIRECTORY_EMAIL_REDIRECT_PARAM}=${paket}`
+}
+
 export function directoryRegisterUrl(): string {
   return `${directoryAppBaseUrl()}/register`
 }

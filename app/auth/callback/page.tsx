@@ -10,10 +10,24 @@ import {
 } from '@/lib/auth/safeNextPath'
 import {
   clientDirectoryWizardHrefFromPaketSession,
+  DIRECTORY_EMAIL_REDIRECT_PARAM,
+  directoryPaketFromEmailRedirectParam,
   directoryProfileWizardHref,
+  directoryPublicPaketFromUserMetadata,
   isDirectoryBehandlerProfilFlowReturnPath,
 } from '@/lib/directory/public/appBaseUrl'
 import { supabase } from '@/lib/supabase-client'
+
+async function resolveRedirectAfterSession(preferredNext: string | null): Promise<string> {
+  let next = preferredNext ?? '/onboarding'
+  if (next !== '/onboarding' && isDirectoryBehandlerProfilFlowReturnPath(next)) return next
+  const { data: { user } } = await supabase.auth.getUser()
+  const dp = directoryPublicPaketFromUserMetadata(user)
+  if (dp && (next === '/onboarding' || !preferredNext)) {
+    return directoryProfileWizardHref({ paket: dp })
+  }
+  return next
+}
 
 function isEmailOtpType(v: string | null): v is EmailOtpType {
   return (
@@ -36,6 +50,10 @@ function AuthCallbackInner() {
 
     async function finish() {
       const fromQuery = safeInternalPath(searchParams.get('next'))
+      const vzPaket = directoryPaketFromEmailRedirectParam(searchParams.get(DIRECTORY_EMAIL_REDIRECT_PARAM))
+      /** Alte E-Mail-Templates setzen oft `next=/onboarding` — nicht mit Verzeichnis-`vz` oder Wizard-`next` überschreiben. */
+      const forcedAppOnboarding =
+        fromQuery === '/onboarding' || Boolean(fromQuery?.startsWith('/onboarding?'))
       if (fromQuery && typeof window !== 'undefined') {
         try {
           sessionStorage.removeItem(AUTH_RETURN_SESSION_KEY)
@@ -44,6 +62,9 @@ function AuthCallbackInner() {
         }
       }
       let next = fromQuery
+      if (vzPaket && (!next || forcedAppOnboarding)) {
+        next = directoryProfileWizardHref({ paket: vzPaket })
+      }
       if (!next && typeof window !== 'undefined') {
         try {
           const stored = sessionStorage.getItem(AUTH_RETURN_SESSION_KEY)
@@ -60,13 +81,13 @@ function AuthCallbackInner() {
         const fromPaket = clientDirectoryWizardHrefFromPaketSession()
         if (fromPaket) next = fromPaket
       }
-      next = next ?? '/onboarding'
 
       const code = searchParams.get('code')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!cancelled && !error) {
-          router.replace(next)
+          const dest = await resolveRedirectAfterSession(next ?? null)
+          router.replace(dest)
           return
         }
         if (!cancelled && error) {
@@ -82,7 +103,8 @@ function AuthCallbackInner() {
           type: typeParam,
         })
         if (!cancelled && !error) {
-          router.replace(next)
+          const dest = await resolveRedirectAfterSession(next ?? null)
+          router.replace(dest)
           return
         }
         if (!cancelled && error) {
@@ -99,7 +121,8 @@ function AuthCallbackInner() {
           const { error } = await supabase.auth.setSession({ access_token, refresh_token })
           if (!cancelled && !error) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search)
-            router.replace(next)
+            const dest = await resolveRedirectAfterSession(next ?? null)
+            router.replace(dest)
             return
           }
           if (!cancelled && error) {
@@ -116,6 +139,8 @@ function AuthCallbackInner() {
             const parsed = safeInternalPath(stored)
             if (parsed && isDirectoryBehandlerProfilFlowReturnPath(parsed)) {
               dest = `${parsed}${parsed.includes('?') ? '&' : '?'}auth_error=1`
+            } else if (vzPaket) {
+              dest = `${directoryProfileWizardHref({ paket: vzPaket })}&auth_error=1`
             } else {
               const pk = sessionStorage.getItem(DIRECTORY_WIZARD_PAKET_SESSION_KEY)
               if (pk === 'premium' || pk === 'gratis') {

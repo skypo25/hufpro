@@ -1,11 +1,16 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DIRECTORY_WIZARD_PAKET_SESSION_KEY, safeInternalPath } from '@/lib/auth/safeNextPath'
 import { translateAuthError } from '@/lib/auth/translateAuthError'
-import { directoryProfileWizardHref, isDirectoryBehandlerProfilFlowReturnPath } from '@/lib/directory/public/appBaseUrl'
+import {
+  DIRECTORY_PACKAGE_CHOOSE_PATH,
+  directoryProfileWizardHref,
+  directoryPublicPaketFromUserMetadata,
+  isDirectoryBehandlerProfilFlowReturnPath,
+} from '@/lib/directory/public/appBaseUrl'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
@@ -18,6 +23,11 @@ function LoginContent() {
   const [error, setError] = useState('')
   const oauthError = searchParams.get('error')
   const intendedNext = safeInternalPath(searchParams.get('next'))
+  const [alreadySignedIn, setAlreadySignedIn] = useState(false)
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data: { user } }) => setAlreadySignedIn(Boolean(user)))
+  }, [])
 
   function directoryNextFallbackFromSession(): string | null {
     if (typeof window === 'undefined') return null
@@ -57,6 +67,12 @@ function LoginContent() {
       router.refresh()
       return
     }
+    const metaPaket = directoryPublicPaketFromUserMetadata(user)
+    if (!onboardingComplete && metaPaket) {
+      router.push(directoryProfileWizardHref({ paket: metaPaket }))
+      router.refresh()
+      return
+    }
     if (onboardingComplete) {
       router.push(intendedNext ?? '/dashboard')
     } else {
@@ -88,6 +104,62 @@ function LoginContent() {
           Anmeldung fehlgeschlagen. Bitte erneut versuchen.
         </div>
       )}
+
+      {alreadySignedIn ? (
+        <div
+          style={{
+            width: '100%',
+            marginBottom: 16,
+            padding: '12px 14px',
+            borderRadius: 10,
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: '#14532d',
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: 8 }}>Du bist bereits angemeldet.</strong>
+          <span style={{ color: '#166534' }}>
+            Wenn du das Verzeichnis-Profil einrichten willst, nutze den Verzeichnis-Einstieg. Für die App-Kundenverwaltung
+            die Einrichtung fortsetzen — oder abmelden, um ein anderes Konto zu nutzen.
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+            <Link
+              href={DIRECTORY_PACKAGE_CHOOSE_PATH}
+              style={{ color: '#15803d', fontWeight: 600, textDecoration: 'none' }}
+            >
+              Zum Verzeichnis (Profil anlegen)
+            </Link>
+            <Link href="/onboarding" style={{ color: '#15803d', fontWeight: 600, textDecoration: 'none' }}>
+              App-Einrichtung fortsetzen
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                void supabase.auth.signOut().then(() => {
+                  setAlreadySignedIn(false)
+                  router.refresh()
+                })
+              }}
+              style={{
+                alignSelf: 'flex-start',
+                marginTop: 4,
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '1px solid #86efac',
+                background: '#fff',
+                color: '#14532d',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Abmelden
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Social */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 4 }}>
