@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { safeNextPath } from '@/lib/auth/safeNextPath'
+import { safeInternalPath, safeNextPath } from '@/lib/auth/safeNextPath'
+import { isDirectoryBehandlerProfilFlowReturnPath } from '@/lib/directory/public/appBaseUrl'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import { getBillingState, canAccessApp } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
@@ -88,6 +89,14 @@ export async function middleware(request: NextRequest) {
     if (isAuthCallback) return response
     if (isAuthPage) {
       const url = request.nextUrl.clone()
+      const nextRaw = request.nextUrl.searchParams.get('next')
+      const internal = safeInternalPath(nextRaw)
+      if (internal && isDirectoryBehandlerProfilFlowReturnPath(internal)) {
+        const q = internal.indexOf('?')
+        url.pathname = q === -1 ? internal : internal.slice(0, q)
+        url.search = q === -1 ? '' : `?${internal.slice(q + 1)}`
+        return NextResponse.redirect(url)
+      }
       url.pathname = '/directory/mein-profil'
       url.search = ''
       return NextResponse.redirect(url)
@@ -105,6 +114,10 @@ export async function middleware(request: NextRequest) {
   const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
   const isBillingPath = pathname === '/billing' || pathname.startsWith('/billing/')
+  const isDirectoryMeinProfil =
+    pathname === '/directory/mein-profil' || pathname.startsWith('/directory/mein-profil/')
+  /** Öffentliches Verzeichnis (/behandler): kein App-Onboarding erzwingen (Gratis/Premium-Flow). */
+  const isBehandlerPublicTree = pathname === '/behandler' || pathname.startsWith('/behandler/')
   const isProtectedPage =
     pathname === '/' ||
     pathname.startsWith('/dashboard') ||
@@ -121,10 +134,15 @@ export async function middleware(request: NextRequest) {
 
   const priceIdMonthly = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
 
-  // Unauthenticated → send to login
+  // Unauthenticated → send to login (Ziel merken für Rückkehr nach Auth)
   if (!user && (isProtectedPage || isOnboarding) && !isPublicConfirm) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
+    const returnPath = `${pathname}${request.nextUrl.search}`
+    if (returnPath.startsWith('/') && !returnPath.startsWith('//')) {
+      url.searchParams.set('next', returnPath)
+    }
     return NextResponse.redirect(url)
   }
 
@@ -137,12 +155,19 @@ export async function middleware(request: NextRequest) {
       .maybeSingle()
     const onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
 
-    // Authenticated on auth pages → send to onboarding or Ziel aus ?next=
+    // Authenticated on auth pages → Verzeichnis-Wizard bevorzugen, sonst Dashboard / App-Onboarding
     if (isAuthPage) {
       const url = request.nextUrl.clone()
+      const nextRaw = request.nextUrl.searchParams.get('next')
+      const internal = safeInternalPath(nextRaw)
+      if (internal && isDirectoryBehandlerProfilFlowReturnPath(internal)) {
+        const q = internal.indexOf('?')
+        url.pathname = q === -1 ? internal : internal.slice(0, q)
+        url.search = q === -1 ? '' : `?${internal.slice(q + 1)}`
+        return NextResponse.redirect(url)
+      }
       if (onboardingComplete) {
-        const next = request.nextUrl.searchParams.get('next')
-        url.pathname = safeNextPath(next, '/dashboard')
+        url.pathname = safeNextPath(nextRaw, '/dashboard')
         url.search = ''
       } else {
         url.pathname = '/onboarding'
@@ -151,8 +176,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Authenticated on protected page but onboarding not complete → send to onboarding (Billing ausgenommen)
-    if (isProtectedPage && !onboardingComplete && !isBillingPath) {
+    // Authenticated on protected page but onboarding not complete → App-Onboarding
+    // Ausnahmen: Verzeichnis „Mein Profil“, gesamter öffentlicher /behandler-Baum (Profil-Wizard, Listing, …).
+    if (
+      isProtectedPage &&
+      !onboardingComplete &&
+      !isBillingPath &&
+      !isDirectoryMeinProfil &&
+      !isBehandlerPublicTree
+    ) {
       const url = request.nextUrl.clone()
       url.pathname = '/onboarding'
       return NextResponse.redirect(url)
@@ -222,5 +254,7 @@ export const config = {
     '/billing/:path*',
     '/termin-bestaetigen/:path*',
     '/admin/:path*',
+    '/behandler',
+    '/behandler/:path*',
   ],
 }

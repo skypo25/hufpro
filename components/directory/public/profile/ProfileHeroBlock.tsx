@@ -4,6 +4,7 @@ import type {
   DirectoryPublicSpecialtyRow,
 } from '@/lib/directory/public/types'
 import { coercePgBool } from '@/lib/directory/public/coercePgBool'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import { profileInitials, publicProfileStreetLine } from '@/lib/directory/public/profileDisplay'
 
 export function ProfileHeroBlock({
@@ -26,7 +27,7 @@ export function ProfileHeroBlock({
     specialties.length > 0
       ? [...specialties]
           .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-          .map((s) => s.name.trim())
+          .map((s) => directorySpecialtyDisplayName(s.code, s.name).trim())
           .filter(Boolean)
           .join(' · ')
       : null

@@ -3,7 +3,16 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { EmailOtpType } from '@supabase/supabase-js'
-import { safeNextPath } from '@/lib/auth/safeNextPath'
+import {
+  AUTH_RETURN_SESSION_KEY,
+  DIRECTORY_WIZARD_PAKET_SESSION_KEY,
+  safeInternalPath,
+} from '@/lib/auth/safeNextPath'
+import {
+  clientDirectoryWizardHrefFromPaketSession,
+  directoryProfileWizardHref,
+  isDirectoryBehandlerProfilFlowReturnPath,
+} from '@/lib/directory/public/appBaseUrl'
 import { supabase } from '@/lib/supabase-client'
 
 function isEmailOtpType(v: string | null): v is EmailOtpType {
@@ -26,7 +35,32 @@ function AuthCallbackInner() {
     let cancelled = false
 
     async function finish() {
-      const next = safeNextPath(searchParams.get('next'), '/onboarding')
+      const fromQuery = safeInternalPath(searchParams.get('next'))
+      if (fromQuery && typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem(AUTH_RETURN_SESSION_KEY)
+        } catch {
+          /* ignore */
+        }
+      }
+      let next = fromQuery
+      if (!next && typeof window !== 'undefined') {
+        try {
+          const stored = sessionStorage.getItem(AUTH_RETURN_SESSION_KEY)
+          const parsed = safeInternalPath(stored)
+          if (parsed) {
+            next = parsed
+            sessionStorage.removeItem(AUTH_RETURN_SESSION_KEY)
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!next && typeof window !== 'undefined') {
+        const fromPaket = clientDirectoryWizardHrefFromPaketSession()
+        if (fromPaket) next = fromPaket
+      }
+      next = next ?? '/onboarding'
 
       const code = searchParams.get('code')
       if (code) {
@@ -75,7 +109,24 @@ function AuthCallbackInner() {
       }
 
       if (!cancelled) {
-        router.replace('/login?error=auth')
+        let dest = '/login?error=auth'
+        if (typeof window !== 'undefined') {
+          try {
+            const stored = sessionStorage.getItem(AUTH_RETURN_SESSION_KEY)
+            const parsed = safeInternalPath(stored)
+            if (parsed && isDirectoryBehandlerProfilFlowReturnPath(parsed)) {
+              dest = `${parsed}${parsed.includes('?') ? '&' : '?'}auth_error=1`
+            } else {
+              const pk = sessionStorage.getItem(DIRECTORY_WIZARD_PAKET_SESSION_KEY)
+              if (pk === 'premium' || pk === 'gratis') {
+                dest = `${directoryProfileWizardHref({ paket: pk })}&auth_error=1`
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        router.replace(dest)
       }
     }
 

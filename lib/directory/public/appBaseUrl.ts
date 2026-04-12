@@ -1,3 +1,5 @@
+import { DIRECTORY_WIZARD_PAKET_SESSION_KEY } from '@/lib/auth/safeNextPath'
+
 /** Öffentliche Site für /behandler (Share, kanonische URLs). Fallback: App-URL. */
 export function directoryPublicSiteOrigin(): string {
   const raw =
@@ -19,11 +21,53 @@ export function directoryAppBaseUrl(): string {
   return raw.startsWith('http') ? raw.replace(/\/+$/, '') : `https://${raw.replace(/\/+$/, '')}`
 }
 
-/** Relativer Pfad zum Onboarding-Wizard (gleiche Next-Site wie /behandler). */
-export const DIRECTORY_PROFILE_CREATE_PATH = '/behandler/profil/erstellen' as const
+/** Vorgeschaltete Paketwahl („Profil erstellen“-Einstieg). */
+export const DIRECTORY_PACKAGE_CHOOSE_PATH = '/behandler/paket-waehlen' as const
 
+/** Relativer Pfad zum Profil-Wizard (nur nach Login / bestätigtem Zugang). */
+export const DIRECTORY_PROFILE_WIZARD_PATH = '/behandler/profil/erstellen' as const
+
+/** Kompakter Verzeichnis-Einstieg vor dem Wizard (Gratis & Premium). */
+export const DIRECTORY_PROFILE_REGISTER_PATH = '/behandler/profil/registrieren' as const
+
+/** Öffentlicher Einstieg: zuerst Paket wählen (Conversion, klare Trennung vom Formular). */
 export function directoryProfileCreateHref(): string {
-  return DIRECTORY_PROFILE_CREATE_PATH
+  return DIRECTORY_PACKAGE_CHOOSE_PATH
+}
+
+export function directoryProfileWizardHref(query?: { paket: 'gratis' | 'premium' }): string {
+  if (query?.paket) {
+    return `${DIRECTORY_PROFILE_WIZARD_PATH}?paket=${query.paket}`
+  }
+  return DIRECTORY_PROFILE_WIZARD_PATH
+}
+
+/** Paketwahl → kompakte Registrierung (vor E-Mail-Bestätigung / Login). */
+export function directoryProfileRegisterHref(query: { paket: 'gratis' | 'premium' }): string {
+  return `${DIRECTORY_PROFILE_REGISTER_PATH}?paket=${query.paket}`
+}
+
+/** Wizard oder Verzeichnis-Registrierung — für Auth-Rückleitungen ohne Open-Redirect. */
+export function isDirectoryBehandlerProfilFlowReturnPath(raw: string | null | undefined): boolean {
+  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return false
+  const pathOnly = raw.split('?')[0]?.trim() ?? ''
+  return pathOnly === DIRECTORY_PROFILE_WIZARD_PATH || pathOnly === DIRECTORY_PROFILE_REGISTER_PATH
+}
+
+/**
+ * Client-only: Wizard-Ziel aus Session, falls `next` in der URL fehlt (z. B. E-Mail-Link ohne Query).
+ */
+export function clientDirectoryWizardHrefFromPaketSession(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const pk = window.sessionStorage.getItem(DIRECTORY_WIZARD_PAKET_SESSION_KEY)
+    if (pk === 'premium' || pk === 'gratis') {
+      return directoryProfileWizardHref({ paket: pk })
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
 }
 
 export function directoryRegisterUrl(): string {

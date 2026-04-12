@@ -16,10 +16,46 @@ function normalizeBaseUrl(raw: string | undefined): string {
 }
 
 /**
+ * Erster gesetzter Wert für eine kontaktierbare Origin im User-Agent (Nominatim-Richtlinie).
+ * Kein Fallback auf eine Marketing-Domain ohne Env — nur explizite Deploy-/Site-URLs.
+ */
+function siteOriginForGeocodingUserAgent(): string | null {
+  const raw =
+    process.env.NEXT_PUBLIC_DIRECTORY_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    process.env.VERCEL_URL?.trim()
+  if (!raw) return null
+  try {
+    const withScheme = raw.startsWith('http') ? raw : `https://${raw.replace(/^\/+/, '')}`
+    return new URL(withScheme).origin
+  } catch {
+    return null
+  }
+}
+
+/**
+ * User-Agent für Nominatim (und kompatible `/search`-APIs).
+ *
+ * 1. `DIRECTORY_GEOCODING_USER_AGENT` wenn gesetzt (empfohlen für Produktion).
+ * 2. Sonst automatisch `AniDocs-Verzeichnis/1.0 (+<Origin>)` aus
+ *    `NEXT_PUBLIC_DIRECTORY_SITE_URL` | `NEXT_PUBLIC_SITE_URL` | `NEXT_PUBLIC_APP_URL` | `VERCEL_URL`
+ *    (auf Vercel ist `VERCEL_URL` gesetzt → Umkreis-Geocode ohne Extra-Variable).
+ */
+export function resolveDirectoryGeocodingUserAgent(): string | null {
+  const explicit = process.env.DIRECTORY_GEOCODING_USER_AGENT?.trim()
+  if (explicit) return explicit
+  const origin = siteOriginForGeocodingUserAgent()
+  if (!origin) return null
+  return `AniDocs-Verzeichnis/1.0 (+${origin})`
+}
+
+/**
  * Server-only: wandelt Ort/PLZ in einen Punkt um.
  *
- * **Betrieb:** Setze `DIRECTORY_GEOCODING_USER_AGENT` (Pflicht für Nominatim-Nutzungsrichtlinien),
- * z. B. `AniDocs Verzeichnis (https://anidocs.de)`. Ohne UA: kein externer Call → `null`.
+ * **Betrieb:** `DIRECTORY_GEOCODING_USER_AGENT` setzen **oder** eine der öffentlichen Site-URLs /
+ * `VERCEL_URL`, damit {@link resolveDirectoryGeocodingUserAgent} einen gültigen UA erzeugt.
+ * Ohne erkennbare App-URL und ohne expliziten UA: kein externer Call → `null`.
  *
  * Optional: `DIRECTORY_GEOCODE_BASE_URL` (Default: öffentliches Nominatim — nur moderat nutzen;
  * für Produktion eigene Instanz oder kommerziellen Geocoder empfohlen, siehe Doku).
@@ -29,7 +65,7 @@ export const geocodeLocationQuery = cache(async (query: string): Promise<Geocode
   if (q.length < 2) return null
   if (q.length > MAX_QUERY_LEN) return null
 
-  const userAgent = process.env.DIRECTORY_GEOCODING_USER_AGENT?.trim()
+  const userAgent = resolveDirectoryGeocodingUserAgent()
   if (!userAgent) return null
 
   const base = normalizeBaseUrl(process.env.DIRECTORY_GEOCODE_BASE_URL)

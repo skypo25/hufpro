@@ -1,8 +1,14 @@
+import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
+import { canAccessApp, getBillingState } from '@/lib/billing/state'
+import type { BillingAccountRow } from '@/lib/billing/types'
 import { baseSlugFromRow } from '@/lib/directory/import/slug'
 import {
   normalizeOpeningHoursJson,
   type DirectoryOpeningHoursJson,
 } from '@/lib/directory/openingHours'
+import { sendDirectoryProductEmail } from '@/lib/directory/onboarding/sendDirectoryProductEmails.server'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
+import { syncDirectoryProfilePlanFromEntitlements } from '@/lib/directory/product/syncDirectoryProfilePlanFromEntitlements.server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -66,24 +72,6 @@ function buildDisplayNameFromParts(nameTitle: string, firstName: string, lastNam
   return parts.join(' ')
 }
 
-function buildExtendedDescription(parts: {
-  quali: string[]
-  customSpec: string[]
-  customMethod: string[]
-}): string | null {
-  const blocks: string[] = []
-  if (parts.quali.length) {
-    blocks.push(['Qualifikationen:', ...parts.quali.map((q) => `- ${q}`)].join('\n'))
-  }
-  if (parts.customSpec.length) {
-    blocks.push(['Eigene Spezialisierungen:', ...parts.customSpec.map((q) => `- ${q}`)].join('\n'))
-  }
-  if (parts.customMethod.length) {
-    blocks.push(['Eigene Leistungen / Methoden:', ...parts.customMethod.map((q) => `- ${q}`)].join('\n'))
-  }
-  return blocks.length ? blocks.join('\n\n') : null
-}
-
 async function allocateUniqueSlug(supabase: ReturnType<typeof createSupabaseServiceRoleClient>, base: string): Promise<string> {
   const safeBase = (base || 'eintrag').slice(0, 120)
   const { data } = await supabase.from('directory_profiles').select('id').eq('slug', safeBase).maybeSingle()
@@ -122,6 +110,12 @@ export type WizardSubmitPayload = {
   methodIds: string[]
   customSpecs: string[]
   customMethods: string[]
+  /** Optional: eigene Spezialisierungen je Fachrichtungs-ID (UUID). */
+  customSpecsBySpecialtyId?: Record<string, string[]>
+  /** Optional: eigene Methoden je Fachrichtungs-ID. */
+  customMethodsBySpecialtyId?: Record<string, string[]>
+  /** Wizard: pro Fachrichtung eigene Felder — serverseitige Validierung & Beschreibungsblöcke. */
+  wizardUsesPerSpecialtyCustomBlocks?: boolean
   animalTypeIds: string[]
   serviceType: 'mobile' | 'stationary' | 'both'
   radiusKm: number
@@ -136,10 +130,50 @@ export type WizardSubmitPayload = {
   openingHours?: DirectoryOpeningHoursJson | null
   /** Freitext: telefonische Erreichbarkeit, Feiertage … */
   openingHoursNote?: string
+  /** Onboarding: gewähltes Paket (fehlend = neutral, z. B. Bearbeitung unter „Mein Profil“). */
+  onboardingProductChoice?: 'free' | 'directory_premium' | 'app' | null
+}
+
+function extendedDescriptionForWizard(
+  p: WizardSubmitPayload,
+  specs: { id: string; name: string; code: string }[],
+): string | null {
+  const nameById = new Map(
+    specs.map((s) => [s.id, directorySpecialtyDisplayName(s.code, s.name)]),
+  )
+  const usePer = Boolean(p.wizardUsesPerSpecialtyCustomBlocks)
+  const hasSpecBy = usePer && p.customSpecsBySpecialtyId && Object.keys(p.customSpecsBySpecialtyId).length > 0
+  const hasMethodBy = usePer && p.customMethodsBySpecialtyId && Object.keys(p.customMethodsBySpecialtyId).length > 0
+
+  const blocks: string[] = []
+  if (p.qualiItems.length) {
+    blocks.push(['Qualifikationen:', ...p.qualiItems.map((q) => `- ${q}`)].join('\n'))
+  }
+  if (hasSpecBy) {
+    for (const sid of p.specialtyIds) {
+      const items = (p.customSpecsBySpecialtyId?.[sid] ?? []).filter(Boolean)
+      if (items.length === 0) continue
+      const label = nameById.get(sid) ?? 'Fachrichtung'
+      blocks.push([`Eigene Spezialisierungen (${label}):`, ...items.map((q) => `- ${q}`)].join('\n'))
+    }
+  } else if (p.customSpecs.length) {
+    blocks.push(['Eigene Spezialisierungen:', ...p.customSpecs.map((q) => `- ${q}`)].join('\n'))
+  }
+  if (hasMethodBy) {
+    for (const sid of p.specialtyIds) {
+      const items = (p.customMethodsBySpecialtyId?.[sid] ?? []).filter(Boolean)
+      if (items.length === 0) continue
+      const label = nameById.get(sid) ?? 'Fachrichtung'
+      blocks.push([`Eigene Leistungen / Methoden (${label}):`, ...items.map((q) => `- ${q}`)].join('\n'))
+    }
+  } else if (p.customMethods.length) {
+    blocks.push(['Eigene Leistungen / Methoden:', ...p.customMethods.map((q) => `- ${q}`)].join('\n'))
+  }
+  return blocks.length ? blocks.join('\n\n') : null
 }
 
 export type WizardSubmitResult =
-  | { ok: true; slug: string; profileId: string }
+  | { ok: true; slug: string; profileId: string; postProfileCheckout?: 'app' }
   | { ok: false; error: string }
 
 function parsePayload(raw: unknown): WizardSubmitPayload | { error: string } {
@@ -248,24 +282,62 @@ function parsePayload(raw: unknown): WizardSubmitPayload | { error: string } {
   const subIdsDedup = [...new Set(subcategoryIds)].filter(isUuid)
   const methodIdsDedup = [...new Set(methodIds)].filter(isUuid)
   const animalDedup = [...new Set(animalTypeIds)].filter(isUuid)
-  const customSpecClean = [...new Set(customSpecs.map((s) => s.trim()).filter(Boolean))].slice(0, 30)
-  const customMethodClean = [...new Set(customMethods.map((s) => s.trim()).filter(Boolean))].slice(0, 30)
+  const wizardUsesPerSpecialtyCustomBlocks = o.wizardUsesPerSpecialtyCustomBlocks === true
+
+  const customSpecsBySpecialtyId: Record<string, string[]> = {}
+  const rawCsBy = o.customSpecsBySpecialtyId
+  if (rawCsBy != null && typeof rawCsBy === 'object' && !Array.isArray(rawCsBy)) {
+    for (const [k, v] of Object.entries(rawCsBy)) {
+      if (!isUuid(k)) return { error: 'Ungültige Fachrichtungs-ID (eigene Spezialisierungen).' }
+      if (!specIdsDedup.includes(k)) return { error: 'Eigene Spezialisierungen: Fachrichtung passt nicht zur Auswahl.' }
+      if (!Array.isArray(v)) return { error: 'Eigene Spezialisierungen je Fachrichtung: ungültiges Format.' }
+      const arr = [...new Set(v.filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean))].slice(
+        0,
+        24,
+      )
+      for (const c of arr) {
+        if (c.length > 120) return { error: 'Eigene Spezialisierung zu lang.' }
+      }
+      if (arr.length) customSpecsBySpecialtyId[k] = arr
+    }
+  }
+
+  const customMethodsBySpecialtyId: Record<string, string[]> = {}
+  const rawCmBy = o.customMethodsBySpecialtyId
+  if (rawCmBy != null && typeof rawCmBy === 'object' && !Array.isArray(rawCmBy)) {
+    for (const [k, v] of Object.entries(rawCmBy)) {
+      if (!isUuid(k)) return { error: 'Ungültige Fachrichtungs-ID (eigene Methoden).' }
+      if (!specIdsDedup.includes(k)) return { error: 'Eigene Methoden: Fachrichtung passt nicht zur Auswahl.' }
+      if (!Array.isArray(v)) return { error: 'Eigene Methoden je Fachrichtung: ungültiges Format.' }
+      const arr = [...new Set(v.filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean))].slice(
+        0,
+        24,
+      )
+      for (const c of arr) {
+        if (c.length > 120) return { error: 'Eigene Methode zu lang.' }
+      }
+      if (arr.length) customMethodsBySpecialtyId[k] = arr
+    }
+  }
+
+  const flatSpecClean = [...new Set(customSpecs.map((s) => s.trim()).filter(Boolean))].slice(0, 30)
+  const flatMethodClean = [...new Set(customMethods.map((s) => s.trim()).filter(Boolean))].slice(0, 30)
+  const fromSpecBy = Object.values(customSpecsBySpecialtyId).flat()
+  const fromMethodBy = Object.values(customMethodsBySpecialtyId).flat()
+  const customSpecClean = [...new Set([...flatSpecClean, ...fromSpecBy])].slice(0, 60)
+  const customMethodClean = [...new Set([...flatMethodClean, ...fromMethodBy])].slice(0, 60)
   const qualiClean = [...new Set(qualiItems.map((s) => s.trim()).filter(Boolean))].slice(0, 40)
 
-  for (const c of customSpecClean) {
-    if (c.length > 120) return { error: 'Eigene Spezialisierung zu lang.' }
-  }
-  for (const c of customMethodClean) {
-    if (c.length > 120) return { error: 'Eigene Methode zu lang.' }
-  }
   for (const c of qualiClean) {
     if (c.length > 200) return { error: 'Qualifikation zu lang.' }
   }
 
   if (specIdsDedup.length === 0) return { error: 'Mindestens eine Fachrichtung wählen.' }
   if (animalDedup.length === 0) return { error: 'Mindestens eine Tierart wählen.' }
-  if (subIdsDedup.length === 0 && customSpecClean.length === 0) {
-    return { error: 'Mindestens eine Spezialisierung oder eigene Eintragung.' }
+  if (!wizardUsesPerSpecialtyCustomBlocks) {
+    if (subIdsDedup.length === 0 && customSpecClean.length === 0) {
+      return { error: 'Mindestens eine Spezialisierung oder eigene Eintragung.' }
+    }
   }
   if (methodIdsDedup.length === 0 && customMethodClean.length === 0) {
     return { error: 'Mindestens eine Methode/Leistung oder eigene Eintragung.' }
@@ -274,6 +346,12 @@ function parsePayload(raw: unknown): WizardSubmitPayload | { error: string } {
   const openingHoursNoteRaw = typeof o.openingHoursNote === 'string' ? o.openingHoursNote : ''
   if (openingHoursNoteRaw.length > 800) return { error: 'Hinweis zu Öffnungszeiten zu lang (max. 800 Zeichen).' }
   const openingHoursNormalized = normalizeOpeningHoursJson(o.openingHours)
+
+  const rawOnb = typeof o.onboardingProductChoice === 'string' ? o.onboardingProductChoice.trim() : ''
+  let onboardingProductChoice: 'free' | 'directory_premium' | 'app' | null = null
+  if (rawOnb === 'free' || rawOnb === 'directory_premium' || rawOnb === 'app') {
+    onboardingProductChoice = rawOnb
+  }
 
   return {
     practiceName: practiceName.trim(),
@@ -294,6 +372,11 @@ function parsePayload(raw: unknown): WizardSubmitPayload | { error: string } {
     methodIds: methodIdsDedup,
     customSpecs: customSpecClean,
     customMethods: customMethodClean,
+    customSpecsBySpecialtyId:
+      Object.keys(customSpecsBySpecialtyId).length > 0 ? customSpecsBySpecialtyId : undefined,
+    customMethodsBySpecialtyId:
+      Object.keys(customMethodsBySpecialtyId).length > 0 ? customMethodsBySpecialtyId : undefined,
+    wizardUsesPerSpecialtyCustomBlocks: wizardUsesPerSpecialtyCustomBlocks ? true : undefined,
     animalTypeIds: animalDedup,
     serviceType,
     radiusKm: Math.round(radiusKm),
@@ -304,6 +387,7 @@ function parsePayload(raw: unknown): WizardSubmitPayload | { error: string } {
     longitude,
     openingHours: openingHoursNormalized,
     openingHoursNote: openingHoursNoteRaw.trim(),
+    onboardingProductChoice,
   }
 }
 
@@ -323,12 +407,50 @@ export async function submitDirectoryProfileWizard(raw: unknown): Promise<Wizard
 
   const { data: specRows, error: specErr } = await supabase
     .from('directory_specialties')
-    .select('id')
+    .select('id, name, code')
     .in('id', p.specialtyIds)
     .eq('is_active', true)
   if (specErr) return { ok: false, error: `Fachrichtungen: ${specErr.message}` }
   if ((specRows ?? []).length !== p.specialtyIds.length) {
     return { ok: false, error: 'Ungültige Fachrichtung ausgewählt.' }
+  }
+
+  let subRows: { id: string; directory_specialty_id: string }[] = []
+  if (p.subcategoryIds.length > 0) {
+    const { data: subData, error: subErr } = await supabase
+      .from('directory_subcategories')
+      .select('id, directory_specialty_id')
+      .in('id', p.subcategoryIds)
+      .eq('is_active', true)
+    if (subErr) return { ok: false, error: `Spezialisierungen: ${subErr.message}` }
+    if ((subData ?? []).length !== p.subcategoryIds.length) {
+      return { ok: false, error: 'Ungültige Spezialisierung ausgewählt.' }
+    }
+    for (const row of subData ?? []) {
+      const sid = (row as { directory_specialty_id: string }).directory_specialty_id
+      if (!p.specialtyIds.includes(sid)) {
+        return { ok: false, error: 'Spezialisierung passt nicht zu den gewählten Fachrichtungen.' }
+      }
+    }
+    subRows = (subData ?? []) as { id: string; directory_specialty_id: string }[]
+  }
+
+  if (p.wizardUsesPerSpecialtyCustomBlocks) {
+    const subCountBySpec = new Map<string, number>()
+    for (const r of subRows) {
+      subCountBySpec.set(r.directory_specialty_id, (subCountBySpec.get(r.directory_specialty_id) ?? 0) + 1)
+    }
+    for (const sid of p.specialtyIds) {
+      const nSub = subCountBySpec.get(sid) ?? 0
+      const nCust = (p.customSpecsBySpecialtyId?.[sid] ?? []).length
+      if (nSub === 0 && nCust === 0) {
+        return {
+          ok: false,
+          error:
+            'Pro gewählter Fachrichtung mindestens eine Spezialisierung aus der Liste oder eine eigene Eintragung.',
+        }
+      }
+    }
   }
 
   const { data: animalRows, error: aniErr } = await supabase
@@ -339,24 +461,6 @@ export async function submitDirectoryProfileWizard(raw: unknown): Promise<Wizard
   if (aniErr) return { ok: false, error: `Tierarten: ${aniErr.message}` }
   if ((animalRows ?? []).length !== p.animalTypeIds.length) {
     return { ok: false, error: 'Ungültige Tierart ausgewählt.' }
-  }
-
-  if (p.subcategoryIds.length > 0) {
-    const { data: subRows, error: subErr } = await supabase
-      .from('directory_subcategories')
-      .select('id, directory_specialty_id')
-      .in('id', p.subcategoryIds)
-      .eq('is_active', true)
-    if (subErr) return { ok: false, error: `Spezialisierungen: ${subErr.message}` }
-    if ((subRows ?? []).length !== p.subcategoryIds.length) {
-      return { ok: false, error: 'Ungültige Spezialisierung ausgewählt.' }
-    }
-    for (const row of subRows ?? []) {
-      const sid = (row as { directory_specialty_id: string }).directory_specialty_id
-      if (!p.specialtyIds.includes(sid)) {
-        return { ok: false, error: 'Spezialisierung passt nicht zu den gewählten Fachrichtungen.' }
-      }
-    }
   }
 
   if (p.methodIds.length > 0) {
@@ -386,11 +490,10 @@ export async function submitDirectoryProfileWizard(raw: unknown): Promise<Wizard
   }
 
   const streetFull = trimToNull(p.streetLine)
-  const extendedDesc = buildExtendedDescription({
-    quali: p.qualiItems,
-    customSpec: p.customSpecs,
-    customMethod: p.customMethods,
-  })
+  const extendedDesc = extendedDescriptionForWizard(
+    p,
+    (specRows ?? []) as { id: string; name: string; code: string }[],
+  )
   const shortDescNull = trimToNull(p.shortDesc)
 
   const displayName = buildDisplayNameFromParts(p.nameTitle, p.firstName, p.lastName)
@@ -518,12 +621,50 @@ export async function upsertOwnedDirectoryProfileFromWizard(args: {
   // Reuse the same validation of reference IDs (active rows, coherence).
   const { data: specRows, error: specErr } = await supabase
     .from('directory_specialties')
-    .select('id')
+    .select('id, name, code')
     .in('id', p.specialtyIds)
     .eq('is_active', true)
   if (specErr) return { ok: false, error: `Fachrichtungen: ${specErr.message}` }
   if ((specRows ?? []).length !== p.specialtyIds.length) {
     return { ok: false, error: 'Ungültige Fachrichtung ausgewählt.' }
+  }
+
+  let subRows: { id: string; directory_specialty_id: string }[] = []
+  if (p.subcategoryIds.length > 0) {
+    const { data: subData, error: subErr } = await supabase
+      .from('directory_subcategories')
+      .select('id, directory_specialty_id')
+      .in('id', p.subcategoryIds)
+      .eq('is_active', true)
+    if (subErr) return { ok: false, error: `Spezialisierungen: ${subErr.message}` }
+    if ((subData ?? []).length !== p.subcategoryIds.length) {
+      return { ok: false, error: 'Ungültige Spezialisierung ausgewählt.' }
+    }
+    for (const row of subData ?? []) {
+      const sid = (row as { directory_specialty_id: string }).directory_specialty_id
+      if (!p.specialtyIds.includes(sid)) {
+        return { ok: false, error: 'Spezialisierung passt nicht zu den gewählten Fachrichtungen.' }
+      }
+    }
+    subRows = (subData ?? []) as { id: string; directory_specialty_id: string }[]
+  }
+
+  if (p.wizardUsesPerSpecialtyCustomBlocks) {
+    const subCountBySpec = new Map<string, number>()
+    for (const r of subRows) {
+      subCountBySpec.set(r.directory_specialty_id, (subCountBySpec.get(r.directory_specialty_id) ?? 0) + 1)
+    }
+    for (const sid of p.specialtyIds) {
+      const nSub = subCountBySpec.get(sid) ?? 0
+      const nCust = (p.customSpecsBySpecialtyId?.[sid] ?? []).length
+      if (nSub === 0 && nCust === 0) {
+        return {
+          ok: false,
+          error:
+            'Pro gewählter Fachrichtung mindestens eine Spezialisierung aus der Liste oder eine eigene Eintragung.',
+        }
+      }
+    }
   }
 
   const { data: animalRows, error: aniErr } = await supabase
@@ -534,24 +675,6 @@ export async function upsertOwnedDirectoryProfileFromWizard(args: {
   if (aniErr) return { ok: false, error: `Tierarten: ${aniErr.message}` }
   if ((animalRows ?? []).length !== p.animalTypeIds.length) {
     return { ok: false, error: 'Ungültige Tierart ausgewählt.' }
-  }
-
-  if (p.subcategoryIds.length > 0) {
-    const { data: subRows, error: subErr } = await supabase
-      .from('directory_subcategories')
-      .select('id, directory_specialty_id')
-      .in('id', p.subcategoryIds)
-      .eq('is_active', true)
-    if (subErr) return { ok: false, error: `Spezialisierungen: ${subErr.message}` }
-    if ((subRows ?? []).length !== p.subcategoryIds.length) {
-      return { ok: false, error: 'Ungültige Spezialisierung ausgewählt.' }
-    }
-    for (const row of subRows ?? []) {
-      const sid = (row as { directory_specialty_id: string }).directory_specialty_id
-      if (!p.specialtyIds.includes(sid)) {
-        return { ok: false, error: 'Spezialisierung passt nicht zu den gewählten Fachrichtungen.' }
-      }
-    }
   }
 
   if (p.methodIds.length > 0) {
@@ -578,12 +701,13 @@ export async function upsertOwnedDirectoryProfileFromWizard(args: {
     .eq('claimed_by_user_id', args.userId)
     .maybeSingle()
 
+  const isNewInsert = !existing?.id
+
   const streetFull = trimToNull(p.streetLine)
-  const extendedDesc = buildExtendedDescription({
-    quali: p.qualiItems,
-    customSpec: p.customSpecs,
-    customMethod: p.customMethods,
-  })
+  const extendedDesc = extendedDescriptionForWizard(
+    p,
+    (specRows ?? []) as { id: string; name: string; code: string }[],
+  )
   const shortDescNull = trimToNull(p.shortDesc)
 
   const displayName = buildDisplayNameFromParts(p.nameTitle, p.firstName, p.lastName)
@@ -727,5 +851,62 @@ export async function upsertOwnedDirectoryProfileFromWizard(args: {
     { onConflict: 'directory_profile_id,external_key' }
   )
 
-  return { ok: true, slug, profileId }
+  await syncDirectoryProfilePlanFromEntitlements(supabase, profileId)
+
+  const { data: planRow } = await supabase
+    .from('directory_profiles')
+    .select('directory_plan, display_name')
+    .eq('id', profileId)
+    .maybeSingle()
+
+  const { data: billingRow } = await supabase
+    .from('billing_accounts')
+    .select(BILLING_ACCOUNT_COLUMNS)
+    .eq('user_id', args.userId)
+    .maybeSingle()
+
+  const billingState = getBillingState({
+    account: (billingRow ?? null) as BillingAccountRow | null,
+    priceIdMonthly: process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null,
+  })
+  const appLive = canAccessApp(billingState)
+  const hasPremium = (planRow as { directory_plan?: string } | null)?.directory_plan === 'premium'
+  const choice = p.onboardingProductChoice ?? null
+
+  let postProfileCheckout: 'app' | undefined
+  if (choice === 'app' && !appLive) {
+    postProfileCheckout = 'app'
+  }
+  // Verzeichnis-Premium: Checkout läuft im Wizard (Zwischenschritt nach Kernangaben), nicht automatisch hier.
+
+  if (isNewInsert && postProfileCheckout) {
+    await sendDirectoryProductEmail({
+      db: supabase,
+      userId: args.userId,
+      profileSlug: slug,
+      displayName: (planRow as { display_name?: string } | null)?.display_name ?? displayName,
+      kind: 'profile_saved_checkout_next',
+    })
+  } else if (
+    isNewInsert &&
+    !postProfileCheckout &&
+    !hasPremium &&
+    !appLive &&
+    (choice === 'free' || choice === null)
+  ) {
+    await sendDirectoryProductEmail({
+      db: supabase,
+      userId: args.userId,
+      profileSlug: slug,
+      displayName: (planRow as { display_name?: string } | null)?.display_name ?? displayName,
+      kind: 'free_profile_created',
+    })
+  }
+
+  return {
+    ok: true,
+    slug,
+    profileId,
+    ...(postProfileCheckout ? { postProfileCheckout } : {}),
+  }
 }

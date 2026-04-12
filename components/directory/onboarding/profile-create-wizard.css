@@ -531,6 +531,65 @@
   min-height: 90px;
 }
 
+/* Validierung: fehlende / ungültige Felder nach „Weiter“ */
+.dir-profile-onb-root .form-group--invalid > .form-label {
+  color: #b42318;
+}
+
+.dir-profile-onb-root .form-group--invalid .form-input,
+.dir-profile-onb-root .form-group--invalid textarea.form-input {
+  border-color: #f04438;
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
+}
+
+.dir-profile-onb-root .form-group--invalid .form-icon-input .form-input {
+  border-color: #f04438;
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
+}
+
+.dir-profile-onb-root .dir-wiz-social-row--invalid .form-input {
+  border-color: #f04438;
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
+}
+
+.dir-profile-onb-root .dir-wiz-hours--invalid {
+  border-radius: var(--radius-sm);
+  outline: 2px solid rgba(240, 68, 56, 0.55);
+  outline-offset: 3px;
+}
+
+.dir-profile-onb-root .dir-wiz-block--invalid {
+  border-radius: var(--radius-sm);
+  outline: 2px solid rgba(240, 68, 56, 0.55);
+  outline-offset: 2px;
+}
+
+.dir-profile-onb-root .sel-grid.dir-wiz-sel--invalid,
+.dir-profile-onb-root .sel-grid-sm.dir-wiz-sel--invalid,
+.dir-profile-onb-root .sel-grid-work.dir-wiz-sel--invalid {
+  border-radius: var(--radius-sm);
+  outline: 2px solid rgba(240, 68, 56, 0.55);
+  outline-offset: 3px;
+}
+
+.dir-profile-onb-root .dir-wiz-methods-scope--invalid {
+  border-radius: var(--radius-sm);
+  outline: 2px solid rgba(240, 68, 56, 0.55);
+  outline-offset: 3px;
+}
+
+.dir-profile-onb-root .dir-wiz-quali-wrap--invalid {
+  border-radius: var(--radius-sm);
+  outline: 2px solid rgba(240, 68, 56, 0.55);
+  outline-offset: 3px;
+  padding-bottom: 4px;
+}
+
+.dir-profile-onb-root .dir-wiz-quali-wrap--invalid .quali-input-wrap .form-input {
+  border-color: #f04438;
+  box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
+}
+
 .dir-profile-onb-root .form-hint {
   font-size: 12px;
   color: var(--text-light);
@@ -1487,6 +1546,93 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Spezialisierungen / Methoden: je Fachrichtung */
+.dir-profile-onb-root .dir-wiz-spec-block {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+  border: 1px solid var(--border-light);
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1b1f23;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Fachrichtungs-Icon: ohne feste Größe füllen manche Inline-SVGs die Zeile (riesig). */
+.dir-profile-onb-root .dir-wiz-spec-block-title .onb-wizard-chip-cat-icon-img {
+  width: 22px;
+  height: 22px;
+  max-width: 22px;
+  max-height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  color: #1b1f23;
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block-title > svg.onb-wizard-chip-cat-icon-img {
+  width: 22px;
+  height: 22px;
+  max-width: 22px;
+  max-height: 22px;
+  flex-shrink: 0;
+  color: #1b1f23;
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block-title > i.bi {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: #1b1f23;
+}
+
+/* Spezialisierungen & Methoden: Chips in den Fachrichtungs-Blöcken */
+.dir-profile-onb-root .dir-wiz-spec-block .chip-wrap .chip {
+  border: none;
+  background: #ecf3f4;
+  color: #1b1f23;
+  box-shadow: none;
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block .chip-wrap .chip:hover {
+  border: none;
+  background: #e0e9ec;
+  color: #1b1f23;
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block .chip-wrap .chip.selected {
+  border: none;
+  background: #1b1f23;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.dir-profile-onb-root .dir-wiz-spec-block .chip-wrap .chip.selected:hover {
+  background: #14181c;
+  color: #ffffff;
+}
+
+.dir-profile-onb-root .dir-wiz-own-label {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1b1f23;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* Schritt Logo & Galerie */

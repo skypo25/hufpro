@@ -13,6 +13,7 @@ import {
   directoryPremiumIsNewProfile,
 } from '@/components/directory/public/listing/directoryListingPremiumHelpers'
 import { directoryAboutUrl } from '@/lib/directory/public/appBaseUrl'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import type {
   ProfileListingChipLabels,
   ProfileTaxonomyLabels,
@@ -454,7 +455,7 @@ export function DirectoryListingPremiumShell({
               <option value="">Alle Fachrichtungen</option>
               {specialties.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name}
+                  {directorySpecialtyDisplayName(s.code, s.name)}
                 </option>
               ))}
             </select>

@@ -17,6 +17,7 @@ import {
 } from '@/lib/directory/openingHours'
 import {
   countryDachLabel,
+  directorySpecialtyDisplayName,
   serviceTypeLabel,
   socialPlatformIconClass,
   socialPlatformLabel,
@@ -85,7 +86,7 @@ export function DirectoryProfilePublicDetail({
   const sidebarCardTitle = publicProfileSidebarCardTitle(profile)
   const sidebarCardTagline = publicProfileSidebarCardTagline(
     profile,
-    specialties.map((s) => s.name)
+    specialties.map((s) => directorySpecialtyDisplayName(s.code, s.name))
   )
 
   const hasShort = Boolean(profile.short_description?.trim())
@@ -184,7 +185,9 @@ export function DirectoryProfilePublicDetail({
                       <ProfileBentoSpecialtyIcon code={specialties[0]!.code} />
                     </div>
                     <div className="dir-prof-v2-bc-lab">Fachrichtung</div>
-                    <div className="dir-prof-v2-bc-val">{specialties[0]!.name}</div>
+                    <div className="dir-prof-v2-bc-val">
+                      {directorySpecialtyDisplayName(specialties[0]!.code, specialties[0]!.name)}
+                    </div>
                   </div>
                   {subcategories.length > 0 ? (
                     <div className="dir-prof-v2-bc-chips">
@@ -204,7 +207,9 @@ export function DirectoryProfilePublicDetail({
                         <ProfileBentoSpecialtyIcon code={spec.code} />
                       </div>
                       <div className="dir-prof-v2-bc-lab">Fachrichtung</div>
-                      <div className="dir-prof-v2-bc-val">{spec.name}</div>
+                      <div className="dir-prof-v2-bc-val">
+                        {directorySpecialtyDisplayName(spec.code, spec.name)}
+                      </div>
                     </div>
                   ))}
                   {subcategories.length > 0 ? (

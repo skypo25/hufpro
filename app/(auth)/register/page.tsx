@@ -1,13 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { AUTH_RETURN_SESSION_KEY, safeInternalPath, safeNextPath } from '@/lib/auth/safeNextPath'
+import { translateAuthError } from '@/lib/auth/translateAuthError'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextRaw = searchParams.get('next')
+  const postAuthPath = nextRaw ? safeNextPath(nextRaw, '/onboarding') : '/onboarding'
+
+  useEffect(() => {
+    const p = safeInternalPath(nextRaw)
+    if (!p) return
+    try {
+      sessionStorage.setItem(AUTH_RETURN_SESSION_KEY, p)
+    } catch {
+      /* private mode */
+    }
+  }, [nextRaw])
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -29,7 +45,7 @@ export default function RegisterPage() {
       password,
       options: {
         data: { first_name: firstName, last_name: lastName },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`,
       },
     })
     if (error) { setError(translateAuthError(error.message)); setLoading(false); return }
@@ -44,7 +60,7 @@ export default function RegisterPage() {
     }
     setSuccess('')
     if (data.session) {
-      router.push('/onboarding')
+      router.push(postAuthPath)
     } else {
       setSuccess('Bitte bestätige deine E-Mail. Wir haben dir einen Link geschickt – klicke darauf, um fortzufahren.')
     }
@@ -55,7 +71,9 @@ export default function RegisterPage() {
     setError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthPath)}`,
+      },
     })
     if (error) setError(translateAuthError(error.message))
   }
@@ -141,7 +159,7 @@ export default function RegisterPage() {
           <div style={{ display: 'flex', gap: 10, marginTop: -6 }}>
             <button
               type="button"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push(`/login?next=${encodeURIComponent(postAuthPath)}`)}
               style={{
                 flex: 1,
                 padding: '12px 14px',
@@ -189,11 +207,28 @@ export default function RegisterPage() {
 
       <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '16px 0 0' }}>
         Bereits ein Konto?{' '}
-        <Link href="/login" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
+        <Link
+          href={`/login?next=${encodeURIComponent(postAuthPath)}`}
+          style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}
+        >
           Anmelden
         </Link>
       </p>
     </AuthShell>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell step={1} totalSteps={3}>
+          <div className="animate-pulse text-[#6b7280]">Laden…</div>
+        </AuthShell>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   )
 }
 
@@ -284,25 +319,3 @@ function GoogleIcon() {
   )
 }
 
-// ─── Error translation ────────────────────────────────────────────────────────
-
-function translateAuthError(msg: string): string {
-  const m = msg.toLowerCase()
-  if (m.includes('email rate limit') || m.includes('rate limit exceeded'))
-    return 'Zu viele Versuche. Bitte warte einige Minuten und versuche es erneut.'
-  if (m.includes('user already registered') || m.includes('already been registered'))
-    return 'Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an.'
-  if (m.includes('invalid email'))
-    return 'Bitte gib eine gültige E-Mail-Adresse ein.'
-  if (m.includes('password') && m.includes('short'))
-    return 'Das Passwort ist zu kurz. Mindestens 8 Zeichen erforderlich.'
-  if (m.includes('weak password'))
-    return 'Das Passwort ist zu schwach. Nutze Groß- und Kleinbuchstaben sowie Zahlen.'
-  if (m.includes('email not confirmed'))
-    return 'Bitte bestätige zuerst deine E-Mail-Adresse.'
-  if (m.includes('invalid login credentials') || m.includes('invalid credentials'))
-    return 'E-Mail oder Passwort falsch.'
-  if (m.includes('network') || m.includes('fetch'))
-    return 'Netzwerkfehler. Bitte prüfe deine Internetverbindung.'
-  return 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.'
-}

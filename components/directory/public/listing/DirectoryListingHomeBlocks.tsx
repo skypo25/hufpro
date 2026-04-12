@@ -13,6 +13,7 @@ import { listingQueryWithBarhufDefaultAnimal } from '@/lib/directory/public/taxo
 import { DirectoryCategoryCardIcon } from '@/components/directory/public/listing/DirectoryCategoryCardIcon'
 import { DirectoryFeaturedSlider } from '@/components/directory/public/listing/DirectoryFeaturedSlider'
 import { directoryAboutUrl, directoryProfileCreateHref } from '@/lib/directory/public/appBaseUrl'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 
 function categoryDisplayName(code: string, dbName: string): string {
   if (code === 'tierheilpraktik') return 'Tierheilpraktik'
@@ -62,7 +63,7 @@ export function DirectoryListingHomeBlocks({
       ? categories.map((s) => ({
           key: s.id,
           code: s.code,
-          name: categoryDisplayName(s.code, s.name),
+          name: categoryDisplayName(s.code, directorySpecialtyDisplayName(s.code, s.name)),
           href: buildBehandlerListingHref(
             listingQueryWithBarhufDefaultAnimal({ ...qBase, specialtyId: s.id, page: 1 }, categories, animalTypes),
             1

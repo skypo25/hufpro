@@ -25,7 +25,8 @@ export function DirectoryWizardMapPreview({ latitude, longitude, radiusKm, title
       <div className="map-placeholder">
         <i className="bi bi-map" />
         <span>
-          Wähle in Schritt 1 eine Adresse mit Vorschlag — dann erscheint hier die Karte mit deinem Einsatzradius.
+          Trage in Schritt 1 Straße, PLZ und Ort ein (am besten einen Vorschlag aus der Suche wählen). Sobald ein
+          Standort ermittelt ist, erscheint hier die Karte mit deinem Einsatzradius.
         </span>
       </div>
     )

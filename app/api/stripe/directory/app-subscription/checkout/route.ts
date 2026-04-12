@@ -1,41 +1,63 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
-import { requireEnv } from '@/lib/env'
-import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { requireEnv } from '@/lib/env'
+import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 
-type CheckoutBody = {
-  /** Nach erfolgreichem Checkout: Billing (Standard) oder Verzeichnis-App-Einstieg. */
-  successPath?: 'billing' | 'app_starten'
+type Body = {
+  directoryProfileId?: string
 }
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let successPath: CheckoutBody['successPath'] = 'billing'
-  try {
-    const raw = (await request.json()) as unknown
-    if (raw && typeof raw === 'object' && raw !== null) {
-      const sp = (raw as CheckoutBody).successPath
-      if (sp === 'app_starten') successPath = 'app_starten'
+  const body = (await request.json().catch(() => ({}))) as Body
+  const directoryProfileIdRaw = body.directoryProfileId?.toString().trim() || ''
+
+  let slug: string | null = null
+  if (directoryProfileIdRaw) {
+    const { data: prof } = await supabase
+      .from('directory_profiles')
+      .select('slug, claimed_by_user_id')
+      .eq('id', directoryProfileIdRaw)
+      .maybeSingle()
+    if (
+      prof &&
+      (prof as { claimed_by_user_id?: string | null }).claimed_by_user_id === user.id &&
+      (prof as { slug?: string }).slug
+    ) {
+      slug = (prof as { slug: string }).slug
     }
-  } catch {
-    /* leerer Body: Standard Billing */
   }
-
-  const priceId = requireEnv('STRIPE_PRICE_ID_MONTHLY')
-  const appUrl = getAppUrl()
-
-  const supabaseAdmin = createSupabaseServiceRoleClient()
+  if (!slug) {
+    const { data: first } = await supabase
+      .from('directory_profiles')
+      .select('slug')
+      .eq('claimed_by_user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    slug = (first as { slug?: string } | null)?.slug ?? null
+  }
+  if (!slug) {
+    return NextResponse.json({ error: 'Kein Verzeichnisprofil für dieses Konto.' }, { status: 400 })
+  }
 
   await ensureBillingAccountRow({ userId: user.id, email: user.email })
 
+  const priceId = requireEnv('STRIPE_PRICE_ID_MONTHLY')
+  const appUrl = getAppUrl()
+  const stripe = getStripe()
+
+  const supabaseAdmin = createSupabaseServiceRoleClient()
   const { data: accountRow, error: accErr } = await supabaseAdmin
     .from('billing_accounts')
     .select('*')
@@ -47,8 +69,6 @@ export async function POST(request: Request) {
   }
 
   const account = (accountRow as BillingAccountRow | null) ?? null
-
-  const stripe = getStripe()
 
   let customerId = account?.stripe_customer_id ?? null
   if (!customerId) {
@@ -78,23 +98,18 @@ export async function POST(request: Request) {
       ? Math.floor(trialEndsAt.getTime() / 1000)
       : undefined
 
-  const successUrl =
-    successPath === 'app_starten'
-      ? `${appUrl}/behandler/app-starten?checkout=success`
-      : `${appUrl}/billing?success=1`
-  const cancelUrl =
-    successPath === 'app_starten'
-      ? `${appUrl}/behandler/app-starten?checkout=canceled`
-      : `${appUrl}/billing?canceled=1`
-
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: successUrl,
-    cancel_url: cancelUrl,
+    success_url: `${appUrl}/directory/mein-profil?app_sub=success`,
+    cancel_url: `${appUrl}/directory/mein-profil?app_sub=canceled`,
     subscription_data: trialEndUnix ? { trial_end: trialEndUnix } : undefined,
-    metadata: { supabase_user_id: user.id },
+    metadata: {
+      supabase_user_id: user.id,
+      directory_profile_slug: slug,
+      directory_transactional_email: 'app_checkout_done',
+    },
   })
 
   if (!session.url) {
@@ -103,4 +118,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ url: session.url })
 }
-

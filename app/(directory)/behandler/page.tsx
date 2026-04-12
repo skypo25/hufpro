@@ -24,7 +24,7 @@ import {
   fetchPublicSpecialties,
 } from '@/lib/directory/public/data'
 import type { GeocodeHit } from '@/lib/directory/public/geocodeLocation'
-import { geocodeLocationQuery } from '@/lib/directory/public/geocodeLocation'
+import { geocodeLocationQuery, resolveDirectoryGeocodingUserAgent } from '@/lib/directory/public/geocodeLocation'
 import { resolveBehandlerHeroSrc } from '@/lib/directory/public/heroImage'
 import { listingSpecialtyHeadline } from '@/lib/directory/public/listingHeadlines'
 import {
@@ -161,7 +161,7 @@ export default async function BehandlerDirectoryPage({ searchParams }: PageProps
 
   if (hasActiveFilters) {
     const locationTrim = q.location.trim()
-    const geoConfigured = Boolean(process.env.DIRECTORY_GEOCODING_USER_AGENT?.trim())
+    const geoConfigured = Boolean(resolveDirectoryGeocodingUserAgent())
 
     const commonListParams = {
       specialtyId: q.specialtyId || undefined,
@@ -210,7 +210,7 @@ export default async function BehandlerDirectoryPage({ searchParams }: PageProps
       searchBanner = {
         variant: 'info',
         message:
-          'Umkreissuche (Geocoding) ist für diese Umgebung nicht konfiguriert. Es wird textuell nach Ort oder PLZ gesucht — ohne km-Entfernung. Siehe Doku: DIRECTORY_GEOCODING_USER_AGENT.',
+          'Umkreissuche (Geocoding) ist für diese Umgebung nicht konfiguriert. Es wird textuell nach Ort oder PLZ gesucht — ohne km-Entfernung. Setze DIRECTORY_GEOCODING_USER_AGENT oder NEXT_PUBLIC_APP_URL / VERCEL_URL (siehe Geocoding-Doku).',
       }
     }
 

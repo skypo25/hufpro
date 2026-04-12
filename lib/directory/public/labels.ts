@@ -7,6 +7,13 @@ export function countryDachLabel(country: string | null | undefined): string {
   return c || '—'
 }
 
+/** Anzeigename Fachrichtung (z. B. nur „Hufschmied“, nicht „/ Hufbeschlag“ aus älteren Seeds). */
+export function directorySpecialtyDisplayName(code: string | undefined | null, fallbackName: string): string {
+  const c = (code ?? '').trim().toLowerCase()
+  if (c === 'hufschmied') return 'Hufschmied'
+  return fallbackName
+}
+
 export function serviceTypeLabel(t: string): string {
   switch (t) {
     case 'mobile':

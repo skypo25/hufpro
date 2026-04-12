@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { requireEnv } from '@/lib/env'
 import { getStripe } from '@/lib/stripe/stripe'
+import { sendDirectoryProductEmail } from '@/lib/directory/onboarding/sendDirectoryProductEmails.server'
+import { syncDirectoryProfilePlanFromEntitlements } from '@/lib/directory/product/syncDirectoryProfilePlanFromEntitlements.server'
 import type Stripe from 'stripe'
 
 type BillingUpdate = {
@@ -100,6 +102,8 @@ async function applyDirectoryTopProfileFromCheckout(args: {
       },
       { onConflict: 'directory_profile_id,source' }
     )
+
+  await syncDirectoryProfilePlanFromEntitlements(args.supabaseAdmin, args.directoryProfileId)
 }
 
 export async function POST(request: Request) {
@@ -179,6 +183,22 @@ export async function POST(request: Request) {
       }
     }
 
+    const transactionalSlug = session.metadata?.directory_profile_slug?.toString().trim() || ''
+    const transactionalKind = session.metadata?.directory_transactional_email?.toString().trim() || ''
+    if (
+      transactionalSlug &&
+      (transactionalKind === 'directory_premium_checkout_done' || transactionalKind === 'app_checkout_done')
+    ) {
+      const kind =
+        transactionalKind === 'app_checkout_done' ? 'app_checkout_done' : 'directory_premium_checkout_done'
+      await sendDirectoryProductEmail({
+        db: supabaseAdmin,
+        userId,
+        profileSlug: transactionalSlug,
+        kind,
+      })
+    }
+
     await supabaseAdmin
       .from('stripe_webhook_events')
       .update({ user_id: userId })
@@ -191,12 +211,17 @@ export async function POST(request: Request) {
     if (!userId) return
 
     const appMonthlyPriceId = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
+    const directoryPremiumMonthlyPriceId = process.env.STRIPE_PRICE_ID_DIRECTORY_PREMIUM_MONTHLY?.trim() || null
+    const directoryPremiumTop30PriceId = process.env.STRIPE_PRICE_ID_DIRECTORY_TOP_PROFILE_30D?.trim() || null
     const itemPriceIds = sub.items.data
       .map((it) => it.price?.id)
       .filter((id): id is string => typeof id === 'string' && id.length > 0)
     /** Nur das App-Monatsabo soll app_subscription setzen/löschen — nicht andere Stripe-Subscriptions desselben Customers. */
     const isAppMonthlySubscription =
       !appMonthlyPriceId || itemPriceIds.includes(appMonthlyPriceId)
+    const isDirectoryPremiumSubscription =
+      (!!directoryPremiumMonthlyPriceId && itemPriceIds.includes(directoryPremiumMonthlyPriceId)) ||
+      (!!directoryPremiumTop30PriceId && itemPriceIds.includes(directoryPremiumTop30PriceId))
 
     const priceId = sub.items.data[0]?.price?.id ?? null
     const st = (sub.status ?? '').toString()
@@ -265,6 +290,53 @@ export async function POST(request: Request) {
             .eq('source', 'app_subscription')
         }
       }
+    }
+
+    // Verzeichnis-Premium (eigenes Monatsabo, 9,95 €) => Quelle directory_subscription
+    if (isDirectoryPremiumSubscription) {
+      const st3 = (sub.status ?? '').toString()
+      if (st3 === 'active' || st3 === 'trialing' || st3 === 'past_due') {
+        const { data: ownedProfiles } = await supabaseAdmin
+          .from('directory_profiles')
+          .select('id')
+          .eq('claimed_by_user_id', userId)
+
+        const untilIso = asIsoSeconds(sub.current_period_end) ?? null
+        const rowsDir =
+          (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => ({
+            directory_profile_id: p.id,
+            source: 'directory_subscription',
+            active_until: untilIso,
+            updated_at: nowIso,
+          })) ?? []
+
+        if (rowsDir.length > 0) {
+          await supabaseAdmin
+            .from('directory_profile_top_entitlements')
+            .upsert(rowsDir, { onConflict: 'directory_profile_id,source' })
+        }
+      } else {
+        const { data: ownedProfiles } = await supabaseAdmin
+          .from('directory_profiles')
+          .select('id')
+          .eq('claimed_by_user_id', userId)
+        const ids = (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => p.id) ?? []
+        if (ids.length > 0) {
+          await supabaseAdmin
+            .from('directory_profile_top_entitlements')
+            .delete()
+            .in('directory_profile_id', ids)
+            .eq('source', 'directory_subscription')
+        }
+      }
+    }
+
+    const { data: ownedForSync } = await supabaseAdmin
+      .from('directory_profiles')
+      .select('id')
+      .eq('claimed_by_user_id', userId)
+    for (const row of (ownedForSync as { id: string }[] | null | undefined) ?? []) {
+      await syncDirectoryProfilePlanFromEntitlements(supabaseAdmin, row.id)
     }
 
     await supabaseAdmin

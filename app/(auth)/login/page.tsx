@@ -3,7 +3,9 @@
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { safeNextPath } from '@/lib/auth/safeNextPath'
+import { DIRECTORY_WIZARD_PAKET_SESSION_KEY, safeInternalPath } from '@/lib/auth/safeNextPath'
+import { translateAuthError } from '@/lib/auth/translateAuthError'
+import { directoryProfileWizardHref, isDirectoryBehandlerProfilFlowReturnPath } from '@/lib/directory/public/appBaseUrl'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
 
@@ -15,6 +17,18 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const oauthError = searchParams.get('error')
+  const intendedNext = safeInternalPath(searchParams.get('next'))
+
+  function directoryNextFallbackFromSession(): string | null {
+    if (typeof window === 'undefined') return null
+    try {
+      const pk = sessionStorage.getItem(DIRECTORY_WIZARD_PAKET_SESSION_KEY)
+      if (pk === 'premium' || pk === 'gratis') return directoryProfileWizardHref({ paket: pk })
+    } catch {
+      /* ignore */
+    }
+    return null
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -35,19 +49,25 @@ function LoginContent() {
         .maybeSingle()
       onboardingComplete = (settings?.settings as { onboarding_complete?: boolean } | null)?.onboarding_complete === true
     }
-    const nextParam = searchParams.get('next')
+    const directoryNext =
+      (intendedNext && isDirectoryBehandlerProfilFlowReturnPath(intendedNext) ? intendedNext : null) ??
+      directoryNextFallbackFromSession()
+    if (directoryNext) {
+      router.push(directoryNext)
+      router.refresh()
+      return
+    }
     if (onboardingComplete) {
-      router.push(nextParam ? safeNextPath(nextParam, '/dashboard') : '/dashboard')
+      router.push(intendedNext ?? '/dashboard')
     } else {
-      router.push('/onboarding')
+      router.push(intendedNext ?? '/onboarding')
     }
     router.refresh()
   }
 
   async function handleOAuth(provider: 'google' | 'apple') {
     setError('')
-    const nextParam = searchParams.get('next')
-    const nextPath = nextParam ? safeNextPath(nextParam, '/dashboard') : '/onboarding'
+    const nextPath = intendedNext ?? directoryNextFallbackFromSession() ?? '/onboarding'
     const callbackNext = encodeURIComponent(nextPath)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -116,7 +136,10 @@ function LoginContent() {
 
       <FooterText>
         Noch kein Konto?{' '}
-        <Link href="/register" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
+        <Link
+          href={intendedNext ? `/register?next=${encodeURIComponent(intendedNext)}` : '/register'}
+          style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}
+        >
           Kostenlos registrieren
         </Link>
       </FooterText>
@@ -230,25 +253,3 @@ function GoogleIcon() {
   )
 }
 
-// ─── Error translation ────────────────────────────────────────────────────────
-
-function translateAuthError(msg: string): string {
-  const m = msg.toLowerCase()
-  if (m.includes('email rate limit') || m.includes('rate limit exceeded'))
-    return 'Zu viele Versuche. Bitte warte einige Minuten und versuche es erneut.'
-  if (m.includes('user already registered') || m.includes('already been registered'))
-    return 'Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an.'
-  if (m.includes('invalid email'))
-    return 'Bitte gib eine gültige E-Mail-Adresse ein.'
-  if (m.includes('password') && m.includes('short'))
-    return 'Das Passwort ist zu kurz. Mindestens 8 Zeichen erforderlich.'
-  if (m.includes('weak password'))
-    return 'Das Passwort ist zu schwach. Nutze Groß- und Kleinbuchstaben sowie Zahlen.'
-  if (m.includes('email not confirmed'))
-    return 'Bitte bestätige zuerst deine E-Mail-Adresse.'
-  if (m.includes('invalid login credentials') || m.includes('invalid credentials'))
-    return 'E-Mail oder Passwort falsch.'
-  if (m.includes('network') || m.includes('fetch'))
-    return 'Netzwerkfehler. Bitte prüfe deine Internetverbindung.'
-  return 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.'
-}

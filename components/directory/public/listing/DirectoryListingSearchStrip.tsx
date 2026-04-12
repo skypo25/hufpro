@@ -11,6 +11,7 @@ import {
   RADIUS_KM_OPTIONS,
 } from '@/lib/directory/public/listingParams'
 import AddressAutocomplete from '@/components/customers/AddressAutocomplete'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import {
   BARHUF_SPECIALTY_CODE,
   isHoofSpecialtyCode,
@@ -108,7 +109,7 @@ export function DirectoryListingSearchStrip({
             <option value="">Alle Fachrichtungen</option>
             {specialties.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {directorySpecialtyDisplayName(s.code, s.name)}
               </option>
             ))}
           </select>

@@ -277,3 +277,89 @@ export async function uploadDirectoryProfileMediaAction(formData: FormData): Pro
 
   return { ok: true }
 }
+
+const DRAFT_LOGO_MAX_AGE_MS = 45 * 60 * 1000
+
+/**
+ * Logo für frischen, noch nicht beanspruchten Entwurf (öffentlicher Wizard).
+ * Schutz: nur `unclaimed` + `draft`, nur kurz nach `created_at`.
+ */
+export async function uploadDirectoryLogoForUnclaimedDraft(
+  profileId: string,
+  file: File,
+): Promise<UploadDirectoryProfileMediaResult> {
+  const id = profileId.trim()
+  if (!UUID_RE.test(id)) return { ok: false, error: 'Profil-ID ungültig.' }
+
+  const err = validateImageFile(file)
+  if (err) return { ok: false, error: err }
+
+  let supaAdmin: ReturnType<typeof createSupabaseServiceRoleClient>
+  try {
+    supaAdmin = createSupabaseServiceRoleClient()
+  } catch {
+    return { ok: false, error: 'Server-Konfiguration unvollständig.' }
+  }
+
+  const { data: row, error: rowErr } = await supaAdmin
+    .from('directory_profiles')
+    .select('id, claim_state, listing_status, created_at')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (rowErr || !row) {
+    return { ok: false, error: 'Profil nicht gefunden.' }
+  }
+  const r = row as {
+    claim_state: string
+    listing_status: string
+    created_at: string
+  }
+  if (r.claim_state !== 'unclaimed' || r.listing_status !== 'draft') {
+    return { ok: false, error: 'Logo-Upload ist nur für neue Entwürfs-Einträge möglich.' }
+  }
+  const created = new Date(r.created_at).getTime()
+  if (!Number.isFinite(created) || Date.now() - created > DRAFT_LOGO_MAX_AGE_MS) {
+    return { ok: false, error: 'Zeitfenster für den Logo-Upload ist abgelaufen. Bitte speichere erneut.' }
+  }
+
+  const { data: rowsRaw } = await supaAdmin
+    .from('directory_profile_media')
+    .select('id, media_type, storage_key, url')
+    .eq('directory_profile_id', id)
+  const rows = (rowsRaw ?? []) as MediaRow[]
+  const currentLogo = rows.find((x) => x.media_type === 'logo') ?? null
+
+  if (currentLogo) {
+    const path = resolveStoragePath(currentLogo)
+    if (path) {
+      await supaAdmin.storage.from(BUCKET).remove([path])
+    }
+    await supaAdmin.from('directory_profile_media').delete().eq('id', currentLogo.id)
+  }
+
+  const folder = `profiles/${id}`
+  const ext = extFromMime(file.type)
+  const path = `${folder}/logo${ext}`
+  const buf = Buffer.from(await file.arrayBuffer())
+  const { error: upErr } = await supaAdmin.storage.from(BUCKET).upload(path, buf, {
+    contentType: file.type,
+    upsert: true,
+  })
+  if (upErr) {
+    return { ok: false, error: upErr.message }
+  }
+  const { data: pub } = supaAdmin.storage.from(BUCKET).getPublicUrl(path)
+  const { error: insErr } = await supaAdmin.from('directory_profile_media').insert({
+    directory_profile_id: id,
+    media_type: 'logo',
+    url: pub.publicUrl,
+    storage_key: path,
+    sort_order: 0,
+    alt_text: null,
+  })
+  if (insErr) {
+    return { ok: false, error: insErr.message }
+  }
+  return { ok: true }
+}

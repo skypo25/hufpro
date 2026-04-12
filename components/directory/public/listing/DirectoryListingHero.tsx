@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { DirectoryPublicAnimalTypeRow, DirectoryPublicSpecialtyRow } from '@/lib/directory/public/types'
 import type { BehandlerListingQuery } from '@/lib/directory/public/listingParams'
+import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import { RADIUS_KM_OPTIONS } from '@/lib/directory/public/listingParams'
 
 function IconGeo() {
@@ -129,7 +130,7 @@ export function DirectoryListingHero({
                 <option value="">Alle Fachrichtungen</option>
                 {specialties.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {directorySpecialtyDisplayName(s.code, s.name)}
                   </option>
                 ))}
               </select>

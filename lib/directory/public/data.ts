@@ -20,6 +20,7 @@ import type {
   DirectoryPublicSubcategoryRow,
 } from './types'
 import { boundingBoxForRadiusKm, haversineDistanceKm } from './haversine'
+import { directorySpecialtyDisplayName } from './labels'
 
 const VIEW_PROFILES = 'directory_public_profiles'
 const VIEW_SPECIALTIES = 'directory_public_specialties'
@@ -296,9 +297,10 @@ export const fetchPublicSpecialtyNameById = cache(async function fetchPublicSpec
   id: string
 ): Promise<string | null> {
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.from(VIEW_SPECIALTIES).select('name').eq('id', id).maybeSingle()
+  const { data, error } = await supabase.from(VIEW_SPECIALTIES).select('code, name').eq('id', id).maybeSingle()
   if (error) return null
-  return (data as { name: string } | null)?.name ?? null
+  const row = data as { code: string; name: string } | null
+  return row ? directorySpecialtyDisplayName(row.code, row.name) : null
 })
 
 export const fetchPublicAnimalTypeNameById = cache(async function fetchPublicAnimalTypeNameById(
@@ -767,7 +769,9 @@ export async function fetchPublicTaxonomyLabelsForProfiles(
     fetchPublicAnimalTypesByIds(aniIds),
   ])
 
-  const specNameById = new Map(specRows.map((s) => [s.id, s.name]))
+  const specNameById = new Map(
+    specRows.map((s) => [s.id, directorySpecialtyDisplayName(s.code, s.name)]),
+  )
   const aniNameById = new Map(aniRows.map((a) => [a.id, a.name]))
 
   for (const id of profileIds) {
