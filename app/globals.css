@@ -3118,6 +3118,38 @@ button.huf-btn-dark {
 .photo-slot.has-photo.photo-slot--decode-wait {
   background: linear-gradient(180deg, #e4e8e4 0%, #f0f2f0 100%);
 }
+.photo-slot.has-photo.photo-slot--no-layer-promote .photo-slot-img {
+  transform: none;
+  -webkit-transform: none;
+  -webkit-backface-visibility: visible;
+  backface-visibility: visible;
+}
+.photo-slot.has-photo.photo-slot--fit-contain .photo-slot-img {
+  object-fit: contain;
+  background: #1a1a1a;
+}
+.photo-slot.has-photo .photo-slot-img.photo-slot-img--bg {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+.photo-slot-diag-overlay {
+  position: absolute;
+  left: 2px;
+  top: 20px;
+  right: 22px;
+  z-index: 5;
+  max-height: 46%;
+  overflow: hidden;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #b6f7b6;
+  font: 8px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+  text-align: left;
+  word-break: break-all;
+}
 .photo-slot.has-photo > svg {
   z-index: 1;
 }

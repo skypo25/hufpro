@@ -14,6 +14,23 @@ import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
+import { usePhotoGridDebugVersion } from '@/components/mobile/usePhotoGridDebugVersion'
+import {
+  gridSectionLabelForIndex,
+  isPhotoDocumentationDebugEnabled,
+  isPhotoGridTileDiagEnabled,
+  isPhotoGridTileOverlayEnabled,
+  isStandaloneDisplayMode,
+  readPhotoGridDecodingSyncPreferred,
+  readPhotoGridIntersectionDisabled,
+  readPhotoGridLayerPromoteDisabled,
+  readPhotoGridObjectFitContain,
+  readPhotoGridRemountDelayMs,
+  readPhotoGridRemountDisabled,
+  readPhotoGridStripWarnDisabled,
+  readPhotoGridStaggerDisabled,
+  readPhotoGridUseBgImage,
+} from '@/lib/mobile/photoGridDebugFlags'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,50 +65,7 @@ type HoofPhoto = {
   height?: number | null
 }
 
-/** Installierte PWA / iOS „Zum Home-Bildschirm“ (kein Safari-Chrome). */
-function isStandaloneDisplayMode(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    return (
-      window.matchMedia?.('(display-mode: standalone)')?.matches === true ||
-      window.matchMedia?.('(display-mode: fullscreen)')?.matches === true ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-    )
-  } catch {
-    return false
-  }
-}
-
-/** Gestaffeltes Grid-Decode in Standalone abschalten: `localStorage.setItem('hufpflege_photo_disable_stagger','1')` */
-function readPhotoGridStaggerDisabled(): boolean {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem('hufpflege_photo_disable_stagger') === '1'
-  } catch {
-    return false
-  }
-}
-
-/** Einmaliges Grid-Img-Remount in Standalone abschalten: `hufpflege_photo_disable_grid_remount` */
-function readPhotoGridRemountDisabled(): boolean {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem('hufpflege_photo_disable_grid_remount') === '1'
-  } catch {
-    return false
-  }
-}
-
 const GRID_PHOTO_STAGGER_MS = 52
-
-/** Diagnose: `localStorage.setItem('hufpflege_debug_photos','1')` oder `?debugPhotos=1` in der URL, dann Konsole. */
-function isPhotoDocumentationDebugEnabled(): boolean {
-  if (typeof window === 'undefined') return false
-  try {
-    if (localStorage.getItem('hufpflege_debug_photos') === '1') return true
-    return new URLSearchParams(window.location.search).get('debugPhotos') === '1'
-  } catch {
-    return false
-  }
-}
 
 type PhotoRowLike = { file_path: string | null; photo_type: string | null; width?: number | null; height?: number | null }
 
@@ -279,6 +253,42 @@ function HoofAccordion({ hoof }: { hoof: HoofEntry }) {
   )
 }
 
+type GridTileDiagRef = {
+  diagId: string
+  imgDomMountPerf: number | null
+  loadStartPerf: number | null
+  loadEndPerf: number | null
+  decodeEndPerf: number | null
+  staggerDelayMs: number
+}
+
+function scheduleStripProbeAfterPaint(
+  el: HTMLImageElement,
+  base: Record<string, unknown>,
+  onStripSuspect?: (stripSuspect: boolean) => void
+) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const root = el.closest('.photo-slot')
+      const slotRect = root?.getBoundingClientRect()
+      const imgRect = el.getBoundingClientRect()
+      const sh = slotRect?.height ?? 0
+      const ih = imgRect.height
+      const nh = el.naturalHeight
+      const stripSuspect = nh > 80 && ih > 2 && ih < sh * 0.42
+      onStripSuspect?.(stripSuspect)
+      if (stripSuspect && !readPhotoGridStripWarnDisabled()) {
+        // eslint-disable-next-line no-console
+        console.warn('[photo-grid STRIP-SUSPECT]', { ...base, stripSuspect, slotClientH: sh, imgClientH: ih, naturalH: nh })
+      }
+      if (isPhotoGridTileDiagEnabled()) {
+        // eslint-disable-next-line no-console
+        console.info('[photo-grid TILE rAF×2 layout]', { ...base, stripSuspect, slotClientH: sh, imgClientH: ih })
+      }
+    })
+  })
+}
+
 function PhotoSlotView({
   slot,
   photoUrl,
@@ -287,6 +297,7 @@ function PhotoSlotView({
   imgHeight,
   onPhotoUrlInvalid,
   gridDecodeIndex,
+  recordId,
 }: {
   slot: PhotoSlotKey
   photoUrl?: string | null
@@ -297,40 +308,74 @@ function PhotoSlotView({
   onPhotoUrlInvalid?: (slot: PhotoSlotKey) => void
   /** 0…7: gestaffeltes Mounting in Standalone-PWA (weniger parallele WebKit-Decodes). */
   gridDecodeIndex: number
+  recordId: string
 }) {
+  const _photoDbg = usePhotoGridDebugVersion()
+  void _photoDbg
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [inView, setInView] = useState(false)
   const [staggerReady, setStaggerReady] = useState(false)
   const [remountEpoch, setRemountEpoch] = useState(0)
+  const [diagUi, setDiagUi] = useState({
+    mounted: false,
+    loaded: false,
+    decoded: false,
+    remounted: false,
+    stripSuspect: null as boolean | null,
+  })
+  const [bgProbeFailed, setBgProbeFailed] = useState(false)
   const slotRootRef = useRef<HTMLDivElement | null>(null)
   const standaloneGridRemountScheduled = useRef(false)
+  const diagRef = useRef<GridTileDiagRef>({
+    diagId: '',
+    imgDomMountPerf: null,
+    loadStartPerf: null,
+    loadEndPerf: null,
+    decodeEndPerf: null,
+    staggerDelayMs: 0,
+  })
   const label = SLOT_LABELS[slot] ?? slot
+
+  const useBgImage = readPhotoGridUseBgImage()
+  const showTileOverlay = isPhotoGridTileOverlayEnabled()
+  const noLayerPromote = readPhotoGridLayerPromoteDisabled()
+  const fitContain = readPhotoGridObjectFitContain()
 
   const handleImgError = useCallback(() => {
     setLightboxOpen(false)
     onPhotoUrlInvalid?.(slot)
   }, [onPhotoUrlInvalid, slot])
 
-  /** Vor Paint: im Browser-Tab sofort sichtbar, ohne IO-Flackern (SSR/Hydration-sicher). */
+  useEffect(() => {
+    diagRef.current.diagId = `${slot}-${recordId}-${Math.round(performance.now())}-${Math.random().toString(36).slice(2, 9)}`
+    diagRef.current.imgDomMountPerf = null
+    diagRef.current.loadStartPerf = null
+    diagRef.current.loadEndPerf = null
+    diagRef.current.decodeEndPerf = null
+    standaloneGridRemountScheduled.current = false
+    setRemountEpoch(0)
+    setDiagUi({ mounted: false, loaded: false, decoded: false, remounted: false, stripSuspect: null })
+    setBgProbeFailed(false)
+  }, [photoUrl, slot, recordId])
+
+  /** Vor Paint: Browser-Tab oder Standalone ohne IO → sofort sichtbar. */
   useLayoutEffect(() => {
     if (!photoUrl) {
       setInView(false)
       return
     }
-    if (!isStandaloneDisplayMode()) {
+    if (!isStandaloneDisplayMode() || readPhotoGridIntersectionDisabled()) {
       setInView(true)
     }
   }, [photoUrl])
 
   useEffect(() => {
-    standaloneGridRemountScheduled.current = false
-    setRemountEpoch(0)
     if (!photoUrl) {
       setInView(false)
       setStaggerReady(false)
       return
     }
-    if (!isStandaloneDisplayMode()) {
+    if (!isStandaloneDisplayMode() || readPhotoGridIntersectionDisabled()) {
       return
     }
     setInView(false)
@@ -358,11 +403,13 @@ function PhotoSlotView({
       return
     }
     if (!isStandaloneDisplayMode() || readPhotoGridStaggerDisabled()) {
+      diagRef.current.staggerDelayMs = 0
       setStaggerReady(true)
       return
     }
     setStaggerReady(false)
     const ms = gridDecodeIndex * GRID_PHOTO_STAGGER_MS
+    diagRef.current.staggerDelayMs = ms
     const t = window.setTimeout(() => setStaggerReady(true), ms)
     return () => window.clearTimeout(t)
   }, [photoUrl, inView, gridDecodeIndex])
@@ -370,81 +417,190 @@ function PhotoSlotView({
   const showGridImg = !!(photoUrl && inView && staggerReady)
   const decodeWait = !!(photoUrl && (!inView || !staggerReady))
 
-  const logGridImgDiagnostics = useCallback(
-    async (phase: string, el: HTMLImageElement) => {
-      if (!isPhotoDocumentationDebugEnabled()) return
-      let decodeResult: true | 'no-decode-api' | 'rejected' = 'no-decode-api'
-      if (typeof el.decode === 'function') {
-        try {
-          await el.decode()
-          decodeResult = true
-        } catch {
-          decodeResult = 'rejected'
-        }
+  useLayoutEffect(() => {
+    if (!showGridImg) return
+    diagRef.current.imgDomMountPerf = performance.now()
+    setDiagUi((u) => ({ ...u, mounted: true }))
+  }, [showGridImg, remountEpoch, photoUrl])
+
+  useEffect(() => {
+    if (!showGridImg || !useBgImage || !photoUrl) return
+    const im = new Image()
+    im.onload = () => setBgProbeFailed(false)
+    im.onerror = () => {
+      setBgProbeFailed(true)
+      onPhotoUrlInvalid?.(slot)
+    }
+    im.src = photoUrl
+    return () => {
+      im.onload = null
+      im.onerror = null
+    }
+  }, [showGridImg, useBgImage, photoUrl, slot, onPhotoUrlInvalid])
+
+  const emitTileDiag = useCallback(
+    (phase: string, el: HTMLImageElement | null, extra: Record<string, unknown> = {}) => {
+      if (!isPhotoGridTileDiagEnabled()) return
+      const d = diagRef.current
+      const decodeAt = d.decodeEndPerf
+      const slotEl = slotRootRef.current
+      const slotRect = slotEl?.getBoundingClientRect()
+      const imgRect = el?.getBoundingClientRect()
+      const payload = {
+        phase,
+        diagId: d.diagId,
+        recordId,
+        slot,
+        gridSection: gridSectionLabelForIndex(gridDecodeIndex),
+        gridDecodeIndex,
+        url: photoUrl,
+        wallClock: new Date().toISOString(),
+        perfNow: performance.now(),
+        standalone: isStandaloneDisplayMode(),
+        intersectionUsed: isStandaloneDisplayMode() && !readPhotoGridIntersectionDisabled(),
+        staggerDelayMs: d.staggerDelayMs,
+        staggerActive: isStandaloneDisplayMode() && !readPhotoGridStaggerDisabled(),
+        remountEnabled: isStandaloneDisplayMode() && !readPhotoGridRemountDisabled(),
+        remountEpoch,
+        inView,
+        staggerReady,
+        showGridImg,
+        imgDomMountPerf: d.imgDomMountPerf,
+        loadStartPerf: d.loadStartPerf,
+        loadEndPerf: d.loadEndPerf,
+        decodeEndPerf: d.decodeEndPerf,
+        decodeMs: decodeAt != null && d.loadEndPerf != null ? decodeAt - d.loadEndPerf : null,
+        mountToLoadMs: d.loadEndPerf != null && d.imgDomMountPerf != null ? d.loadEndPerf - d.imgDomMountPerf : null,
+        complete: el?.complete,
+        naturalWidth: el?.naturalWidth,
+        naturalHeight: el?.naturalHeight,
+        clientWidth: el?.clientWidth,
+        clientHeight: el?.clientHeight,
+        currentSrc: el?.currentSrc,
+        slotClientH: slotRect?.height,
+        slotClientW: slotRect?.width,
+        imgClientH: imgRect?.height,
+        imgClientW: imgRect?.width,
+        decodingSync: readPhotoGridDecodingSyncPreferred(),
+        layerPromote: !readPhotoGridLayerPromoteDisabled(),
+        useBgImage,
+        ...extra,
       }
       // eslint-disable-next-line no-console
-      console.info(`[hufpflege_debug_photos] Grid-Img ${phase}`, {
-        slot,
-        gridDecodeIndex,
-        standalone: isStandaloneDisplayMode(),
-        src: el.getAttribute('src'),
-        currentSrc: el.currentSrc,
-        complete: el.complete,
-        naturalWidth: el.naturalWidth,
-        naturalHeight: el.naturalHeight,
-        clientWidth: el.clientWidth,
-        clientHeight: el.clientHeight,
-        decode: decodeResult,
-      })
+      console.info('[photo-grid TILE]', payload)
     },
-    [slot, gridDecodeIndex]
+    [
+      recordId,
+      slot,
+      gridDecodeIndex,
+      photoUrl,
+      remountEpoch,
+      inView,
+      staggerReady,
+      showGridImg,
+      useBgImage,
+    ]
   )
 
   const onGridImgLoad = useCallback(
     async (e: SyntheticEvent<HTMLImageElement>) => {
       const el = e.currentTarget
-      await logGridImgDiagnostics('onLoad', el)
+      diagRef.current.loadEndPerf = performance.now()
+      setDiagUi((u) => ({ ...u, loaded: true }))
+      emitTileDiag('onLoad', el, {
+        remountScheduled: standaloneGridRemountScheduled.current,
+        decode: 'before-explicit-decode',
+      })
+      let decodeLabel: 'ok' | 'rejected' | 'skipped' = 'skipped'
+      if (typeof el.decode === 'function') {
+        try {
+          await el.decode()
+          decodeLabel = 'ok'
+          diagRef.current.decodeEndPerf = performance.now()
+          setDiagUi((u) => ({ ...u, decoded: true }))
+        } catch {
+          decodeLabel = 'rejected'
+          diagRef.current.decodeEndPerf = performance.now()
+          setDiagUi((u) => ({ ...u, decoded: false }))
+        }
+      } else {
+        setDiagUi((u) => ({ ...u, decoded: true }))
+      }
+      emitTileDiag('afterDecode', el, { decode: decodeLabel })
+      scheduleStripProbeAfterPaint(
+        el,
+        {
+          diagId: diagRef.current.diagId,
+          slot,
+          gridDecodeIndex,
+          phase: 'rAF×2',
+          remountEpoch,
+        },
+        (stripSuspect) => setDiagUi((u) => ({ ...u, stripSuspect }))
+      )
       if (
         isStandaloneDisplayMode() &&
         !readPhotoGridRemountDisabled() &&
         !standaloneGridRemountScheduled.current
       ) {
         standaloneGridRemountScheduled.current = true
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => setRemountEpoch(1))
-        })
+        const delayMs = readPhotoGridRemountDelayMs()
+        const bump = () =>
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => setRemountEpoch(1))
+          })
+        if (delayMs > 0) window.setTimeout(bump, delayMs)
+        else bump()
       }
     },
-    [logGridImgDiagnostics]
+    [emitTileDiag]
   )
 
   const onGridImgLoadStart = useCallback(
     (e: SyntheticEvent<HTMLImageElement>) => {
-      if (!isPhotoDocumentationDebugEnabled()) return
       const el = e.currentTarget
-      // eslint-disable-next-line no-console
-      console.info('[hufpflege_debug_photos] Grid-Img onLoadStart', {
-        slot,
-        complete: el.complete,
-        currentSrc: el.currentSrc,
-      })
+      diagRef.current.loadStartPerf = performance.now()
+      if (!isPhotoGridTileDiagEnabled()) return
+      emitTileDiag('onLoadStart', el)
     },
-    [slot]
+    [emitTileDiag]
   )
 
+  useEffect(() => {
+    if (remountEpoch > 0) setDiagUi((u) => ({ ...u, remounted: true }))
+  }, [remountEpoch])
+
   const standalone = isStandaloneDisplayMode()
+  const decodingSync = readPhotoGridDecodingSyncPreferred()
+
+  const slotMods = [
+    photoUrl ? 'has-photo' : '',
+    decodeWait ? 'photo-slot--decode-wait' : '',
+    noLayerPromote ? 'photo-slot--no-layer-promote' : '',
+    fitContain ? 'photo-slot--fit-contain' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <>
       <div
         ref={slotRootRef}
-        className={`photo-slot${photoUrl ? ' has-photo' : ''}${decodeWait ? ' photo-slot--decode-wait' : ''}`}
-        onClick={() => photoUrl && setLightboxOpen(true)}
-        style={{ cursor: photoUrl ? 'zoom-in' : 'default' }}
+        className={`photo-slot${photoUrl ? ` ${slotMods}` : ''}`}
+        onClick={() => photoUrl && !bgProbeFailed && setLightboxOpen(true)}
+        style={{ cursor: photoUrl && !bgProbeFailed ? 'zoom-in' : 'default' }}
       >
         {photoUrl ? (
           <>
-            {showGridImg && (
+            {showGridImg && useBgImage && !bgProbeFailed && (
+              <div
+                role="img"
+                aria-label={label}
+                className="photo-slot-img photo-slot-img--bg"
+                style={{ backgroundImage: `url(${JSON.stringify(photoUrl)})` }}
+              />
+            )}
+            {showGridImg && !useBgImage && (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -453,14 +609,14 @@ function PhotoSlotView({
                   alt={label}
                   className="photo-slot-img"
                   loading="eager"
-                  decoding={standalone ? 'sync' : 'async'}
+                  decoding={decodingSync ? 'sync' : 'async'}
                   onError={handleImgError}
                   onLoadStart={onGridImgLoadStart}
                   onLoad={onGridImgLoad}
                 />
               </>
             )}
-            {showGridImg && annotations && annotations.items.length > 0 && (
+            {showGridImg && !useBgImage && annotations && annotations.items.length > 0 && (
               <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${imgWidth} ${imgHeight}`} preserveAspectRatio="xMidYMid meet">
                 {annotations.items.map((item, idx) => {
                   if ((item.type === 'line' || item.type === 'axis') && item.points?.length >= 2) {
@@ -477,6 +633,24 @@ function PhotoSlotView({
             )}
             <span className="ps-badge">✓</span>
             <span className="ps-label ps-label--on-photo">{label}</span>
+            {showTileOverlay && (
+              <div className="photo-slot-diag-overlay" aria-hidden>
+                <div>id {diagRef.current.diagId ? diagRef.current.diagId.slice(-14) : '—'}</div>
+                <div>{slot}</div>
+                <div>idx {gridDecodeIndex}</div>
+                <div>io {standalone && !readPhotoGridIntersectionDisabled() ? 'on' : 'off'}</div>
+                <div>stg {diagRef.current.staggerDelayMs}ms</div>
+                <div>mount {diagUi.mounted ? 'Y' : 'N'}</div>
+                <div>load {diagUi.loaded ? 'Y' : 'N'}</div>
+                <div>dec {diagUi.decoded ? 'Y' : 'N'}</div>
+                <div>rm {diagUi.remounted ? 'Y' : 'N'}</div>
+                <div>sa {standalone ? 'Y' : 'N'}</div>
+                <div>
+                  str{' '}
+                  {diagUi.stripSuspect === null ? '?' : diagUi.stripSuspect ? '!' : 'ok'}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -517,7 +691,7 @@ function PhotoSlotView({
               alt={label}
               className="h-full w-full rounded-xl object-contain"
               loading="eager"
-              decoding={standalone ? 'sync' : 'async'}
+              decoding={decodingSync ? 'sync' : 'async'}
               onError={handleImgError}
             />
             {annotations && annotations.items.length > 0 && (
@@ -972,6 +1146,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   imgHeight={photoMeta[slot]?.height ?? 1600}
                   onPhotoUrlInvalid={invalidatePhotoSlot}
                   gridDecodeIndex={i}
+                  recordId={recordId}
                 />
               ))}
             </div>
@@ -987,6 +1162,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
                   imgHeight={photoMeta[slot]?.height ?? 1600}
                   onPhotoUrlInvalid={invalidatePhotoSlot}
                   gridDecodeIndex={SLOT_SOLAR.length + i}
+                  recordId={recordId}
                 />
               ))}
             </div>

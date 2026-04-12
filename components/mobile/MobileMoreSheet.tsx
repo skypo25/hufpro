@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
+import { canUseMobilePhotoDebugPanel } from '@/lib/mobile/mobilePhotoDebugAccess'
+import PhotoGridDebugSheet from '@/components/mobile/PhotoGridDebugSheet'
 
 const MENU_ITEMS = [
   { href: '/settings', title: 'Mein Betrieb', sub: 'Betriebsdaten, Rechnungen, Preise', icon: 'bi-building-fill', color: 'green' },
@@ -20,6 +22,35 @@ type Props = {
 export default function MobileMoreSheet({ open, onClose }: Props) {
   const router = useRouter()
   const [user, setUser] = useState<{ email?: string; name?: string; initials: string } | null>(null)
+  const [photoDebugOpen, setPhotoDebugOpen] = useState(false)
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const canPhotoDebug = canUseMobilePhotoDebugPanel(user?.email)
+
+  function clearPhotoDebugLongPress() {
+    if (longPressTimerRef.current != null) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  function startPhotoDebugLongPress() {
+    if (!canPhotoDebug) return
+    clearPhotoDebugLongPress()
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null
+      setPhotoDebugOpen(true)
+    }, 2500)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current != null) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -149,10 +180,34 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="pb-2 pt-1 text-center text-[10px] text-[#E5E2DC]">
+        <div
+          className="pb-2 pt-1 text-center text-[10px] text-[#E5E2DC]"
+          onTouchStart={() => startPhotoDebugLongPress()}
+          onTouchEnd={() => clearPhotoDebugLongPress()}
+          onTouchCancel={() => clearPhotoDebugLongPress()}
+        >
           AniDocs v1.0.0 · Made in Germany
+          {canPhotoDebug ? (
+            <span className="mt-1 block text-[9px] text-[#D1D5DB]">Debug: Fußzeile ca. 2,5 s halten</span>
+          ) : null}
         </div>
+        {canPhotoDebug ? (
+          <div className="border-t border-[#F0EEEA] px-4 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPhotoDebugOpen(true)
+                onClose()
+              }}
+              className="w-full rounded-lg py-2 text-center text-[11px] font-semibold text-[#6B7280] underline decoration-[#D1D5DB] underline-offset-2"
+            >
+              Intern · Foto-Grid-Debug
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      <PhotoGridDebugSheet open={photoDebugOpen} onClose={() => setPhotoDebugOpen(false)} />
     </>
   )
 }
