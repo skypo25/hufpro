@@ -3,6 +3,7 @@ import type {
   DirectoryPublicProfileRow,
   DirectoryPublicSpecialtyRow,
 } from '@/lib/directory/public/types'
+import { coercePgBool } from '@/lib/directory/public/coercePgBool'
 import { profileInitials, publicProfileStreetLine } from '@/lib/directory/public/profileDisplay'
 
 export function ProfileHeroBlock({
@@ -36,29 +37,38 @@ export function ProfileHeroBlock({
       : null
 
   const st = profile.service_type
-  const topActive = Boolean(profile.top_active)
+  const topActive = coercePgBool(profile.top_active)
+  const verified = profile.verification_state === 'verified'
+  const showVerifiedOnImage = Boolean(heroImageUrl && verified)
 
   return (
     <header className="dir-prof-v2-hero" data-directory-block="hero">
       <div className="dir-prof-v2-hero-in">
-        <div
-          className={`dir-prof-v2-h-av${heroImageUrl ? ' dir-prof-v2-h-av--logo' : ' dir-prof-v2-h-av--init'}`}
-          aria-hidden={heroImageUrl ? undefined : true}
-        >
-          {heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- öffentliche Medien-URL
-            <img src={heroImageUrl} alt={profile.display_name} className="dir-prof-v2-h-av-img" />
-          ) : (
-            <span className="dir-prof-v2-h-av-init">{profileInitials(profile.display_name)}</span>
-          )}
+        <div className="dir-prof-v2-h-av-outer">
+          <div
+            className={`dir-prof-v2-h-av${heroImageUrl ? ' dir-prof-v2-h-av--logo' : ' dir-prof-v2-h-av--init'}`}
+            aria-hidden={heroImageUrl ? undefined : true}
+          >
+            {heroImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- öffentliche Medien-URL
+              <img src={heroImageUrl} alt={profile.display_name} className="dir-prof-v2-h-av-img" />
+            ) : (
+              <span className="dir-prof-v2-h-av-init">{profileInitials(profile.display_name)}</span>
+            )}
+          </div>
+          {showVerifiedOnImage ? (
+            <span className="dir-prof-v2-h-av-verified" title="Verifiziertes Profil" aria-label="Verifiziertes Profil">
+              <i className="bi bi-patch-check-fill" aria-hidden />
+            </span>
+          ) : null}
         </div>
 
         <div className="dir-prof-v2-hero-body">
           {topActive ? (
             <div className="dir-prof-v2-hero-head">
               <div className="dir-prof-v2-h-top">
-                <i className="bi bi-gem" aria-hidden />
-                Top-Profil
+                <i className="bi bi-stars" aria-hidden />
+                <span className="dir-prof-v2-h-top-label">Top Profil</span>
               </div>
             </div>
           ) : null}

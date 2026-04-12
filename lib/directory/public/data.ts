@@ -831,9 +831,7 @@ export async function fetchPublicTaxonomyLabelsForProfiles(
   return result
 }
 
-export const fetchPublicProfileBySlug = cache(async function fetchPublicProfileBySlug(
-  slug: string
-): Promise<DirectoryPublicProfileRow | null> {
+export async function fetchPublicProfileBySlug(slug: string): Promise<DirectoryPublicProfileRow | null> {
   const s = slug.trim()
   if (!s) return null
 
@@ -842,7 +840,7 @@ export const fetchPublicProfileBySlug = cache(async function fetchPublicProfileB
 
   if (error) throw directoryDataError('fetchPublicProfileBySlug', error)
   return (data as DirectoryPublicProfileRow | null) ?? null
-})
+}
 
 export async function fetchPublicProfileSpecialtyLinks(
   profileId: string

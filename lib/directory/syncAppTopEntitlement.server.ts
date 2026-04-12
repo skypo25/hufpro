@@ -15,7 +15,6 @@ export async function syncAppTopEntitlementFromBilling(args: {
   billing: BillingAccountRow | null
 }): Promise<void> {
   const appPriceId = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
-  if (!appPriceId) return
 
   const admin = createSupabaseServiceRoleClient()
   const { data: prof } = await admin
@@ -30,7 +29,13 @@ export async function syncAppTopEntitlementFromBilling(args: {
   const st = (args.billing?.subscription_status ?? 'none').toString()
   const priceId = args.billing?.subscription_price_id ?? null
   const isLive = LIVE.has(st)
-  const priceOk = priceId === appPriceId
+  /**
+   * Ohne STRIPE_PRICE_ID_MONTHLY können wir die Price-ID nicht prüfen — dann wie Stripe-Webhook:
+   * jede „lebendige“ Subscription zählt als App-Abo (Single-Product-Setup).
+   * Mit gesetzter Env: exakter Match, oder noch keine price_id in billing_accounts (z. B. Trial/Übergang).
+   */
+  const priceOk =
+    !appPriceId || !priceId || String(priceId).trim() === '' || String(priceId).trim() === appPriceId
 
   if (isLive && priceOk) {
     const until = args.billing?.subscription_current_period_end ?? null
@@ -43,5 +48,11 @@ export async function syncAppTopEntitlementFromBilling(args: {
       },
       { onConflict: 'directory_profile_id,source' }
     )
+  } else {
+    await admin
+      .from('directory_profile_top_entitlements')
+      .delete()
+      .eq('directory_profile_id', args.directoryProfileId)
+      .eq('source', 'app_subscription')
   }
 }

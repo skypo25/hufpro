@@ -1,17 +1,25 @@
 'use client'
 
 import Image from 'next/image'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import { DirectoryPublicNav } from '@/components/directory/public/DirectoryPublicNav'
 import { directoryAppBaseUrl, directoryProfileCreateHref } from '@/lib/directory/public/appBaseUrl'
 import { listingQueryHasActiveFilters, parseBehandlerListingQuery } from '@/lib/directory/public/listingParams'
+import { writeBehandlerListingReturnPath } from '@/lib/directory/public/listingReturnUrl'
 
 function DirectoryPublicChromeInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? ''
   const searchParams = useSearchParams()
+  const listingSearchSig = searchParams.toString()
   const listingPath = pathname === '/behandler'
+
+  useEffect(() => {
+    if (pathname !== '/behandler') return
+    const path = listingSearchSig ? `/behandler?${listingSearchSig}` : '/behandler'
+    writeBehandlerListingReturnPath(path)
+  }, [pathname, listingSearchSig])
   const raw = Object.fromEntries(searchParams.entries())
   const q = parseBehandlerListingQuery(raw)
   const premiumListing = listingPath && listingQueryHasActiveFilters(q)

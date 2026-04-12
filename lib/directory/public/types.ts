@@ -24,6 +24,8 @@ export type DirectoryPublicProfileRow = {
   verification_state?: 'none' | 'pending' | 'verified' | 'rejected' | string | null
   /** Top-Profil aktiv (abgeleitet aus Entitlements in Public-View). */
   top_active?: boolean | null
+  /** Top aktiv + hinterlegte Kontakt-E-Mail: öffentliches Kontaktformular erlaubt (E-Mail wird nicht exponiert). */
+  premium_contact_enabled?: boolean | null
   /** ISO timestamp (timestamptz) oder null (max active_until der aktiven Entitlements). */
   top_until?: string | null
   /** Aktive Quellen (z.B. ['app_subscription','directory_subscription']). */

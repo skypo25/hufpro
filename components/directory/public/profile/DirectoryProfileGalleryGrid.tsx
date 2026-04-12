@@ -5,13 +5,6 @@ import { createPortal } from 'react-dom'
 
 const MAX_GALLERY_DISPLAY = 6
 
-type GalleryOrientation = 'landscape' | 'portrait'
-
-function orientationFromNaturalSize(nw: number, nh: number): GalleryOrientation {
-  if (nw <= 0 || nh <= 0) return 'landscape'
-  return nh > nw ? 'portrait' : 'landscape'
-}
-
 export type DirectoryProfileGalleryPhoto = {
   id: string
   url: string
@@ -27,14 +20,8 @@ export function DirectoryProfileGalleryGrid({
 }) {
   const list = photos.slice(0, MAX_GALLERY_DISPLAY)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
-  const [orientationById, setOrientationById] = useState<Record<string, GalleryOrientation>>({})
   const closeBtnRef = useRef<HTMLButtonElement>(null)
   const dialogId = useId()
-
-  const onThumbLoad = useCallback((id: string, nw: number, nh: number) => {
-    const next = orientationFromNaturalSize(nw, nh)
-    setOrientationById((prev) => (prev[id] === next ? prev : { ...prev, [id]: next }))
-  }, [])
 
   const close = useCallback(() => setOpenIndex(null), [])
 
@@ -147,13 +134,11 @@ export function DirectoryProfileGalleryGrid({
   return (
     <>
       <div className="dir-prof-v2-gal-grid">
-        {list.map((m, i) => {
-          const orient = orientationById[m.id] ?? 'landscape'
-          return (
+        {list.map((m, i) => (
           <button
             key={m.id}
             type="button"
-            className={`dir-prof-v2-gal-tile dir-prof-v2-gal-tile--${orient}`}
+            className="dir-prof-v2-gal-tile"
             onClick={() => setOpenIndex(i)}
             aria-haspopup="dialog"
             aria-expanded={openIndex === i}
@@ -164,17 +149,12 @@ export function DirectoryProfileGalleryGrid({
               src={m.url}
               alt={m.alt_text?.trim() || `${displayName} — Galeriebild ${i + 1}`}
               loading="lazy"
-              onLoad={(e) => {
-                const el = e.currentTarget
-                onThumbLoad(m.id, el.naturalWidth, el.naturalHeight)
-              }}
             />
             <span className="dir-prof-v2-gal-tile-ov" aria-hidden>
               <i className="bi bi-zoom-in" />
             </span>
           </button>
-          )
-        })}
+        ))}
       </div>
 
       {typeof document !== 'undefined' && modalEl ? createPortal(modalEl, document.body) : null}

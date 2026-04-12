@@ -22,6 +22,7 @@ import {
 import type { DirectoryProfileCreateWizardInitialMedia } from "@/components/directory/onboarding/DirectoryProfileCreateWizard";
 import { BILLING_ACCOUNT_COLUMNS } from "@/lib/billing/billingAccountSelect";
 import type { BillingAccountRow } from "@/lib/billing/types";
+import { loadDirectoryPublicProfileDiagnostics } from "@/lib/directory/public/loadDirectoryPublicProfileDiagnostics.server";
 import { syncAppTopEntitlementFromBilling } from "@/lib/directory/syncAppTopEntitlement.server";
 
 import "@/components/directory/onboarding/profile-create-wizard.css";
@@ -284,6 +285,19 @@ export default async function DirectoryMeinProfilPage({
   const topActive = activeTopSources.length > 0;
   const topSourcesLabel = activeTopSources.map(labelTopSource).join(", ");
 
+  /** Gleicher Fetch wie `/behandler/[slug]` (Anon + View). Optional: lokal Abgleich mit Service-Role. */
+  const publicDx = profile?.slug
+    ? await loadDirectoryPublicProfileDiagnostics(profile.slug.trim())
+    : null;
+  const publicViewContact = publicDx
+    ? {
+        inPublicDirectory: publicDx.anon.inView,
+        topFromView: publicDx.anon.top_active,
+        contactFormFromView: publicDx.anon.premium_contact_enabled,
+        devBypass: publicDx.devBypass,
+      }
+    : null;
+
   const listingOk = profile?.listing_status === "published";
   const verifiedOk = profile?.verification_state === "verified";
   const topOk = topActive;
@@ -447,6 +461,122 @@ export default async function DirectoryMeinProfilPage({
                   {topSourcesLabel}
                 </span>
               </div>
+            ) : profile ? (
+              <div className="rounded-lg border border-amber-200/80 bg-amber-50/90 px-3 py-2 text-[12px] leading-snug text-amber-950/90">
+                <span className="font-semibold">Top-Profil derzeit nicht aktiv.</span> Galerie und Kontaktformular auf
+                der öffentlichen Seite erscheinen nur bei aktivem Top-Profil. Für App-Kund:innen wird Top in der Regel
+                aus dem <strong>Stripe-Abo</strong> gesetzt (Status aktiv / Testphase / Zahlung ausstehend). Nach dem
+                Laden dieser Seite wird das mit deinen Billing-Daten nachgezogen — wenn es hier weiterhin
+                „nicht aktiv“ bleibt, prüfe bitte{' '}
+                <code className="rounded bg-amber-100/90 px-1 py-0.5 font-mono text-[11px]">
+                  STRIPE_PRICE_ID_MONTHLY
+                </code>{' '}
+                (muss zur Price-ID der App-Subscription passen) und ob Stripe-Webhooks dein Konto erreichen.
+              </div>
+            ) : null}
+
+            {publicViewContact && profile?.slug ? (
+              <div
+                className={
+                  publicViewContact.contactFormFromView
+                    ? "rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-[12px] text-emerald-950/90"
+                    : "rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-700"
+                }
+              >
+                <span className="font-semibold">Öffentliche Verzeichnis-Ansicht</span> (wie Besucher:innen sie sehen)
+                {publicViewContact.inPublicDirectory ? (
+                  <>
+                    : Top-Profil{" "}
+                    <span className="font-medium">
+                      {publicViewContact.topFromView ? "sichtbar" : "nicht sichtbar"}
+                    </span>
+                    , Kontaktformular{" "}
+                    <span className="font-medium">
+                      {publicViewContact.contactFormFromView ? "sichtbar" : "nicht sichtbar"}
+                    </span>
+                    .{" "}
+                    {!publicViewContact.contactFormFromView && publicViewContact.topFromView ? (
+                      <span className="block pt-1 text-[11px] text-slate-600">
+                        Wenn Top sichtbar ist, das Formular aber nicht: in Schritt 1 unter „Kontakt“ eine gültige
+                        E-Mail speichern (wird nicht öffentlich angezeigt, nur für Zustellung der Anfragen).
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="space-y-1.5 pt-0.5 text-[11px] leading-snug text-slate-600">
+                    <p>
+                      Mit Slug <span className="font-mono">/{profile.slug}</span> bist du in der öffentlichen Datenbank{" "}
+                      <code className="font-mono text-[10px]">directory_public_profiles</code> noch{" "}
+                      <strong>nicht</strong> gelistet — deshalb sehen Besucher:innen weder Profil noch Kontaktformular
+                      aus dieser View.
+                    </p>
+                    {profile.listing_status !== "published" ? (
+                      <p className="text-slate-800">
+                        <strong>Grund:</strong> Dein Listing-Status ist „
+                        {labelListingStatus(profile.listing_status)}“. Öffentlich sichtbar sind nur Einträge mit „
+                        <strong>Veröffentlicht</strong>“ (zusätzlich Land DE, AT oder CH). Bei dir ist das Land unkritisch
+                        — es fehlt die <strong>Veröffentlichung</strong> des Listings. Mit Admin-Zugang:{" "}
+                        <Link href="/admin/directory/profiles" className="font-medium text-[#52b788] hover:underline">
+                          Verzeichnis-Profile
+                        </Link>{" "}
+                        öffnen, deinen Eintrag wählen und auf „Veröffentlicht“ setzen.
+                      </p>
+                    ) : ["DE", "AT", "CH"].includes(
+                        String(profile.country ?? "")
+                          .toUpperCase()
+                          .trim(),
+                      ) ? (
+                      <>
+                        <p className="text-slate-800">
+                          <strong>Unerwartet:</strong> In den Stammdaten stehen „Veröffentlicht“ und ein DACH-Land, aber
+                          die öffentliche View liefert für <strong>Anon</strong> (wie die Webseite) keine Zeile.
+                        </p>
+                        {publicViewContact.devBypass ? (
+                          <div className="mt-2 rounded-md border border-amber-200/80 bg-amber-50/90 px-2.5 py-2 text-[11px] text-amber-950/95">
+                            {publicViewContact.devBypass.serviceRoleSeesInPublicView ? (
+                              <p className="m-0 leading-snug">
+                                <strong>Lokal-Check (Service-Role):</strong> Die View enthält deinen Slug — mit dem
+                                Anon-Key kommt aber nichts zurück. Sehr häufig: die View läuft mit{" "}
+                                <code className="rounded bg-white/80 px-1 font-mono text-[10px]">
+                                  security_invoker = true
+                                </code>
+                                , dann greifen Rechte wie für den Aufrufer und Anon sieht keine Zeilen aus{" "}
+                                <code className="font-mono text-[10px]">directory_profiles</code>. Bitte Migration
+                                anwenden oder in SQL ausführen:{" "}
+                                <code className="mt-1 block whitespace-pre-wrap rounded bg-white/80 p-1.5 font-mono text-[10px]">
+                                  ALTER VIEW public.directory_public_profiles SET (security_invoker = false);
+                                </code>
+                              </p>
+                            ) : (
+                              <p className="m-0 leading-snug">
+                                <strong>Lokal-Check (Service-Role):</strong> In{" "}
+                                <code className="font-mono text-[10px]">directory_profiles</code> (ohne RLS): Listing „
+                                {publicViewContact.devBypass.baseRow?.listing_status ?? "—"}“, Land „
+                                {publicViewContact.devBypass.baseRow?.country ?? "—"}“. Die öffentliche View liefert
+                                trotzdem keinen Treffer — dann fehlt meist noch eine{" "}
+                                <strong>View-Migration</strong> (Schema-Stand) oder es ist ein{" "}
+                                <strong>anderes Supabase-Projekt</strong> als in{" "}
+                                <code className="font-mono text-[10px]">.env.local</code>.
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-slate-700">
+                            Setze lokal <code className="font-mono text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code>, dann
+                            erscheint hier ein Zusatz-Hinweis (Abgleich View vs. Basistabelle).
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-slate-800">
+                        <strong>Grund:</strong> Im Profil ist als Land „
+                        {String(profile.country ?? "—").toUpperCase()}“ hinterlegt. Die öffentliche View enthält nur DE,
+                        AT und CH.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : null}
 
             {profile ? (
@@ -465,6 +595,15 @@ export default async function DirectoryMeinProfilPage({
           </div>
         </div>
 
+        {profile ? (
+          <div className="rounded-xl border border-slate-100 bg-slate-50/90 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
+            <span className="font-semibold text-slate-800">Hinweis:</span> Die öffentliche{' '}
+            <strong>Bildergalerie</strong> und das <strong>Kontaktformular</strong> (Anfragen per E-Mail an deine im
+            Profil hinterlegte Adresse) sind nur mit <strong>aktivem Top-Profil</strong> sichtbar. Logo, Texte, Links und
+            Karte nutzt du weiterhin auch ohne Top-Profil.
+          </div>
+        ) : null}
+
         <DirectoryProfileCreateWizard
           embeddedInApp
           specialties={specialties}
@@ -472,6 +611,7 @@ export default async function DirectoryMeinProfilPage({
           methods={methods}
           animals={animals}
           initialMedia={initialMedia}
+          premiumGalleryEnabled={topActive}
           initial={initial}
           submitAction={submitDirectoryProfileWizardForOwnerAction}
           successRedirectTo="/directory/mein-profil?saved=1"

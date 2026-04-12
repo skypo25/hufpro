@@ -1251,28 +1251,87 @@
     padding: 28px 20px 40px;
   }
 
+  /* Suchleiste Mobil: Ort → Umkreis → Fachrichtung | Tierart → Suchen (Karten + Pill-Button) */
   .beh-ref .search-bar {
-    flex-direction: column;
-    padding: 10px;
-    gap: 8px;
-    background: var(--bg);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'loc loc'
+      'rad rad'
+      'spec animal'
+      'btn btn';
+    gap: 10px;
+    padding: 12px;
+    align-items: stretch;
+    background: linear-gradient(180deg, #f4f6f5 0%, #eef1ef 100%);
+    border: 1px solid rgba(15, 17, 20, 0.06);
+    border-bottom: 1px solid rgba(15, 17, 20, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 10px 32px rgba(39, 44, 63, 0.06);
+  }
+
+  .beh-ref .search-bar:focus-within {
+    border-bottom-color: rgba(82, 183, 136, 0.35);
+    box-shadow:
+      0 10px 32px rgba(39, 44, 63, 0.06),
+      0 0 0 2px rgba(82, 183, 136, 0.22);
+  }
+
+  .beh-ref .search-bar .sb-field--location {
+    grid-area: loc;
+  }
+
+  .beh-ref .search-bar .sb-field--radius {
+    grid-area: rad;
+  }
+
+  .beh-ref .search-bar .sb-field--specialty {
+    grid-area: spec;
+  }
+
+  .beh-ref .search-bar .sb-field--animal {
+    grid-area: animal;
+  }
+
+  .beh-ref .search-bar > .sb-btn {
+    grid-area: btn;
+  }
+
+  .beh-ref .search-bar .sb-field {
+    flex: initial;
+    min-width: 0;
     border: none;
-    border-bottom: 5px solid #efefef;
-    border-radius: var(--radius-sm);
-    box-shadow: 0 8px 28px 0 rgba(39, 44, 63, 0.06);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 4px 18px rgba(39, 44, 63, 0.07);
+    padding: 14px 14px;
   }
 
-  .beh-ref .sb-field {
-    border: 2px solid var(--border);
-    border-radius: var(--radius-sm);
-    border-right: 2px solid var(--border);
-    padding: 14px 16px;
+  .beh-ref .search-bar .sb-field:has(select[name='specialtyId']),
+  .beh-ref .search-bar .sb-field:has(select[name='animalTypeId']) {
+    flex: initial;
   }
 
-  .beh-ref .sb-btn {
+  .beh-ref .search-bar .sb-field--location > .bi-geo-alt-fill {
+    color: var(--accent);
+    font-size: 19px;
+  }
+
+  .beh-ref .search-bar .sb-field--specialty,
+  .beh-ref .search-bar .sb-field--animal {
+    min-height: 50px;
+  }
+
+  .beh-ref .search-bar .sb-btn {
     width: 100%;
+    margin-top: 2px;
     justify-content: center;
-    padding: 16px;
+    padding: 16px 22px;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 700;
   }
 
   .beh-ref .categories {

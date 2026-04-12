@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
 import { directoryAboutUrl, directoryProfileCreateHref } from '@/lib/directory/public/appBaseUrl'
+import { readBehandlerListingReturnPath } from '@/lib/directory/public/listingReturnUrl'
 
 /**
  * Gleiche Leiste wie auf der Startseite (`.beh-ref` nav in behandler-verzeichnis.css).
@@ -17,6 +18,13 @@ export function DirectoryPublicNav({ listingHome = false }: { listingHome?: bool
   const profileCreateHref = directoryProfileCreateHref()
   const aboutHref = directoryAboutUrl()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [listingBackHref, setListingBackHref] = useState('/behandler')
+
+  useEffect(() => {
+    if (!isProfilePage) return
+    const stored = readBehandlerListingReturnPath()
+    if (stored) setListingBackHref(stored)
+  }, [isProfilePage, pathname])
 
   const closeMenu = useCallback(() => {
     setMenuOpen(false)
@@ -40,7 +48,7 @@ export function DirectoryPublicNav({ listingHome = false }: { listingHome?: bool
             <span>anidocs</span>
           </Link>
           {isProfilePage ? (
-            <Link href="/behandler" className="nav-profile-back">
+            <Link href={listingBackHref} className="nav-profile-back">
               <i className="bi bi-arrow-left" aria-hidden />
               Zurück zur Suche
             </Link>

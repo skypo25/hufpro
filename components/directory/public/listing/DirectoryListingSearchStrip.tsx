@@ -1,7 +1,5 @@
 'use client'
 
-import { faPaw } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { DirectoryPublicAnimalTypeRow, DirectoryPublicSpecialtyRow } from '@/lib/directory/public/types'
@@ -74,7 +72,7 @@ export function DirectoryListingSearchStrip({
       <form method="get" action="/behandler" className="search-bar">
         {values.serviceType ? <input type="hidden" name="serviceType" value={values.serviceType} /> : null}
         <input type="hidden" name="location" value={location} />
-        <div className="sb-field">
+        <div className="sb-field sb-field--location">
           <i className="bi bi-geo-alt-fill" aria-hidden />
           <AddressAutocomplete
             value={location}
@@ -89,7 +87,7 @@ export function DirectoryListingSearchStrip({
             className="dir-loc-ac-input"
           />
         </div>
-        <div className="sb-field">
+        <div className="sb-field sb-field--radius">
           <i className="bi bi-crosshair2" aria-hidden />
           <select name="radiusKm" defaultValue={String(values.radiusKm)} aria-label="Suchradius">
             {RADIUS_KM_OPTIONS.map((km) => (
@@ -99,7 +97,7 @@ export function DirectoryListingSearchStrip({
             ))}
           </select>
         </div>
-        <div className="sb-field">
+        <div className="sb-field sb-field--specialty">
           <i className="bi bi-heart-pulse-fill" aria-hidden />
           <select
             name="specialtyId"
@@ -115,8 +113,8 @@ export function DirectoryListingSearchStrip({
             ))}
           </select>
         </div>
-        <div className="sb-field">
-          <FontAwesomeIcon icon={faPaw} className="sb-field-fa" aria-hidden />
+        <div className="sb-field sb-field--animal">
+          <i className="bi bi-feather" aria-hidden />
           <select
             name="animalTypeId"
             value={animalTypeId}

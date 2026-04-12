@@ -5,15 +5,10 @@ import type {
   DirectoryPublicProfileMediaRow,
   DirectoryPublicProfileRow,
   DirectoryPublicProfileSocialRow,
-  DirectoryPublicSimilarProfileRow,
   DirectoryPublicSpecialtyRow,
   DirectoryPublicSubcategoryRow,
 } from '@/lib/directory/public/types'
-import {
-  directoryAboutUrl,
-  directoryProfileCreateHref,
-  directoryPublicProfileAbsoluteUrl,
-} from '@/lib/directory/public/appBaseUrl'
+import { directoryAboutUrl, directoryPublicProfileAbsoluteUrl } from '@/lib/directory/public/appBaseUrl'
 import {
   directoryWeekdayKeyEuropeBerlin,
   formatOpeningHoursForDisplay,
@@ -31,8 +26,6 @@ import {
   formatPublicPhoneTelHref,
 } from '@/lib/directory/public/formatPublicPhone'
 import {
-  profileAvatarBackground,
-  profileInitials,
   publicProfileSidebarCardTagline,
   publicProfileSidebarCardTitle,
   publicProfileStreetLine,
@@ -41,8 +34,11 @@ import {
   descriptionTextForPublicAbout,
   parseCustomMethodsFromDescription,
   parseCustomSpecsFromDescription,
+  parseQualiItemsFromDescription,
 } from '@/lib/directory/onboarding/parseWizardDescriptionBlocks'
+import { coercePgBool } from '@/lib/directory/public/coercePgBool'
 
+import { DirectoryProfileContactForm } from './DirectoryProfileContactForm'
 import { DirectoryProfileGalleryGrid } from './DirectoryProfileGalleryGrid'
 import { DirectoryProfileMapEmbed } from './DirectoryProfileMapEmbed'
 import { ProfileBentoPawIcon } from './ProfileBentoPawIcon'
@@ -59,7 +55,6 @@ export function DirectoryProfilePublicDetail({
   methods,
   media,
   social,
-  similarProfiles,
 }: {
   profile: DirectoryPublicProfileRow
   specialties: DirectoryPublicSpecialtyRow[]
@@ -68,20 +63,25 @@ export function DirectoryProfilePublicDetail({
   methods: DirectoryPublicMethodRow[]
   media: DirectoryPublicProfileMediaRow[]
   social: DirectoryPublicProfileSocialRow[]
-  similarProfiles: DirectoryPublicSimilarProfileRow[]
 }) {
-  const profileCreateHref = directoryProfileCreateHref()
   const aboutHref = directoryAboutUrl()
   const claimHref = `/behandler/${profile.slug}/claim`
   const shareUrl = directoryPublicProfileAbsoluteUrl(profile.slug)
   const socialSorted = [...social].sort((a, b) => a.sort_order - b.sort_order)
-  const withUrl = media.filter((m) => m.url && m.url.trim() !== '')
   /** Nur Galerie-Fotos, kein Logo (Logo bleibt im Hero). */
   const galleryWithUrl = media
     .filter((m) => m.media_type === 'photo' && m.url && m.url.trim() !== '')
     .sort((a, b) => a.sort_order - b.sort_order)
+  const topActive = coercePgBool(profile.top_active)
+  const premiumContact = coercePgBool(profile.premium_contact_enabled)
+  /** Kontakt-Hinweis: Vor- und Nachname aus Profil, sonst Anzeigename. */
+  const kontaktDirectName =
+    [profile.first_name?.trim(), profile.last_name?.trim()].filter(Boolean).join(' ').trim() ||
+    profile.display_name.trim()
+  const showPremiumGallery = topActive && galleryWithUrl.length > 0
   const logoUrl = media.find((m) => m.media_type === 'logo' && m.url?.trim())?.url?.trim()
-  const heroImageUrl = logoUrl || (withUrl[0]?.url?.trim() ? withUrl[0].url : null)
+  const heroPhotoUrl = topActive ? galleryWithUrl[0]?.url?.trim() : null
+  const heroImageUrl = logoUrl || heroPhotoUrl || null
   const sidebarCardTitle = publicProfileSidebarCardTitle(profile)
   const sidebarCardTagline = publicProfileSidebarCardTagline(
     profile,
@@ -96,8 +96,10 @@ export function DirectoryProfilePublicDetail({
 
   const customSpecsPublic = parseCustomSpecsFromDescription(profile.description)
   const customMethodsPublic = parseCustomMethodsFromDescription(profile.description)
+  const qualiItemsPublic = parseQualiItemsFromDescription(profile.description)
   const showMethodsSection = methods.length > 0 || customMethodsPublic.length > 0
   const showSpecSection = subcategories.length > 0 || customSpecsPublic.length > 0
+  const showQualiSection = qualiItemsPublic.length > 0
 
   const hasArea = Boolean(profile.service_area_text?.trim())
   const hasRadius = profile.service_radius_km != null && String(profile.service_radius_km).trim() !== ''
@@ -112,10 +114,11 @@ export function DirectoryProfilePublicDetail({
   const tabs: { id: string; label: string }[] = []
   tabs.push({ id: 'dir-facts', label: 'Auf einen Blick' })
   if (hasAboutSection) tabs.push({ id: 'dir-about', label: 'Über' })
+  if (showQualiSection) tabs.push({ id: 'dir-quali', label: 'Qualifikationen' })
   if (showMethodsSection) tabs.push({ id: 'dir-methods', label: 'Leistungen' })
-  if (showSpecSection) tabs.push({ id: 'dir-spec', label: 'Spezialisierungen' })
-  if (galleryWithUrl.length > 0) tabs.push({ id: 'dir-gallery', label: 'Galerie' })
+  if (showPremiumGallery) tabs.push({ id: 'dir-gallery', label: 'Galerie' })
   tabs.push({ id: 'dir-area', label: 'Einsatzgebiet' })
+  tabs.push({ id: 'profil-kontakt', label: 'Kontakt' })
 
   const mapLabelParts = [profile.city, hasRadius ? `${profile.service_radius_km} km Umkreis` : null].filter(
     Boolean
@@ -282,57 +285,87 @@ export function DirectoryProfilePublicDetail({
             </section>
           ) : null}
 
-          {showMethodsSection ? (
-            <section className="dir-prof-v2-sec" id="dir-methods">
-              <div className="dir-prof-v2-sec-label">
-                <i className="bi bi-heart-pulse-fill" aria-hidden />
-                Leistungen
-              </div>
-              <h2 className="dir-prof-v2-sec-h2">Was {profile.display_name} anbietet</h2>
-              <p className="dir-prof-v2-sec-sub">Konkrete Leistungen im Überblick.</p>
-              <div className="dir-prof-v2-spec-grid">
-                {methods.map((m) => (
-                  <div key={m.id} className="dir-prof-v2-spec">
-                    <i className="bi bi-check-circle-fill" aria-hidden />
-                    {m.name}
-                  </div>
-                ))}
-                {customMethodsPublic.map((label, idx) => (
-                  <div key={`custom-method-${idx}-${label.slice(0, 24)}`} className="dir-prof-v2-spec">
-                    <i className="bi bi-check-circle-fill" aria-hidden />
-                    {label}
-                  </div>
-                ))}
+          {showQualiSection ? (
+            <section className="dir-prof-v2-sec dir-prof-v2-sec--quali-zert" id="dir-quali">
+              <div className="dir-prof-v2-quali-card">
+                <div className="dir-prof-v2-sec-label">
+                  <i className="bi bi-patch-check-fill" aria-hidden />
+                  Qualifikationen
+                </div>
+                <h2 className="dir-prof-v2-sec-h2">Ausbildung &amp; Zertifikate</h2>
+                <p className="dir-prof-v2-sec-sub">Nachweise und Qualifikationen im Überblick.</p>
+                <div className="dir-prof-v2-spec-grid">
+                  {qualiItemsPublic.map((label, idx) => (
+                    <div key={`quali-${idx}-${label.slice(0, 24)}`} className="dir-prof-v2-spec">
+                      <i className="bi bi-patch-check-fill" aria-hidden />
+                      {label}
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
           ) : null}
 
-          {showSpecSection ? (
-            <section className="dir-prof-v2-sec" id="dir-spec">
-              <div className="dir-prof-v2-sec-label">
-                <i className="bi bi-mortarboard-fill" aria-hidden />
-                Spezialisierungen
-              </div>
-              <h2 className="dir-prof-v2-sec-h2">Schwerpunkte</h2>
-              <p className="dir-prof-v2-sec-sub">Worauf sich {profile.display_name} spezialisiert hat.</p>
-              <div className="dir-prof-v2-spec-grid">
-                {subcategories.map((s) => (
-                  <div key={s.id} className="dir-prof-v2-spec">
-                    <i className="bi bi-check-circle-fill" aria-hidden />
-                    {s.name}
+          {showMethodsSection || showSpecSection ? (
+            <div
+              className={
+                showMethodsSection && showSpecSection
+                  ? 'dir-prof-v2-methods-spec-row dir-prof-v2-methods-spec-row--split'
+                  : 'dir-prof-v2-methods-spec-row'
+              }
+            >
+              {showMethodsSection ? (
+                <section className="dir-prof-v2-sec" id="dir-methods">
+                  <div className="dir-prof-v2-sec-label">
+                    <i className="bi bi-heart-pulse-fill" aria-hidden />
+                    Leistungen
                   </div>
-                ))}
-                {customSpecsPublic.map((label, idx) => (
-                  <div key={`custom-spec-${idx}-${label.slice(0, 24)}`} className="dir-prof-v2-spec">
-                    <i className="bi bi-check-circle-fill" aria-hidden />
-                    {label}
+                  <h2 className="dir-prof-v2-sec-h2">Was {profile.display_name} anbietet</h2>
+                  <p className="dir-prof-v2-sec-sub">Konkrete Leistungen im Überblick.</p>
+                  <div className="dir-prof-v2-spec-grid">
+                    {methods.map((m) => (
+                      <div key={m.id} className="dir-prof-v2-spec">
+                        <i className="bi bi-check-circle-fill" aria-hidden />
+                        {m.name}
+                      </div>
+                    ))}
+                    {customMethodsPublic.map((label, idx) => (
+                      <div key={`custom-method-${idx}-${label.slice(0, 24)}`} className="dir-prof-v2-spec">
+                        <i className="bi bi-check-circle-fill" aria-hidden />
+                        {label}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </section>
+                </section>
+              ) : null}
+              {showSpecSection ? (
+                <section className="dir-prof-v2-sec" id="dir-spec">
+                  <div className="dir-prof-v2-sec-label">
+                    <i className="bi bi-mortarboard-fill" aria-hidden />
+                    Spezialisierungen
+                  </div>
+                  <h2 className="dir-prof-v2-sec-h2">Schwerpunkte</h2>
+                  <p className="dir-prof-v2-sec-sub">Worauf sich {profile.display_name} spezialisiert hat.</p>
+                  <div className="dir-prof-v2-spec-grid">
+                    {subcategories.map((s) => (
+                      <div key={s.id} className="dir-prof-v2-spec">
+                        <i className="bi bi-check-circle-fill" aria-hidden />
+                        {s.name}
+                      </div>
+                    ))}
+                    {customSpecsPublic.map((label, idx) => (
+                      <div key={`custom-spec-${idx}-${label.slice(0, 24)}`} className="dir-prof-v2-spec">
+                        <i className="bi bi-check-circle-fill" aria-hidden />
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </div>
           ) : null}
 
-          {galleryWithUrl.length > 0 ? (
+          {showPremiumGallery ? (
             <section className="dir-prof-v2-sec" id="dir-gallery">
               <div className="dir-prof-v2-sec-label">
                 <i className="bi bi-camera-fill" aria-hidden />
@@ -340,8 +373,9 @@ export function DirectoryProfilePublicDetail({
               </div>
               <h2 className="dir-prof-v2-sec-h2">Eindrücke</h2>
               <p className="dir-prof-v2-sec-sub dir-prof-v2-gal-intro">
-                Kacheln im Verhältnis 16:9 (quer) bzw. 9:16 (hoch). Klick öffnet die Großansicht; Pfeiltasten oder die
-                Seiten-Buttons blättern zwischen den Bildern.
+                Kacheln einheitlich im Format 16:9 (hochformatige Motive werden in der Übersicht beschnitten). Klick
+                öffnet die Großansicht im Originalformat; Pfeiltasten oder die Seiten-Buttons blättern zwischen den
+                Bildern.
               </p>
               <DirectoryProfileGalleryGrid
                 photos={galleryWithUrl.map((m) => ({
@@ -403,80 +437,133 @@ export function DirectoryProfilePublicDetail({
             </div>
           </section>
 
-          <section className="dir-prof-v2-sec" id="profil-kontakt">
-            <div className="dir-prof-v2-sec-label">
-              <i className="bi bi-chat-dots-fill" aria-hidden />
-              Kontakt
-            </div>
-            <h2 className="dir-prof-v2-sec-h2">Kontakt &amp; Links</h2>
-            <p className="dir-prof-v2-sec-sub">
-              {phoneTelHref
-                ? 'E-Mail wird in diesem Verzeichnis nicht angezeigt. Telefon siehe „Kontakt & Standort“ in der Seitenleiste oder die hinterlegten Links.'
-                : 'Telefon und E-Mail werden in diesem Verzeichnis nicht angezeigt. Nutzen Sie die hinterlegten Links.'}
-            </p>
-            <div className="dir-prof-v2-h-actions dir-prof-v2-kontakt-actions">
-              {socialSorted[0] ? (
-                <a
-                  href={socialSorted[0].url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dir-prof-v2-ha dir-prof-v2-ha--p"
+          <section className="dir-prof-v2-sec dir-prof-v2-sec--kontakt" id="profil-kontakt">
+            <div className="dir-prof-v2-kontakt-card">
+              <header className="dir-prof-v2-kontakt-card-head">
+                <div className="dir-prof-v2-sec-label dir-prof-v2-kontakt-card-label">
+                  <i className="bi bi-chat-dots-fill" aria-hidden />
+                  Kontakt
+                </div>
+                <h2 className="dir-prof-v2-kontakt-card-h2">Kontakt &amp; Links</h2>
+                {premiumContact ? (
+                  <div className="dir-prof-v2-kontakt-intro">
+                    <ul className="dir-prof-v2-kontakt-intro-list dir-prof-v2-kontakt-intro-list--centered">
+                      <li>
+                        <span className="dir-prof-v2-kontakt-intro-ic" aria-hidden>
+                          <i className="bi bi-shield-lock-fill" />
+                        </span>
+                        <span>
+                          Schreiben Sie direkt an <strong>{kontaktDirectName}</strong>. Ihre Nachricht wird per E-Mail
+                          übermittelt und im Verzeichnis nicht angezeigt.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                ) : null}
+              </header>
+
+              {premiumContact || phoneTelHref || socialSorted.length > 0 ? (
+                <div
+                  className={
+                    (premiumContact && socialSorted.length > 0) ||
+                    (!premiumContact && phoneTelHref && socialSorted.length > 0)
+                      ? 'dir-prof-v2-kontakt-grid dir-prof-v2-kontakt-grid--split'
+                      : 'dir-prof-v2-kontakt-grid'
+                  }
                 >
-                  <i className="bi bi-box-arrow-up-right" aria-hidden />
-                  {socialPlatformLabel(socialSorted[0].platform)} öffnen
-                </a>
-              ) : (
-                <span className="dir-prof-v2-sec-sub">Noch keine Kontaktlinks hinterlegt.</span>
-              )}
-              <a href={profileCreateHref} className="dir-prof-v2-ha dir-prof-v2-ha--s">
-                <i className="bi bi-person-plus-fill" aria-hidden />
-                Eigenes Profil erstellen
-              </a>
-            </div>
-            {socialSorted.length > 1 ? (
-              <ul className="dir-prof-v2-cc-list">
-                {socialSorted.map((l) => (
-                  <li key={l.id}>
-                    <i className="bi bi-link-45deg" aria-hidden />
-                    <div>
-                      <div className="dir-prof-v2-cc-lab">{socialPlatformLabel(l.platform)}</div>
-                      <a href={l.url} target="_blank" rel="noopener noreferrer">
-                        {l.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  {premiumContact ? (
+                    <div className="dir-prof-v2-kontakt-pane dir-prof-v2-kontakt-pane--form">
+                      <div className="dir-prof-v2-kontakt-pane-head">
+                        <h3 className="dir-prof-v2-kontakt-pane-h">
+                          <i className="bi bi-envelope-paper-heart" aria-hidden />
+                          Nachricht senden
+                        </h3>
+                        <p className="dir-prof-v2-kontakt-pane-sub">
+                          Ihre Angaben werden ausschließlich an <strong>{profile.display_name}</strong> zur Bearbeitung
+                          übermittelt — nicht im Verzeichnis sichtbar.
+                        </p>
+                      </div>
+                      <DirectoryProfileContactForm
+                        slug={profile.slug}
+                        displayName={profile.display_name}
+                        privacyInfoUrl={directoryAboutUrl()}
+                      />
+                    </div>
+                  ) : null}
+
+                  {!premiumContact && phoneTelHref ? (
+                    <div
+                      className={`dir-prof-v2-kontakt-pane dir-prof-v2-kontakt-pane--phone${
+                        socialSorted.length === 0 ? ' dir-prof-v2-kontakt-pane--phone-solo' : ''
+                      }`}
+                    >
+                      <div className="dir-prof-v2-kontakt-pane-head">
+                        <h3 className="dir-prof-v2-kontakt-pane-h">
+                          <i className="bi bi-telephone-fill" aria-hidden />
+                          Telefon
+                        </h3>
+                        <p className="dir-prof-v2-kontakt-pane-sub">Öffnet die Telefon-App bzw. wählt die Nummer.</p>
+                      </div>
+                      <a href={phoneTelHref} className="dir-prof-v2-kontakt-phone-row">
+                        <span className="dir-prof-v2-kontakt-link-ic" aria-hidden>
+                          <i className="bi bi-phone-vibrate-fill" />
+                        </span>
+                        <span className="dir-prof-v2-kontakt-link-body">
+                          <span className="dir-prof-v2-kontakt-link-plat">Rufnummer</span>
+                          <span className="dir-prof-v2-kontakt-link-url">{phonePublicDisplay}</span>
+                        </span>
+                        <span className="dir-prof-v2-kontakt-link-go" aria-hidden>
+                          <i className="bi bi-chevron-right" />
+                        </span>
                       </a>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
+                  ) : null}
 
-          {similarProfiles.length > 0 ? (
-            <section className="dir-prof-v2-sec">
-              <div className="dir-prof-v2-sec-label">
-                <i className="bi bi-people-fill" aria-hidden />
-                Weitere Behandler
-              </div>
-              <h2 className="dir-prof-v2-sec-h2">Ähnliche Behandler in der Nähe</h2>
-              <div className="dir-prof-v2-sim-scroll">
-                {similarProfiles.map((p) => (
-                  <Link key={p.id} href={`/behandler/${p.slug}`} className="dir-prof-v2-sim">
+                  {socialSorted.length > 0 ? (
                     <div
-                      className="dir-prof-v2-sim-av"
-                      style={{ background: profileAvatarBackground(p.slug), color: '#154226' }}
+                      className={`dir-prof-v2-kontakt-pane dir-prof-v2-kontakt-pane--links${
+                        !premiumContact && !phoneTelHref ? ' dir-prof-v2-kontakt-pane--links-solo' : ''
+                      }`}
                     >
-                      {profileInitials(p.display_name)}
+                      <div className="dir-prof-v2-kontakt-pane-head">
+                        <h3 className="dir-prof-v2-kontakt-pane-h">
+                          <i className="bi bi-link-45deg" aria-hidden />
+                          Web &amp; Social
+                        </h3>
+                        <p className="dir-prof-v2-kontakt-pane-sub">
+                          Öffentlich hinterlegte Profile — öffnen in einem neuen Tab.
+                        </p>
+                      </div>
+                      <div className="dir-prof-v2-kontakt-link-cards">
+                        {socialSorted.map((l) => (
+                          <a
+                            key={l.id}
+                            href={l.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="dir-prof-v2-kontakt-link-row"
+                          >
+                            <span className="dir-prof-v2-kontakt-link-ic" aria-hidden>
+                              <i className={`bi ${socialPlatformIconClass(l.platform)}`} />
+                            </span>
+                            <span className="dir-prof-v2-kontakt-link-body">
+                              <span className="dir-prof-v2-kontakt-link-plat">{socialPlatformLabel(l.platform)}</span>
+                              <span className="dir-prof-v2-kontakt-link-url">
+                                {l.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                              </span>
+                            </span>
+                            <span className="dir-prof-v2-kontakt-link-go" aria-hidden>
+                              <i className="bi bi-box-arrow-up-right" />
+                            </span>
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                    <div className="dir-prof-v2-sim-name">{p.display_name}</div>
-                    <div className="dir-prof-v2-sim-fach">{p.primary_specialty_label ?? 'Tierbehandler:in'}</div>
-                    <div className="dir-prof-v2-sim-loc">
-                      <i className="bi bi-geo-alt-fill" aria-hidden />
-                      {p.city ?? p.state ?? '—'}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
 
         <aside className="dir-prof-v2-facts-sidebar" aria-label={`Kurzinfo: ${sidebarCardTitle}`}>
@@ -580,8 +667,11 @@ export function DirectoryProfilePublicDetail({
                 </div>
               ) : null}
               <a href="#profil-kontakt" className="dir-prof-v2-facts-sidebar-cta">
-                <i className="bi bi-chat-dots-fill" aria-hidden />
-                Links &amp; Kontakt
+                <i
+                  className={premiumContact ? 'bi bi-envelope-fill' : 'bi bi-chat-dots-fill'}
+                  aria-hidden
+                />
+                {premiumContact ? 'Nachricht senden' : 'Links & Kontakt'}
               </a>
             </div>
           </aside>
@@ -641,10 +731,22 @@ export function DirectoryProfilePublicDetail({
           >
             <i className="bi bi-share" aria-hidden />
           </DirectoryProfileShareButton>
-          <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
-            <i className="bi bi-envelope-fill" aria-hidden />
-            Nachricht schreiben
-          </a>
+          {premiumContact ? (
+            <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
+              <i className="bi bi-envelope-fill" aria-hidden />
+              Nachricht schreiben
+            </a>
+          ) : phoneTelHref ? (
+            <a href={phoneTelHref} className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
+              <i className="bi bi-telephone-fill" aria-hidden />
+              Anrufen
+            </a>
+          ) : (
+            <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
+              <i className="bi bi-link-45deg" aria-hidden />
+              Kontakt
+            </a>
+          )}
         </div>
       </nav>
     </div>

@@ -1,7 +1,8 @@
 'use server'
 
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { revalidatePath } from 'next/cache'
 import { upsertOwnedDirectoryProfileFromWizard } from '@/lib/directory/onboarding/submitWizardProfile'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function submitDirectoryProfileWizardForOwnerAction(payload: unknown) {
   const supabase = await createSupabaseServerClient()
@@ -11,6 +12,11 @@ export async function submitDirectoryProfileWizardForOwnerAction(payload: unknow
   if (!user) {
     return { ok: false as const, error: 'Nicht eingeloggt.' }
   }
-  return upsertOwnedDirectoryProfileFromWizard({ userId: user.id, raw: payload })
+  const result = await upsertOwnedDirectoryProfileFromWizard({ userId: user.id, raw: payload })
+  if (result.ok && result.slug) {
+    revalidatePath(`/behandler/${result.slug}`)
+    revalidatePath('/behandler')
+  }
+  return result
 }
 

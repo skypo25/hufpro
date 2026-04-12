@@ -42,13 +42,14 @@ export function parseCustomMethodsFromDescription(desc: string | null | undefine
 
 /** Blöcke, die auf der Profilseite nur als Chips (nicht im Abschnitt „Über“) erscheinen sollen. */
 const DESCRIPTION_BLOCKS_EXCLUDED_FROM_ABOUT = new Set([
+  'Qualifikationen:',
   'Eigene Spezialisierungen:',
   'Eigene Leistungen / Methoden:',
 ])
 
 /**
  * `directory_profiles.description` ohne die Wizard-Blöcke für eigene Spezialisierungen / Leistungen
- * (diese werden separat als Chips gerendert). Übrig bleibt u. a. „Qualifikationen:“.
+ * (diese werden separat gerendert). Übrig bleibt Freitext ohne diese Blöcke.
  */
 export function descriptionTextForPublicAbout(desc: string | null | undefined): string | null {
   const blocks = descriptionBlocks(desc)

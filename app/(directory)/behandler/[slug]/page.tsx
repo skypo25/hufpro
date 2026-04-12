@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+
+export const dynamic = 'force-dynamic'
 import { DirectoryProfilePublicDetail } from '@/components/directory/public/profile/DirectoryProfilePublicDetail'
 import {
   fetchPublicAnimalTypesByIds,
@@ -13,7 +15,6 @@ import {
   fetchPublicProfileSubcategoryLinks,
   fetchPublicSpecialtiesByIds,
   fetchPublicSubcategoriesByIds,
-  fetchSimilarPublicProfiles,
 } from '@/lib/directory/public/data'
 
 type PageProps = {
@@ -90,13 +91,6 @@ export default async function BehandlerProfilePage({ params }: PageProps) {
   }
   specialties.sort(primaryFirst)
 
-  const similarProfiles = await fetchSimilarPublicProfiles({
-    excludeProfileId: profile.id,
-    primarySpecialtyId: specialties[0]?.id ?? null,
-    state: profile.state,
-    limit: 8,
-  })
-
   return (
     <div data-directory-page="profile">
       <DirectoryProfilePublicDetail
@@ -107,7 +101,6 @@ export default async function BehandlerProfilePage({ params }: PageProps) {
         methods={methods}
         media={media}
         social={social}
-        similarProfiles={similarProfiles}
       />
     </div>
   )

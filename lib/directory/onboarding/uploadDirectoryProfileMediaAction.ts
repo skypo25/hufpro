@@ -1,5 +1,6 @@
 'use server'
 
+import { directoryProfileHasActiveTop } from '@/lib/directory/premium/directoryProfileTopActive.server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 
@@ -99,6 +100,8 @@ export async function uploadDirectoryProfileMediaAction(formData: FormData): Pro
     return { ok: false, error: 'Kein Zugriff auf dieses Profil.' }
   }
 
+  const topActive = await directoryProfileHasActiveTop(supaAdmin, profileId)
+
   const removeLogo = formData.get('removeLogo') === '1'
   const keepRaw = formData.get('keepPhotoMediaIds')
   let keepPhotoIdsExplicit: string[] | null = null
@@ -147,8 +150,9 @@ export async function uploadDirectoryProfileMediaAction(formData: FormData): Pro
     .sort((a, b) => a.sort_order - b.sort_order)
 
   const currentPhotoIdsInOrder = currentPhotos.map((r) => r.id)
-  const keepPhotoIds =
+  const keepPhotoIdsRequested =
     keepPhotoIdsExplicit !== null ? keepPhotoIdsExplicit : [...currentPhotoIdsInOrder]
+  const keepPhotoIds = topActive ? keepPhotoIdsRequested : []
 
   const currentPhotoIdSet = new Set(currentPhotoIdsInOrder)
   for (const id of keepPhotoIds) {

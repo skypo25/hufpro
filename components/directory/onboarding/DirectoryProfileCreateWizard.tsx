@@ -178,6 +178,8 @@ export type DirectoryProfileCreateWizardProps = {
   embeddedInApp?: boolean
   /** Bestehendes Logo / Galerie (nur eingebetteter Owner-Editor). */
   initialMedia?: DirectoryProfileCreateWizardInitialMedia | null
+  /** Top-/Premium-Profil: Galerie-Uploads erlaubt (sonst nur Logo). */
+  premiumGalleryEnabled?: boolean
   initial?: Partial<WizardSubmitPayload> | null
   submitAction?: (payload: unknown) => Promise<WizardSubmitResult>
   successRedirectTo?: string | null
@@ -190,6 +192,7 @@ export function DirectoryProfileCreateWizard({
   animals,
   embeddedInApp = false,
   initialMedia = null,
+  premiumGalleryEnabled = false,
   initial = null,
   submitAction,
   successRedirectTo,
@@ -342,6 +345,12 @@ export function DirectoryProfileCreateWizard({
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([])
 
   useEffect(() => {
+    if (!embeddedInApp || premiumGalleryEnabled) return
+    setServerPhotoRows([])
+    setPhotoFiles([])
+  }, [embeddedInApp, premiumGalleryEnabled])
+
+  useEffect(() => {
     const urls = photoFiles.map((f) => URL.createObjectURL(f))
     setPhotoPreviewUrls(urls)
     return () => {
@@ -445,6 +454,7 @@ export function DirectoryProfileCreateWizard({
   }, [logoFile])
 
   const onGalleryFilesChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    if (!embeddedInApp || !premiumGalleryEnabled) return
     const list = e.target.files
     if (!list?.length) return
     const incoming = Array.from(list)
@@ -456,7 +466,7 @@ export function DirectoryProfileCreateWizard({
         return [...prev, ...compressed].slice(0, cap)
       })
     })()
-  }, [serverPhotoRows.length])
+  }, [embeddedInApp, premiumGalleryEnabled, serverPhotoRows.length])
 
   const removeGalleryAt = useCallback((index: number) => {
     setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
@@ -587,6 +597,7 @@ export function DirectoryProfileCreateWizard({
     serviceType,
     hoursByDay,
     goStep,
+    premiumGalleryEnabled,
   ])
 
   const removeServerPhoto = useCallback((id: string) => {
@@ -605,12 +616,12 @@ export function DirectoryProfileCreateWizard({
   const gallerySlotsLeft = Math.max(0, MAX_GALLERY_PHOTOS - gallerySlotsUsed)
 
   const hasMediaForPreview = useMemo(() => {
-    if (logoFile || photoFiles.length > 0) return true
+    if (logoFile || (premiumGalleryEnabled && photoFiles.length > 0)) return true
     if (!embeddedInApp) return false
     if (persistedLogoUrl) return true
-    if (serverPhotoRows.length > 0) return true
+    if (premiumGalleryEnabled && serverPhotoRows.length > 0) return true
     return false
-  }, [embeddedInApp, logoFile, photoFiles.length, persistedLogoUrl, serverPhotoRows.length])
+  }, [embeddedInApp, logoFile, photoFiles.length, persistedLogoUrl, premiumGalleryEnabled, serverPhotoRows.length])
 
   const nextStep = useCallback(() => {
     if (current < TOTAL_STEPS) {
@@ -1000,8 +1011,13 @@ export function DirectoryProfileCreateWizard({
                     placeholder="email@beispiel.de"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    aria-describedby="dir-wiz-email-public-hint"
                   />
                 </div>
+                <p id="dir-wiz-email-public-hint" className="form-hint" style={{ marginTop: 6 }}>
+                  Wird <strong>nicht</strong> im öffentlichen Profil angezeigt. Mit aktivem Top-Profil nutzen wir diese
+                  Adresse, um dir Anfragen aus dem <strong>Kontaktformular</strong> per E-Mail zuzustellen.
+                </p>
               </div>
             </div>
             <div className="form-group">
@@ -1565,9 +1581,10 @@ export function DirectoryProfileCreateWizard({
               </div>
               <h2>Logo &amp; Galerie</h2>
               <p>
-                Optional: Ein <strong>Logo</strong> für die Kurzinfo und bis zu <strong>sechs Galeriebilder</strong> für
-                dein öffentliches Profil (JPG, PNG, WebP oder GIF, je max. 5 MB). Galeriefotos werden vor dem Upload auf{' '}
-                <strong>800×450</strong> (Querformat) bzw. <strong>450×800</strong> (Hochformat) zugeschnitten.
+                Optional: Ein <strong>Logo</strong> für die Kurzinfo
+                {premiumGalleryEnabled
+                  ? ` und bis zu ${MAX_GALLERY_PHOTOS} Galeriebilder für dein öffentliches Profil (JPG, PNG, WebP oder GIF, je max. 5 MB). Galeriefotos werden vor dem Upload auf 800×450 bzw. 450×800 zugeschnitten.`
+                  : '. Die Bildergalerie ist Teil des Top-/Premium-Profils und erscheint nur bei aktivem Top-Profil.'}
               </p>
             </div>
             {embeddedInApp ? (
@@ -1603,56 +1620,66 @@ export function DirectoryProfileCreateWizard({
                     </label>
                   )}
                 </div>
-                <div className="form-section-title">Galerie (max. {MAX_GALLERY_PHOTOS} Bilder)</div>
-                <div className="dir-wiz-media-grid">
-                  {serverPhotoRows.map((row) => (
-                    <div key={row.id} className="dir-wiz-media-preview">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={row.url} alt="Galeriebild" />
-                      <button
-                        type="button"
-                        className="dir-wiz-media-remove"
-                        onClick={() => removeServerPhoto(row.id)}
-                        aria-label="Galeriebild entfernen"
-                      >
-                        <i className="bi bi-x-lg" />
-                      </button>
+                {premiumGalleryEnabled ? (
+                  <>
+                    <div className="form-section-title">Galerie (max. {MAX_GALLERY_PHOTOS} Bilder)</div>
+                    <div className="dir-wiz-media-grid">
+                      {serverPhotoRows.map((row) => (
+                        <div key={row.id} className="dir-wiz-media-preview">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={row.url} alt="Galeriebild" />
+                          <button
+                            type="button"
+                            className="dir-wiz-media-remove"
+                            onClick={() => removeServerPhoto(row.id)}
+                            aria-label="Galeriebild entfernen"
+                          >
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </div>
+                      ))}
+                      {photoPreviewUrls.map((url, idx) => (
+                        <div key={`${url}-${idx}`} className="dir-wiz-media-preview">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`Neues Bild ${idx + 1}`} />
+                          <button
+                            type="button"
+                            className="dir-wiz-media-remove"
+                            onClick={() => removeGalleryAt(idx)}
+                            aria-label={`Neues Bild ${idx + 1} entfernen`}
+                          >
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </div>
+                      ))}
+                      {gallerySlotsLeft > 0 ? (
+                        <label className="dir-wiz-media-drop dir-wiz-media-drop--tile">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            multiple
+                            onChange={onGalleryFilesChange}
+                          />
+                          <i className="bi bi-plus-lg" aria-hidden />
+                          <span>
+                            {gallerySlotsUsed === 0 ? 'Bilder hinzufügen' : 'Weitere wählen'} ({gallerySlotsLeft} frei)
+                          </span>
+                        </label>
+                      ) : null}
                     </div>
-                  ))}
-                  {photoPreviewUrls.map((url, idx) => (
-                    <div key={`${url}-${idx}`} className="dir-wiz-media-preview">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Neues Bild ${idx + 1}`} />
-                      <button
-                        type="button"
-                        className="dir-wiz-media-remove"
-                        onClick={() => removeGalleryAt(idx)}
-                        aria-label={`Neues Bild ${idx + 1} entfernen`}
-                      >
-                        <i className="bi bi-x-lg" />
-                      </button>
-                    </div>
-                  ))}
-                  {gallerySlotsLeft > 0 ? (
-                    <label className="dir-wiz-media-drop dir-wiz-media-drop--tile">
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        multiple
-                        onChange={onGalleryFilesChange}
-                      />
-                      <i className="bi bi-plus-lg" aria-hidden />
-                      <span>
-                        {gallerySlotsUsed === 0 ? 'Bilder hinzufügen' : 'Weitere wählen'} ({gallerySlotsLeft} frei)
-                      </span>
-                    </label>
-                  ) : null}
-                </div>
+                  </>
+                ) : (
+                  <p className="form-hint" style={{ marginTop: 16 }}>
+                    <strong>Galerie &amp; Kontaktformular</strong> sind mit <strong>Top-Profil</strong> freigeschaltet
+                    (z. B. über dein Abo oder die Top-Profil-Option im Verzeichnis). Ohne Top-Profil bleibt dein Eintrag mit
+                    Logo, Text und Links sichtbar.
+                  </p>
+                )}
               </div>
             ) : (
               <p className="form-hint">
-                Wenn du eingeloggt bist (z. B. unter „Mein Profil“), kannst du dort ein Logo und bis zu sechs Galeriebilder
-                hochladen und speichern.
+                Wenn du eingeloggt bist (z. B. unter „Mein Profil“), kannst du dort ein Logo hochladen; Galerie und
+                Kontaktformular sind mit Top-Profil verfügbar.
               </p>
             )}
           </div>

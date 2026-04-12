@@ -385,7 +385,11 @@ export default async function DashboardPage() {
                   item.href === '/animals/new' ? 'text-[#154226]' : 'text-[#52b788]'
                 }`}
               >
-                <FontAwesomeIcon icon={item.icon} className="text-[18px]" />
+                <FontAwesomeIcon
+                  icon={item.icon}
+                  className="!h-[18px] !w-[18px] shrink-0"
+                  aria-hidden
+                />
               </div>
               <div className="text-[14px] font-medium text-[#1B1F23]">{item.title}</div>
             </Link>
