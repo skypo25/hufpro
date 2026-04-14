@@ -10345,6 +10345,10 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 .dir-prof-v2-claim-sec {
   background: var(--dir-v2-dark);
   padding: 48px 32px;
+  max-width: var(--dir-listing-card-max-w);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .dir-prof-v2-claim-in {
@@ -10495,6 +10499,27 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   justify-content: center;
 }
 
+/* Nur Teilen, wenn die duplizierten CTAs noch ausgeblendet sind */
+.dir-prof-v2-mob-bar-in:has(> .dir-prof-v2-mob-share:only-child) .dir-prof-v2-mob-share {
+  flex: 1;
+  justify-content: center;
+}
+
+.dir-prof-v2-mob-dup {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dir-prof-v2-mob-dup-btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  padding: 12px 10px !important;
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .dir-prac-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -10538,6 +10563,10 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 
   .dir-prof-v2-bc--wide {
     grid-column: span 2;
+  }
+
+  .dir-prof-v2-claim-sec {
+    padding: 48px 20px;
   }
 
   .dir-prof-v2-claim-in {

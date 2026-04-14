@@ -48,6 +48,7 @@ import { ProfileBentoSpecialtyIcon } from './ProfileBentoSpecialtyIcon'
 import { DirectoryProfileSectionTabs } from './DirectoryProfileSectionTabs'
 import { DirectoryProfileShareButton } from './DirectoryProfileShareButton'
 import { DirectoryProfileTrackedPhoneLink } from './DirectoryProfileTrackedPhoneLink'
+import { DirectoryProfileMobBarCtaReveal } from './DirectoryProfileMobBarCtaReveal'
 import { DirectoryProfileMobBarShell } from './DirectoryProfileMobBarShell'
 import { DirectoryProfileSidebarHoursDisclosure } from './DirectoryProfileSidebarHoursDisclosure'
 import { ProfileHeroBlock } from './ProfileHeroBlock'
@@ -169,7 +170,7 @@ export function DirectoryProfilePublicDetail({
         />
       </div>
 
-      <div className="dir-prof-v2-quick-cta" aria-label="Schnellkontakt">
+      <div className="dir-prof-v2-quick-cta" id="dir-prof-quick-cta" aria-label="Schnellkontakt">
         <div className="dir-prof-v2-quick-cta-in">
           {phoneTelHref ? (
             <DirectoryProfileTrackedPhoneLink
@@ -184,7 +185,7 @@ export function DirectoryProfilePublicDetail({
           {premiumContact ? (
             <a href="#profil-kontakt" className="dir-prof-v2-quick-call dir-prof-v2-ha dir-prof-v2-ha--p">
               <i className="bi bi-envelope-fill" aria-hidden />
-              Nachricht schreiben
+              Nachricht
             </a>
           ) : !phoneTelHref ? (
             <a href="#profil-kontakt" className="dir-prof-v2-quick-call dir-prof-v2-ha dir-prof-v2-ha--s">
@@ -770,26 +771,12 @@ export function DirectoryProfilePublicDetail({
           >
             <i className="bi bi-share" aria-hidden />
           </DirectoryProfileShareButton>
-          {premiumContact ? (
-            <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
-              <i className="bi bi-envelope-fill" aria-hidden />
-              Nachricht schreiben
-            </a>
-          ) : phoneTelHref ? (
-            <DirectoryProfileTrackedPhoneLink
-              slug={profile.slug}
-              href={phoneTelHref}
-              className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg"
-            >
-              <i className="bi bi-telephone-fill" aria-hidden />
-              Anrufen
-            </DirectoryProfileTrackedPhoneLink>
-          ) : (
-            <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
-              <i className="bi bi-link-45deg" aria-hidden />
-              Kontakt
-            </a>
-          )}
+          <DirectoryProfileMobBarCtaReveal
+            quickCtaRootId="dir-prof-quick-cta"
+            slug={profile.slug}
+            phoneTelHref={phoneTelHref}
+            premiumContact={premiumContact}
+          />
         </div>
       </DirectoryProfileMobBarShell>
     </div>
