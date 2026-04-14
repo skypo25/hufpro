@@ -169,24 +169,29 @@ export function DirectoryProfilePublicDetail({
         />
       </div>
 
-      <div className="dir-prof-v2-quick" aria-label="Kurzüberblick">
-        <div className="dir-prof-v2-quick-cell">
-          <div className="dir-prof-v2-quick-val">{specialties.length}</div>
-          <div className="dir-prof-v2-quick-lab">Fachrichtungen</div>
-        </div>
-        <div className="dir-prof-v2-quick-cell">
-          <div className={`dir-prof-v2-quick-val${hasRadius ? ' dir-prof-v2-quick-val--accent' : ''}`}>
-            {hasRadius ? `${profile.service_radius_km} km` : '–'}
-          </div>
-          <div className="dir-prof-v2-quick-lab">Radius</div>
-        </div>
-        <div className="dir-prof-v2-quick-cell">
-          <div className="dir-prof-v2-quick-val">{serviceTypeLabel(profile.service_type)}</div>
-          <div className="dir-prof-v2-quick-lab">Arbeitsweise</div>
-        </div>
-        <div className="dir-prof-v2-quick-cell">
-          <div className="dir-prof-v2-quick-val">{animalTypes.length}</div>
-          <div className="dir-prof-v2-quick-lab">Tierarten</div>
+      <div className="dir-prof-v2-quick-cta" aria-label="Schnellkontakt">
+        <div className="dir-prof-v2-quick-cta-in">
+          {phoneTelHref ? (
+            <DirectoryProfileTrackedPhoneLink
+              slug={profile.slug}
+              href={phoneTelHref}
+              className="dir-prof-v2-quick-call dir-prof-v2-ha dir-prof-v2-ha--dark"
+            >
+              <i className="bi bi-telephone-fill" aria-hidden />
+              Anrufen
+            </DirectoryProfileTrackedPhoneLink>
+          ) : null}
+          {premiumContact ? (
+            <a href="#profil-kontakt" className="dir-prof-v2-quick-call dir-prof-v2-ha dir-prof-v2-ha--p">
+              <i className="bi bi-envelope-fill" aria-hidden />
+              Nachricht schreiben
+            </a>
+          ) : !phoneTelHref ? (
+            <a href="#profil-kontakt" className="dir-prof-v2-quick-call dir-prof-v2-ha dir-prof-v2-ha--s">
+              <i className="bi bi-chat-dots-fill" aria-hidden />
+              Kontakt
+            </a>
+          ) : null}
         </div>
       </div>
 
@@ -227,17 +232,26 @@ export function DirectoryProfilePublicDetail({
                 </div>
               ) : specialties.length > 1 ? (
                 <>
-                  {specialties.map((spec) => (
-                    <div key={spec.id} className="dir-prof-v2-bc">
-                      <div className="dir-prof-v2-bc-icon">
-                        <ProfileBentoSpecialtyIcon code={spec.code} />
-                      </div>
-                      <div className="dir-prof-v2-bc-lab">Fachrichtung</div>
-                      <div className="dir-prof-v2-bc-val">
-                        {directorySpecialtyDisplayName(spec.code, spec.name)}
-                      </div>
-                    </div>
-                  ))}
+                  <div className="dir-prof-v2-bento-specs">
+                    {specialties.map((spec, specIdx) => {
+                      const n = specialties.length
+                      const spanFull = n >= 3 && n % 2 === 1 && specIdx === n - 1
+                      return (
+                        <div
+                          key={spec.id}
+                          className={`dir-prof-v2-bc${spanFull ? ' dir-prof-v2-bc--spec-span-full' : ''}`}
+                        >
+                          <div className="dir-prof-v2-bc-icon">
+                            <ProfileBentoSpecialtyIcon code={spec.code} />
+                          </div>
+                          <div className="dir-prof-v2-bc-lab">Fachrichtung</div>
+                          <div className="dir-prof-v2-bc-val">
+                            {directorySpecialtyDisplayName(spec.code, spec.name)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                   {subcategories.length > 0 ? (
                     <div className="dir-prof-v2-bc dir-prof-v2-bc--wide">
                       <div className="dir-prof-v2-bc-icon">
@@ -256,28 +270,29 @@ export function DirectoryProfilePublicDetail({
                 </>
               ) : null}
 
-              {animalTypes.length > 0 ? (
+              <div className="dir-prof-v2-bento-ani-work">
+                {animalTypes.length > 0 ? (
+                  <div className="dir-prof-v2-bc">
+                    <div className="dir-prof-v2-bc-icon">
+                      <ProfileBentoPawIcon />
+                    </div>
+                    <div className="dir-prof-v2-bc-lab">Tierarten</div>
+                    <div className="dir-prof-v2-bc-chips">
+                      {animalTypes.map((a) => (
+                        <span key={a.id} className="dir-prof-v2-bc-chip">
+                          {a.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="dir-prof-v2-bc">
                   <div className="dir-prof-v2-bc-icon">
-                    <ProfileBentoPawIcon />
+                    <i className="bi bi-car-front-fill" aria-hidden />
                   </div>
-                  <div className="dir-prof-v2-bc-lab">Tierarten</div>
-                  <div className="dir-prof-v2-bc-chips">
-                    {animalTypes.map((a) => (
-                      <span key={a.id} className="dir-prof-v2-bc-chip">
-                        {a.name}
-                      </span>
-                    ))}
-                  </div>
+                  <div className="dir-prof-v2-bc-lab">Arbeitsweise</div>
+                  <div className="dir-prof-v2-bc-val">{serviceTypeLabel(profile.service_type)}</div>
                 </div>
-              ) : null}
-
-              <div className="dir-prof-v2-bc">
-                <div className="dir-prof-v2-bc-icon">
-                  <i className="bi bi-car-front-fill" aria-hidden />
-                </div>
-                <div className="dir-prof-v2-bc-lab">Arbeitsweise</div>
-                <div className="dir-prof-v2-bc-val">{serviceTypeLabel(profile.service_type)}</div>
               </div>
 
               {hasRadius ? (

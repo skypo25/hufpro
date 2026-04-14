@@ -168,6 +168,11 @@ type AddressAutocompleteProps = {
   photonLayers?: readonly string[]
   /** Zusätzlich zu Pfeiltasten/Escape (z. B. Enter → Suche auslösen). */
   onInputKeyDown?: KeyboardEventHandler<HTMLInputElement>
+  /**
+   * Eltern kann bei jeder Suche inkrementieren — schließt die Vorschlagsliste und bricht laufende Debounces ab
+   * (z. B. Verzeichnis „Suchen“, damit die Liste nach der Navigation nicht wieder aufgeht).
+   */
+  dismissSuggestionsSignal?: number
 }
 
 export default function AddressAutocomplete({
@@ -183,6 +188,7 @@ export default function AddressAutocomplete({
   allowedCountryCodes,
   photonLayers,
   onInputKeyDown,
+  dismissSuggestionsSignal = 0,
 }: AddressAutocompleteProps) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
@@ -190,6 +196,7 @@ export default function AddressAutocomplete({
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Nach Klick auf einen Vorschlag: `displayValue` ändert sich — ohne das würde der Debounce-Effekt sofort neu fetchen und die Liste wieder öffnen. */
   const suppressFetchAfterSelectRef = useRef(false)
@@ -261,13 +268,30 @@ export default function AddressAutocomplete({
       return
     }
     debounceRef.current = setTimeout(() => {
-      fetchSuggestions(displayValue)
-      setOpen(true)
+      void (async () => {
+        await fetchSuggestions(displayValue)
+        if (inputRef.current && document.activeElement === inputRef.current) {
+          setOpen(true)
+        }
+      })()
     }, DEBOUNCE_MS)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [displayValue, fetchSuggestions])
+
+  useEffect(() => {
+    if (dismissSuggestionsSignal <= 0) return
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    setOpen(false)
+    setSuggestions([])
+    setActiveIndex(-1)
+    setLoading(false)
+    inputRef.current?.blur()
+  }, [dismissSuggestionsSignal])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -323,6 +347,7 @@ export default function AddressAutocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       <input
+        ref={inputRef}
         id={id}
         type="text"
         value={displayValue}
@@ -331,7 +356,24 @@ export default function AddressAutocomplete({
           if (isControlled) onValueChange?.(v)
           else setQuery(v)
         }}
-        onFocus={() => displayValue.trim().length >= 3 && setOpen(true)}
+        onFocus={() => {
+          const q = displayValue.trim()
+          if (q.length < 3) return
+          void (async () => {
+            await fetchSuggestions(q)
+            if (inputRef.current && document.activeElement === inputRef.current) {
+              setOpen(true)
+            }
+          })()
+        }}
+        onBlur={() => {
+          window.setTimeout(() => {
+            if (!wrapperRef.current?.contains(document.activeElement)) {
+              setOpen(false)
+              setActiveIndex(-1)
+            }
+          }, 0)
+        }}
         onKeyDown={(e) => {
           handleKeyDown(e)
           if (!e.defaultPrevented) onInputKeyDown?.(e)

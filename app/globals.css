@@ -8080,59 +8080,40 @@ div.border-gray-200,
   background: #fff;
 }
 
-/* Kurz-Strip unter dem Hero (bis 900px; Desktop nutzt die Sidebar) */
-.dir-prof-v2-quick {
+/* Unter dem Hero: ein CTA (Anrufen o. ä.) bis 900px — Desktop nutzt Sidebar/Mobilleiste */
+.dir-prof-v2-quick-cta {
   display: none;
   max-width: var(--dir-listing-card-max-w);
   margin: 0 auto;
+  padding: 14px 20px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--dir-v2-bl);
   background: var(--dir-v2-soft);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
-.dir-prof-v2-quick::-webkit-scrollbar {
-  display: none;
+.dir-prof-v2-quick-cta-in {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 440px;
+  margin: 0 auto;
+  justify-content: center;
 }
 
-.dir-prof-v2-quick-cell {
+.dir-prof-v2-quick-call {
   flex: 1;
-  min-width: 0;
-  padding: 14px 12px;
-  text-align: center;
-  border-right: 1px solid var(--dir-v2-bl);
-  white-space: nowrap;
+  min-width: min(140px, 100%);
+  box-sizing: border-box;
 }
 
-.dir-prof-v2-quick-cell:last-child {
-  border-right: none;
-}
-
-.dir-prof-v2-quick-val {
-  font-family: var(--font-outfit), 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: 16px;
-  color: var(--dir-text);
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-
-.dir-prof-v2-quick-val--accent {
-  color: var(--dir-accent);
-}
-
-.dir-prof-v2-quick-lab {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #9ca3af;
+.dir-prof-v2-quick-cta-in:has(.dir-prof-v2-quick-call:only-child) .dir-prof-v2-quick-call {
+  max-width: 420px;
+  flex: 1 1 100%;
 }
 
 @media (max-width: 900px) {
-  .dir-prof-v2-quick {
-    display: flex;
+  .dir-prof-v2-quick-cta {
+    display: block;
   }
 }
 
@@ -8252,6 +8233,11 @@ div.border-gray-200,
   }
 
   .dir-prof-v2-h-tags {
+    align-items: flex-start;
+  }
+
+  .dir-prof-v2-h-tags-svc,
+  .dir-prof-v2-h-tags-ani {
     justify-content: flex-start;
   }
 
@@ -8439,10 +8425,20 @@ div.border-gray-200,
 
 .dir-prof-v2-h-tags {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
   margin-top: 14px;
+  width: 100%;
+}
+
+.dir-prof-v2-h-tags-svc,
+.dir-prof-v2-h-tags-ani {
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  gap: 8px;
+  max-width: 100%;
 }
 
 .dir-prof-v2-hero .dir-prof-v2-h-tags {
@@ -8529,6 +8525,20 @@ div.border-gray-200,
 
 .dir-prof-v2-ha--s:hover {
   border-color: var(--dir-text);
+}
+
+/* Anrufen in der Schnell-CTA-Leiste: dunkel, helle Schrift */
+.dir-prof-v2-ha--dark {
+  background: #1b1f23;
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}
+
+.dir-prof-v2-ha--dark:hover {
+  background: #252a30;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Volle Breite + sticky: direktes Kind von .dir-prof-page (hoher Vorfahre), nicht nur Grid-Zeile mit Tab-Höhe */
@@ -8775,16 +8785,17 @@ div.border-gray-200,
   width: 100%;
 }
 
+/* Keine Linie zwischen Leistungen und Spezialisierungen (sonst doppelt zu globalem sec+sec) */
+.dir-prof-v2-methods-spec-row > .dir-prof-v2-sec + .dir-prof-v2-sec {
+  border-top: none;
+}
+
 @media (min-width: 992px) {
   .dir-prof-v2-methods-spec-row--split {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0 36px;
     align-items: start;
-  }
-
-  .dir-prof-v2-methods-spec-row--split > .dir-prof-v2-sec + .dir-prof-v2-sec {
-    border-top: none;
   }
 }
 
@@ -9138,6 +9149,32 @@ aside.dir-prof-v2-facts-sidebar {
   grid-auto-rows: auto;
   gap: 12px;
   margin-top: 24px;
+}
+
+/* Mehrere Fachrichtungen: zwei Spalten mit Abstand; ungerade Anzahl → letzte Karte eine Zeile volle Breite */
+.dir-prof-v2-bento-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 14px;
+  grid-column: 1 / -1;
+}
+
+.dir-prof-v2-bc--spec-span-full {
+  grid-column: 1 / -1;
+}
+
+/* Tierarten + Arbeitsweise nebeneinander (ohne Tierarten: Arbeitsweise volle Breite) */
+.dir-prof-v2-bento-ani-work {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 14px;
+  grid-column: 1 / -1;
+}
+
+.dir-prof-v2-bento-ani-work > .dir-prof-v2-bc:only-child {
+  grid-column: 1 / -1;
 }
 
 .dir-prof-v2-bc {
@@ -9514,8 +9551,9 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
     gap: 12px;
   }
 
+  /* links bündig mit Text; rechts in den Rand — zeigt, dass es weitergeht */
   .dir-prof-v2-gal-scroll-wrap {
-    margin-left: -32px;
+    margin-left: 0;
     margin-right: -32px;
   }
 
@@ -9527,7 +9565,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    padding: 0 32px 8px;
+    padding: 0 0 8px 0;
     margin-top: 0;
     grid-template-columns: unset;
     scrollbar-width: none;
@@ -9545,19 +9583,15 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   }
 }
 
+@media (max-width: 640px) {
+  .dir-prof-v2-gal-scroll-wrap {
+    margin-right: -20px;
+  }
+}
+
 @media (max-width: 520px) {
   .dir-prof-v2-gal-grid:not(.dir-prof-v2-gal-grid--snap) {
     grid-template-columns: 1fr;
-  }
-
-  .dir-prof-v2-gal-scroll-wrap {
-    margin-left: -20px;
-    margin-right: -20px;
-  }
-
-  .dir-prof-v2-gal-grid.dir-prof-v2-gal-grid--snap {
-    padding-left: 20px;
-    padding-right: 20px;
   }
 
   .dir-prof-v2-gal-modal-nav--prev {
@@ -10550,14 +10584,14 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 }
 
 @media (max-width: 640px) {
-  /* Handys: Logo oben, Text im dunklen Bereich zentriert; Logo leicht über der Kartenkante */
+  /* Handys: Logo oben im dunklen Bereich, Text zentriert (Logo ohne Überstand nach außen) */
   .dir-prof-v2-hero-wrap {
-    padding: 32px 16px 12px;
+    padding: 12px 16px 12px;
     overflow: visible;
   }
 
   .dir-prof-v2-hero-wrap .dir-prof-v2-hero {
-    padding: 32px 20px 26px;
+    padding: 24px 20px 26px;
     align-items: center;
     min-height: 0;
     height: auto;
@@ -10637,9 +10671,8 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   }
 
   .dir-prof-v2-h-av-outer {
-    margin-top: -40px;
-    margin-bottom: 6px;
-    z-index: 3;
+    margin-top: 0;
+    margin-bottom: 8px;
   }
 
   .dir-prof-v2-h-av,
@@ -10666,10 +10699,6 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   }
 
   .dir-prof-v2-h-loc {
-    justify-content: center;
-  }
-
-  .dir-prof-v2-h-tags {
     justify-content: center;
   }
 

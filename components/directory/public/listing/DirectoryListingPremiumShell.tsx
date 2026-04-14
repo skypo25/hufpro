@@ -151,6 +151,8 @@ export function DirectoryListingPremiumShell({
   const [barLocation, setBarLocation] = useState(query.location)
   const [barRadiusKm, setBarRadiusKm] = useState(query.radiusKm)
   const [barSpecialtyId, setBarSpecialtyId] = useState(query.specialtyId)
+  /** Inkrement bei „Suchen“ — schließt AddressAutocomplete-Dropdown (Mobil: bleibt sonst offen). */
+  const [locationSuggestDismiss, setLocationSuggestDismiss] = useState(0)
 
   useEffect(() => {
     setBarLocation(query.location)
@@ -247,6 +249,7 @@ export function DirectoryListingPremiumShell({
   }, [query.subcategoryId, query.methodId, query.animalTypeId, subcategories, methods, animalTypes])
 
   const runSearch = useCallback(() => {
+    setLocationSuggestDismiss((n) => n + 1)
     const cleared = listingQueryClearAnimalIfHoofSpecialtyMismatch(
       {
         ...query,
@@ -424,6 +427,7 @@ export function DirectoryListingPremiumShell({
                 id="directory-premium-location"
                 ariaLabel="Ort oder PLZ"
                 className="dlp-loc-ac-input"
+                dismissSuggestionsSignal={locationSuggestDismiss}
                 onInputKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()

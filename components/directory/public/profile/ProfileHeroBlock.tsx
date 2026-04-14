@@ -88,23 +88,31 @@ export function ProfileHeroBlock({
           ) : null}
 
           <div className="dir-prof-v2-h-tags">
-            {st === 'mobile' || st === 'both' ? (
-              <span className="dir-prof-v2-ht dir-prof-v2-ht--svc">
-                <i className="bi bi-car-front-fill" aria-hidden />
-                Mobil
-              </span>
+            {st === 'mobile' || st === 'both' || st === 'stationary' ? (
+              <div className="dir-prof-v2-h-tags-svc">
+                {st === 'mobile' || st === 'both' ? (
+                  <span className="dir-prof-v2-ht dir-prof-v2-ht--svc">
+                    <i className="bi bi-car-front-fill" aria-hidden />
+                    Mobil
+                  </span>
+                ) : null}
+                {st === 'stationary' || st === 'both' ? (
+                  <span className="dir-prof-v2-ht dir-prof-v2-ht--svc">
+                    <i className="bi bi-building" aria-hidden />
+                    Praxis
+                  </span>
+                ) : null}
+              </div>
             ) : null}
-            {st === 'stationary' || st === 'both' ? (
-              <span className="dir-prof-v2-ht dir-prof-v2-ht--svc">
-                <i className="bi bi-building" aria-hidden />
-                Praxis
-              </span>
+            {animalTypes.length > 0 ? (
+              <div className="dir-prof-v2-h-tags-ani">
+                {animalTypes.map((a) => (
+                  <span key={a.id} className="dir-prof-v2-ht dir-prof-v2-ht--ani">
+                    {a.name}
+                  </span>
+                ))}
+              </div>
             ) : null}
-            {animalTypes.map((a) => (
-              <span key={a.id} className="dir-prof-v2-ht dir-prof-v2-ht--ani">
-                {a.name}
-              </span>
-            ))}
           </div>
         </div>
       </div>
