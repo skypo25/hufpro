@@ -1,6 +1,5 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
 import type { DirectoryWeekdayKey, OpeningHoursDisplayLine } from '@/lib/directory/openingHours'
 
 export function DirectoryProfileSidebarHoursDisclosure({
@@ -12,22 +11,8 @@ export function DirectoryProfileSidebarHoursDisclosure({
   todayKey: DirectoryWeekdayKey
   note: string | null
 }) {
-  const dRef = useRef<HTMLDetailsElement>(null)
-
-  useLayoutEffect(() => {
-    const mq = window.matchMedia('(min-width: 992px)')
-    const sync = () => {
-      const el = dRef.current
-      if (!el) return
-      el.open = mq.matches
-    }
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
   return (
-    <details ref={dRef} className="dir-prof-v2-sidebar-hours-dtl">
+    <details className="dir-prof-v2-sidebar-hours-dtl" open>
       <summary className="dir-prof-v2-sidebar-hours-sum">
         <span className="dir-prof-v2-sidebar-hours-sum-txt">Öffnungszeiten &amp; Erreichbarkeit</span>
         <i className="bi bi-chevron-down dir-prof-v2-sidebar-hours-sum-ic" aria-hidden />

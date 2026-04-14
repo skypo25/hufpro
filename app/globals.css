@@ -8853,6 +8853,23 @@ aside.dir-prof-v2-facts-sidebar {
   }
 }
 
+/* Gestapeltes Layout: gleiche Außenabstände wie .dir-prof-v2-sec (32px / 20px) + Luft vor Claim-Bereich */
+@media (max-width: 991px) {
+  .dir-prof-v2-profile-layout > .dir-prof-v2-facts-sidebar {
+    margin-left: 32px;
+    margin-right: 32px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dir-prof-v2-profile-layout > .dir-prof-v2-facts-sidebar {
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px;
+  }
+}
+
 .dir-prof-v2-facts-sidebar-card-head {
   padding: var(--dir-prof-sidebar-pad);
   border-bottom: 1px dashed var(--dir-v2-bd);
@@ -10473,7 +10490,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--dir-v2-bl);
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0));
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0));
   transition: transform 0.28s ease;
 }
 
@@ -10711,6 +10728,14 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
     font-size: 28px;
     padding: 8px;
     border-radius: 22px;
+  }
+
+  .dir-prof-v2-h-av-verified {
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+    top: -7px;
+    right: -7px;
   }
 
   .dir-prof-v2-hero .dir-prof-v2-h-name {
