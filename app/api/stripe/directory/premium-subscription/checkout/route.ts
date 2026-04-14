@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { assertCanStartDirectoryPremiumSubscriptionCheckout } from '@/lib/billing/stripeSubscriptionExclusive.server'
 import { getOptionalEnv } from '@/lib/env'
 import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 
@@ -107,13 +108,22 @@ export async function POST(request: Request) {
       }
     }
 
-    const wizardBase = `${appUrl}/behandler/profil/erstellen?paket=premium`
+    const wizardBase = `${appUrl}/directory/mein-profil?paket=premium`
     const successUrl = returnToWizard
       ? `${wizardBase}&premium_sub=success`
       : `${appUrl}/directory/mein-profil?premium_sub=success`
     const cancelUrl = returnToWizard
       ? `${wizardBase}&premium_sub=canceled`
       : `${appUrl}/directory/mein-profil?premium_sub=canceled`
+
+    const premiumGate = await assertCanStartDirectoryPremiumSubscriptionCheckout({
+      stripe,
+      customerId,
+      isRecurringPremiumCheckout: useSubscriptionCheckout,
+    })
+    if (!premiumGate.ok) {
+      return NextResponse.json({ error: premiumGate.message }, { status: 409 })
+    }
 
     let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>
     if (useSubscriptionCheckout) {

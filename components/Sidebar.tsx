@@ -20,6 +20,7 @@ import {
   faChartPie,
   faHouse,
   faAddressBook,
+  faChartColumn,
 } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
@@ -50,6 +51,7 @@ function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
       title: 'Verzeichnis',
       items: [
         { label: 'Mein Profil', href: '/directory/mein-profil', icon: faAddressBook },
+        { label: 'Statistik', href: '/directory/statistik', icon: faChartColumn },
       ],
     },
   ]

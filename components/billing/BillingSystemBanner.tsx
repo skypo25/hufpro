@@ -18,8 +18,9 @@ function toneStyles(tone: BannerTone) {
     }
   }
   return {
-    wrap: 'border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]',
-    btn: 'bg-[#B8860B] !text-white',
+    /** Farbe/Hintergrund: `.app-info-callout` in globals.css */
+    wrap: '',
+    btn: 'bg-[#8a4a12] !text-white',
     icon: 'bi-exclamation-triangle-fill',
   }
 }
@@ -34,9 +35,24 @@ export default function BillingSystemBanner() {
     const run = async () => {
       try {
         const res = await fetch('/api/billing/account', { method: 'GET' })
-        const data = (await res.json().catch(() => null)) as any
+        const data = (await res.json().catch(() => null)) as { account?: BillingAccountRow | null } | null
+        let next = (res.ok ? (data?.account as BillingAccountRow | null) : null) ?? null
+        const st = (next?.subscription_status ?? '').toString()
+        /** DB kann hinter Stripe zurückhängen — einmal Abgleich, dann Banner nur bei echtem Problem. */
+        if (
+          !cancelled &&
+          res.ok &&
+          next &&
+          (st === 'past_due' || st === 'unpaid' || st === 'incomplete')
+        ) {
+          const syncRes = await fetch('/api/billing/sync-subscription', { method: 'POST' })
+          const syncData = (await syncRes.json().catch(() => null)) as { account?: BillingAccountRow | null } | null
+          if (syncRes.ok && syncData?.account) {
+            next = syncData.account
+          }
+        }
         if (!cancelled && res.ok) {
-          setAccount((data?.account as BillingAccountRow | null) ?? null)
+          setAccount(next)
         }
       } finally {
         if (!cancelled) setLoaded(true)
@@ -104,7 +120,9 @@ export default function BillingSystemBanner() {
       <Link
         href="/billing"
         aria-label={`${banner.title}. ${banner.cta}`}
-        className={`huf-card block border px-4 py-3 text-[13px] no-underline transition-opacity hover:opacity-95 ${s.wrap}`}
+        className={`block px-4 py-3 text-[13px] no-underline transition-opacity hover:opacity-95 ${
+          banner.tone === 'warning' ? 'app-info-callout' : `huf-card border ${s.wrap}`
+        }`}
       >
         <div className="flex items-start gap-3">
           <i className={`bi ${s.icon} mt-[1px] shrink-0 text-[16px]`} aria-hidden />

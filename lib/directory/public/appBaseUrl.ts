@@ -24,8 +24,8 @@ export function directoryAppBaseUrl(): string {
 /** Vorgeschaltete Paketwahl („Profil erstellen“-Einstieg). */
 export const DIRECTORY_PACKAGE_CHOOSE_PATH = '/behandler/paket-waehlen' as const
 
-/** Relativer Pfad zum Profil-Wizard (nur nach Login / bestätigtem Zugang). */
-export const DIRECTORY_PROFILE_WIZARD_PATH = '/behandler/profil/erstellen' as const
+/** Profil-Wizard nach Login (interner App-Bereich). */
+export const DIRECTORY_PROFILE_WIZARD_PATH = '/directory/mein-profil' as const
 
 /** Kompakter Verzeichnis-Einstieg vor dem Wizard (Gratis & Premium). */
 export const DIRECTORY_PROFILE_REGISTER_PATH = '/behandler/profil/registrieren' as const
@@ -51,7 +51,11 @@ export function directoryProfileRegisterHref(query: { paket: 'gratis' | 'premium
 export function isDirectoryBehandlerProfilFlowReturnPath(raw: string | null | undefined): boolean {
   if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return false
   const pathOnly = raw.split('?')[0]?.trim() ?? ''
-  return pathOnly === DIRECTORY_PROFILE_WIZARD_PATH || pathOnly === DIRECTORY_PROFILE_REGISTER_PATH
+  return (
+    pathOnly === DIRECTORY_PROFILE_WIZARD_PATH ||
+    pathOnly === DIRECTORY_PROFILE_REGISTER_PATH ||
+    pathOnly === '/behandler/profil/erstellen'
+  )
 }
 
 /**

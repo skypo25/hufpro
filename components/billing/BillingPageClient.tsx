@@ -103,7 +103,7 @@ function PaymentMethodPreview({ pm }: { pm: PaymentMethodSummary }) {
 }
 
 export default function BillingPageClient({
-  account,
+  account: initialAccount,
   priceIdMonthly,
   loadError,
   stripePublishableKey,
@@ -114,6 +114,30 @@ export default function BillingPageClient({
   stripePublishableKey: string | null
 }) {
   const router = useRouter()
+  const [account, setAccount] = useState<BillingAccountRow | null>(initialAccount)
+  useEffect(() => {
+    setAccount(initialAccount)
+  }, [initialAccount])
+
+  /** Stripe-Status nachziehen (verhindert veraltetes `past_due` trotz aktivem Abo). */
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/billing/sync-subscription', { method: 'POST' })
+        const data = (await res.json().catch(() => null)) as { account?: BillingAccountRow | null } | null
+        if (!cancelled && res.ok && data && 'account' in data) {
+          setAccount(data.account ?? null)
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const billingState = useMemo(
     () => getBillingState({ account, priceIdMonthly }),
     [account, priceIdMonthly]
@@ -303,12 +327,6 @@ export default function BillingPageClient({
       }
     }
 
-    if (billingState.subscription.status === 'past_due') {
-      return {
-        tone: 'warning' as const,
-        text: 'Es gibt ein Problem mit einer Zahlung. Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.',
-      }
-    }
     if (billingState.subscription.status === 'trialing' && billingState.trial.isExpired) {
       return {
         tone: 'warning' as const,
@@ -344,23 +362,8 @@ export default function BillingPageClient({
         text: `Ihr Testzeitraum läuft noch (${daysLabel} verbleibend).`,
       }
     }
-    if (billingState.trial.isExpired && !hasLiveSubscription) {
-      return {
-        tone: 'danger' as const,
-        text: 'Ihr Testzeitraum ist abgelaufen. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
-      }
-    }
     return null
-  }, [billingState, billingCheckFailed, blocked, canceled, hasLiveSubscription, success])
-
-  const noticeClass =
-    notice?.tone === 'success'
-      ? 'bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]'
-      : notice?.tone === 'warning'
-        ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
-        : notice?.tone === 'danger'
-          ? 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]'
-          : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0]'
+  }, [billingState, billingCheckFailed, blocked, canceled, success])
 
   const openPortal = async () => {
     setError(null)
@@ -439,9 +442,6 @@ export default function BillingPageClient({
     !isSubscriptionStatusLive(subscriptionStatus) &&
     subscriptionStatus !== 'past_due'
 
-  const showExpiredAlert =
-    ui.key === 'trial_expired'
-
   return (
     <div className="space-y-5">
       {loadError && !error && (
@@ -451,7 +451,19 @@ export default function BillingPageClient({
       )}
 
       {notice && (
-        <div className={`huf-card border px-[22px] py-4 text-[14px] ${noticeClass}`}>
+        <div
+          className={
+            notice.tone === 'warning'
+              ? 'app-info-callout px-[22px] py-4 text-[14px]'
+              : `huf-card border px-[22px] py-4 text-[14px] ${
+                  notice.tone === 'success'
+                    ? 'bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]'
+                    : notice.tone === 'danger'
+                      ? 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]'
+                      : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0]'
+                }`
+          }
+        >
           {notice.text}
         </div>
       )}
@@ -459,49 +471,6 @@ export default function BillingPageClient({
       {error && (
         <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-[22px] py-4 text-[14px] text-[#B91C1C]">
           {error}
-        </div>
-      )}
-
-      {showExpiredAlert && (
-        <div className="huf-card border border-[#E8D5B0] bg-[#FDF6EC] px-5 py-4 text-[13px] text-[#B8860B] flex items-start gap-3">
-          <i className="bi bi-exclamation-triangle-fill mt-[2px] text-[18px]" aria-hidden />
-          <div className="flex-1">
-            <div className="font-semibold text-[#92400E]">
-              Ihre Testphase ist abgelaufen.
-            </div>
-            <div className="mt-0.5">
-              Aktivieren Sie jetzt Ihr Abo, um AniDocs weiter nutzen zu können.
-            </div>
-          </div>
-          <button
-            type="button"
-            className="shrink-0 rounded-lg bg-[#B8860B] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-95"
-            onClick={() => scrollToId('billing-payment')}
-          >
-            Abo aktivieren
-          </button>
-        </div>
-      )}
-
-      {ui.key === 'past_due' && (
-        <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-5 py-4 text-[13px] text-[#B91C1C] flex items-start gap-3">
-          <i className="bi bi-exclamation-circle-fill mt-[2px] text-[18px]" aria-hidden />
-          <div className="flex-1">
-            <div className="font-semibold">
-              Zahlung fehlgeschlagen.
-            </div>
-            <div className="mt-0.5">
-              Bitte aktualisieren Sie Ihre Zahlungsmethode, um eine Unterbrechung zu vermeiden.
-            </div>
-          </div>
-          <button
-            type="button"
-            className="shrink-0 rounded-lg bg-[#B91C1C] px-3 py-2 text-[12px] font-semibold text-white hover:opacity-95"
-            onClick={openPortal}
-            disabled={busy !== null}
-          >
-            Zahlungsmethode ändern
-          </button>
         </div>
       )}
 
@@ -526,62 +495,64 @@ export default function BillingPageClient({
         </SectionCard>
       )}
 
-      {/* STATUS CARD */}
-      <div className="huf-card border border-[#E5E2DC] px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-        <div
-          className={[
-            'h-[52px] w-[52px] rounded-[14px] flex items-center justify-center text-[22px] shrink-0',
-            ui.iconTone === 'blue'
-              ? 'bg-[rgba(59,130,246,.06)] text-[#3B82F6]'
-              : ui.iconTone === 'accent'
-                ? 'bg-[rgba(82,183,136,.06)] text-[#52b788]'
-                : ui.iconTone === 'warn'
-                  ? 'bg-[#FDF6EC] text-[#B8860B]'
-                  : ui.iconTone === 'danger'
-                    ? 'bg-[#FEF2F2] text-[#DC2626]'
-                    : 'bg-[#F3F4F6] text-[#6B7280]',
-          ].join(' ')}
-        >
-          <i className={`bi ${ui.icon}`} aria-hidden />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-[#1B1F23]">{ui.title}</div>
-          <div className="mt-0.5 text-[13px] text-[#6B7280] leading-[1.5]">
-            {ui.detail}
+      {/* STATUS CARD — bei Zahlungsverzug keine große Warnkarte (Hinweis bleibt über Plan/Zahlungsbereich) */}
+      {ui.key !== 'past_due' ? (
+        <div className="huf-card border border-[#E5E2DC] px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+          <div
+            className={[
+              'h-[52px] w-[52px] rounded-[14px] flex items-center justify-center text-[22px] shrink-0',
+              ui.iconTone === 'blue'
+                ? 'bg-[rgba(59,130,246,.06)] text-[#3B82F6]'
+                : ui.iconTone === 'accent'
+                  ? 'bg-[rgba(82,183,136,.06)] text-[#52b788]'
+                  : ui.iconTone === 'warn'
+                    ? 'bg-[#FDF6EC] text-[#B8860B]'
+                    : ui.iconTone === 'danger'
+                      ? 'bg-[#FEF2F2] text-[#DC2626]'
+                      : 'bg-[#F3F4F6] text-[#6B7280]',
+            ].join(' ')}
+          >
+            <i className={`bi ${ui.icon}`} aria-hidden />
           </div>
 
-          {ui.showProgress && typeof trialDaysRemaining === 'number' && (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-[6px] flex-1 rounded-full bg-[#F0EEEA] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#3B82F6] transition-[width] duration-300"
-                  style={{ width: `${trialProgressPct}%` }}
-                />
-              </div>
-              <div className="text-[11px] text-[#9CA3AF] font-medium whitespace-nowrap">
-                {trialTotalDays - trialDaysRemaining} von {trialTotalDays} Tagen
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[16px] font-bold text-[#1B1F23]">{ui.title}</div>
+            <div className="mt-0.5 text-[13px] text-[#6B7280] leading-[1.5]">
+              {ui.detail}
             </div>
-          )}
 
-          {ui.showNoCharge && (
-            <div className="mt-3 flex items-start gap-2 rounded-lg border border-[rgba(82,183,136,.15)] bg-[rgba(82,183,136,.06)] px-3 py-2 text-[12px] text-[#2D7A3A]">
-              <i className="bi bi-shield-check mt-[1px]" aria-hidden />
-              <div>
-                Während der Testphase erfolgt keine Abbuchung. Sie können jederzeit kündigen.
+            {ui.showProgress && typeof trialDaysRemaining === 'number' && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="h-[6px] flex-1 rounded-full bg-[#F0EEEA] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[#3B82F6] transition-[width] duration-300"
+                    style={{ width: `${trialProgressPct}%` }}
+                  />
+                </div>
+                <div className="text-[11px] text-[#9CA3AF] font-medium whitespace-nowrap">
+                  {trialTotalDays - trialDaysRemaining} von {trialTotalDays} Tagen
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        <div className="shrink-0">
-          <BillingStatusBadge
-            status={billingState.subscription.status}
-            cancelAtPeriodEnd={billingState.subscription.cancelAtPeriodEnd}
-          />
+            {ui.showNoCharge && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-[rgba(82,183,136,.15)] bg-[rgba(82,183,136,.06)] px-3 py-2 text-[12px] text-[#2D7A3A]">
+                <i className="bi bi-shield-check mt-[1px]" aria-hidden />
+                <div>
+                  Während der Testphase erfolgt keine Abbuchung. Sie können jederzeit kündigen.
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0">
+            <BillingStatusBadge
+              status={billingState.subscription.status}
+              cancelAtPeriodEnd={billingState.subscription.cancelAtPeriodEnd}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* PLAN CARD */}
       <div className="huf-card border border-[#E5E2DC] overflow-hidden">

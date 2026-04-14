@@ -38,6 +38,7 @@ import {
   parseQualiItemsFromDescription,
 } from '@/lib/directory/onboarding/parseWizardDescriptionBlocks'
 import { coercePgBool } from '@/lib/directory/public/coercePgBool'
+import { DirectoryProfileViewBeacon } from '@/components/directory/public/DirectoryProfileViewBeacon'
 
 import { DirectoryProfileContactForm } from './DirectoryProfileContactForm'
 import { DirectoryProfileGalleryGrid } from './DirectoryProfileGalleryGrid'
@@ -46,6 +47,9 @@ import { ProfileBentoPawIcon } from './ProfileBentoPawIcon'
 import { ProfileBentoSpecialtyIcon } from './ProfileBentoSpecialtyIcon'
 import { DirectoryProfileSectionTabs } from './DirectoryProfileSectionTabs'
 import { DirectoryProfileShareButton } from './DirectoryProfileShareButton'
+import { DirectoryProfileTrackedPhoneLink } from './DirectoryProfileTrackedPhoneLink'
+import { DirectoryProfileMobBarShell } from './DirectoryProfileMobBarShell'
+import { DirectoryProfileSidebarHoursDisclosure } from './DirectoryProfileSidebarHoursDisclosure'
 import { ProfileHeroBlock } from './ProfileHeroBlock'
 
 export function DirectoryProfilePublicDetail({
@@ -155,6 +159,7 @@ export function DirectoryProfilePublicDetail({
 
   return (
     <div className="dir-prof-page dir-prof-v2" data-directory-profile>
+      <DirectoryProfileViewBeacon profileId={profile.id} slug={profile.slug} />
       <div className="dir-prof-v2-hero-wrap">
         <ProfileHeroBlock
           profile={profile}
@@ -162,6 +167,27 @@ export function DirectoryProfilePublicDetail({
           animalTypes={animalTypes}
           heroImageUrl={heroImageUrl}
         />
+      </div>
+
+      <div className="dir-prof-v2-quick" aria-label="Kurzüberblick">
+        <div className="dir-prof-v2-quick-cell">
+          <div className="dir-prof-v2-quick-val">{specialties.length}</div>
+          <div className="dir-prof-v2-quick-lab">Fachrichtungen</div>
+        </div>
+        <div className="dir-prof-v2-quick-cell">
+          <div className={`dir-prof-v2-quick-val${hasRadius ? ' dir-prof-v2-quick-val--accent' : ''}`}>
+            {hasRadius ? `${profile.service_radius_km} km` : '–'}
+          </div>
+          <div className="dir-prof-v2-quick-lab">Radius</div>
+        </div>
+        <div className="dir-prof-v2-quick-cell">
+          <div className="dir-prof-v2-quick-val">{serviceTypeLabel(profile.service_type)}</div>
+          <div className="dir-prof-v2-quick-lab">Arbeitsweise</div>
+        </div>
+        <div className="dir-prof-v2-quick-cell">
+          <div className="dir-prof-v2-quick-val">{animalTypes.length}</div>
+          <div className="dir-prof-v2-quick-lab">Tierarten</div>
+        </div>
       </div>
 
       <DirectoryProfileSectionTabs tabs={tabs} />
@@ -509,7 +535,11 @@ export function DirectoryProfilePublicDetail({
                         </h3>
                         <p className="dir-prof-v2-kontakt-pane-sub">Öffnet die Telefon-App bzw. wählt die Nummer.</p>
                       </div>
-                      <a href={phoneTelHref} className="dir-prof-v2-kontakt-phone-row">
+                      <DirectoryProfileTrackedPhoneLink
+                        slug={profile.slug}
+                        href={phoneTelHref}
+                        className="dir-prof-v2-kontakt-phone-row"
+                      >
                         <span className="dir-prof-v2-kontakt-link-ic" aria-hidden>
                           <i className="bi bi-phone-vibrate-fill" />
                         </span>
@@ -520,7 +550,7 @@ export function DirectoryProfilePublicDetail({
                         <span className="dir-prof-v2-kontakt-link-go" aria-hidden>
                           <i className="bi bi-chevron-right" />
                         </span>
-                      </a>
+                      </DirectoryProfileTrackedPhoneLink>
                     </div>
                   ) : null}
 
@@ -621,9 +651,13 @@ export function DirectoryProfilePublicDetail({
                       <i className="bi bi-phone-vibrate-fill" />
                     </span>
                     <span className="dir-prof-v2-facts-sidebar-txt">
-                      <a href={phoneTelHref} className="dir-prof-v2-facts-sidebar-phone">
+                      <DirectoryProfileTrackedPhoneLink
+                        slug={profile.slug}
+                        href={phoneTelHref}
+                        className="dir-prof-v2-facts-sidebar-phone"
+                      >
                         {phonePublicDisplay}
-                      </a>
+                      </DirectoryProfileTrackedPhoneLink>
                     </span>
                   </li>
                 ) : null}
@@ -648,27 +682,11 @@ export function DirectoryProfilePublicDetail({
               </ul>
               {showOpeningBlock ? (
                 <div className="dir-prof-v2-facts-sidebar-hours">
-                  <h3 className="dir-prof-v2-facts-sidebar-h">Öffnungszeiten &amp; Erreichbarkeit</h3>
-                  {openingLines.length > 0 ? (
-                    <dl className="dir-prof-v2-facts-sidebar-hours-dl">
-                      {openingLines.map((line) => (
-                        <div
-                          key={line.key}
-                          className={
-                            line.key === openingHoursTodayKey
-                              ? 'dir-prof-v2-facts-sidebar-hours-row dir-prof-v2-facts-sidebar-hours-row--today'
-                              : 'dir-prof-v2-facts-sidebar-hours-row'
-                          }
-                        >
-                          <dt>{line.label}</dt>
-                          <dd>{line.value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : null}
-                  {openingHoursNote ? (
-                    <p className="dir-prof-v2-facts-sidebar-hours-note">{openingHoursNote}</p>
-                  ) : null}
+                  <DirectoryProfileSidebarHoursDisclosure
+                    lines={openingLines}
+                    todayKey={openingHoursTodayKey}
+                    note={openingHoursNote || null}
+                  />
                 </div>
               ) : null}
               <a href="#profil-kontakt" className="dir-prof-v2-facts-sidebar-cta">
@@ -726,11 +744,12 @@ export function DirectoryProfilePublicDetail({
         </div>
       ) : null}
 
-      <nav className="dir-prof-v2-mob-bar" aria-label="Schnellaktionen">
+      <DirectoryProfileMobBarShell className="dir-prof-v2-mob-bar" aria-label="Schnellaktionen">
         <div className="dir-prof-v2-mob-bar-in">
           <DirectoryProfileShareButton
             url={shareUrl}
             title={profile.display_name}
+            analyticsSlug={profile.slug}
             className="dir-prof-v2-mob-share"
             variant="secondary"
           >
@@ -742,10 +761,14 @@ export function DirectoryProfilePublicDetail({
               Nachricht schreiben
             </a>
           ) : phoneTelHref ? (
-            <a href={phoneTelHref} className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
+            <DirectoryProfileTrackedPhoneLink
+              slug={profile.slug}
+              href={phoneTelHref}
+              className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg"
+            >
               <i className="bi bi-telephone-fill" aria-hidden />
               Anrufen
-            </a>
+            </DirectoryProfileTrackedPhoneLink>
           ) : (
             <a href="#profil-kontakt" className="dir-prof-v2-ha dir-prof-v2-ha--p dir-prof-v2-mob-msg">
               <i className="bi bi-link-45deg" aria-hidden />
@@ -753,7 +776,7 @@ export function DirectoryProfilePublicDetail({
             </a>
           )}
         </div>
-      </nav>
+      </DirectoryProfileMobBarShell>
     </div>
   )
 }

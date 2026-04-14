@@ -17,7 +17,7 @@ import AddressAutocomplete, {
   formatAddressSuggestionForLocationQuery,
   type AddressSuggestion,
 } from '@/components/customers/AddressAutocomplete'
-import { submitDirectoryProfileWizardAction } from '@/app/(directory)/behandler/profil/erstellen/actions'
+import { submitDirectoryProfileWizardForOwnerAction } from '@/app/(app)/directory/mein-profil/actions'
 import { compressGalleryImageForUpload } from '@/lib/directory/onboarding/compressGalleryImageForUpload'
 import { uploadDirectoryProfileMediaAction } from '@/lib/directory/onboarding/uploadDirectoryProfileMediaAction'
 import { DirectoryCategoryCardIcon } from '@/components/directory/public/listing/DirectoryCategoryCardIcon'
@@ -1077,7 +1077,7 @@ export function DirectoryProfileCreateWizard({
       setSubmitError('Profil konnte nicht zusammengestellt werden. Bitte Eingaben prüfen.')
       return false
     }
-    const fn = submitAction ?? submitDirectoryProfileWizardAction
+    const fn = submitAction ?? submitDirectoryProfileWizardForOwnerAction
     const result = await fn(payload)
     if (!result.ok) {
       setSubmitError(result.error)
@@ -1092,11 +1092,11 @@ export function DirectoryProfileCreateWizard({
 
   const resumePremiumHandledRef = useRef(false)
   useEffect(() => {
-    if (embeddedInApp || resumePremiumHandledRef.current) return
+    if (resumePremiumHandledRef.current) return
     if (!wizardResumePremiumSub) return
     resumePremiumHandledRef.current = true
     const pk = publicPaket === 'premium' ? 'premium' : 'gratis'
-    const cleanPath = `/behandler/profil/erstellen?paket=${pk}`
+    const cleanPath = `/directory/mein-profil?paket=${pk}`
     if (wizardResumePremiumSub === 'success' && directoryOnboardingProduct === 'directory_premium') {
       setPassedPremiumGate(true)
       setPremiumCoreSaved(true)
@@ -1117,14 +1117,7 @@ export function DirectoryProfileCreateWizard({
       )
       router.replace(cleanPath)
     }
-  }, [
-    embeddedInApp,
-    wizardResumePremiumSub,
-    wizardResumeProfileId,
-    directoryOnboardingProduct,
-    publicPaket,
-    router,
-  ])
+  }, [wizardResumePremiumSub, wizardResumeProfileId, directoryOnboardingProduct, publicPaket, router])
 
   const startDirectoryPremiumCheckout = useCallback(async () => {
     const pid = savedProfileIdForGate?.trim()
@@ -1194,7 +1187,7 @@ export function DirectoryProfileCreateWizard({
       return
     }
     const payload = { ...base, onboardingProductChoice: 'free' as const }
-    const fn = submitAction ?? submitDirectoryProfileWizardAction
+    const fn = submitAction ?? submitDirectoryProfileWizardForOwnerAction
     const result = await fn(payload)
     if (!result.ok) {
       setSubmitError(result.error)
@@ -1233,7 +1226,7 @@ export function DirectoryProfileCreateWizard({
     setSaveSuccessMessage(null)
     setWizardInvalidFields([])
     startTransition(async () => {
-      const fn = submitAction ?? submitDirectoryProfileWizardAction
+      const fn = submitAction ?? submitDirectoryProfileWizardForOwnerAction
       const result = await fn(payload)
       if (result.ok) {
         if (embeddedInApp && result.profileId) {
@@ -1273,15 +1266,17 @@ export function DirectoryProfileCreateWizard({
             body: JSON.stringify({ directoryProfileId: result.profileId }),
           })
           const checkoutJson: unknown = await res.json().catch(() => null)
-          const stripeUrl =
-            checkoutJson &&
-            typeof checkoutJson === 'object' &&
-            'url' in checkoutJson &&
-            typeof (checkoutJson as { url: unknown }).url === 'string'
-              ? (checkoutJson as { url: string }).url
-              : null
-          if (stripeUrl) {
-            window.location.href = stripeUrl
+          let nextUrl: string | null = null
+          if (checkoutJson && typeof checkoutJson === 'object' && checkoutJson !== null) {
+            const o = checkoutJson as { upgraded?: unknown; redirect?: unknown; url?: unknown }
+            if (o.upgraded === true && typeof o.redirect === 'string' && o.redirect.trim()) {
+              nextUrl = o.redirect.trim()
+            } else if (typeof o.url === 'string' && o.url.trim()) {
+              nextUrl = o.url.trim()
+            }
+          }
+          if (nextUrl) {
+            window.location.href = nextUrl
             return
           }
           setSubmitError(
@@ -2531,14 +2526,11 @@ export function DirectoryProfileCreateWizard({
                 </div>
                 {submitError ? (
                   <div
-                    className="form-hint"
+                    className="form-hint app-info-callout"
                     role="alert"
                     style={{
                       marginTop: 14,
                       padding: 12,
-                      borderRadius: 8,
-                      background: 'var(--warn-soft, #fff3cd)',
-                      color: '#664',
                     }}
                   >
                     {submitError}
@@ -2754,13 +2746,10 @@ export function DirectoryProfileCreateWizard({
             ) : null}
             {saveSuccessMessage ? (
               <div
-                className="form-hint"
+                className="form-hint directory-success-callout"
                 style={{
                   marginBottom: 16,
                   padding: 12,
-                  borderRadius: 8,
-                  background: 'rgba(82, 183, 136, 0.15)',
-                  color: '#154226',
                 }}
                 role="status"
               >
@@ -2769,8 +2758,8 @@ export function DirectoryProfileCreateWizard({
             ) : null}
             {submitError ? (
               <div
-                className="form-hint"
-                style={{ marginBottom: 16, padding: 12, borderRadius: 8, background: 'var(--warn-soft, #fff3cd)', color: '#664' }}
+                className="form-hint app-info-callout"
+                style={{ marginBottom: 16, padding: 12 }}
                 role="alert"
               >
                 {submitError}

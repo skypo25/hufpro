@@ -590,10 +590,33 @@
   box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.12);
 }
 
+/* Erfolgshinweise (Profil gespeichert, Wizard) — einheitlich mit Verzeichnis-UI */
+.directory-success-callout {
+  border: 1px solid #00bc7d;
+  box-shadow: none;
+  color: #3c7b6a;
+  background: #f1f9f6;
+  border-radius: 12px;
+}
+
+.directory-success-callout .directory-success-callout__title {
+  color: #3c7b6a;
+  font-weight: 600;
+}
+
+.directory-success-callout .directory-success-callout__body {
+  color: #3c7b6a;
+  opacity: 0.92;
+}
+
 .dir-profile-onb-root .form-hint {
   font-size: 12px;
   color: var(--text-light);
   margin-top: 4px;
+}
+
+.dir-profile-onb-root .form-hint.app-info-callout {
+  color: #7b3306;
 }
 
 .dir-profile-onb-root .form-counter {

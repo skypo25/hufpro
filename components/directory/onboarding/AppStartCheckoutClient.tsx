@@ -22,10 +22,16 @@ async function postCheckout(): Promise<{ url: string } | { error: string }> {
         : 'Checkout konnte nicht gestartet werden.'
     return { error: msg }
   }
-  if (!data || typeof data !== 'object' || !('url' in data) || typeof (data as { url: unknown }).url !== 'string') {
-    return { error: 'Unerwartete Antwort vom Server.' }
+  if (data && typeof data === 'object' && data !== null) {
+    const o = data as { upgraded?: unknown; redirect?: unknown; url?: unknown }
+    if (o.upgraded === true && typeof o.redirect === 'string' && o.redirect.trim()) {
+      return { url: o.redirect.trim() }
+    }
+    if (typeof o.url === 'string' && o.url.trim()) {
+      return { url: o.url.trim() }
+    }
   }
-  return { url: (data as { url: string }).url }
+  return { error: 'Unerwartete Antwort vom Server.' }
 }
 
 /**

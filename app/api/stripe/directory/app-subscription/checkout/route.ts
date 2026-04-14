@@ -4,6 +4,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import { requireEnv } from '@/lib/env'
+import { runExclusiveAppSubscriptionCheckout } from '@/lib/billing/stripeSubscriptionExclusive.server'
+import { sendDirectoryProductEmail } from '@/lib/directory/onboarding/sendDirectoryProductEmails.server'
 import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 
 type Body = {
@@ -98,23 +100,41 @@ export async function POST(request: Request) {
       ? Math.floor(trialEndsAt.getTime() / 1000)
       : undefined
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/directory/mein-profil?app_sub=success`,
-    cancel_url: `${appUrl}/directory/mein-profil?app_sub=canceled`,
-    subscription_data: trialEndUnix ? { trial_end: trialEndUnix } : undefined,
-    metadata: {
-      supabase_user_id: user.id,
-      directory_profile_slug: slug,
-      directory_transactional_email: 'app_checkout_done',
-    },
+  const upgradedRedirect = `${appUrl}/directory/mein-profil?app_sub=success&upgraded=1`
+
+  const result = await runExclusiveAppSubscriptionCheckout({
+    stripe,
+    customerId,
+    userId: user.id,
+    appPriceId: priceId,
+    upgradedRedirectUrl: upgradedRedirect,
+    createCheckoutSession: () =>
+      stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${appUrl}/directory/mein-profil?app_sub=success`,
+        cancel_url: `${appUrl}/directory/mein-profil?app_sub=canceled`,
+        subscription_data: trialEndUnix ? { trial_end: trialEndUnix } : undefined,
+        metadata: {
+          supabase_user_id: user.id,
+          directory_profile_slug: slug,
+          directory_transactional_email: 'app_checkout_done',
+        },
+      }),
   })
 
-  if (!session.url) {
-    return NextResponse.json({ error: 'Checkout konnte nicht gestartet werden.' }, { status: 500 })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: result.status })
   }
-
-  return NextResponse.json({ url: session.url })
+  if ('upgraded' in result && result.upgraded) {
+    await sendDirectoryProductEmail({
+      db: supabaseAdmin,
+      userId: user.id,
+      profileSlug: slug,
+      kind: 'app_checkout_done',
+    })
+    return NextResponse.json({ upgraded: true as const, redirect: result.redirect })
+  }
+  return NextResponse.json({ url: result.url })
 }

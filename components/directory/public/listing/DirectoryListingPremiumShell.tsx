@@ -493,7 +493,7 @@ export function DirectoryListingPremiumShell({
           <p
             className={
               searchBanner.variant === 'warning'
-                ? 'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900'
+                ? 'app-info-callout px-3 py-2 text-sm'
                 : 'rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900'
             }
           >

@@ -133,7 +133,8 @@ export function DirectoryProfileGalleryGrid({
 
   return (
     <>
-      <div className="dir-prof-v2-gal-grid">
+      <div className="dir-prof-v2-gal-scroll-wrap">
+        <div className="dir-prof-v2-gal-grid dir-prof-v2-gal-grid--snap">
         {list.map((m, i) => (
           <button
             key={m.id}
@@ -155,6 +156,7 @@ export function DirectoryProfileGalleryGrid({
             </span>
           </button>
         ))}
+        </div>
       </div>
 
       {typeof document !== 'undefined' && modalEl ? createPortal(modalEl, document.body) : null}

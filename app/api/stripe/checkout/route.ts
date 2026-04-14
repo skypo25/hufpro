@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { requireEnv } from '@/lib/env'
+import { runExclusiveAppSubscriptionCheckout } from '@/lib/billing/stripeSubscriptionExclusive.server'
 import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
@@ -87,20 +88,35 @@ export async function POST(request: Request) {
       ? `${appUrl}/behandler/app-starten?checkout=canceled`
       : `${appUrl}/billing?canceled=1`
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-    subscription_data: trialEndUnix ? { trial_end: trialEndUnix } : undefined,
-    metadata: { supabase_user_id: user.id },
+  const upgradedRedirect =
+    successPath === 'app_starten'
+      ? `${appUrl}/behandler/app-starten?checkout=success&upgraded=1`
+      : `${appUrl}/billing?success=1&upgraded=1`
+
+  const result = await runExclusiveAppSubscriptionCheckout({
+    stripe,
+    customerId,
+    userId: user.id,
+    appPriceId: priceId,
+    upgradedRedirectUrl: upgradedRedirect,
+    createCheckoutSession: () =>
+      stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        subscription_data: trialEndUnix ? { trial_end: trialEndUnix } : undefined,
+        metadata: { supabase_user_id: user.id },
+      }),
   })
 
-  if (!session.url) {
-    return NextResponse.json({ error: 'Checkout konnte nicht gestartet werden.' }, { status: 500 })
+  if (!result.ok) {
+    return NextResponse.json({ error: result.message }, { status: result.status })
   }
-
-  return NextResponse.json({ url: session.url })
+  if ('upgraded' in result && result.upgraded) {
+    return NextResponse.json({ upgraded: true as const, redirect: result.redirect })
+  }
+  return NextResponse.json({ url: result.url })
 }
 

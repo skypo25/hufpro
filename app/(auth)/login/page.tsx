@@ -26,7 +26,8 @@ function LoginContent() {
   const [alreadySignedIn, setAlreadySignedIn] = useState(false)
 
   useEffect(() => {
-    void supabase.auth.getUser().then(({ data: { user } }) => setAlreadySignedIn(Boolean(user)))
+    /** `getSession` = lokaler Auth-Zustand (nach Abmelden zuverlässig leer; `getUser` kann kurz „hängen“). */
+    void supabase.auth.getSession().then(({ data: { session } }) => setAlreadySignedIn(Boolean(session)))
   }, [])
 
   function directoryNextFallbackFromSession(): string | null {

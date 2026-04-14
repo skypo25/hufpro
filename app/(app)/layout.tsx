@@ -1,4 +1,5 @@
 import AppLayoutClient from '@/components/AppLayoutClient'
+import { directoryPublicPaketFromUserMetadata } from '@/lib/directory/public/appBaseUrl'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import { getBillingState } from '@/lib/billing/state'
@@ -7,6 +8,8 @@ import type { BillingAccountRow } from '@/lib/billing/types'
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let readOnlyBanner: { graceEndsAtIso: string } | null = null
   let accessScope: 'app' | 'directory_only' = 'app'
+  let directoryInternChrome = false
+  let directoryInternPaket: 'gratis' | 'premium' | null = null
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -19,6 +22,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .maybeSingle()
     if ((scopeRow?.access_scope as string | null | undefined) === 'directory_only') {
       accessScope = 'directory_only'
+    }
+
+    const metaPaket = directoryPublicPaketFromUserMetadata(user)
+    if (metaPaket) {
+      directoryInternPaket = metaPaket
+    }
+    /** Verzeichnis-Intern: Nur-Verzeichnis-Nutzer oder Gratis/Premium-Registrierung (Metadaten). */
+    if (accessScope === 'directory_only' || metaPaket) {
+      directoryInternChrome = true
     }
 
     const { data: row } = await supabase
@@ -36,7 +48,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppLayoutClient accessScope={accessScope} readOnlyBanner={readOnlyBanner}>
+    <AppLayoutClient
+      accessScope={accessScope}
+      readOnlyBanner={readOnlyBanner}
+      directoryInternChrome={directoryInternChrome}
+      directoryInternPaket={directoryInternPaket}
+    >
       {children}
     </AppLayoutClient>
   )

@@ -25,7 +25,7 @@ function directoryPaketFromCookie(request: NextRequest): 'gratis' | 'premium' | 
 
 function redirectWizardClearPaketCookie(request: NextRequest, paket: 'gratis' | 'premium'): NextResponse {
   const url = request.nextUrl.clone()
-  url.pathname = '/behandler/profil/erstellen'
+  url.pathname = '/directory/mein-profil'
   url.search = `?paket=${paket}`
   const res = NextResponse.redirect(url)
   res.cookies.set(DIRECTORY_WIZARD_PAKET_COOKIE, '', { path: '/', maxAge: 0 })
@@ -135,8 +135,11 @@ export async function middleware(request: NextRequest) {
   const isOnboarding = pathname.startsWith('/onboarding')
   const isPublicConfirm = pathname.startsWith('/termin-bestaetigen/')
   const isBillingPath = pathname === '/billing' || pathname.startsWith('/billing/')
-  const isDirectoryMeinProfil =
-    pathname === '/directory/mein-profil' || pathname.startsWith('/directory/mein-profil/')
+  /** Verzeichnis-Inhalte (Profil + Statistik): kein App-Onboarding erzwingen. */
+  const isDirectoryInternVerzeichnis =
+    pathname === '/directory/mein-profil' ||
+    pathname.startsWith('/directory/mein-profil/') ||
+    pathname === '/directory/statistik'
   /** Öffentliches Verzeichnis (/behandler): kein App-Onboarding erzwingen (Gratis/Premium-Flow). */
   const isBehandlerPublicTree = pathname === '/behandler' || pathname.startsWith('/behandler/')
   const isProtectedPage =
@@ -193,7 +196,7 @@ export async function middleware(request: NextRequest) {
         url.pathname = safeNextPath(nextRaw, '/dashboard')
         url.search = ''
       } else if (!internal && dirPaketMeta) {
-        url.pathname = '/behandler/profil/erstellen'
+        url.pathname = '/directory/mein-profil'
         url.search = `?paket=${dirPaketMeta}`
       } else if (!internal && dirPaketCookie) {
         return redirectWizardClearPaketCookie(request, dirPaketCookie)
@@ -211,19 +214,19 @@ export async function middleware(request: NextRequest) {
     }
 
     // Authenticated on protected page but onboarding not complete → App-Onboarding
-    // Ausnahmen: Verzeichnis „Mein Profil“, gesamter öffentlicher /behandler-Baum (Profil-Wizard, Listing, …).
+    // Ausnahmen: Verzeichnis „Mein Profil“ / Statistik, gesamter öffentlicher /behandler-Baum (Profil-Wizard, Listing, …).
     if (
       isProtectedPage &&
       !onboardingComplete &&
       !isBillingPath &&
-      !isDirectoryMeinProfil &&
+      !isDirectoryInternVerzeichnis &&
       !isBehandlerPublicTree
     ) {
       const dirPaketMeta = directoryPublicPaketFromUserMetadata(user)
       const dirPaketCookie = directoryPaketFromCookie(request)
       if (dirPaketMeta) {
         const url = request.nextUrl.clone()
-        url.pathname = '/behandler/profil/erstellen'
+        url.pathname = '/directory/mein-profil'
         url.search = `?paket=${dirPaketMeta}`
         return NextResponse.redirect(url)
       }

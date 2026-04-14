@@ -25,14 +25,14 @@ export default function OfflineStatusBanner({
 
   if (syncError) {
     return (
-      <div className={`${baseClass} border border-amber-200 bg-amber-50 text-amber-900`}>
+      <div className={`${baseClass} app-info-callout`}>
         <span className="shrink-0 text-base">⚠️</span>
         <span className="flex-1">{syncError}</span>
         {onRetrySync && (
           <button
             type="button"
             onClick={onRetrySync}
-            className="shrink-0 font-semibold text-amber-700 underline hover:no-underline"
+            className="shrink-0 font-semibold text-[#7b3306] underline hover:no-underline"
           >
             Erneut versuchen
           </button>
@@ -52,7 +52,7 @@ export default function OfflineStatusBanner({
 
   if (!isOnline) {
     return (
-      <div className={`${baseClass} border border-[#FCD34D] bg-[#FEF9C3] text-[#92400E]`}>
+      <div className={`${baseClass} app-info-callout`}>
         <span className="shrink-0 text-base">📡</span>
         <span>
           {hasLocalDraft

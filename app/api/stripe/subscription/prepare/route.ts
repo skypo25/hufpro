@@ -52,6 +52,21 @@ export async function POST() {
   const blockAsAlreadyCovered =
     status === 'active' || (status === 'trialing' && !appTrialEnded)
   if (blockAsAlreadyCovered) {
+    const directoryPremiumMonthlyPriceId = process.env.STRIPE_PRICE_ID_DIRECTORY_PREMIUM_MONTHLY?.trim() || null
+    const directoryPremiumTop30PriceId = process.env.STRIPE_PRICE_ID_DIRECTORY_TOP_PROFILE_30D?.trim() || null
+    const storedPriceId = account?.subscription_price_id?.trim() || null
+    const isDirectoryPrice =
+      (!!directoryPremiumMonthlyPriceId && storedPriceId === directoryPremiumMonthlyPriceId) ||
+      (!!directoryPremiumTop30PriceId && storedPriceId === directoryPremiumTop30PriceId)
+    if (isDirectoryPrice) {
+      return NextResponse.json(
+        {
+          error:
+            'Du hast ein Verzeichnis-Premium-Abo. Bitte starte das App-Abo unter „Mein Profil“ — dein Abo wird dann auf die App umgestellt.',
+        },
+        { status: 409 },
+      )
+    }
     return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 

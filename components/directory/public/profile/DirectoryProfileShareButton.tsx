@@ -6,6 +6,8 @@ type Props = {
   title: string
   children: React.ReactNode
   variant?: 'primary' | 'secondary'
+  /** Wenn gesetzt: ein „Teilen“-Ereignis nach erfolgreichem Share oder Kopieren. */
+  analyticsSlug?: string
 }
 
 export function DirectoryProfileShareButton({
@@ -14,6 +16,7 @@ export function DirectoryProfileShareButton({
   title,
   children,
   variant = 'secondary',
+  analyticsSlug,
 }: Props) {
   const base =
     variant === 'primary'
@@ -28,9 +31,17 @@ export function DirectoryProfileShareButton({
         try {
           if (typeof navigator !== 'undefined' && navigator.share) {
             await navigator.share({ title, url })
-            return
+          } else {
+            await navigator.clipboard.writeText(url)
           }
-          await navigator.clipboard.writeText(url)
+          if (analyticsSlug) {
+            void fetch('/api/directory/profile-analytics', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ slug: analyticsSlug, event: 'share' }),
+              keepalive: true,
+            }).catch(() => {})
+          }
         } catch {
           /* user cancelled or clipboard denied */
         }
