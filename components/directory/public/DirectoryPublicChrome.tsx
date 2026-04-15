@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Suspense, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
+import { CookieFooterButton } from '@/components/consent/CookieFooterButton'
 import { DirectoryPublicNav } from '@/components/directory/public/DirectoryPublicNav'
 import { directoryAppBaseUrl, directoryProfileCreateHref } from '@/lib/directory/public/appBaseUrl'
 import { listingQueryHasActiveFilters, parseBehandlerListingQuery } from '@/lib/directory/public/listingParams'
@@ -51,6 +52,7 @@ function DirectoryPublicChromeInner({ children }: { children: React.ReactNode })
               <a href={profileCreateHref}>Für Behandler</a>
               <a href={`${base}/datenschutz`}>Datenschutz</a>
               <a href={`${base}/impressum`}>Impressum</a>
+              <CookieFooterButton />
             </div>
             <div className="footer-copy">© 2026 anidocs · anidocs.de · Made in Germany</div>
           </div>
@@ -79,6 +81,7 @@ function DirectoryPublicChromeInner({ children }: { children: React.ReactNode })
             <a href={`${base}/hilfe`}>Hilfe</a>
             <a href={`${base}/datenschutz`}>Datenschutz</a>
             <a href={`${base}/impressum`}>Impressum</a>
+            <CookieFooterButton />
           </div>
           <p className="dir-sf-copy">© 2026 anidocs · anidocs.de · Made in Germany</p>
         </div>

@@ -1,26 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Outfit, DM_Sans } from 'next/font/google'
+import '@fontsource-variable/dm-sans/wght.css'
+import '@fontsource-variable/outfit/wght.css'
 import './globals.css'
 /* Direkt importieren: verschachteltes @import nach tailwindcss wird sonst oft nicht gebündelt → /behandler wirkt „ohne CSS“. */
 import './behandler-verzeichnis.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import { CookieConsentLayer } from '@/components/consent/CookieConsentLayer'
 import Preloader from '@/components/Preloader'
 import RouteLoader from '@/components/RouteLoader'
+import { ConsentProvider } from '@/lib/consent/ConsentProvider'
 import { SerwistProvider } from './serwist-provider'
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-outfit',
-  display: 'swap',
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-})
 
 function appBaseUrl() {
   const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://app.anidocs.de'
@@ -73,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="de" className={`${dmSans.variable} ${outfit.variable}`}>
+    <html lang="de">
       <head>
         {/* Erste Pixel: Hintergrund sofort, ohne auf globals.css zu warten */}
         <style
@@ -89,11 +78,14 @@ export default function RootLayout({
         <link rel="preload" href="/icon.png" as="image" />
       </head>
       <body>
-        <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
-          <Preloader />
-          <RouteLoader />
-          {children}
-        </SerwistProvider>
+        <ConsentProvider>
+          <CookieConsentLayer />
+          <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
+            <Preloader />
+            <RouteLoader />
+            {children}
+          </SerwistProvider>
+        </ConsentProvider>
       </body>
     </html>
   )

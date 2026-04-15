@@ -153,6 +153,18 @@ export function DirectoryListingPremiumShell({
   const [barSpecialtyId, setBarSpecialtyId] = useState(query.specialtyId)
   /** Inkrement bei „Suchen“ — schließt AddressAutocomplete-Dropdown (Mobil: bleibt sonst offen). */
   const [locationSuggestDismiss, setLocationSuggestDismiss] = useState(0)
+  const [navMenuOpen, setNavMenuOpen] = useState(false)
+
+  const closeNavMenu = useCallback(() => {
+    setNavMenuOpen(false)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = navMenuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [navMenuOpen])
 
   useEffect(() => {
     setBarLocation(query.location)
@@ -376,27 +388,90 @@ export function DirectoryListingPremiumShell({
     setMapActiveProfileId(null)
   }, [])
 
+  const aboutHref = directoryAboutUrl()
+
   return (
     <div className="dlp-root" data-directory-page="listing-premium">
-      <nav className="dlp-nav" aria-label="Hauptnavigation">
-        <div className="dlp-nav-in">
-          <Link className="dlp-logo" href="/behandler">
-            <div className="dlp-sq" aria-hidden>
-              a
+      <div className="dlp-nav-shell beh-ref">
+        <nav aria-label="Hauptnavigation">
+          <div className="nav-inner">
+            <Link href="/behandler" className="nav-logo">
+              <div className="sq" aria-hidden>
+                a
+              </div>
+              <span>anidocs</span>
+            </Link>
+            <div className="nav-links">
+              <span className="nav-link active">Behandler finden</span>
+              <a href={profileCreateHref} className="nav-link">
+                Für Behandler
+              </a>
+              <a href={aboutHref} className="nav-link">
+                Über uns
+              </a>
             </div>
-            <span>anidocs</span>
-          </Link>
-          <div className="dlp-nav-links">
-            <a href="/behandler">Behandler finden</a>
-            <a href={profileCreateHref}>Für Behandler</a>
-            <a href={directoryAboutUrl()}>Über uns</a>
+            <a href={profileCreateHref} className="nav-cta">
+              <i className="bi bi-plus-lg" aria-hidden />
+              Profil erstellen
+            </a>
+            <button
+              type="button"
+              className="nav-burger"
+              aria-label="Menü öffnen"
+              aria-expanded={navMenuOpen}
+              onClick={() => setNavMenuOpen((o) => !o)}
+            >
+              <i className="bi bi-list" aria-hidden />
+            </button>
           </div>
-          <Link className="dlp-nav-cta" href={profileCreateHref}>
-            <i className="bi bi-plus-lg" aria-hidden />
-            Profil erstellen
-          </Link>
+        </nav>
+
+        <div
+          className={`mobile-menu${navMenuOpen ? ' open' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menü"
+          onClick={(e) => {
+            const t = e.target as HTMLElement
+            if (e.currentTarget === e.target || t.classList.contains('mm-overlay')) closeNavMenu()
+          }}
+        >
+          <div className="mm-overlay" aria-hidden />
+          <div className="mm-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mm-header">
+              <Link href="/behandler" className="nav-logo" onClick={closeNavMenu}>
+                <div className="sq" aria-hidden>
+                  a
+                </div>
+                <span>anidocs</span>
+              </Link>
+              <button type="button" className="mm-close" aria-label="Menü schließen" onClick={closeNavMenu}>
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+            <div className="mm-links">
+              <Link href="/behandler" className="mm-link active" onClick={closeNavMenu}>
+                <i className="bi bi-search" aria-hidden />
+                Behandler finden
+              </Link>
+              <a href={profileCreateHref} className="mm-link" onClick={closeNavMenu}>
+                <i className="bi bi-heart-pulse-fill" aria-hidden />
+                Für Behandler
+              </a>
+              <a href={aboutHref} className="mm-link" onClick={closeNavMenu}>
+                <i className="bi bi-info-circle-fill" aria-hidden />
+                Über uns
+              </a>
+            </div>
+            <div className="mm-footer">
+              <a href={profileCreateHref} className="mm-cta" onClick={closeNavMenu}>
+                <i className="bi bi-plus-lg" aria-hidden />
+                Profil erstellen
+              </a>
+            </div>
+          </div>
         </div>
-      </nav>
+      </div>
 
       {mapSectionVisible ? (
         <section className="dlp-topmap" aria-label="Kartenbereich">

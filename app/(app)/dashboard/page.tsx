@@ -380,11 +380,7 @@ export default async function DashboardPage() {
               href={item.href}
               className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#52b788] hover:shadow-md"
             >
-              <div
-                className={`mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] ${
-                  item.href === '/animals/new' ? 'text-[#154226]' : 'text-[#52b788]'
-                }`}
-              >
+              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
                 <FontAwesomeIcon
                   icon={item.icon}
                   className="!h-[18px] !w-[18px] shrink-0"

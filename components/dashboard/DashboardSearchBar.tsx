@@ -76,7 +76,7 @@ export default function DashboardSearchBar() {
         <div className="flex items-center rounded-r-lg border border-[#E5E2DC] border-l-0 bg-white shadow-sm">
           <button
             type="submit"
-            className="flex h-[42px] w-[42px] items-center justify-center text-[#52b788] hover:bg-[#edf3ef]"
+            className="flex h-[42px] w-[42px] items-center justify-center text-[#52b788] hover:bg-[#edf3ef] hover:text-[#154226]"
             aria-label="Suchen"
           >
             <i className="bi bi-search text-[16px]" />

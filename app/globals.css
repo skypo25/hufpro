@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 :root {
+  /* Self-hosted (kein Google Fonts CDN) — @fontsource-variable in app/layout.tsx */
+  --font-dm-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-outfit: 'Outfit Variable', 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-directory-sans: var(--font-dm-sans);
+  --font-directory-display: var(--font-outfit);
+  --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
   --background: #f7f7f7;
   --foreground: #1b1f23;
   --card: #ffffff;
@@ -7337,6 +7344,15 @@ div.border-gray-200,
 }
 
 .dir-sf-links a:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dir-sf-links .ad-consent-footer-link {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.dir-sf-links .ad-consent-footer-link:hover {
   color: rgba(255, 255, 255, 0.6);
 }
 

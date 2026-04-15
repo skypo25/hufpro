@@ -19,8 +19,6 @@
   --dlp-red: #ef4444;
   --dlp-r: 16px;
   --dlp-rs: 12px;
-  /* Höhe wie .beh-ref nav (padding 16+16 + Logozeile 44px) — für sticky Suchleiste */
-  --dlp-nav-stack-h: 76px;
 
   font-family: var(--font-directory-sans, 'DM Sans'), system-ui, sans-serif;
   background: #ffffff;
@@ -230,96 +228,14 @@
   gap: 12px;
 }
 
-/* NAV — gleiche Maße wie Startseite (.beh-ref nav / .nav-inner) */
-.dlp-nav {
-  background: rgba(255, 255, 255, 0.95);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--dlp-border-lt);
-  position: sticky;
-  top: 0;
+/* Kopfzeile: Markup + Styles wie Startseite (.beh-ref in behandler-verzeichnis.css), nicht sticky */
+.dlp-nav-shell.beh-ref {
+  position: relative;
   z-index: 200;
-  padding: 16px 0;
-  box-sizing: border-box;
+  background: #fff;
 }
 
-.dlp-nav-in {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.dlp-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dlp-logo .dlp-sq {
-  width: 44px;
-  height: 44px;
-  background: var(--dlp-accent);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 20px;
-  color: #fff;
-}
-
-.dlp-logo span {
-  font-family: var(--font-directory-display, 'Outfit'), system-ui, sans-serif;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.dlp-nav-links {
-  margin-left: auto;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.dlp-nav-links a {
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--dlp-muted);
-  border-radius: 8px;
-  transition: 0.12s;
-}
-
-.dlp-nav-links a:hover {
-  color: var(--dlp-text);
-  background: var(--dlp-bg-soft);
-}
-
-.dlp-nav-cta {
-  margin-left: 8px;
-  padding: 10px 22px;
-  background: var(--dlp-text);
-  color: #fff !important;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.12s;
-}
-
-.dlp-nav-cta:hover {
-  background: #2d3339;
-  color: #fff !important;
-}
-
-/* Karte: gleiche Max-Breite / Außenabstand wie .dlp-nav-in */
+/* Karte: gleiche Max-Breite / Außenabstand wie .beh-ref .nav-inner */
 .dlp-topmap {
   width: 100%;
   padding: 15px 32px 15px;
@@ -352,7 +268,7 @@
   background: #fff;
   border-bottom: 1px solid var(--dlp-border-lt);
   position: sticky;
-  top: var(--dlp-nav-stack-h);
+  top: 0;
   z-index: 190;
 }
 
@@ -1575,15 +1491,6 @@ a.dlp-card .dlp-card-fav {
 }
 
 @media (max-width: 900px) {
-  .dlp-nav-links,
-  .dlp-nav-cta {
-    display: none;
-  }
-
-  .dlp-nav-in {
-    padding: 0 20px;
-  }
-
   .dlp-topmap {
     padding: 15px 20px 15px;
   }

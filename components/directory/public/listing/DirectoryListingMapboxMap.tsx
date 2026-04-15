@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { DirectoryListingMapPoint } from '@/components/directory/public/listing/directoryListingMapTypes'
+import { useConsent } from '@/lib/consent/useConsent'
 import { boundingBoxForRadiusKm, circlePolygonRingLngLat } from '@/lib/directory/public/haversine'
 
 export type { DirectoryListingMapPoint } from '@/components/directory/public/listing/directoryListingMapTypes'
@@ -39,7 +40,7 @@ function mapboxMapLanguage(): 'auto' | string {
   return raw
 }
 
-export function DirectoryListingMapboxMap({
+function DirectoryListingMapboxMapInner({
   points,
   searchCenter,
   activeId,
@@ -85,7 +86,7 @@ export function DirectoryListingMapboxMap({
         style: MAPBOX_STYLE,
         center: [10.45, 51.2],
         zoom: 5,
-        scrollZoom: true,
+        scrollZoom,
         attributionControl: true,
         language: mapboxMapLanguage(),
       })
@@ -242,4 +243,45 @@ export function DirectoryListingMapboxMap({
   return (
     <div ref={containerRef} className={rootCls} role="application" aria-label={mapAriaLabel} />
   )
+}
+
+/**
+ * Mapbox nur nach Einwilligung (Kategorie „maps“). Kein SDK-Load vor Zustimmung.
+ */
+export function DirectoryListingMapboxMap(props: Props) {
+  const { hydrated, hasConsent, updateConsent } = useConsent()
+
+  if (!hydrated) {
+    return (
+      <div
+        className={['dlp-map-root', props.rootClassName].filter(Boolean).join(' ')}
+        role="status"
+        aria-busy="true"
+        aria-label="Karte wird vorbereitet"
+      />
+    )
+  }
+
+  if (!hasConsent('maps')) {
+    return (
+      <div className={['dlp-map-root', props.rootClassName].filter(Boolean).join(' ')}>
+        <div className="ad-consent-map-placeholder">
+          <span>
+            Um die Karte zu laden, stimmen Sie bitte der Kategorie „Karten (Mapbox)“ zu. Daten können dabei in die USA
+            übermittelt werden.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              updateConsent({ maps: true })
+            }}
+          >
+            Karte laden
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <DirectoryListingMapboxMapInner {...props} />
 }

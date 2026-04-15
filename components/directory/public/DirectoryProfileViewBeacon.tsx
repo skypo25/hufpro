@@ -2,11 +2,17 @@
 
 import { useEffect } from 'react'
 
+import { useConsent } from '@/lib/consent/useConsent'
+
 /**
  * Zählt einen Profilaufruf (einmal pro Browser-Tab-Sitzung), wenn die öffentliche Profilseite geöffnet wird.
+ * Nur nach Einwilligung (Kategorie „Statistik / Analytics“).
  */
 export function DirectoryProfileViewBeacon({ profileId, slug }: { profileId: string; slug: string }) {
+  const { hydrated, hasConsent } = useConsent()
+
   useEffect(() => {
+    if (!hydrated || !hasConsent('analytics')) return
     if (typeof window === 'undefined') return
     const k = `directory_pv_v1_${profileId}`
     try {
@@ -25,7 +31,7 @@ export function DirectoryProfileViewBeacon({ profileId, slug }: { profileId: str
       }),
       keepalive: true,
     }).catch(() => {})
-  }, [profileId, slug])
+  }, [hydrated, hasConsent, profileId, slug])
 
   return null
 }

@@ -1,5 +1,7 @@
 'use client'
 
+import { useConsent } from '@/lib/consent/useConsent'
+
 type Props = {
   className?: string
   url: string
@@ -18,6 +20,8 @@ export function DirectoryProfileShareButton({
   variant = 'secondary',
   analyticsSlug,
 }: Props) {
+  const { hasConsent } = useConsent()
+
   const base =
     variant === 'primary'
       ? 'dir-prof-v2-ha dir-prof-v2-ha--p'
@@ -34,7 +38,7 @@ export function DirectoryProfileShareButton({
           } else {
             await navigator.clipboard.writeText(url)
           }
-          if (analyticsSlug) {
+          if (analyticsSlug && hasConsent('analytics')) {
             void fetch('/api/directory/profile-analytics', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

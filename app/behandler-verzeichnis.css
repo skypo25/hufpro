@@ -1089,6 +1089,15 @@
   color: var(--text);
 }
 
+.beh-ref .footer-links .ad-consent-footer-link {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.beh-ref .footer-links .ad-consent-footer-link:hover {
+  color: var(--text);
+}
+
 .beh-ref .footer-copy {
   font-size: 12px;
   color: var(--text-light);

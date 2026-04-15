@@ -201,19 +201,23 @@ export default function EmbeddedSubscribe({
   const [elementsKey, setElementsKey] = useState(0)
   const [finishedWithoutPaymentElement, setFinishedWithoutPaymentElement] = useState(false)
   const onCompletedRef = useRef(onCompleted)
-  onCompletedRef.current = onCompleted
   const prepareRequestGen = useRef(0)
 
+  useEffect(() => {
+    onCompletedRef.current = onCompleted
+  }, [onCompleted])
+
+  /** Stripe.js erst laden, wenn Server ein Payment/Setup freigegeben hat — nicht beim bloßen Seitenaufruf. */
   const stripePromise = useMemo(() => {
-    if (!stripePublishableKey) return null
+    if (!stripePublishableKey || !clientSecret) return null
     return loadStripe(stripePublishableKey) as Promise<Stripe | null>
-  }, [stripePublishableKey])
+  }, [stripePublishableKey, clientSecret])
 
   useEffect(() => {
     prepareRequestGen.current += 1
     const gen = prepareRequestGen.current
     const run = async () => {
-      if (!stripePromise) return
+      if (!stripePublishableKey) return
       if (disabledReason) return
       setLoading(true)
       setError(null)
@@ -234,10 +238,10 @@ export default function EmbeddedSubscribe({
       setElementsKey((k) => k + 1)
     }
     run()
-  }, [stripePromise, disabledReason, prepareUrl])
+  }, [stripePublishableKey, disabledReason, prepareUrl])
 
   const retry = async () => {
-    if (!stripePromise) return
+    if (!stripePublishableKey) return
     if (disabledReason) return
     setLoading(true)
     setError(null)

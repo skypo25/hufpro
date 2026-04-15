@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
+import { DirectoryCategoryCardIcon } from '@/components/directory/public/listing/DirectoryCategoryCardIcon'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -219,6 +220,14 @@ function StepProfession({
   onNext: () => void
   onBack: () => void
 }) {
+  const specialtyCodeFor = (p: Profession): string | null => {
+    if (p === 'hufbearbeiter') return 'barhufbearbeitung'
+    if (p === 'tierheilpraktiker') return 'tierheilpraktik'
+    if (p === 'tierphysiotherapeut') return 'tierphysiotherapie'
+    if (p === 'osteopath') return 'tierosteopathie'
+    return null
+  }
+
   return (
     <>
       <h2 style={titleStyle}>Wofür nutzt du AniDocs?</h2>
@@ -232,7 +241,11 @@ function StepProfession({
             key={p.value}
             selected={selected === p.value}
             onClick={() => onSelect(p.value)}
-            emoji={p.emoji}
+            icon={
+              specialtyCodeFor(p.value)
+                ? <DirectoryCategoryCardIcon code={specialtyCodeFor(p.value)!} imgClassName="h-5 w-5" />
+                : p.emoji
+            }
             label={p.label}
             sub={p.sub}
           />
@@ -272,7 +285,7 @@ function StepAnimalFocus({
             key={a.value}
             selected={selected === a.value}
             onClick={() => onSelect(a.value)}
-            emoji={a.emoji}
+            icon={a.emoji}
             label={a.label}
             sub={a.sub}
           />
@@ -355,11 +368,11 @@ function StepDone({ trialEnd, onStart }: { trialEnd: string; onStart: () => void
 // ─── Shared Atoms ─────────────────────────────────────────────────────────────
 
 function OptionRow({
-  selected, onClick, emoji, label, sub,
+  selected, onClick, icon, label, sub,
 }: {
   selected: boolean
   onClick: () => void
-  emoji: string
+  icon: React.ReactNode
   label: string
   sub: string
 }) {
@@ -382,8 +395,9 @@ function OptionRow({
         background: '#f7f7f7', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
         fontSize: 20, flexShrink: 0,
+        color: '#154226',
       }}>
-        {emoji}
+        {icon}
       </span>
 
       {/* Text */}
