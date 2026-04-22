@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase-client'
 import { formatCustomerNumber } from '@/lib/format'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { animalSingularLabel, deriveClinicalIntakeBlocks } from '@/lib/appProfile'
+import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 import DeleteHorseForm from '@/app/(app)/horses/[id]/DeleteHorseForm'
 import {
   type ClinicalFirstContext,
@@ -100,13 +101,10 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col">
-      <label className="mb-1.5 flex items-center gap-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </label>
+    <div className="form-group">
+      <label className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       {children}
-      {hint && <div className="mt-1 text-[11px] text-[#9CA3AF]">{hint}</div>}
+      {hint && <div className="form-helper">{hint}</div>}
     </div>
   )
 }
@@ -126,15 +124,15 @@ function Section({
 }) {
   return (
     <section className="huf-card">
-      <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf5f5] text-[14px] text-[#015555]">
+      <div className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-[18px]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
           {icon}
         </span>
         <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
           {title}
         </h3>
         {badge && (
-          <span className="rounded-full bg-[#edf5f5] px-3 py-1 text-[11px] font-medium text-[#015555]">
+          <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[11px] font-medium text-[var(--accent-dark)]">
             {badge}
           </span>
         )}
@@ -166,18 +164,18 @@ function CollapsibleSection({
     <section className="huf-card">
       <button
         type="button"
-        className="flex w-full items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px] text-left transition hover:bg-[#fafaf9]"
+        className="flex w-full items-center gap-3 border-b border-[var(--border)] px-6 py-[18px] text-left transition hover:bg-[rgba(0,0,0,0.02)]"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf5f5] text-[14px] text-[#015555]">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
           {icon}
         </span>
         <h3 className="dashboard-serif min-w-0 flex-1 text-[16px] font-medium text-[#1B1F23]">
           {title}
         </h3>
         {badge && (
-          <span className="hidden shrink-0 rounded-full bg-[#edf5f5] px-3 py-1 text-[11px] font-medium text-[#015555] sm:inline">
+          <span className="hidden shrink-0 rounded-full bg-[var(--accent-light)] px-3 py-1 text-[11px] font-medium text-[var(--accent-dark)] sm:inline">
             {badge}
           </span>
         )}
@@ -196,10 +194,9 @@ function CollapsibleSection({
   )
 }
 
-// Formfelder wie in den bestehenden Desktop-Formularen (CustomerForm/HorseForm)
-const inputClass = 'huf-input'
-const textareaClass = 'huf-input huf-input--multiline leading-6'
-const countryOptions = ['Deutschland', 'Österreich', 'Schweiz']
+// Formfelder: gemeinsames Layout (`app/form-styles.css`)
+const inputClass = 'input'
+const textareaClass = 'input textarea leading-6'
 
 /** Gleiche Liste wie im Hufbearbeiter-Pferdeformular (`HorseForm`) */
 const HORSE_BREED_OPTIONS = [
@@ -351,6 +348,9 @@ export default function AnimalForm({
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [photoRemoteUrl, setPhotoRemoteUrl] = useState<string | null>(null)
+  const animalPhotoFieldUid = useId().replace(/:/g, '')
+  const animalPhotoTitleId = `animal-photo-title-${animalPhotoFieldUid}`
+  const animalPhotoHintId = `animal-photo-hint-${animalPhotoFieldUid}`
 
   const [stableName, setStableName] = useState(initialData?.stableName ?? '')
   const [stableStreet, setStableStreet] = useState(initialData?.stableStreet ?? '')
@@ -785,14 +785,14 @@ export default function AnimalForm({
         className={[
           'flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 text-center transition',
           selected
-            ? 'border-[#006d6d] bg-[rgba(0,109,109,0.06)] ring-4 ring-[rgba(0,109,109,0.10)]'
-            : 'border-[#E5E2DC] bg-white hover:border-[#9CA3AF]',
+            ? 'border-[var(--accent)] bg-[var(--accent-light)] ring-4 ring-[color-mix(in_oklab,var(--accent)_18%,transparent)]'
+            : 'border-[var(--border)] bg-white hover:border-[#9CA3AF]',
         ].join(' ')}
       >
         <div className="text-[22px] leading-none">
           <FontAwesomeIcon icon={icon} />
         </div>
-        <div className={['text-[12px] font-semibold', selected ? 'text-[#006d6d]' : 'text-[#6B7280]'].join(' ')}>
+        <div className={['text-[12px] font-semibold', selected ? 'text-[var(--accent)]' : 'text-[#6B7280]'].join(' ')}>
           {label}
         </div>
       </button>
@@ -807,7 +807,7 @@ export default function AnimalForm({
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {customers.map((c) => (
@@ -819,8 +819,8 @@ export default function AnimalForm({
           </Field>
 
           {selectedCustomer && (
-            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#006d6d] bg-[rgba(0,109,109,0.04)] px-[18px] py-[14px]">
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#006d6d] text-[14px] font-semibold text-white">
+            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent-light)_85%,white)] px-[18px] py-[14px]">
+              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[var(--accent)] text-[14px] font-semibold text-white">
                 {customerInitials}
               </div>
               <div className="min-w-0 flex-1">
@@ -907,7 +907,7 @@ export default function AnimalForm({
           </Field>
           <Field label="Geschlecht" required>
             <select
-              className="huf-input"
+              className="select"
               value={sex}
               onChange={(e) => setSex(e.target.value)}
             >
@@ -929,7 +929,7 @@ export default function AnimalForm({
           {animalType !== 'horse' && (
             <Field label="Kastriert?">
               <select
-                className="huf-input"
+                className="select"
                 value={neutered}
                 onChange={(e) => setNeutered(e.target.value as 'unknown' | 'yes' | 'no')}
               >
@@ -970,70 +970,78 @@ export default function AnimalForm({
           </Field>
         </div>
 
-        <Field
-          label="Allgemeines Tierfoto"
-          hint="Ein Übersichtsbild fürs Akten- und Listen-Handling (JPEG, wird auf 4:3 skaliert)"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            {(photoPreviewUrl || photoRemoteUrl) && (
-              <div className="relative h-32 w-44 shrink-0 overflow-hidden rounded-lg border border-[#E5E2DC] bg-[#f4f4f2]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photoPreviewUrl || photoRemoteUrl || ''}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            )}
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="form-group">
+          <div id={animalPhotoTitleId} className="form-label">
+            Allgemeines Tierfoto
+          </div>
+          {photoPreviewUrl || photoRemoteUrl ? (
+            <div className="form-file-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photoPreviewUrl || photoRemoteUrl || ''} alt="" />
+              <button
+                type="button"
+                className="form-file-preview-remove"
+                onClick={() => {
+                  setPhotoFile(null)
+                  setCommittedPhotoPath(null)
+                }}
+                aria-label="Tierfoto entfernen"
+              >
+                <i className="bi bi-x-lg" aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <label className="form-file-drop">
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                className="text-[13px] text-[#374151] file:mr-3 file:rounded-lg file:border-0 file:bg-[#edf5f5] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-[#015555]"
+                aria-labelledby={animalPhotoTitleId}
+                aria-describedby={animalPhotoHintId}
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   setPhotoFile(f ?? null)
+                  e.target.value = ''
                 }}
               />
-              {photoFile && (
-                <button
-                  type="button"
-                  className="self-start text-[12px] font-medium text-[#6B7280] underline"
-                  onClick={() => setPhotoFile(null)}
-                >
-                  Auswahl zurücksetzen
-                </button>
-              )}
-            </div>
+              <i className="bi bi-image" aria-hidden />
+              <span>Foto auswählen</span>
+            </label>
+          )}
+          <div id={animalPhotoHintId} className="form-helper">
+            Ein Übersichtsbild fürs Akten- und Listen-Handling (JPEG/PNG/WebP, wird auf 4:3 skaliert).
           </div>
-        </Field>
+        </div>
 
         {animalType === 'horse' && (
-          <div className="rounded-xl border border-[#E5E2DC] bg-[#fafaf9] px-4 py-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card,#ffffff)] px-4 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-medium text-[#1B1F23]">
+                <p className="text-[13.5px] font-medium text-[var(--foreground,#1B1F23)]">
                   Steht das Pferd an einem anderen Standort als die Kundenadresse?
                 </p>
-                <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
+                <p className="form-helper mt-1 max-w-[52rem]">
                   Die Rechnungsanschrift des Kunden gilt als Standard. Nur aktivieren, wenn du Stall, Anfahrt oder Kontakt vor Ort separat brauchst.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={stableDiffersFromCustomer}
-                aria-label="Pferd steht an anderem Standort als die Kundenadresse"
+              <label
+                className="toggle shrink-0 sm:mt-0"
                 title={stableDiffersFromCustomer ? 'Anderer Standort: ein' : 'Anderer Standort: aus'}
-                onClick={() => {
-                  setStableDiffersFromCustomer((prev) => {
-                    const next = !prev
+              >
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={stableDiffersFromCustomer}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                    setStableDiffersFromCustomer(next)
                     if (!next) resetStableFields()
-                    return next
-                  })
-                }}
-                className={`mhf-toggle-switch${stableDiffersFromCustomer ? ' on' : ''}`}
-              />
+                  }}
+                  aria-label="Pferd steht an anderem Standort als die Kundenadresse"
+                />
+                <span className="toggle__track">
+                  <span className="toggle__thumb" />
+                </span>
+              </label>
             </div>
           </div>
         )}
@@ -1062,7 +1070,7 @@ export default function AnimalForm({
             />
           </Field>
           {stableDistanceText && (
-            <p className="text-[13px] text-[#006d6d]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+            <p className="text-[13px] text-[var(--accent)]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
           )}
           <Field label="Name des Stalls / Hofs" hint="So findest du den Standort schnell wieder">
             <input
@@ -1103,12 +1111,14 @@ export default function AnimalForm({
             </Field>
             <Field label="Land">
               <select
-                className="huf-input"
+                className="select"
                 value={stableCountry}
                 onChange={(e) => setStableCountry(e.target.value)}
               >
-                {countryOptions.map((country) => (
-                  <option key={country}>{country}</option>
+                {DACH_FORM_COUNTRIES.map(({ iso, value: land }) => (
+                  <option key={land} value={land}>
+                    {dachLandSelectLabel(iso, land)}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -1147,7 +1157,7 @@ export default function AnimalForm({
 
       {clinicalBlockIds.length > 0 && (
         <>
-          <div className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-5 py-3.5 text-[13px] text-[#1E40AF]">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--accent-light)] px-5 py-3.5 text-[13px] text-[var(--accent-dark)]">
             <strong className="font-semibold">Fachlicher Erstkontext</strong> — modulare Blöcke (nicht nach
             Berufsbezeichnung). Sichtbarkeit steuert dein Profil; den detaillierten Befund erfasst du beim ersten Termin in
             der Dokumentation.
@@ -1202,7 +1212,7 @@ export default function AnimalForm({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#E5E2DC] pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border)] pt-6">
         <Link href="/animals" className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-medium text-[#6B7280] hover:bg-black/5">
           ← Abbrechen
         </Link>
@@ -1222,7 +1232,7 @@ export default function AnimalForm({
             type="button"
             disabled={saving}
             onClick={() => void handleSave()}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#015555] disabled:opacity-50"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[15px] font-medium !text-white transition-colors hover:bg-[var(--accent-dark)] hover:!text-white disabled:opacity-50"
           >
             <i className="bi bi-check-lg" />{' '}
             {saving ? 'Speichere…' : mode === 'edit' ? 'Änderungen speichern' : 'Tier speichern'}

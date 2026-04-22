@@ -20,6 +20,10 @@ import { MainWithMargin } from '@/components/layout/MainWithMargin'
 const SIDEBAR_WIDTH = 260
 const SIDEBAR_COLLAPSED_WIDTH = 72
 
+/** Eingeklappte Verzeichnis-Sidebar: kompaktes Logo (ersetze `public/logo-sidebar-collapsed.svg`). */
+const DIRECTORY_SIDEBAR_LOGO_COLLAPSED = '/logo-sidebar-collapsed.svg'
+const DIRECTORY_SIDEBAR_LOGO_EXPANDED = '/logo.svg'
+
 type NavChild = { label: string; href: string; exact: boolean; icon: typeof faChartColumn }
 
 type NavBlock =
@@ -112,12 +116,29 @@ function DirectoryVerzeichnisInternSidebar({ paketLabel }: { paketLabel: 'gratis
       }}
       aria-label="Verzeichnis"
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 pb-4 pt-5">
+      <div
+        className={[
+          'flex shrink-0 items-center border-b border-white/10 px-3 pb-4 pt-5',
+          isCollapsed ? 'justify-center' : 'justify-between',
+        ].join(' ')}
+      >
         <div className="flex min-w-0 items-center gap-3">
           {isCollapsed ? (
-            <Image src="/logo.svg" alt="Logo" width={32} height={32} className="shrink-0" />
+            <Image
+              src={DIRECTORY_SIDEBAR_LOGO_COLLAPSED}
+              alt="Logo"
+              width={32}
+              height={32}
+              className="shrink-0 object-contain"
+            />
           ) : (
-            <Image src="/logo.svg" alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
+            <Image
+              src={DIRECTORY_SIDEBAR_LOGO_EXPANDED}
+              alt="Logo"
+              width={120}
+              height={36}
+              className="h-9 w-auto shrink-0 object-contain"
+            />
           )}
         </div>
         {!isCollapsed && (

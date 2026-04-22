@@ -12,9 +12,9 @@ import { useAppProfile } from '@/context/AppProfileContext'
 import { showCustomerHorseSpecificFields } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import AddressAutocomplete, { type AddressSuggestion } from './AddressAutocomplete'
+import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 
 const dayOptions = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
-const countryOptions = ['Deutschland', 'Österreich', 'Schweiz']
 
 type CustomerFormMode = 'create' | 'edit'
 
@@ -180,6 +180,10 @@ export default function CustomerForm({
   useEffect(() => {
     if (initialData.driveTime) setBillingDistanceText(initialData.driveTime)
   }, [initialData.driveTime])
+
+  useEffect(() => {
+    if (!showHorseSpecificCustomerFields) setAddHorseNow(false)
+  }, [showHorseSpecificCustomerFields])
 
   function togglePreferredDay(day: string) {
     setPreferredDays((prev) =>
@@ -506,8 +510,10 @@ export default function CustomerForm({
               onChange={(e) => setBillingCountry(e.target.value)}
               className="select"
             >
-              {countryOptions.map((country) => (
-                <option key={country}>{country}</option>
+              {DACH_FORM_COUNTRIES.map(({ iso, value: land }) => (
+                <option key={land} value={land}>
+                  {dachLandSelectLabel(iso, land)}
+                </option>
               ))}
             </select>
           </Field>
@@ -582,8 +588,8 @@ export default function CustomerForm({
           </Field>
         </div>
 
-        <div className={showIntervalWeeksField ? 'grid gap-5 md:grid-cols-2' : 'grid gap-5'}>
-          {showIntervalWeeksField ? (
+        <div className={showHorseSpecificCustomerFields ? 'grid gap-5 md:grid-cols-2' : 'grid gap-5'}>
+          {showHorseSpecificCustomerFields ? (
             <Field label="Bearbeitungsintervall">
               <select
                 value={intervalWeeks}
@@ -650,7 +656,7 @@ export default function CustomerForm({
         </Field>
       </Section>
 
-      {mode === 'create' && (
+      {mode === 'create' && showHorseSpecificCustomerFields && (
         <Section title="Erstes Pferd direkt anlegen?" icon={<i className="bi bi-plus-circle-fill" />}>
           <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3">
             <input

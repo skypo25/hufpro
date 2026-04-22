@@ -3892,7 +3892,7 @@ button.huf-btn-dark {
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: #D1D5DB;
+  background: color-mix(in oklab, var(--border, #d1d5db) 55%, var(--text-light, #9ca3af));
   position: relative;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -3901,7 +3901,7 @@ button.huf-btn-dark {
   border: none;
   padding: 0;
 }
-.mhf-toggle-switch.on { background: #52b788; }
+.mhf-toggle-switch.on { background: var(--accent, #006d6d); }
 .mhf-toggle-switch::after {
   content: '';
   position: absolute;

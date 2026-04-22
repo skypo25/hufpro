@@ -56,11 +56,11 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/animals" className="text-[#52b788] hover:underline">
+        <Link href="/animals" className="text-[var(--accent)] hover:underline">
           {animalsNavLabel(term)}
         </Link>
         <span>›</span>

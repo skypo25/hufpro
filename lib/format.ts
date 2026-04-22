@@ -85,6 +85,23 @@ export function formatStorageBytesShort(bytes: number | null | undefined): strin
   return `${gb.toFixed(1).replace('.', ',')}G`
 }
 
+/** Zwei-Buchstaben-Kürzel aus Kundenformular → ausgeschriebene Wochentage (de). */
+const PREFERRED_DAY_ABBREV_DE: Record<string, string> = {
+  Mo: 'Montag',
+  Di: 'Dienstag',
+  Mi: 'Mittwoch',
+  Do: 'Donnerstag',
+  Fr: 'Freitag',
+  Sa: 'Samstag',
+  So: 'Sonntag',
+}
+
+/** Für Notizen / Termindetail: `['Mo','Fr']` → `"Montag, Freitag"`. Unbekannte Kürzel bleiben unverändert. */
+export function formatPreferredDaysGerman(days: string[] | null | undefined): string {
+  if (!days?.length) return ''
+  return days.map((d) => PREFERRED_DAY_ABBREV_DE[d] ?? d).join(', ')
+}
+
 /** Tage zwischen zwei Zeitpunkten (für „seit X Tagen“ / Account-Alter). */
 export function daysBetweenFloor(from: Date, to: Date): number {
   const ms = to.getTime() - from.getTime()

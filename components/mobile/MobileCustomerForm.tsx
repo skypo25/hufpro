@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
-import { showCustomerIntervalWeeksPreference } from '@/lib/appProfile'
+import { showCustomerHorseSpecificFields } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import { reserveNextCustomerNumber } from '@/app/(app)/customers/actions'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
@@ -30,7 +30,7 @@ const HORSE_SHOEING = ['Barhuf', 'Eisen vorne', 'Eisen hinten', 'Komplett beschl
 export default function MobileCustomerForm() {
   const router = useRouter()
   const { profile } = useAppProfile()
-  const showIntervalWeeksField = showCustomerIntervalWeeksPreference(profile)
+  const showHorseSpecificCustomerFields = showCustomerHorseSpecificFields(profile)
   const [saving, setSaving] = useState(false)
   const [errorFields, setErrorFields] = useState<string[]>([])
   const [dbError, setDbError] = useState('')
@@ -82,6 +82,10 @@ export default function MobileCustomerForm() {
   const [horseShoeing, setHorseShoeing] = useState('Barhuf')
   const [horseSpecialNotes, setHorseSpecialNotes] = useState('')
 
+  useEffect(() => {
+    if (!showHorseSpecificCustomerFields) setAddHorseNow(false)
+  }, [showHorseSpecificCustomerFields])
+
   const FIELD_LABELS: Record<string, string> = {
     firstName: 'Vorname',
     lastName: 'Nachname',
@@ -119,7 +123,7 @@ export default function MobileCustomerForm() {
       if (!billingStreet.trim()) missing.push('billingStreet')
       if (!billingZip.trim()) missing.push('billingZip')
       if (!billingCity.trim()) missing.push('billingCity')
-      if (addHorseNow && !horseName.trim()) missing.push('horseName')
+      if (showHorseSpecificCustomerFields && addHorseNow && !horseName.trim()) missing.push('horseName')
 
       if (missing.length > 0) {
         setErrorFields(missing)
@@ -160,7 +164,7 @@ export default function MobileCustomerForm() {
         vat_id: vatId.trim() || null,
         preferred_days: preferredDays.length > 0 ? preferredDays : null,
         preferred_time: preferredTime || null,
-        interval_weeks: showIntervalWeeksField ? intervalWeeks || null : null,
+        interval_weeks: showHorseSpecificCustomerFields ? intervalWeeks || null : null,
         reminder_timing: reminderTiming || null,
         notes: notes.trim() || null,
         source: source.trim() || null,
@@ -192,7 +196,7 @@ export default function MobileCustomerForm() {
         return
       }
 
-      if (addHorseNow && horseName.trim()) {
+      if (showHorseSpecificCustomerFields && addHorseNow && horseName.trim()) {
         const { error: horseError } = await supabase.from('horses').insert([
           {
             user_id: user.id,
@@ -398,7 +402,7 @@ export default function MobileCustomerForm() {
               </select>
             </div>
             <div className="mhf-f-row">
-              {showIntervalWeeksField ? (
+              {showHorseSpecificCustomerFields ? (
                 <div className="mhf-f-group">
                   <label className="mhf-f-label">Bearbeitungsintervall</label>
                   <select value={intervalWeeks} onChange={(e) => setIntervalWeeks(e.target.value)} className="mhf-f-select">
@@ -448,6 +452,8 @@ export default function MobileCustomerForm() {
           </div>
         </section>
 
+        {showHorseSpecificCustomerFields ? (
+        <>
         {/* 5. Erstes Pferd direkt anlegen */}
         <section className={`mhf-section ${errorFields.includes('horseName') ? 'mhf-field-error' : ''}`}>
           <div className="mhf-s-header">
@@ -576,6 +582,8 @@ export default function MobileCustomerForm() {
             )}
           </div>
         </section>
+        </>
+        ) : null}
       </div>
 
       {/* Error Toast */}

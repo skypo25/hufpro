@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
-import { showCustomerIntervalWeeksPreference } from '@/lib/appProfile'
+import { showCustomerHorseSpecificFields } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { formatCustomerNumber } from '@/lib/format'
@@ -61,7 +61,7 @@ type HorseRow = {
 export default function MobileCustomerEdit({ customerId }: { customerId: string }) {
   const router = useRouter()
   const { profile } = useAppProfile()
-  const showIntervalWeeksField = showCustomerIntervalWeeksPreference(profile)
+  const showHorseSpecificCustomerFields = showCustomerHorseSpecificFields(profile)
   const [form, setForm] = useState<FormData>(EMPTY)
   const [customerNumber, setCustomerNumber] = useState<number | null>(null)
   const [horses, setHorses] = useState<HorseRow[]>([])
@@ -182,7 +182,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
       preferred_days: form.preferredDays.length ? form.preferredDays : null,
       preferred_time: form.preferredTime || null,
       interval_weeks:
-        showIntervalWeeksField && form.intervalWeeks
+        showHorseSpecificCustomerFields && form.intervalWeeks
           ? parseInt(form.intervalWeeks, 10)
           : null,
       reminder_timing: form.reminderTiming || null,
@@ -491,7 +491,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
             <FHint>An welchen Wochentagen ist der Kunde am liebsten verfügbar?</FHint>
           </FGroup>
 
-          {showIntervalWeeksField ? (
+          {showHorseSpecificCustomerFields ? (
             <FRow>
               <FGroup>
                 <FLabel>Bevorzugte Uhrzeit</FLabel>

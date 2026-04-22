@@ -9,8 +9,8 @@ import type {
   ClinicalLocomotionMore,
 } from '@/lib/animals/clinicalIntakeTypes'
 
-const inputClass = 'huf-input'
-const textareaClass = 'huf-input huf-input--multiline leading-6'
+const inputClass = 'input'
+const textareaClass = 'input textarea leading-6'
 
 function L({
   children,
@@ -20,11 +20,9 @@ function L({
   hint?: string
 }) {
   return (
-    <div className="flex flex-col">
-      <label className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-        {children}
-      </label>
-      {hint && <div className="mb-1 text-[11px] text-[#9CA3AF]">{hint}</div>}
+    <div className="form-group">
+      <label className="form-label">{children}</label>
+      {hint && <div className="form-helper">{hint}</div>}
     </div>
   )
 }
@@ -90,7 +88,7 @@ export function ClinicalBlockAnamnesis({ value, onChange }: BlockProps) {
         <div>
           <L>Akut oder chronisch?</L>
           <select
-            className="huf-input"
+            className="select"
             value={a.acuteOrChronic}
             onChange={(e) => patchA({ acuteOrChronic: e.target.value })}
           >
@@ -231,7 +229,7 @@ export function ClinicalBlockLocomotion({ value, onChange }: BlockProps) {
         <div>
           <L>Bewegungseinschränkung vorhanden?</L>
           <select
-            className="huf-input"
+            className="select"
             value={l.movementLimitation}
             onChange={(e) => patchL({ movementLimitation: e.target.value })}
           >
@@ -244,7 +242,7 @@ export function ClinicalBlockLocomotion({ value, onChange }: BlockProps) {
         <div>
           <L>Problem eher in Bewegung, im Stand oder beidem?</L>
           <select
-            className="huf-input"
+            className="select"
             value={l.problemContext}
             onChange={(e) => patchL({ problemContext: e.target.value })}
           >
@@ -260,7 +258,7 @@ export function ClinicalBlockLocomotion({ value, onChange }: BlockProps) {
         <div>
           <L>Frühere Behandlungen</L>
           <select
-            className="huf-input"
+            className="select"
             value={l.priorTreatments}
             onChange={(e) => patchL({ priorTreatments: e.target.value })}
           >

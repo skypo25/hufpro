@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { formatPreferredDaysGerman } from '@/lib/format'
 import {
   getAppointmentStartEndFromRow,
   resolveDurationMinutes,
@@ -243,7 +244,7 @@ export async function GET(
   const stableAddress = stallHorse ? buildStallMultilineFromHorse(stallHorse) : ''
 
   const preferredDays = Array.isArray(customer.preferred_days)
-    ? customer.preferred_days.join(', ')
+    ? formatPreferredDaysGerman(customer.preferred_days)
     : customer.preferred_days || '-'
 
   const intervalLabel =

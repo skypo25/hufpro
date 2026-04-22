@@ -5,7 +5,7 @@ import AppointmentAnimalsInline, {
   CUSTOMER_DETAIL_ANIMAL_ICON_CLASS,
 } from '@/components/appointments/AppointmentAnimalsInline'
 import ActionButton from '@/components/ui/ActionButton'
-import { formatCustomerNumber } from '@/lib/format'
+import { formatCustomerNumber, formatPreferredDaysGerman } from '@/lib/format'
 import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHorse, faPaw } from '@fortawesome/free-solid-svg-icons'
@@ -563,8 +563,16 @@ export default async function CustomerDetailPage({
 
             <div>
               {horses.length === 0 ? (
-                <div className="px-6 py-10 text-center text-[13px] text-[#6B7280]">
-                  Noch keine {animalsPlural.toLowerCase()} angelegt.
+                <div className="flex flex-col items-center px-6 py-10 text-center">
+                  <p className="text-[13px] text-[#6B7280]">
+                    Noch keine {animalsPlural.toLowerCase()} angelegt.
+                  </p>
+                  <Link
+                    href={`/animals/new?customerId=${customer.id}`}
+                    className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-[12px] font-medium !text-white transition-colors hover:bg-[var(--accent-dark)] hover:!text-white"
+                  >
+                    {animalSingular} hinzufügen
+                  </Link>
                 </div>
               ) : (
                 horses.map((horse, index) => {
@@ -765,7 +773,7 @@ export default async function CustomerDetailPage({
               {customer.preferred_days?.length ? (
                 <p>
                   <span className="font-medium text-[#1B1F23]">Bevorzugte Tage: </span>
-                  {customer.preferred_days.join(', ')}
+                  {formatPreferredDaysGerman(customer.preferred_days)}
                 </p>
               ) : null}
               {!customer.notes?.trim() && !customer.preferred_days?.length && (

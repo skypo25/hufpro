@@ -44,6 +44,7 @@ import type {
 } from '@/lib/directory/onboarding/submitWizardProfile'
 import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import { DIRECTORY_AUTOCOMPLETE_COUNTRY_CODES, DIRECTORY_PHOTON_DACH_BBOX } from '@/lib/directory/public/listingParams'
+import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 import { DirectoryWizardMapPreview } from '@/components/directory/onboarding/DirectoryWizardMapPreview'
 import TimePicker from '@/components/form/TimePicker'
 
@@ -1821,9 +1822,11 @@ export function DirectoryProfileCreateWizard({
                   }}
                   aria-label="Land"
                 >
-                  <option value="DE">Deutschland</option>
-                  <option value="AT">Österreich</option>
-                  <option value="CH">Schweiz</option>
+                  {DACH_FORM_COUNTRIES.map(({ iso, value: name }) => (
+                    <option key={iso} value={iso}>
+                      {dachLandSelectLabel(iso, name)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

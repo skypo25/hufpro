@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { formatCustomerNumber } from '@/lib/format'
+import { formatCustomerNumber, formatPreferredDaysGerman } from '@/lib/format'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   animalTypeIconColor,
@@ -592,7 +592,9 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
               <div className="cd-notiz-body">
                 {customer.notes?.trim() && <p>{customer.notes.trim()}</p>}
                 {customer.preferredDays?.length > 0 && (
-                  <p><strong>Bevorzugte Tage:</strong> {customer.preferredDays.join(', ')}</p>
+                  <p>
+                    <strong>Bevorzugte Tage:</strong> {formatPreferredDaysGerman(customer.preferredDays)}
+                  </p>
                 )}
                 {customer.directions?.trim() && (
                   <p><strong>Anfahrtshinweis:</strong> {customer.directions.trim()}</p>
@@ -614,9 +616,17 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
               </div>
               <div className="cd-section-body">
                 {horses.length === 0 ? (
-                  <p className="text-[13px] text-[#6B7280]">
-                    Noch keine {animalsPlural.toLowerCase()} angelegt.
-                  </p>
+                  <div className="flex flex-col items-center gap-3 py-2 text-center">
+                    <p className="text-[13px] text-[#6B7280]">
+                      Noch keine {animalsPlural.toLowerCase()} angelegt.
+                    </p>
+                    <Link
+                      href={`/animals/new?customerId=${customer.id}`}
+                      className="inline-flex w-full max-w-[260px] items-center justify-center rounded-xl bg-[var(--accent)] px-3.5 py-2.5 text-[13px] font-semibold !text-white transition-opacity hover:opacity-95 hover:!text-white active:opacity-90 active:!text-white"
+                    >
+                      {animalSingular} hinzufügen
+                    </Link>
+                  </div>
                 ) : (
                   horses.map((h) => (
                     <Link key={h.id} href={`/animals/${h.id}`} className="cd-horse-item flex items-center gap-3">

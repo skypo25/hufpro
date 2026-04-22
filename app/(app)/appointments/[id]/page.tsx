@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import {
   formatCustomerNumber,
   formatGermanDate,
+  formatPreferredDaysGerman,
   getInitials,
   getAgeFromBirthYear,
 } from '@/lib/format'
@@ -188,7 +189,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
       : horses[0]?.care_interval || '-'
 
   const preferredDays = Array.isArray(customer.preferred_days)
-    ? customer.preferred_days.join(', ')
+    ? formatPreferredDaysGerman(customer.preferred_days)
     : customer.preferred_days || '-'
 
   const preferredContact = customer.preferred_contact || '-'

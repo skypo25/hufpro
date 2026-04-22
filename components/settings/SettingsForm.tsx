@@ -6,6 +6,7 @@ import DataExportButton from '@/components/export/DataExportButton'
 import DataExportDownloadsPanel from '@/components/export/DataExportDownloadsPanel'
 import { supabase } from '@/lib/supabase-client'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
+import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 
 export type SettingsData = {
   // Persönliche Daten
@@ -543,9 +544,11 @@ export default function SettingsForm({
               </FormGroup>
               <FormGroup label="Land">
                 <select className="select" value={s.country ?? 'Deutschland'} onChange={(e) => update('country', e.target.value)}>
-                  <option>Deutschland</option>
-                  <option>Österreich</option>
-                  <option>Schweiz</option>
+                  {DACH_FORM_COUNTRIES.map(({ iso, value: land }) => (
+                    <option key={land} value={land}>
+                      {dachLandSelectLabel(iso, land)}
+                    </option>
+                  ))}
                 </select>
               </FormGroup>
             </FormRow>

@@ -10,6 +10,7 @@ import AddressAutocomplete, { type AddressSuggestion } from '@/components/custom
 import DeleteHorseForm from '@/app/(app)/horses/[id]/DeleteHorseForm'
 import { HorseIcon } from '@/components/icons/HorseIcon'
 import { localDateTimeToUtcIso } from '@/lib/datetime/localDateTime'
+import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 
 type HorseFormMode = 'create' | 'edit'
 
@@ -55,7 +56,6 @@ type HorseFormProps = {
   deleteConfirmText?: string
 }
 
-const countryOptions = ['Deutschland', 'Österreich', 'Schweiz']
 
 function Section({
   title,
@@ -72,8 +72,8 @@ function Section({
 }) {
   return (
     <section className="huf-card">
-      <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+      <div className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-[18px]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
           {icon}
         </span>
         <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
@@ -81,7 +81,7 @@ function Section({
         </h3>
 
         {badge && (
-          <span className="rounded-full bg-[#edf3ef] px-3 py-1 text-[11px] font-medium text-[#0f301b]">
+          <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[11px] font-medium text-[var(--accent-dark)]">
             {badge}
           </span>
         )}
@@ -106,13 +106,10 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col">
-      <label className="mb-1.5 flex items-center gap-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </label>
+    <div className="form-group">
+      <label className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       {children}
-      {hint && <div className="mt-1 text-[11px] text-[#9CA3AF]">{hint}</div>}
+      {hint && <div className="form-helper">{hint}</div>}
     </div>
   )
 }
@@ -129,7 +126,7 @@ function InfoBanner({
   const classes =
     type === 'warn'
       ? 'border-[#FDE68A] bg-[#FEF9EE] text-[#92400E]'
-      : 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1E40AF]'
+      : 'border-[var(--border)] bg-[var(--accent-light)] text-[var(--accent-dark)]'
 
   return (
     <div className={`flex items-start gap-3 rounded-[10px] border px-4 py-3 text-[13px] leading-6 ${classes}`}>
@@ -635,7 +632,7 @@ export default function HorseForm({
             <select
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {customers.map((customer) => (
@@ -647,8 +644,8 @@ export default function HorseForm({
           </Field>
 
           {selectedCustomer && (
-            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#52b788] bg-[rgba(21,66,38,0.04)] px-[18px] py-[14px]">
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#52b788] text-[14px] font-semibold text-white">
+            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent-light)_85%,white)] px-[18px] py-[14px]">
+              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[var(--accent)] text-[14px] font-semibold text-white">
                 {customerInitials}
               </div>
               <div className="min-w-0 flex-1">
@@ -676,7 +673,7 @@ export default function HorseForm({
               onChange={(e) => setName(e.target.value)}
               type="text"
               placeholder="z. B. Stella"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -687,7 +684,7 @@ export default function HorseForm({
               type="text"
               list="breed-options"
               placeholder="z. B. Haflinger"
-              className="huf-input"
+              className="input"
             />
             <datalist id="breed-options">
               {breedOptions.map((item) => (
@@ -703,7 +700,7 @@ export default function HorseForm({
             <select
               value={sex}
               onChange={(e) => setSex(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               <option value="Stute">Stute</option>
@@ -720,7 +717,7 @@ export default function HorseForm({
               onChange={(e) => setBirthYear(e.target.value)}
               type="text"
               placeholder="z. B. 2014"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -729,36 +726,40 @@ export default function HorseForm({
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
               type="date"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </div>
 
-        <div className="rounded-xl border border-[#E5E2DC] bg-[#fafaf9] px-4 py-4">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card,#ffffff)] px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-medium text-[#1B1F23]">
+              <p className="text-[13.5px] font-medium text-[var(--foreground,#1B1F23)]">
                 Steht das Pferd an einem anderen Standort als die Kundenadresse?
               </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
+              <p className="form-helper mt-1 max-w-[52rem]">
                 Die Rechnungsanschrift des Kunden gilt als Standard. Nur aktivieren, wenn du Stall, Anfahrt oder Kontakt vor Ort separat brauchst.
               </p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={stableDiffersFromCustomer}
-              aria-label="Pferd steht an anderem Standort als die Kundenadresse"
+            <label
+              className="toggle shrink-0 sm:mt-0"
               title={stableDiffersFromCustomer ? 'Anderer Standort: ein' : 'Anderer Standort: aus'}
-              onClick={() => {
-                setStableDiffersFromCustomer((prev) => {
-                  const next = !prev
+            >
+              <input
+                type="checkbox"
+                role="switch"
+                checked={stableDiffersFromCustomer}
+                onChange={(e) => {
+                  const next = e.target.checked
+                  setStableDiffersFromCustomer(next)
                   if (!next) resetStableFields()
-                  return next
-                })
-              }}
-              className={`mhf-toggle-switch${stableDiffersFromCustomer ? ' on' : ''}`}
-            />
+                }}
+                aria-label="Pferd steht an anderem Standort als die Kundenadresse"
+              />
+              <span className="toggle__track">
+                <span className="toggle__thumb" />
+              </span>
+            </label>
           </div>
         </div>
       </Section>
@@ -781,7 +782,7 @@ export default function HorseForm({
             />
           </Field>
           {stableDistanceText && (
-            <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+            <p className="text-[13px] text-[var(--accent)]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
           )}
           <Field label="Name des Stalls / Hofs" hint="So findest du den Standort schnell wieder">
             <input
@@ -789,7 +790,7 @@ export default function HorseForm({
               onChange={(e) => setStableName(e.target.value)}
               type="text"
               placeholder="z. B. Reiterhof Sonnental"
-              className="huf-input"
+              className="input"
             />
           </Field>
           <Field label="Straße & Hausnummer">
@@ -798,7 +799,7 @@ export default function HorseForm({
               onChange={(e) => setStableStreet(e.target.value)}
               type="text"
               placeholder="z. B. Am Waldrand 7"
-              className="huf-input"
+              className="input"
             />
           </Field>
           <div className="grid gap-5 md:grid-cols-[2fr_1fr_1fr]">
@@ -808,7 +809,7 @@ export default function HorseForm({
                 onChange={(e) => setStableCity(e.target.value)}
                 type="text"
                 placeholder="z. B. Asbach"
-                className="huf-input"
+                className="input"
               />
             </Field>
             <Field label="PLZ">
@@ -817,17 +818,19 @@ export default function HorseForm({
                 onChange={(e) => setStableZip(e.target.value)}
                 type="text"
                 placeholder="z. B. 53567"
-                className="huf-input"
+                className="input"
               />
             </Field>
             <Field label="Land">
               <select
                 value={stableCountry}
                 onChange={(e) => setStableCountry(e.target.value)}
-                className="huf-input"
+                className="select"
               >
-                {countryOptions.map((country) => (
-                  <option key={country}>{country}</option>
+                {DACH_FORM_COUNTRIES.map(({ iso, value: land }) => (
+                  <option key={land} value={land}>
+                    {dachLandSelectLabel(iso, land)}
+                  </option>
                 ))}
               </select>
             </Field>
@@ -839,7 +842,7 @@ export default function HorseForm({
                 onChange={(e) => setStableContact(e.target.value)}
                 type="text"
                 placeholder="z. B. Stallbesitzer Hans Müller"
-                className="huf-input"
+                className="input"
               />
             </Field>
             <Field label="Telefon vor Ort" hint="Stalltelefon oder Ansprechpartner-Handy">
@@ -848,7 +851,7 @@ export default function HorseForm({
                 onChange={(e) => setStablePhone(e.target.value)}
                 type="tel"
                 placeholder="z. B. 02683 1234"
-                className="huf-input"
+                className="input"
               />
             </Field>
           </div>
@@ -858,7 +861,7 @@ export default function HorseForm({
               onChange={(e) => setStableDirections(e.target.value)}
               type="text"
               placeholder="z. B. Hofeinfahrt links, hinter Scheune"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </Section>
@@ -870,7 +873,7 @@ export default function HorseForm({
             <select
               value={usage}
               onChange={(e) => setUsage(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {usageOptions.map((item) => (
@@ -885,7 +888,7 @@ export default function HorseForm({
             <select
               value={housing}
               onChange={(e) => setHousing(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {housingOptions.map((item) => (
@@ -904,7 +907,7 @@ export default function HorseForm({
             <select
               value={hoofStatus}
               onChange={(e) => setHoofStatus(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {hoofStatusOptions.map((item) => (
@@ -919,7 +922,7 @@ export default function HorseForm({
             <select
               value={careInterval}
               onChange={(e) => setCareInterval(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               {careIntervalOptions.map((item) => (
@@ -944,7 +947,7 @@ export default function HorseForm({
             onChange={(e) => setSpecialNotes(e.target.value)}
             rows={4}
             placeholder="z. B. Zehenrichtung VL nach lateral, frühere Hufrehe, enge Trachten..."
-            className="huf-input huf-input--multiline leading-6"
+            className="input textarea leading-6"
           />
         </Field>
       </Section>
@@ -956,7 +959,7 @@ export default function HorseForm({
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             placeholder="z. B. Pferd wurde von Kollegin übernommen. Besitzerin möchte Umstellung auf Barhuf begleiten."
-            className="huf-input huf-input--multiline leading-6"
+            className="input textarea leading-6"
           />
         </Field>
       </Section>
@@ -970,7 +973,7 @@ export default function HorseForm({
             ].join(' ')}
             onClick={() => setPlanFirstAppointment((prev) => !prev)}
           >
-            <div className={`relative h-6 w-11 rounded-full transition ${planFirstAppointment ? 'bg-[#52b788]' : 'bg-[#E5E2DC]'}`}>
+            <div className={`relative h-6 w-11 rounded-full transition ${planFirstAppointment ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}>
               <div
                 className={`absolute top-[2px] h-5 w-5 rounded-full bg-white shadow transition ${planFirstAppointment ? 'left-[22px]' : 'left-[2px]'}`}
               />
@@ -987,14 +990,14 @@ export default function HorseForm({
           </div>
 
           {planFirstAppointment && (
-            <div className="space-y-5 border-t border-[#E5E2DC] pt-5">
+            <div className="space-y-5 border-t border-[var(--border)] pt-5">
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="Datum">
                   <input
                     value={firstAppointmentDate}
                     onChange={(e) => setFirstAppointmentDate(e.target.value)}
                     type="date"
-                    className="huf-input"
+                    className="input"
                   />
                 </Field>
 
@@ -1002,7 +1005,7 @@ export default function HorseForm({
                   <TimePicker
                     value={firstAppointmentTime}
                     onChange={setFirstAppointmentTime}
-                    className="huf-input"
+                    className="input"
                   />
                 </Field>
               </div>
@@ -1058,7 +1061,7 @@ export default function HorseForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium !text-white transition-colors hover:bg-[var(--accent-dark)] hover:!text-white disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

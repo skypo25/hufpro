@@ -29,6 +29,10 @@ import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
 import { ADMIN_APP_NAV_LINKS } from '@/lib/admin/adminNavLinks'
 
+/** Eingeklappte App-Sidebar: kompaktes Icon (ersetze `public/logo-sidebar-collapsed-white.svg`). */
+const SIDEBAR_LOGO_COLLAPSED = '/logo-sidebar-collapsed-white.svg'
+const SIDEBAR_LOGO_EXPANDED = '/logo-white.svg'
+
 function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
   return [
     {
@@ -192,12 +196,17 @@ export default function Sidebar() {
         bottom: 'calc(15px + env(safe-area-inset-bottom, 0px))',
       }}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 pb-4 pt-5">
+      <div
+        className={[
+          'flex shrink-0 items-center border-b border-white/10 px-3 pb-4 pt-5',
+          isCollapsed ? 'justify-center' : 'justify-between',
+        ].join(' ')}
+      >
         <div className="flex min-w-0 items-center gap-3">
           {isCollapsed ? (
-            <Image src="/logo-white.svg" alt="Logo" width={32} height={32} className="shrink-0" />
+            <Image src={SIDEBAR_LOGO_COLLAPSED} alt="Logo" width={32} height={32} className="shrink-0 object-contain" />
           ) : (
-            <Image src="/logo-white.svg" alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
+            <Image src={SIDEBAR_LOGO_EXPANDED} alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
           )}
         </div>
         {!isCollapsed && (

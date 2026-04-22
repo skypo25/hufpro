@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEventHandler } from 'react'
+import { flagEmojiFromIso3166Alpha2 } from '@/lib/dachCountryFlags'
 
 const PHOTON_URL = 'https://photon.komoot.io/api'
 const DEBOUNCE_MS = 300
@@ -405,23 +406,31 @@ export default function AddressAutocomplete({
               fromQuery && !/\d/.test(s.street) ? `${s.street} ${fromQuery}` : s.street
             const tail = buildCityZipTail(streetLabel, s.zip, s.city)
             const label = [streetLabel, tail, s.country].filter(Boolean).join(', ')
+            const flag = s.countryCode ? flagEmojiFromIso3166Alpha2(s.countryCode) : ''
             return (
               <li
                 key={`${suggestionDedupeKey(s)}-${i}`}
                 id={`${listboxId}-opt-${i}`}
                 role="option"
                 aria-selected={i === activeIndex}
-                className={`cursor-pointer px-3 py-2 text-[13px] ${
+                className={`flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[13px] ${
                   i === activeIndex
-                    ? 'bg-[var(--accent-light)] text-[var(--accent)]'
-                    : 'text-[#1B1F23] hover:bg-[#f7f7f7]'
+                    ? 'bg-[var(--accent-light)] text-[var(--accent-dark)]'
+                    : 'text-[var(--foreground,#1B1F23)] hover:bg-[color-mix(in_oklab,var(--border,#dde9e9)_35%,white)]'
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault()
                   handleSelect(s)
                 }}
               >
-                {label || '—'}
+                {flag ? (
+                  <span className="form-country-flag" aria-hidden>
+                    {flag}
+                  </span>
+                ) : (
+                  <span className="form-country-flag-spacer shrink-0" aria-hidden />
+                )}
+                <span className="min-w-0 flex-1">{label || '—'}</span>
               </li>
             )
           })}

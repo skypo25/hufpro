@@ -526,6 +526,108 @@
   gap: 16px;
 }
 
+/* Länder-Flagge (Emoji) in Vorschlagslisten — gleiche Radien/Border wie Inputs */
+.form-country-flag {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--form-radius);
+  border: 1.5px solid var(--form-border);
+  background: color-mix(in oklab, var(--form-surface) 88%, var(--form-border));
+  font-size: 15px;
+  line-height: 1;
+}
+
+li[role='option'][aria-selected='true'] .form-country-flag {
+  border-color: color-mix(in oklab, var(--form-accent) 32%, var(--form-border));
+  background: color-mix(in oklab, var(--form-accent-soft) 45%, white);
+}
+
+.form-country-flag-spacer {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+}
+
+/* ── File drop (Optik wie Verzeichnis-Wizard „Logo auswählen“); Überschrift = .form-label im .form-group ── */
+.form-file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 24px 16px;
+  border: 2px dashed var(--form-border);
+  border-radius: var(--form-radius);
+  background: color-mix(in oklab, var(--form-surface) 88%, var(--form-border));
+  cursor: pointer;
+  color: var(--form-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--form-font);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.form-file-drop:hover {
+  border-color: var(--form-accent);
+  background: color-mix(in oklab, var(--form-accent-soft) 55%, white);
+  color: var(--form-text);
+}
+
+.form-file-drop input[type='file'] {
+  display: none;
+}
+
+.form-file-drop i {
+  font-size: 24px;
+  opacity: 0.5;
+}
+
+.form-file-preview {
+  position: relative;
+  max-width: 280px;
+  border-radius: var(--form-radius);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1.5px solid var(--form-border);
+  background: color-mix(in oklab, var(--form-surface) 90%, var(--form-border));
+}
+
+.form-file-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.form-file-preview-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.form-file-preview-remove:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
 .form-group-list {
   display: flex;
   flex-direction: column;
