@@ -633,15 +633,15 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
           </div>
           <div className="mhf-s-body">
             <div className="maf-datetime-row">
-              <div className="mhf-f-group">
+              <div className="mhf-f-group maf-datetime-date-full">
                 <label className="mhf-f-label">Datum</label>
                 <input type="date" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} className="mhf-f-input" />
               </div>
-              <div className="mhf-f-group maf-time-narrow">
+              <div className="mhf-f-group maf-datetime-time-col">
                 <label className="mhf-f-label">Uhrzeit</label>
                 <input type="time" value={appointmentTime} onChange={(e) => setAppointmentTime(e.target.value)} className="mhf-f-input" />
               </div>
-              <div className="mhf-f-group">
+              <div className="mhf-f-group maf-datetime-duration-col">
                 <label className="mhf-f-label">ca. Dauer</label>
                 <select value={duration} onChange={(e) => setDuration(e.target.value)} className="mhf-f-select">
                   {DURATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}

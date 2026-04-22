@@ -405,7 +405,7 @@ export default function AppointmentForm({
             <h3 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Datum & Uhrzeit</h3>
           </div>
           <div className="px-[22px] py-[22px]">
-            <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-5 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
               <div className="form-group min-w-0">
                 <label className="form-label">Datum</label>
                 <input
@@ -440,7 +440,7 @@ export default function AppointmentForm({
                 </select>
               </div>
 
-              <div className="form-group min-w-0 md:col-span-3">
+              <div className="form-group min-w-0 lg:col-span-3">
                 <label className="form-label">E-Mail-Erinnerung (Kund:in)</label>
                 <select
                   value={reminderSelect}

@@ -3749,7 +3749,10 @@ button.huf-btn-dark {
   font-size: var(--form-control-font-size, 13.5px);
   font-weight: 400;
 }
-.mhf-f-input[type="date"] { min-width: 0; }
+.mhf-f-input[type="date"],
+.mhf-f-input[type="time"] {
+  min-width: 0;
+}
 .mhf-f-input:focus,
 .mhf-f-select:focus {
   border-color: var(--accent, #006d6d);
@@ -4189,14 +4192,17 @@ button.huf-btn-dark {
 .maf-ti-name { font-size: 13px; font-weight: 600; }
 .maf-ti-detail { font-size: 11px; color: var(--m-text-light, #9CA3AF); }
 
-/* minmax(0, …): native date/time inputs haben große Mindestbreite — ohne minmax überlappen die Kästen */
+/* Datum volle Zeile; Uhrzeit + Dauer darunter (2 Spalten). Drei Controls in einer Zeile sind auf ~390px Breite zu eng / WebKit-Mindestbreiten. */
 .maf-datetime-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 10px;
   row-gap: 12px;
   margin-bottom: 0;
   align-items: end;
+}
+.maf-datetime-date-full {
+  grid-column: 1 / -1;
 }
 .maf-datetime-row .mhf-f-group {
   margin-bottom: 0;
@@ -4206,17 +4212,12 @@ button.huf-btn-dark {
 .maf-datetime-row .mhf-f-select {
   min-width: 0;
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
-.maf-time-narrow .mhf-f-input {
+.maf-datetime-time-col .mhf-f-input,
+.maf-datetime-duration-col .mhf-f-select {
   min-width: 0;
-}
-@media (max-width: 380px) {
-  .maf-datetime-row {
-    grid-template-columns: 1fr;
-  }
-  .maf-datetime-row .mhf-f-group {
-    margin-bottom: 0;
-  }
 }
 
 .maf-zf-row {
