@@ -138,7 +138,7 @@ function Section({
         )}
         {opt && <span className="text-[11px] text-[#9CA3AF]">{opt}</span>}
       </div>
-      <div className="space-y-5 p-6">{children}</div>
+      <div className="min-w-0 space-y-5 p-6">{children}</div>
     </section>
   )
 }
@@ -189,7 +189,7 @@ function CollapsibleSection({
           aria-hidden
         />
       </button>
-      {open && <div className="space-y-5 p-6">{children}</div>}
+      {open && <div className="min-w-0 space-y-5 p-6">{children}</div>}
     </section>
   )
 }
@@ -841,7 +841,7 @@ export default function AnimalForm({
       </Section>
 
       <CollapsibleSection title="Tierart" icon={<i className="bi bi-tag-fill" />} opt="Die Auswahl passt das Formular an">
-        <div className="grid grid-cols-5 gap-2 max-[900px]:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-5 gap-2 max-[900px]:grid-cols-3">
           <TierCard t="dog" icon={faDog} label="Hund" />
           <TierCard t="cat" icon={faCat} label="Katze" />
           <TierCard t="horse" icon={faHorse} label="Pferd" />
@@ -854,8 +854,8 @@ export default function AnimalForm({
         <div
           className={
             animalType === 'horse'
-              ? 'grid gap-4 md:grid-cols-3'
-              : 'grid gap-4 md:grid-cols-4'
+              ? 'grid min-w-0 gap-4 md:grid-cols-3'
+              : 'grid min-w-0 gap-4 md:grid-cols-4'
           }
         >
           <Field label={animalNameFieldLabel} required>
@@ -944,8 +944,8 @@ export default function AnimalForm({
         <div
           className={
             animalType === 'horse'
-              ? 'grid gap-4 md:grid-cols-3'
-              : 'grid gap-4 md:grid-cols-4'
+              ? 'grid min-w-0 gap-4 md:grid-cols-3'
+              : 'grid min-w-0 gap-4 md:grid-cols-4'
           }
         >
           <Field label="Geburtsjahr">
@@ -1090,7 +1090,7 @@ export default function AnimalForm({
               placeholder="z. B. Am Waldrand 7"
             />
           </Field>
-          <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="grid min-w-0 gap-4 md:grid-cols-[2fr_1fr_1fr]">
             <Field label="Ort">
               <input
                 className={inputClass}
@@ -1123,7 +1123,7 @@ export default function AnimalForm({
               </select>
             </Field>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid min-w-0 gap-4 md:grid-cols-2">
             <Field label="Ansprechpartner vor Ort" hint="Optional">
               <input
                 className={inputClass}

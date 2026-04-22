@@ -89,7 +89,7 @@ function Section({
         {opt && <span className="text-[11px] text-[#9CA3AF]">{opt}</span>}
       </div>
 
-      <div className="space-y-5 p-6">{children}</div>
+      <div className="min-w-0 space-y-5 p-6">{children}</div>
     </section>
   )
 }
@@ -666,7 +666,7 @@ export default function HorseForm({
       </Section>
 
       <Section title="Stammdaten" icon={<HorseIcon className="h-[14px] w-[14px]" />}>
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid min-w-0 gap-5 md:grid-cols-3">
           <Field label="Name des Pferdes" required>
             <input
               value={name}
@@ -710,7 +710,7 @@ export default function HorseForm({
           </Field>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid min-w-0 gap-5 md:grid-cols-2">
           <Field label="Geburtsjahr">
             <input
               value={birthYear}
@@ -802,7 +802,7 @@ export default function HorseForm({
               className="input"
             />
           </Field>
-          <div className="grid gap-5 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="grid min-w-0 gap-5 md:grid-cols-[2fr_1fr_1fr]">
             <Field label="Ort">
               <input
                 value={stableCity}
@@ -835,7 +835,7 @@ export default function HorseForm({
               </select>
             </Field>
           </div>
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid min-w-0 gap-5 md:grid-cols-2">
             <Field label="Ansprechpartner vor Ort" hint="Optional">
               <input
                 value={stableContact}
@@ -868,7 +868,7 @@ export default function HorseForm({
       )}
 
       <Section title="Nutzung & Haltung" icon={<HorseIcon className="h-[14px] w-[14px]" />}>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid min-w-0 gap-5 md:grid-cols-2">
           <Field label="Nutzungsart" required>
             <select
               value={usage}
@@ -902,7 +902,7 @@ export default function HorseForm({
       </Section>
 
       <Section title="Hufstatus & Beschlagshistorie" icon={<i className="bi bi-clipboard2-pulse" />} badge="Kernbereich">
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid min-w-0 gap-5 md:grid-cols-2">
           <Field label="Aktueller Beschlag">
             <select
               value={hoofStatus}
@@ -966,32 +966,27 @@ export default function HorseForm({
 
       {mode === 'create' && (
         <Section title="Ersttermin planen?" icon={<i className="bi bi-calendar-check" />} opt="Optional">
-          <div
-            className={[
-              'flex cursor-pointer items-center gap-3 py-2',
-              planFirstAppointment ? 'on' : '',
-            ].join(' ')}
-            onClick={() => setPlanFirstAppointment((prev) => !prev)}
-          >
-            <div className={`relative h-6 w-11 rounded-full transition ${planFirstAppointment ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}>
-              <div
-                className={`absolute top-[2px] h-5 w-5 rounded-full bg-white shadow transition ${planFirstAppointment ? 'left-[22px]' : 'left-[2px]'}`}
-              />
-            </div>
-
-            <div>
-              <div className="text-[14px] font-medium text-[#1B1F23]">
-                Ersttermin direkt einplanen
-              </div>
-              <div className="text-[12px] text-[#6B7280]">
+          <label className="toggle toggle--spread cursor-pointer py-2">
+            <input
+              type="checkbox"
+              checked={planFirstAppointment}
+              onChange={(e) => setPlanFirstAppointment(e.target.checked)}
+              aria-label="Ersttermin direkt einplanen"
+            />
+            <span className="toggle__track shrink-0">
+              <span className="toggle__thumb" />
+            </span>
+            <span className="toggle__label">
+              <span className="block font-medium text-[var(--foreground,#1B1F23)]">Ersttermin direkt einplanen</span>
+              <span className="mt-1 block text-[12px] font-normal text-[var(--form-muted,#6B7280)]">
                 Erstellt einen Termin als Erstbefund mit Fotodokumentation
-              </div>
-            </div>
-          </div>
+              </span>
+            </span>
+          </label>
 
           {planFirstAppointment && (
             <div className="space-y-5 border-t border-[var(--border)] pt-5">
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid min-w-0 gap-5 md:grid-cols-2">
                 <Field label="Datum">
                   <input
                     value={firstAppointmentDate}
