@@ -168,7 +168,7 @@ function AuthCallbackInner() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f7f7f7',
+        background: '#f8f8f8',
         fontFamily: 'var(--font-outfit, "Outfit", sans-serif)',
         color: '#6b7280',
         fontSize: 14,
@@ -189,7 +189,7 @@ export default function AuthCallbackPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#f7f7f7',
+            background: '#f8f8f8',
           }}
         />
       }

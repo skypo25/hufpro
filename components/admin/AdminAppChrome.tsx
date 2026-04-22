@@ -34,7 +34,7 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
   }, [])
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f7f7f7] text-[#1B1F23]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#f8f8f8] text-[#1B1F23]">
       <header
         className="sticky top-0 z-20 shrink-0 border-b border-[#E5E2DC] bg-white/95 backdrop-blur"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}

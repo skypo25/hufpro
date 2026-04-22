@@ -8,7 +8,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 /** Farbe für Tierarten-Icons (Kundenkarte, Listen) */
-export const animalTypeIconColor = '#154226'
+export const animalTypeIconColor = '#015555'
 
 /** Font-Awesome-Icon passend zu `horses.animal_type` (leer/unbekannt = Pferd). */
 export function faIconForAnimalType(animalType: string | null | undefined): IconDefinition {
@@ -22,7 +22,7 @@ export function faIconForAnimalType(animalType: string | null | undefined): Icon
 
 /** Pill-Badge für Tierart (helles Mint, dunkelgrün) — Liste & mobil */
 export const animalTypeBadgeClassName =
-  'inline-flex max-w-full items-center justify-center rounded-full bg-[#edf3ef] px-3 py-1 text-[12px] font-semibold leading-tight text-[#154226]'
+  'inline-flex max-w-full items-center justify-center rounded-full bg-[#edf5f5] px-3 py-1 text-[12px] font-semibold leading-tight text-[#015555]'
 
 /** Anzeige für `horses.neutered` (yes/no/unknown oder Legacy-Text) */
 export function formatNeuteredLabel(raw: string | null | undefined): string {

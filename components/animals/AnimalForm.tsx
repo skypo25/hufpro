@@ -127,14 +127,14 @@ function Section({
   return (
     <section className="huf-card">
       <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf5f5] text-[14px] text-[#015555]">
           {icon}
         </span>
         <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
           {title}
         </h3>
         {badge && (
-          <span className="rounded-full bg-[#edf3ef] px-3 py-1 text-[11px] font-medium text-[#0f301b]">
+          <span className="rounded-full bg-[#edf5f5] px-3 py-1 text-[11px] font-medium text-[#015555]">
             {badge}
           </span>
         )}
@@ -170,14 +170,14 @@ function CollapsibleSection({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf5f5] text-[14px] text-[#015555]">
           {icon}
         </span>
         <h3 className="dashboard-serif min-w-0 flex-1 text-[16px] font-medium text-[#1B1F23]">
           {title}
         </h3>
         {badge && (
-          <span className="hidden shrink-0 rounded-full bg-[#edf3ef] px-3 py-1 text-[11px] font-medium text-[#0f301b] sm:inline">
+          <span className="hidden shrink-0 rounded-full bg-[#edf5f5] px-3 py-1 text-[11px] font-medium text-[#015555] sm:inline">
             {badge}
           </span>
         )}
@@ -785,14 +785,14 @@ export default function AnimalForm({
         className={[
           'flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 text-center transition',
           selected
-            ? 'border-[#52b788] bg-[rgba(82,183,136,0.06)] ring-4 ring-[rgba(82,183,136,0.10)]'
+            ? 'border-[#006d6d] bg-[rgba(0,109,109,0.06)] ring-4 ring-[rgba(0,109,109,0.10)]'
             : 'border-[#E5E2DC] bg-white hover:border-[#9CA3AF]',
         ].join(' ')}
       >
         <div className="text-[22px] leading-none">
           <FontAwesomeIcon icon={icon} />
         </div>
-        <div className={['text-[12px] font-semibold', selected ? 'text-[#52b788]' : 'text-[#6B7280]'].join(' ')}>
+        <div className={['text-[12px] font-semibold', selected ? 'text-[#006d6d]' : 'text-[#6B7280]'].join(' ')}>
           {label}
         </div>
       </button>
@@ -819,8 +819,8 @@ export default function AnimalForm({
           </Field>
 
           {selectedCustomer && (
-            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#52b788] bg-[rgba(21,66,38,0.04)] px-[18px] py-[14px]">
-              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#52b788] text-[14px] font-semibold text-white">
+            <div className="flex items-center gap-4 rounded-[10px] border-2 border-[#006d6d] bg-[rgba(0,109,109,0.04)] px-[18px] py-[14px]">
+              <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#006d6d] text-[14px] font-semibold text-white">
                 {customerInitials}
               </div>
               <div className="min-w-0 flex-1">
@@ -989,7 +989,7 @@ export default function AnimalForm({
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                className="text-[13px] text-[#374151] file:mr-3 file:rounded-lg file:border-0 file:bg-[#edf3ef] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-[#154226]"
+                className="text-[13px] text-[#374151] file:mr-3 file:rounded-lg file:border-0 file:bg-[#edf5f5] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-[#015555]"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
                   setPhotoFile(f ?? null)
@@ -1062,7 +1062,7 @@ export default function AnimalForm({
             />
           </Field>
           {stableDistanceText && (
-            <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
+            <p className="text-[13px] text-[#006d6d]">Entfernung von deinem Betrieb: {stableDistanceText}</p>
           )}
           <Field label="Name des Stalls / Hofs" hint="So findest du den Standort schnell wieder">
             <input
@@ -1222,7 +1222,7 @@ export default function AnimalForm({
             type="button"
             disabled={saving}
             onClick={() => void handleSave()}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
+            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#015555] disabled:opacity-50"
           >
             <i className="bi bi-check-lg" />{' '}
             {saving ? 'Speichere…' : mode === 'edit' ? 'Änderungen speichern' : 'Tier speichern'}

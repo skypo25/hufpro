@@ -4,6 +4,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { reserveNextCustomerNumber } from '@/app/(app)/customers/actions'
+import {
+  normalizePreferredContact,
+  PREFERRED_CONTACT_OPTIONS,
+} from '@/components/customers/customerFormDefaults'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { showCustomerHorseSpecificFields } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import AddressAutocomplete, { type AddressSuggestion } from './AddressAutocomplete'
 
@@ -58,16 +64,16 @@ function Section({
 }) {
   return (
     <section className="huf-card">
-      <div className="flex items-center justify-between border-b border-[#E5E2DC] px-6 py-[18px]">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-[18px]">
         <h3 className="dashboard-serif flex items-center gap-3 text-[16px] font-medium text-[#1B1F23]">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
             {icon}
           </span>
           {title}
         </h3>
 
         {badge && (
-          <span className="rounded-full bg-[#edf3ef] px-3 py-1 text-[11px] font-medium text-[#0f301b]">
+          <span className="rounded-full bg-[var(--accent-light)] px-3 py-1 text-[11px] font-medium text-[var(--accent-dark)]">
             {badge}
           </span>
         )}
@@ -90,12 +96,10 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col">
-      <label className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+    <div className="form-group">
+      <label className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       {children}
-      {hint && <div className="mt-1 text-[11px] text-[#9CA3AF]">{hint}</div>}
+      {hint && <div className="form-helper">{hint}</div>}
     </div>
   )
 }
@@ -105,6 +109,8 @@ export default function CustomerForm({
   initialData,
 }: CustomerFormProps) {
   const router = useRouter()
+  const { profile } = useAppProfile()
+  const showHorseSpecificCustomerFields = showCustomerHorseSpecificFields(profile)
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -115,8 +121,8 @@ export default function CustomerForm({
   const [phone, setPhone] = useState(initialData.phone)
   const [phone2, setPhone2] = useState(initialData.phone2)
   const [email, setEmail] = useState(initialData.email)
-  const [preferredContact, setPreferredContact] = useState(
-    initialData.preferredContact
+  const [preferredContact, setPreferredContact] = useState(() =>
+    normalizePreferredContact(initialData.preferredContact)
   )
 
   const [billingStreet, setBillingStreet] = useState(initialData.billingStreet)
@@ -209,7 +215,7 @@ export default function CustomerForm({
       return
     }
 
-    if (mode === 'create' && addHorseNow && !horseName.trim()) {
+    if (mode === 'create' && showHorseSpecificCustomerFields && addHorseNow && !horseName.trim()) {
       setMessage('Bitte den Namen des ersten Pferdes eintragen oder die Pferdeanlage deaktivieren.')
       setLoading(false)
       return
@@ -241,7 +247,7 @@ export default function CustomerForm({
 
       preferred_days: preferredDays.length > 0 ? preferredDays : null,
       preferred_time: preferredTime || null,
-      interval_weeks: intervalWeeks || null,
+      interval_weeks: showHorseSpecificCustomerFields ? intervalWeeks || null : null,
       reminder_timing: reminderTiming || null,
 
       notes: notes.trim() || null,
@@ -291,7 +297,7 @@ export default function CustomerForm({
         return
       }
 
-      if (addHorseNow && horseName.trim()) {
+      if (showHorseSpecificCustomerFields && addHorseNow && horseName.trim()) {
         const { error: horseError } = await supabase.from('horses').insert([
           {
             user_id: user.id,
@@ -357,7 +363,7 @@ export default function CustomerForm({
             <select
               value={salutation}
               onChange={(e) => setSalutation(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option value="">Bitte wählen</option>
               <option value="Frau">Frau</option>
@@ -373,7 +379,7 @@ export default function CustomerForm({
               onChange={(e) => setFirstName(e.target.value)}
               type="text"
               placeholder="z. B. Andrea"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -383,7 +389,7 @@ export default function CustomerForm({
               onChange={(e) => setLastName(e.target.value)}
               type="text"
               placeholder="z. B. Hoffmann"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </div>
@@ -399,7 +405,7 @@ export default function CustomerForm({
               onChange={(e) => setPhone(e.target.value)}
               type="tel"
               placeholder="z. B. 0172 123 4567"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -409,7 +415,7 @@ export default function CustomerForm({
               onChange={(e) => setPhone2(e.target.value)}
               type="tel"
               placeholder="z. B. Festnetz"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </div>
@@ -424,7 +430,7 @@ export default function CustomerForm({
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="z. B. andrea.hoffmann@email.de"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -432,13 +438,11 @@ export default function CustomerForm({
             <select
               value={preferredContact}
               onChange={(e) => setPreferredContact(e.target.value)}
-              className="huf-input"
+              className="select"
             >
-              <option>Telefon / Anruf</option>
-              <option>WhatsApp</option>
-              <option>SMS</option>
-              <option>E-Mail</option>
-              <option>Signal / Telegram</option>
+              {PREFERRED_CONTACT_OPTIONS.map((opt) => (
+                <option key={opt}>{opt}</option>
+              ))}
             </select>
           </Field>
         </div>
@@ -461,7 +465,7 @@ export default function CustomerForm({
           />
         </Field>
         {billingDistanceText && (
-          <p className="text-[13px] text-[#52b788]">Entfernung von deinem Betrieb: {billingDistanceText}</p>
+          <p className="text-[13px] text-[var(--accent)]">Entfernung von deinem Betrieb: {billingDistanceText}</p>
         )}
         <div className="grid gap-5">
           <Field label="Straße & Hausnummer" required>
@@ -470,7 +474,7 @@ export default function CustomerForm({
               onChange={(e) => setBillingStreet(e.target.value)}
               type="text"
               placeholder="z. B. Hauptstraße 42"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </div>
@@ -482,7 +486,7 @@ export default function CustomerForm({
               onChange={(e) => setBillingCity(e.target.value)}
               type="text"
               placeholder="z. B. Asbach"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -492,7 +496,7 @@ export default function CustomerForm({
               onChange={(e) => setBillingZip(e.target.value)}
               type="text"
               placeholder="z. B. 53567"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -500,7 +504,7 @@ export default function CustomerForm({
             <select
               value={billingCountry}
               onChange={(e) => setBillingCountry(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               {countryOptions.map((country) => (
                 <option key={country}>{country}</option>
@@ -519,7 +523,7 @@ export default function CustomerForm({
               onChange={(e) => setCompany(e.target.value)}
               type="text"
               placeholder="z. B. Reiterhof Hoffmann GbR"
-              className="huf-input"
+              className="input"
             />
           </Field>
 
@@ -529,7 +533,7 @@ export default function CustomerForm({
               onChange={(e) => setVatId(e.target.value)}
               type="text"
               placeholder="z. B. DE123456789"
-              className="huf-input"
+              className="input"
             />
           </Field>
         </div>
@@ -553,8 +557,8 @@ export default function CustomerForm({
                     className={[
                       'rounded-lg border px-3 py-2 text-[12px] font-medium transition',
                       active
-                        ? 'border-[#52b788] bg-[#edf3ef] text-[#0f301b]'
-                        : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788]',
+                        ? 'border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent-dark)]'
+                        : 'border-[var(--border)] bg-white text-[#6B7280] hover:border-[var(--accent)]',
                     ].join(' ')}
                   >
                     {day}
@@ -568,7 +572,7 @@ export default function CustomerForm({
             <select
               value={preferredTime}
               onChange={(e) => setPreferredTime(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option>Keine Präferenz</option>
               <option>Vormittags (8–12 Uhr)</option>
@@ -578,27 +582,29 @@ export default function CustomerForm({
           </Field>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Bearbeitungsintervall">
-            <select
-              value={intervalWeeks}
-              onChange={(e) => setIntervalWeeks(e.target.value)}
-              className="huf-input"
-            >
-              <option>4 Wochen</option>
-              <option>5 Wochen</option>
-              <option>6 Wochen</option>
-              <option>7 Wochen</option>
-              <option>8 Wochen</option>
-              <option>Individuell</option>
-            </select>
-          </Field>
+        <div className={showIntervalWeeksField ? 'grid gap-5 md:grid-cols-2' : 'grid gap-5'}>
+          {showIntervalWeeksField ? (
+            <Field label="Bearbeitungsintervall">
+              <select
+                value={intervalWeeks}
+                onChange={(e) => setIntervalWeeks(e.target.value)}
+                className="select"
+              >
+                <option>4 Wochen</option>
+                <option>5 Wochen</option>
+                <option>6 Wochen</option>
+                <option>7 Wochen</option>
+                <option>8 Wochen</option>
+                <option>Individuell</option>
+              </select>
+            </Field>
+          ) : null}
 
           <Field label="Erinnerung senden">
             <select
               value={reminderTiming}
               onChange={(e) => setReminderTiming(e.target.value)}
-              className="huf-input"
+              className="select"
             >
               <option>1 Tag vorher</option>
               <option>3 Tage vorher</option>
@@ -619,7 +625,7 @@ export default function CustomerForm({
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             placeholder="z. B. Kundin wurde empfohlen. Möchte auf Barhuf umstellen."
-            className="huf-input huf-input--multiline leading-6"
+            className="input textarea leading-6"
           />
         </Field>
 
@@ -630,7 +636,7 @@ export default function CustomerForm({
           <select
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            className="huf-input"
+            className="select"
           >
             <option value="">Bitte wählen</option>
             <option>Empfehlung durch bestehenden Kunden</option>
@@ -646,12 +652,12 @@ export default function CustomerForm({
 
       {mode === 'create' && (
         <Section title="Erstes Pferd direkt anlegen?" icon={<i className="bi bi-plus-circle-fill" />}>
-          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#E5E2DC] px-4 py-3">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3">
             <input
               type="checkbox"
               checked={addHorseNow}
               onChange={(e) => setAddHorseNow(e.target.checked)}
-              className="h-4 w-4 accent-[#52b788]"
+              className="h-4 w-4 shrink-0 accent-[var(--accent)]"
             />
             <span className="text-[14px] text-[#1B1F23]">
               Optional – du kannst das erste Pferd direkt mit anlegen
@@ -659,9 +665,9 @@ export default function CustomerForm({
           </label>
 
           {addHorseNow && (
-            <div className="rounded-xl border border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] p-6">
+            <div className="rounded-xl border border-[var(--border)] bg-[rgba(0,0,0,0.01)] p-6">
               <h4 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-[#1B1F23]">
-                <i className="bi bi-plus-circle text-[16px] text-[#52b788]" aria-hidden />
+                <i className="bi bi-plus-circle text-[16px] text-[var(--accent)]" aria-hidden />
                 Pferd 1
               </h4>
 
@@ -672,7 +678,7 @@ export default function CustomerForm({
                     onChange={(e) => setHorseName(e.target.value)}
                     type="text"
                     placeholder="z. B. Stella"
-                    className="huf-input"
+                    className="input"
                   />
                 </Field>
 
@@ -682,7 +688,7 @@ export default function CustomerForm({
                     onChange={(e) => setHorseBreed(e.target.value)}
                     type="text"
                     placeholder="z. B. Haflinger"
-                    className="huf-input"
+                    className="input"
                   />
                 </Field>
 
@@ -690,7 +696,7 @@ export default function CustomerForm({
                   <select
                     value={horseGender}
                     onChange={(e) => setHorseGender(e.target.value)}
-                    className="huf-input"
+                    className="select"
                   >
                     <option value="">Bitte wählen</option>
                     <option>Stute</option>
@@ -707,7 +713,7 @@ export default function CustomerForm({
                     onChange={(e) => setHorseBirthYear(e.target.value)}
                     type="text"
                     placeholder="z. B. 2014"
-                    className="huf-input"
+                    className="input"
                   />
                 </Field>
 
@@ -715,7 +721,7 @@ export default function CustomerForm({
                   <select
                     value={horseUsage}
                     onChange={(e) => setHorseUsage(e.target.value)}
-                    className="huf-input"
+                    className="select"
                   >
                     <option value="">Bitte wählen</option>
                     <option>Freizeit / Gelände</option>
@@ -731,7 +737,7 @@ export default function CustomerForm({
                   <select
                     value={horseShoeing}
                     onChange={(e) => setHorseShoeing(e.target.value)}
-                    className="huf-input"
+                    className="select"
                   >
                     <option>Barhuf</option>
                     <option>Eisen vorne</option>
@@ -752,7 +758,7 @@ export default function CustomerForm({
                   onChange={(e) => setHorseSpecialNotes(e.target.value)}
                   rows={3}
                   placeholder="z. B. Wurde früher beschlagen, seit 2023 barhuf."
-                  className="huf-input huf-input--multiline leading-6"
+                  className="input textarea leading-6"
                 />
               </Field>
             </div>
@@ -782,7 +788,7 @@ export default function CustomerForm({
               type="button"
               disabled={loading}
               onClick={() => void handleSubmit('save_and_new')}
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] px-6 py-3 text-[14px] font-medium text-[#1B1F23] hover:border-[#9CA3AF] disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] px-6 py-3 text-[14px] font-medium text-[#1B1F23] hover:border-[#9CA3AF] disabled:opacity-60"
             >
               Speichern & weiteren Kunden anlegen
             </button>
@@ -792,7 +798,7 @@ export default function CustomerForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

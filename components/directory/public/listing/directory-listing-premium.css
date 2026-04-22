@@ -3,9 +3,9 @@
 .dlp-root {
   --dlp-bg: #fff;
   --dlp-bg-soft: #f9f9f9;
-  --dlp-accent: #52b788;
-  --dlp-accent-light: rgba(82, 183, 136, 0.08);
-  --dlp-accent-dark: #3d9e6e;
+  --dlp-accent: #006d6d;
+  --dlp-accent-light: rgba(0, 109, 109, 0.08);
+  --dlp-accent-dark: #015555;
   --dlp-text: #1b1f23;
   --dlp-muted: #6b7280;
   --dlp-light: #9ca3af;

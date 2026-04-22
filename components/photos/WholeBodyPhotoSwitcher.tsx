@@ -116,7 +116,7 @@ export default function WholeBodyPhotoSwitcher({ items, dateLabel }: WholeBodyPh
           tabIndex={0}
           onClick={openModal}
           onKeyDown={handleKeyDown}
-          className="relative block w-full cursor-zoom-in text-left outline-none focus-visible:ring-2 focus-visible:ring-[#52b788] focus-visible:ring-offset-2"
+          className="relative block w-full cursor-zoom-in text-left outline-none focus-visible:ring-2 focus-visible:ring-[#006d6d] focus-visible:ring-offset-2"
           aria-label={`${current.label} vergrößern`}
         >
           <SwitcherContent

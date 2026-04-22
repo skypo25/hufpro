@@ -142,7 +142,7 @@ function InfoItem({
       <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
         {label}
       </div>
-      <div className={accent ? 'text-[14px] font-medium text-[#52b788]' : 'text-[14px] font-medium text-[#1B1F23]'}>
+      <div className={accent ? 'text-[14px] font-medium text-[#006d6d]' : 'text-[14px] font-medium text-[#1B1F23]'}>
         {value || '-'}
       </div>
     </div>

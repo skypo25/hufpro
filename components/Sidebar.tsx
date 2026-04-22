@@ -185,7 +185,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-[15px] z-50 hidden flex-col overflow-hidden rounded-xl bg-[#1B1F23] text-white shadow-lg transition-[width] duration-200 ease-out min-[960px]:flex"
+      className="fixed left-[15px] z-50 hidden flex-col overflow-hidden rounded-xl bg-[#000d0d] text-white shadow-lg transition-[width] duration-200 ease-out min-[960px]:flex"
       style={{
         width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
         top: 'calc(15px + env(safe-area-inset-top, 0px))',
@@ -293,7 +293,7 @@ export default function Sidebar() {
         <div className={isCollapsed ? 'flex flex-col items-center gap-2' : 'rounded-lg px-3 py-2'}>
           <div className={isCollapsed ? 'flex flex-col items-center' : 'mb-3 flex items-center gap-3'}>
             <div
-              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#52b788] text-[11px] font-bold text-white"
+              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#006d6d] text-[11px] font-bold text-white"
               title={userDisplay?.name ?? undefined}
               aria-label={userDisplay?.name ? `Profil: ${userDisplay.name}` : 'Profil wird geladen'}
             >

@@ -83,16 +83,16 @@ const ANIMALS: { value: AnimalFocus; label: string; sub: string; emoji: string }
 
 // ─── Profile derivation ───────────────────────────────────────────────────────
 
-function deriveProfile(profession: Profession, animalFocus: AnimalFocus) {
+function deriveProfile(professions: Profession[], animalFocus: AnimalFocus) {
   const isHorse = animalFocus === 'nur_pferde' || animalFocus === 'pferde_und_kleintiere'
-  const isHuf = profession === 'hufbearbeiter'
+  const isHuf = professions.includes('hufbearbeiter')
 
-  const preferredTerminology = isHorse ? 'pferd' : 'tier'
+  const preferredTerminology = isHuf ? 'pferd' : isHorse ? 'pferd' : 'tier'
 
   const enabledModules = ['documentation', 'photos', 'pdf_export']
   if (isHuf) enabledModules.push('hoof_records', 'hoof_analysis')
   if (isHorse) enabledModules.push('horse_management')
-  if (['tierheilpraktiker', 'tierphysiotherapeut', 'osteopath'].includes(profession)) {
+  if (professions.some((p) => ['tierheilpraktiker', 'tierphysiotherapeut', 'osteopath'].includes(p))) {
     enabledModules.push('therapy_notes')
   }
 
@@ -108,7 +108,7 @@ function deriveProfile(profession: Profession, animalFocus: AnimalFocus) {
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [profession, setProfession] = useState<Profession | null>(null)
+  const [professions, setProfessions] = useState<Profession[]>([])
   const [animalFocus, setAnimalFocus] = useState<AnimalFocus | null>(null)
   const [saving, setSaving] = useState(false)
   const [trialEnd, setTrialEnd] = useState('')
@@ -134,15 +134,15 @@ export default function OnboardingPage() {
   }, [router])
 
   async function finishOnboarding(professionOverride?: Profession, animalFocusOverride?: AnimalFocus) {
-    const p = professionOverride ?? profession
+    const pList = professionOverride ? [professionOverride] : professions
     const a = animalFocusOverride ?? animalFocus
-    if (!p || !a) return
+    if (!pList || pList.length === 0 || !a) return
     setSaving(true)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(false); return }
 
-    const { preferredTerminology, enabledModules } = deriveProfile(p, a)
+    const { preferredTerminology, enabledModules } = deriveProfile(pList, a)
 
     const { data: existingRow } = await supabase
       .from('user_settings')
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
 
     const mergedSettings = {
       ...existingSettings,
-      profession: p,
+      profession: pList,
       animal_focus: a,
       preferred_terminology: preferredTerminology,
       enabled_modules: enabledModules,
@@ -179,11 +179,13 @@ export default function OnboardingPage() {
     <AuthShell step={shellStep} totalSteps={3}>
       {step === 1 && (
         <StepProfession
-          selected={profession}
-          onSelect={setProfession}
+          selected={professions}
+          onToggle={(v) =>
+            setProfessions((prev) => (prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]))
+          }
           onNext={() => {
-            if (profession === 'hufbearbeiter') {
-              finishOnboarding(profession, 'nur_pferde')
+            if (professions.length === 1 && professions[0] === 'hufbearbeiter') {
+              finishOnboarding('hufbearbeiter', 'nur_pferde')
             } else {
               setStep(2)
             }
@@ -213,10 +215,10 @@ export default function OnboardingPage() {
 // ─── Step 1: Profession ───────────────────────────────────────────────────────
 
 function StepProfession({
-  selected, onSelect, onNext, onBack,
+  selected, onToggle, onNext, onBack,
 }: {
-  selected: Profession | null
-  onSelect: (v: Profession) => void
+  selected: Profession[]
+  onToggle: (v: Profession) => void
   onNext: () => void
   onBack: () => void
 }) {
@@ -239,8 +241,8 @@ function StepProfession({
         {PROFESSIONS.map(p => (
           <OptionRow
             key={p.value}
-            selected={selected === p.value}
-            onClick={() => onSelect(p.value)}
+            selected={selected.includes(p.value)}
+            onClick={() => onToggle(p.value)}
             icon={
               specialtyCodeFor(p.value)
                 ? <DirectoryCategoryCardIcon code={specialtyCodeFor(p.value)!} imgClassName="h-5 w-5" />
@@ -252,7 +254,7 @@ function StepProfession({
         ))}
       </div>
 
-      <PrimaryBtn disabled={!selected} onClick={onNext}>
+      <PrimaryBtn disabled={selected.length === 0} onClick={onNext}>
         Weiter
       </PrimaryBtn>
 
@@ -351,7 +353,7 @@ function StepDone({ trialEnd, onStart }: { trialEnd: string; onStart: () => void
             fontSize: 14, color: '#374151', textAlign: 'left',
           }}>
             <span style={{
-              width: 34, height: 34, borderRadius: 9, background: '#f7f7f7',
+              width: 34, height: 34, borderRadius: 9, background: '#f8f8f8',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 17, flexShrink: 0,
             }}>{icon}</span>
@@ -392,7 +394,7 @@ function OptionRow({
       {/* Emoji icon */}
       <span style={{
         width: 38, height: 38, borderRadius: 10,
-        background: '#f7f7f7', display: 'flex',
+              background: '#f8f8f8', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
         fontSize: 20, flexShrink: 0,
         color: '#154226',

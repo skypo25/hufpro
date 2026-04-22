@@ -63,7 +63,7 @@ export default function ForgotPasswordPage() {
       ) : (
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>E-Mail</label>
+            <label>E-Mail</label>
             <input
               type="email"
               placeholder="name@beispiel.de"
@@ -77,7 +77,8 @@ export default function ForgotPasswordPage() {
                 border: '1.5px solid #cdcdd0',
                 borderRadius: 10,
                 background: '#faf9f7',
-                fontSize: 15,
+                fontSize: 13,
+                fontWeight: 400,
                 fontFamily: 'inherit',
                 color: '#111',
                 outline: 'none',

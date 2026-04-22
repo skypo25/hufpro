@@ -1,6 +1,6 @@
 export function avatarClass(index: number) {
   const classes = [
-    'bg-[#52b788]',
+    'bg-[#006d6d]',
     'bg-[#7C3AED]',
     'bg-[#2563EB]',
     'bg-[#059669]',

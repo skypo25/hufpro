@@ -364,7 +364,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/appointments/new"
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[14px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#006d6d] px-[18px] py-[10px] text-[14px] font-medium text-white shadow-sm hover:bg-[#015555]"
           >
             <i className="bi bi-plus-lg text-[15px]" />
             Neuer Termin
@@ -378,9 +378,9 @@ export default async function DashboardPage() {
             <Link
               key={item.title}
               href={item.href}
-              className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#52b788] hover:shadow-md"
+              className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#006d6d] hover:shadow-md"
             >
-              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
+              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf5f5] text-[#015555]">
                 <FontAwesomeIcon
                   icon={item.icon}
                   className="!h-[18px] !w-[18px] shrink-0"
@@ -403,7 +403,7 @@ export default async function DashboardPage() {
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Heutige Termine
                 </h3>
-                <Link href="/calendar" className="text-[13px] font-medium text-[#52b788] hover:underline">
+                <Link href="/calendar" className="text-[13px] font-medium text-[#006d6d] hover:underline">
                   Alle Termine →
                 </Link>
               </div>
@@ -418,7 +418,7 @@ export default async function DashboardPage() {
                 {todayAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex flex-col gap-4 border-b border-[#E5E2DC] px-[22px] py-[14px] hover:bg-[rgba(21,66,38,0.03)] md:flex-row md:items-center"
+                    className="flex flex-col gap-4 border-b border-[#E5E2DC] px-[22px] py-[14px] hover:bg-[rgba(1,85,85,0.03)] md:flex-row md:items-center"
                   >
                     <div className="min-w-[52px] text-[13px] font-semibold tabular-nums text-[#1B1F23]">
                       {formatTime(appointment.appointment_date)}
@@ -457,7 +457,7 @@ export default async function DashboardPage() {
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Umsatz 2026
                 </h3>
-                <Link href="/invoices" className="text-[13px] font-medium text-[#52b788] hover:underline">
+                <Link href="/invoices" className="text-[13px] font-medium text-[#006d6d] hover:underline">
                   Details →
                 </Link>
               </div>
@@ -474,7 +474,7 @@ export default async function DashboardPage() {
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Nächste Termine
                 </h3>
-                <Link href="/calendar" className="text-[13px] font-medium text-[#52b788] hover:underline">
+                <Link href="/calendar" className="text-[13px] font-medium text-[#006d6d] hover:underline">
                   Kalender →
                 </Link>
               </div>
@@ -492,7 +492,7 @@ export default async function DashboardPage() {
                   return (
                     <div key={appointment.id} className="flex gap-[14px] border-b border-[#E5E2DC] px-[22px] py-[14px]">
                       <div className="min-w-[44px] text-center">
-                        <div className="dashboard-serif text-[22px] font-medium leading-none text-[#52b788]">
+                        <div className="dashboard-serif text-[22px] font-medium leading-none text-[#006d6d]">
                           {parts[0] || ''}
                         </div>
                         <div className="text-[10px] uppercase tracking-[0.08em] text-[#6B7280]">
@@ -536,7 +536,7 @@ export default async function DashboardPage() {
 
               <div className="px-[22px] py-3">
                 {[
-                  { dot: 'bg-[#52b788]', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
+                  { dot: 'bg-[#006d6d]', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
                   { dot: 'bg-[#34A853]', text: 'Die Box ist vorbereitet und kann später mit echten Aktivitäten befüllt werden.' },
                   { dot: 'bg-[#6366F1]', text: 'Dashboard-Stil wurde an dein Wunschlayout angepasst.' },
                 ].map((item, index) => (

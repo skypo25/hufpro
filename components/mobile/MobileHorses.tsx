@@ -139,6 +139,7 @@ export default function MobileHorses() {
   const [sort, setSort] = useState<Sort>('name_asc')
   const [viewMode, setViewMode] = useState<ViewMode>('cards')
   const [horses, setHorses] = useState<HorseItem[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
   const [horseCount, setHorseCount] = useState(0)
   const [customerCount, setCustomerCount] = useState(0)
@@ -166,32 +167,42 @@ export default function MobileHorses() {
 
   const fetchData = useCallback(
     async (offset: number, append: boolean, limitOverride?: number) => {
-      const params = new URLSearchParams()
-      if (debouncedQ) params.set('q', debouncedQ)
-      params.set('sort', sort)
-      const limit = limitOverride ?? (offset === 0 ? INITIAL_LIMIT : LOAD_MORE_STEP)
-      params.set('limit', String(limit))
-      params.set('offset', String(offset))
-      const res = await fetch(`/api/horses/mobile?${params}`, { credentials: 'include' })
-      if (!res.ok) return
-      const data = await res.json()
+      try {
+        setLoadError(null)
+        const params = new URLSearchParams()
+        if (debouncedQ) params.set('q', debouncedQ)
+        params.set('sort', sort)
+        const limit = limitOverride ?? (offset === 0 ? INITIAL_LIMIT : LOAD_MORE_STEP)
+        params.set('limit', String(limit))
+        params.set('offset', String(offset))
+        const res = await fetch(`/api/horses/mobile?${params}`, { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json().catch(() => null)
+        if (!data || typeof data !== 'object') {
+          setLoadError('Pferdeliste konnte nicht geladen werden. Bitte erneut versuchen.')
+          return
+        }
       if (append) {
-        setHorses((prev) => [...prev, ...(data.horses ?? [])])
+          setHorses((prev) => [...prev, ...(((data as any).horses ?? []) as HorseItem[])])
       } else {
-        setHorses(data.horses ?? [])
+          setHorses((((data as any).horses ?? []) as HorseItem[]))
       }
-      setTotal(data.total ?? 0)
-      setHorseCount(data.horseCount ?? 0)
-      setCustomerCount(data.customerCount ?? 0)
-      setBarhufCount(data.barhufCount ?? 0)
-      setHoofschutzCount(data.hoofschutzCount ?? 0)
-      setCorrectionCount(data.correctionCount ?? 0)
-      setAvgInterval(data.avgInterval ?? '–')
-      setDogsCount(data.dogsCount ?? 0)
-      setCatsCount(data.catsCount ?? 0)
-      setTypeHorseCount(data.typeHorseCount ?? 0)
-      setSmallAnimalsCount(data.smallAnimalsCount ?? 0)
-      setOtherAnimalsCount(data.otherAnimalsCount ?? 0)
+        setTotal(((data as any).total ?? 0) as number)
+        setHorseCount(((data as any).horseCount ?? 0) as number)
+        setCustomerCount(((data as any).customerCount ?? 0) as number)
+        setBarhufCount(((data as any).barhufCount ?? 0) as number)
+        setHoofschutzCount(((data as any).hoofschutzCount ?? 0) as number)
+        setCorrectionCount(((data as any).correctionCount ?? 0) as number)
+        setAvgInterval((((data as any).avgInterval ?? '–') as string))
+        setDogsCount(((data as any).dogsCount ?? 0) as number)
+        setCatsCount(((data as any).catsCount ?? 0) as number)
+        setTypeHorseCount(((data as any).typeHorseCount ?? 0) as number)
+        setSmallAnimalsCount(((data as any).smallAnimalsCount ?? 0) as number)
+        setOtherAnimalsCount(((data as any).otherAnimalsCount ?? 0) as number)
+      } catch (e) {
+        console.warn('[mobile-horses] fetch failed', e)
+        setLoadError('Pferdeliste konnte nicht geladen werden. Bitte erneut versuchen.')
+      }
     },
     [debouncedQ, sort]
   )
@@ -229,6 +240,7 @@ export default function MobileHorses() {
 
   return (
     <>
+      {loadError && <div className="mhf-error-toast">{loadError}</div>}
       <div className="status-bar" aria-hidden />
       <header className="mobile-header">
         <div className="ah-top">

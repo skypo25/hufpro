@@ -2,10 +2,10 @@
 .beh-ref {
   --bg: #ffffff;
   --bg-soft: #f9f9f9;
-  --accent: #52b788;
-  --accent-bg: rgba(82, 183, 136, 0.05);
-  --accent-light: rgba(82, 183, 136, 0.08);
-  --accent-dark: #3d9e6e;
+  --accent: #006d6d;
+  --accent-bg: rgba(0, 109, 109, 0.05);
+  --accent-light: rgba(0, 109, 109, 0.08);
+  --accent-dark: #015555;
   --text: #1b1f23;
   --text-secondary: #6b7280;
   --text-light: #9ca3af;
@@ -57,24 +57,11 @@
   color: var(--text);
 }
 
-.beh-ref .nav-logo .sq {
-  width: 44px;
-  height: 44px;
-  background: var(--accent);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 20px;
-  color: #fff;
-}
-
-.beh-ref .nav-logo span {
-  font-family: var(--font-outfit), "Outfit", sans-serif;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.beh-ref .nav-logo .nav-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .beh-ref .nav-links {

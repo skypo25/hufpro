@@ -71,7 +71,7 @@ export default function MinimalRichEditor({
   const minHeightStyle = `${minRows * 1.5}rem`
 
   return (
-    <div className={`overflow-hidden rounded-lg border border-[#E5E2DC] bg-white transition focus-within:border-[#52b788] ${className}`}>
+    <div className={`overflow-hidden rounded-lg border border-[#E5E2DC] bg-white transition focus-within:border-[#006d6d] ${className}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 border-b border-[#E5E2DC] bg-[#FAFAF8] px-2 py-1.5">
         <button

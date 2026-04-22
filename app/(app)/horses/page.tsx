@@ -76,7 +76,7 @@ type HorseRow = {
 }
 
 const HORSE_TILE_CLASSES = [
-  'bg-[#edf3ef]',
+  'bg-[#edf5f5]',
   'bg-[#DBEAFE]',
   'bg-[#DCFCE7]',
   'bg-[#EDE9FE]',
@@ -377,8 +377,8 @@ export default async function HorsesPage({
     ? 'grid grid-cols-[52px_minmax(0,1.4fr)_120px_1fr_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.4fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(3)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
     : 'grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-[14px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
   const listRowClass = isTierTerm
-    ? 'relative grid grid-cols-[52px_minmax(0,1.4fr)_120px_1fr_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.4fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(3)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
-    : 'relative grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
+    ? 'relative grid grid-cols-[52px_minmax(0,1.4fr)_120px_1fr_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(1,85,85,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.4fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(3)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
+    : 'relative grid grid-cols-[52px_1.5fr_1fr_110px_70px_130px_110px_48px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(1,85,85,0.03)] last:border-b-0 max-[1200px]:grid-cols-[52px_1.5fr_1fr_130px_110px_48px] max-[1200px]:[&>*:nth-child(4)]:hidden max-[1200px]:[&>*:nth-child(5)]:hidden max-[900px]:grid-cols-[42px_1fr_130px_110px_48px] max-[900px]:[&>*:nth-child(3)]:hidden max-[900px]:[&>*:nth-child(4)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden'
 
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
@@ -397,7 +397,7 @@ export default async function HorsesPage({
 
             <Link
               href="/animals/new"
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#015555]"
             >
               <i className="bi bi-plus-lg text-[14px]" />
               {newAnimalButtonLabel(term)}
@@ -478,7 +478,7 @@ export default async function HorsesPage({
             <input type="hidden" name="sort" value={currentSort} />
             <input type="hidden" name="perPage" value={currentPerPage} />
 
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#52b788] bg-white px-4 py-2 text-[12px]">
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#006d6d] bg-white px-4 py-2 text-[12px]">
               <i className="bi bi-search text-[14px] text-[#9CA3AF]" />
               <input
                 type="text"
@@ -491,14 +491,14 @@ export default async function HorsesPage({
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#1B1F23] hover:border-[#006d6d]"
             >
               Suchen
             </button>
           </form>
 
           <div className="flex gap-2">
-            <span className="rounded-full bg-[#52b788] px-4 py-2 text-[12px] font-medium text-white">
+            <span className="rounded-full bg-[#006d6d] px-4 py-2 text-[12px] font-medium text-white">
               Alle ({horseCount})
             </span>
             {term === 'pferd' && (
@@ -588,7 +588,7 @@ export default async function HorsesPage({
                   aria-label={`${animalSingularLabel(term)} ${row.horse.name || ''} öffnen`}
                 />
 
-                <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf3ef] text-[#154226]">
+                <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf5f5] text-[#015555]">
                   <FontAwesomeIcon icon={rowIcon} className="h-4 w-4" />
                 </div>
 
@@ -632,7 +632,7 @@ export default async function HorsesPage({
                 <div className="pointer-events-none z-10">
                   {row.nextAppointment ? (
                     <>
-                      <div className="text-[13px] font-medium text-[#52b788]">
+                      <div className="text-[13px] font-medium text-[#006d6d]">
                         {formatGermanDate(row.nextAppointment)}
                       </div>
                       <div className="text-[11px] text-[#9CA3AF]">
@@ -650,7 +650,7 @@ export default async function HorsesPage({
                   className={[
                     'pointer-events-none z-10 flex items-center gap-1.5 text-[13px]',
                     row.documentationCount > 0
-                      ? 'font-medium text-[#52b788]'
+                      ? 'font-medium text-[#006d6d]'
                       : 'text-[#9CA3AF]',
                   ].join(' ')}
                 >
@@ -661,7 +661,7 @@ export default async function HorsesPage({
                 <div className="z-20 flex justify-end">
                   <Link
                     href={`/appointments/new?horseId=${row.horse.id}`}
-                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788]"
+                    className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#006d6d] hover:text-[#006d6d]"
                     title="Termin anlegen"
                   >
                     <i className="bi bi-calendar-plus text-[14px]" />
@@ -726,7 +726,7 @@ export default async function HorsesPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[12px]',
                   safePage === 1
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-left" />
@@ -747,8 +747,8 @@ export default async function HorsesPage({
                     className={[
                       'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-[12px] font-medium',
                       pageNumber === safePage
-                        ? 'border-[#52b788] bg-[#52b788] text-white'
-                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
+                        ? 'border-[#006d6d] bg-[#006d6d] text-white'
+                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
                     ].join(' ')}
                   >
                     {pageNumber}
@@ -767,7 +767,7 @@ export default async function HorsesPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[12px]',
                   safePage === totalPages
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#52b788] hover:text-[#52b788]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-right" />

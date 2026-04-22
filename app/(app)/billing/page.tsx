@@ -45,7 +45,7 @@ export default async function BillingPage() {
   return (
     <div className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="text-[#006d6d] hover:underline">
           Dashboard
         </Link>
         <span aria-hidden>›</span>
@@ -63,7 +63,7 @@ export default async function BillingPage() {
 
       <Suspense
         fallback={
-          <div className="huf-card border border-[#E5E2DC] px-6 py-10 text-center text-[14px] text-[#6B7280]">
+          <div className="huf-card border border-[#eff5f5] px-6 py-10 text-center text-[14px] text-[#6B7280]">
             Billing wird geladen…
           </div>
         }

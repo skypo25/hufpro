@@ -197,13 +197,13 @@ export default function TherapyRecordForm({
       <div className="mb-1 flex flex-wrap items-center gap-2 text-[13px] text-[#6B7280]">
         {isEdit ? (
           <>
-            <Link href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
+            <Link href={`/animals/${horse.id}`} className="text-[#006d6d] hover:underline">
               {horse.name}
             </Link>
             <span>›</span>
             <Link
               href={`/animals/${horse.id}/records/${editRecordId}`}
-              className="text-[#52b788] hover:underline"
+              className="text-[#006d6d] hover:underline"
             >
               {formatGermanDate(recordDate)}
             </Link>
@@ -212,7 +212,7 @@ export default function TherapyRecordForm({
           </>
         ) : (
           <>
-            <Link href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
+            <Link href={`/animals/${horse.id}`} className="text-[#006d6d] hover:underline">
               {horse.name}
             </Link>
             <span>›</span>
@@ -250,7 +250,7 @@ export default function TherapyRecordForm({
         <input
           id="therapy-record-date"
           type="date"
-          className="w-full max-w-[240px] rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[14px] text-[#1B1F23] focus:border-[#52b788] focus:outline-none focus:ring-1 focus:ring-[#52b788]"
+          className="w-full max-w-[240px] rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[14px] text-[#1B1F23] focus:border-[#006d6d] focus:outline-none focus:ring-1 focus:ring-[#006d6d]"
           value={recordDate}
           onChange={(e) => setRecordDate(e.target.value)}
           required
@@ -347,7 +347,7 @@ export default function TherapyRecordForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-xl bg-[#52b788] px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-[#459e74] disabled:opacity-60"
+          className="rounded-xl bg-[#006d6d] px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-[#015555] disabled:opacity-60"
         >
           {submitting ? 'Wird gespeichert…' : 'Speichern'}
         </button>

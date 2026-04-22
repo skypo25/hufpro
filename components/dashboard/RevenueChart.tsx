@@ -34,11 +34,11 @@ export default function RevenueChart({ monthlyCents, totalCents }: RevenueChartP
         {monthlyCents.map((cents, i) => (
           <div
             key={i}
-            className="w-7 rounded-t-md bg-[#edf3ef] transition-[height] duration-700 ease-out"
+            className="w-7 rounded-t-md bg-[#edf5f5] transition-[height] duration-700 ease-out"
             style={{
               height: animated ? `${barHeightPercent(cents)}%` : '0%',
               minHeight: 4,
-              backgroundColor: i === new Date().getMonth() ? '#52b788' : undefined,
+              backgroundColor: i === new Date().getMonth() ? '#006d6d' : undefined,
               transitionDelay: `${i * 50}ms`,
             }}
             title={formatEuro(cents)}

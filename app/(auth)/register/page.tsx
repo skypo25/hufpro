@@ -140,17 +140,17 @@ function RegisterContent() {
         {/* AGB */}
         <label style={{
           display: 'flex', alignItems: 'flex-start', gap: 10,
-          fontSize: 13, color: '#374151', lineHeight: 1.5, cursor: 'pointer',
+          lineHeight: 1.5, cursor: 'pointer',
         }}>
           <input
             type="checkbox" checked={agb} onChange={e => setAgb(e.target.checked)}
-            style={{ width: 18, height: 18, marginTop: 1, accentColor: '#52b788', cursor: 'pointer', flexShrink: 0 }}
+            style={{ width: 18, height: 18, marginTop: 1, accentColor: '#006d6d', cursor: 'pointer', flexShrink: 0 }}
           />
           <span>
             Ich akzeptiere die{' '}
-            <a href="/agb" target="_blank" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>AGB</a>
+            <a href="/agb" target="_blank" style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}>AGB</a>
             {' '}und{' '}
-            <a href="/datenschutz" target="_blank" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>Datenschutzerklärung</a>
+            <a href="/datenschutz" target="_blank" style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}>Datenschutzerklärung</a>
           </span>
         </label>
 
@@ -209,7 +209,7 @@ function RegisterContent() {
         Bereits ein Konto?{' '}
         <Link
           href={`/login?next=${encodeURIComponent(postAuthPath)}`}
-          style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}
+          style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}
         >
           Anmelden
         </Link>
@@ -263,7 +263,7 @@ function Divider() {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</label>
+      <label>{label}</label>
       {children}
       {hint && <span style={{ fontSize: 12, color: '#9ca3af' }}>{hint}</span>}
     </div>
@@ -276,7 +276,7 @@ function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       style={{
         width: '100%', padding: '11px 13px', border: '1.5px solid #cdcdd0',
-        borderRadius: 10, background: '#faf9f7', fontSize: 15, fontFamily: 'inherit',
+        borderRadius: 10, background: '#faf9f7', fontSize: 13, fontWeight: 400, fontFamily: 'inherit',
         color: '#111', outline: 'none', WebkitAppearance: 'none', boxSizing: 'border-box',
       }}
     />

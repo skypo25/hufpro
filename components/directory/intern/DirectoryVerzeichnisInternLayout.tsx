@@ -115,9 +115,9 @@ function DirectoryVerzeichnisInternSidebar({ paketLabel }: { paketLabel: 'gratis
       <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 pb-4 pt-5">
         <div className="flex min-w-0 items-center gap-3">
           {isCollapsed ? (
-            <Image src="/logo-white.svg" alt="Logo" width={32} height={32} className="shrink-0" />
+            <Image src="/logo.svg" alt="Logo" width={32} height={32} className="shrink-0" />
           ) : (
-            <Image src="/logo-white.svg" alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
+            <Image src="/logo.svg" alt="Logo" width={120} height={36} className="h-9 w-auto shrink-0 object-contain" />
           )}
         </div>
         {!isCollapsed && (
@@ -273,7 +273,7 @@ function DirectoryVerzeichnisInternSidebar({ paketLabel }: { paketLabel: 'gratis
         <div className={isCollapsed ? 'flex flex-col items-center gap-2' : 'rounded-lg px-3 py-2'}>
           <div className={isCollapsed ? 'flex flex-col items-center' : 'mb-3 flex items-center gap-3'}>
             <div
-              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#52b788] text-[11px] font-bold text-white"
+              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#006d6d] text-[11px] font-bold text-white"
               title={userDisplay?.name ?? undefined}
               aria-label={userDisplay?.name ? `Profil: ${userDisplay.name}` : 'Profil wird geladen'}
             >
@@ -305,7 +305,7 @@ function DirectoryVerzeichnisMobileBar({ paketLabel }: { paketLabel: 'gratis' | 
       style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
     >
       <div className="flex items-center justify-between gap-2">
-        <Image src="/logo-white.svg" alt="AniDocs" width={100} height={30} className="h-7 w-auto shrink-0 object-contain" />
+        <Image src="/logo.svg" alt="AniDocs" width={100} height={30} className="h-7 w-auto shrink-0 object-contain" />
         {paketLabel ? (
           <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90">
             {paketLabel === 'premium' ? 'Premium' : 'Gratis'}
@@ -375,12 +375,12 @@ export function DirectoryVerzeichnisInternLayout({
       <div
         className="relative min-h-screen text-slate-900"
         style={{
-          backgroundColor: '#f7f7f7',
+          backgroundColor: '#f8f8f8',
         }}
       >
         <div
           className="pointer-events-none fixed inset-0 z-0"
-          style={{ background: 'rgba(247, 247, 247, 0.82)' }}
+          style={{ background: 'rgba(248, 248, 248, 0.82)' }}
           aria-hidden
         />
         <DirectoryVerzeichnisMobileBar paketLabel={paketLabel} />

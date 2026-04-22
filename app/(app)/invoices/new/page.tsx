@@ -111,7 +111,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
   return (
     <div className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/invoices" className="text-[#52b788] hover:underline">Rechnungen</Link>
+        <Link href="/invoices" className="text-[#006d6d] hover:underline">Rechnungen</Link>
         <span aria-hidden>›</span>
         <span className="text-[#6B7280]">Neue Rechnung erstellen</span>
       </div>

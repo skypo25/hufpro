@@ -8,19 +8,19 @@
   --font-directory-display: var(--font-outfit);
   --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
 
-  --background: #f7f7f7;
+  --background: #f8f8f8;
   --foreground: #1b1f23;
   --card: #ffffff;
   --sidebar: #1b1f23;
   --sidebar-hover: #2a2f35;
 
-  --accent: #52b788;
-  --accent-light: #edf3ef;
-  --accent-dark: #0f301b;
+  --accent: #006d6d;
+  --accent-light: #edf5f5;
+  --accent-dark: #015555;
 
   --text-secondary: #6b7280;
   --text-light: #9ca3af;
-  --border: #e5e2dc;
+  --border: #dde9e9;
 
   --success: #34a853;
   --warning: #f59e0b;
@@ -57,8 +57,8 @@
   --font-serif: var(--font-outfit), "Outfit", sans-serif;
   --font-mono: var(--font-geist-mono);
   /* Behandler-Startseite Mock (Tailwind: bg-dir-accent, text-dir-muted, …) */
-  --color-dir-accent: #52b788;
-  --color-dir-accent-dark: #3d9e6e;
+  --color-dir-accent: #006d6d;
+  --color-dir-accent-dark: #015555;
   --color-dir-text: #1b1f23;
   --color-dir-muted: #6b7280;
   --color-dir-muted-light: #9ca3af;
@@ -99,6 +99,42 @@ body {
   font-family: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
 }
 
+/* Legacy hardcoded Tailwind hex borders (replace visually, incl. PWA) */
+*:is(
+  [class*="border-[#E5E2DC]"],
+  [class*="border-b-[#E5E2DC]"],
+  [class*="border-t-[#E5E2DC]"],
+  [class*="border-l-[#E5E2DC]"],
+  [class*="border-r-[#E5E2DC]"]
+) {
+  border-color: var(--border) !important;
+}
+
+/* Same, but case-insensitive (covers #e5e2dc). */
+*:is(
+  [class*="border-[#e5e2dc]" i],
+  [class*="border-b-[#e5e2dc]" i],
+  [class*="border-t-[#e5e2dc]" i],
+  [class*="border-l-[#e5e2dc]" i],
+  [class*="border-r-[#e5e2dc]" i]
+) {
+  border-color: var(--border) !important;
+}
+
+*:is([class*="divide-[#E5E2DC]"]) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+*:is([class*="divide-[#e5e2dc]" i]) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border) !important;
+}
+
+/* Inline styles containing the old hex (fallback). */
+*[style*="#E5E2DC"],
+*[style*="#e5e2dc"] {
+  border-color: var(--border) !important;
+}
+
 /* PWA (iOS): verhindert hellen/weißen Haarstrich unter Statusleiste (Safe Area) */
 @media (display-mode: standalone), (display-mode: fullscreen) {
   html {
@@ -120,9 +156,27 @@ input, select, textarea, button {
   font-family: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
 }
 
+/* Native checkbox/radio tint (fixes default blue accent). */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
 input::placeholder,
 textarea::placeholder {
   font-family: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Formular-Typografie: Feld-Beschriftungen (überschreibt häufige text-/font-Utilities auf <label>)
+   IMPORTANT: don't override `.form-label` from `app/form-styles.css`. */
+label:not(.sr-only):not([class*="sr-only"]):not(.form-label) {
+  letter-spacing: 0 !important;
+  font-weight: 400 !important;
+  color: #1b1f23 !important;
+  font-size: 12px !important;
+  text-transform: none !important;
 }
 
 h1 {
@@ -146,12 +200,30 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
+button {
+  font: inherit;
+  font-size: 14px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
 select,
 textarea {
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* In Formularen: Feldtypo auch gegenüber Utility-Klassen (z. B. text-[14px]) durchsetzen */
+form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+form select,
+form textarea {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])::placeholder,
+form textarea::placeholder {
+  font-size: 13px !important;
+  font-weight: 400 !important;
 }
 
 ::selection {
@@ -243,7 +315,8 @@ button.huf-btn-dark {
   border-radius: 8px;
   border: 1px solid var(--border);
   padding: 0.75rem 1rem;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.5;
   outline: none;
   background: var(--card);
@@ -252,6 +325,8 @@ button.huf-btn-dark {
 }
 .huf-input::placeholder {
   color: var(--text-light);
+  font-size: 13px;
+  font-weight: 400;
 }
 .huf-input:focus {
   border-color: var(--accent);
@@ -334,9 +409,9 @@ button.huf-btn-dark {
   margin-top: 0;
 }
 .mobile-app {
-  --m-bg: #f7f7f7;
+  --m-bg: #f8f8f8;
   --m-card: #ffffff;
-  --m-green: #52b788;
+  --m-green: #006d6d;
   --m-green-medium: #2d4a2d;
   --m-green-light: #3d6b3d;
   --m-green-pale: #e8f0e8;
@@ -729,10 +804,10 @@ button.huf-btn-dark {
   transition: height 0.6s ease-out;
 }
 .mobile-app .uc-bar.filled {
-  background: #52b788;
+  background: #006d6d;
 }
 .mobile-app .uc-bar.current {
-  background: #52b788;
+  background: #006d6d;
 }
 .mobile-app .uc-bar.empty {
   background: rgba(0, 0, 0, 0.04);
@@ -1183,7 +1258,7 @@ button.huf-btn-dark {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #154227;
+  background: #006d6d;
   color: #fff;
   display: flex;
   align-items: center;
@@ -1805,8 +1880,8 @@ button.huf-btn-dark {
   flex-shrink: 0;
   padding: 4px 12px;
   border-radius: 8px;
-  background: #edf3ef;
-  color: #0f301b;
+  background: #edf5f5;
+  color: #015555;
   font-size: 12px;
   font-weight: 600;
 }
@@ -3524,6 +3599,12 @@ button.huf-btn-dark {
 .mobile-app .mobile-form-embed-root .huf-input,
 .mobile-app .mobile-form-embed-root .huf-input--multiline {
   font-size: 16px; /* verhindert iOS-Zoom bei Fokus */
+  font-weight: 400;
+}
+.mobile-app .mobile-form-embed-root .huf-input::placeholder,
+.mobile-app .mobile-form-embed-root .huf-input--multiline::placeholder {
+  font-size: 16px;
+  font-weight: 400;
 }
 .mhf-loading { padding: 24px; text-align: center; color: var(--m-text-light, #9CA3AF); font-size: 14px; }
 .mhf-field-error { border-color: #DC2626 !important; box-shadow: 0 0 0 2px rgba(220,38,38,.2); }
@@ -3600,11 +3681,11 @@ button.huf-btn-dark {
 }
 .mhf-f-label {
   display: block;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--m-text-light, #9CA3AF);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #1b1f23;
   margin-bottom: 4px;
 }
 .mhf-req { color: #52b788; }
@@ -3617,6 +3698,7 @@ button.huf-btn-dark {
   border: 1.5px solid var(--m-border, #E5E2DC);
   border-radius: 8px;
   font-size: 13px;
+  font-weight: 400;
   font-family: inherit;
   color: var(--m-text, #1A1A1A);
   background: #FAFAF8;
@@ -3624,7 +3706,11 @@ button.huf-btn-dark {
   transition: border-color .15s, box-shadow .15s;
   box-sizing: border-box;
 }
-.mhf-f-input::placeholder { color: #C4C4C4; }
+.mhf-f-input::placeholder {
+  color: #C4C4C4;
+  font-size: 13px;
+  font-weight: 400;
+}
 .mhf-f-input[type="date"] { min-width: 0; }
 .mhf-f-input:focus,
 .mhf-f-select:focus {
@@ -3645,6 +3731,7 @@ button.huf-btn-dark {
   border: 1.5px solid var(--m-border, #E5E2DC);
   border-radius: 8px;
   font-size: 13px;
+  font-weight: 400;
   font-family: inherit;
   color: var(--m-text, #1A1A1A);
   background: #FAFAF8;
@@ -3653,7 +3740,11 @@ button.huf-btn-dark {
   min-height: 80px;
   transition: border-color .15s, box-shadow .15s;
 }
-.mhf-f-textarea::placeholder { color: #C4C4C4; }
+.mhf-f-textarea::placeholder {
+  color: #C4C4C4;
+  font-size: 13px;
+  font-weight: 400;
+}
 .mhf-f-textarea:focus {
   border-color: #52b788;
   box-shadow: 0 0 0 3px rgba(82,183,136,.1);
@@ -4731,9 +4822,10 @@ button.huf-btn-dark {
 }
 
 .auth-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #1b1f23;
 }
 
 .auth-input {
@@ -4742,12 +4834,18 @@ button.huf-btn-dark {
   border: 1.5px solid #e5e2dc;
   border-radius: 10px;
   background: #faf9f7;
-  font-size: 15px;
+  font-size: 13px;
+  font-weight: 400;
   font-family: inherit;
   color: #111;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
   -webkit-appearance: none;
+}
+
+.auth-input::placeholder {
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .auth-input:focus {
@@ -4766,8 +4864,6 @@ button.huf-btn-dark {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 13px;
-  color: #374151;
   line-height: 1.5;
   cursor: pointer;
 }
@@ -5058,22 +5154,22 @@ thead.border-y {
 /* ─── Formulare: einheitliche Border-Farbe #cdcdd0 ──────────────────────── */
 
 /* Native Form-Elemente */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-select,
-textarea {
-  border-color: #cdcdd0 !important;
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.input),
+select:not(.select),
+textarea:not(.input) {
+  border-color: var(--border, #dde9e9) !important;
 }
 
 /* Wrapper-Divs mit border-gray-300 (MultiSelect, PhoneInput, DatePicker, DropZone etc.) */
-div.border-gray-300,
-div.border-gray-200,
-.border-gray-300:not(button):not(nav):not(table):not(tr):not(td):not(th) {
-  border-color: #cdcdd0 !important;
+div.border-gray-300:not(.input-wrap):not(.form-group),
+div.border-gray-200:not(.input-wrap):not(.form-group),
+.border-gray-300:not(button):not(nav):not(table):not(tr):not(td):not(th):not(.input-wrap):not(.form-group) {
+  border-color: var(--border, #dde9e9) !important;
 }
 
 /* ─── Mobile Calendar (Termine PWA) ───────────────────────────────────────── */
 .mobile-app {
-  --cal-accent: #52b788;
+  --cal-accent: #006d6d;
   --cal-accent-bg: rgba(82, 183, 136, 0.06);
   --cal-accent-border: rgba(82, 183, 136, 0.15);
 }
@@ -6645,8 +6741,8 @@ div.border-gray-200,
 /* -------------------------------------------------------------------------- */
 .dir-site-shell {
   --dir-header: #1b1f23;
-  --dir-accent: #52b788;
-  --dir-accent-dark: #3d9e6e;
+  --dir-accent: #006d6d;
+  --dir-accent-dark: #015555;
   --dir-accent-bg: rgba(82, 183, 136, 0.06);
   --dir-accent-border: rgba(82, 183, 136, 0.15);
   --dir-text: #1a1a1a;
@@ -7376,8 +7472,8 @@ div.border-gray-200,
 /* /behandler Startseite — Ergebnisbereich (Chips); Marketing = Tailwind-Mock   */
 /* -------------------------------------------------------------------------- */
 .dir-listing-page--home {
-  --dir-home-accent: #52b788;
-  --dir-home-accent-dark: #3d9e6e;
+  --dir-home-accent: #006d6d;
+  --dir-home-accent-dark: #015555;
   --dir-home-accent-light: rgba(82, 183, 136, 0.08);
   --dir-home-accent-bg: rgba(82, 183, 136, 0.05);
   --dir-home-text: #1b1f23;

@@ -382,7 +382,7 @@ export default function AddressAutocomplete({
         aria-label={ariaLabel}
         autoComplete="off"
         spellCheck={false}
-        className={className || 'huf-input w-full'}
+        className={className || 'input w-full'}
         aria-autocomplete="list"
         aria-expanded={open && suggestions.length > 0}
         aria-controls={listboxId}
@@ -397,7 +397,7 @@ export default function AddressAutocomplete({
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-[13.5rem] w-full overflow-auto rounded-lg border border-[#E5E2DC] bg-white py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-[13.5rem] w-full overflow-auto rounded-lg border border-[var(--border)] bg-white py-1 shadow-lg"
         >
           {suggestions.map((s, i) => {
             const fromQuery = extractHousenumberFromQuery(displayValue)
@@ -412,7 +412,9 @@ export default function AddressAutocomplete({
                 role="option"
                 aria-selected={i === activeIndex}
                 className={`cursor-pointer px-3 py-2 text-[13px] ${
-                  i === activeIndex ? 'bg-[#edf3ef] text-[#52b788]' : 'text-[#1B1F23] hover:bg-[#f7f7f7]'
+                  i === activeIndex
+                    ? 'bg-[var(--accent-light)] text-[var(--accent)]'
+                    : 'text-[#1B1F23] hover:bg-[#f7f7f7]'
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault()

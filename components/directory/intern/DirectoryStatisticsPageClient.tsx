@@ -12,7 +12,7 @@ export type DirectoryStatisticsInitial = {
   analyticsDaily: DirectoryOwnerAnalyticsDailyRow[]
 }
 
-const ACCENT = '#52b788'
+const ACCENT = '#006d6d'
 const GRAY = '#E5E7EB'
 const GRAY2 = '#D1D5DB'
 const BLUE = '#3B82F6'
@@ -162,7 +162,7 @@ function drawSpark(canvas: HTMLCanvasElement, data: number[], color: string) {
   ctx.lineTo(pad + ((data.length - 1) * (w - 2 * pad)) / Math.max(1, data.length - 1), h)
   ctx.lineTo(pad, h)
   ctx.closePath()
-  ctx.fillStyle = color === ACCENT ? 'rgba(82,183,136,0.08)' : 'rgba(239,68,68,0.08)'
+  ctx.fillStyle = color === ACCENT ? 'rgba(0,109,109,0.08)' : 'rgba(239,68,68,0.08)'
   ctx.fill()
 }
 
@@ -247,8 +247,8 @@ function drawLineChart(
       ctx.lineTo(pad.l, pad.t + ch)
       ctx.closePath()
       const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch)
-      grad.addColorStop(0, 'rgba(82,183,136,0.18)')
-      grad.addColorStop(1, 'rgba(82,183,136,0)')
+      grad.addColorStop(0, 'rgba(0,109,109,0.18)')
+      grad.addColorStop(1, 'rgba(0,109,109,0)')
       ctx.fillStyle = grad
       ctx.fill()
     }
@@ -731,10 +731,6 @@ export function DirectoryStatisticsPageClient({ initial }: { initial: DirectoryS
             ))}
           </tbody>
         </table>
-        <div className="dir-stats-note mt-4 text-[12px] leading-snug">
-          Quellen werden aus dem Referrer beim ersten Seitenaufruf je Sitzung zugeordnet (z. B. Suche, Social, direkt).
-          Kontaktanfragen stammen aus <code>directory_contact_inquiries</code>.
-        </div>
       </div>
     </div>
   )

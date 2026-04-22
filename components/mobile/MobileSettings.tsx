@@ -311,14 +311,6 @@ export default function MobileSettings() {
                 </FGroup>
               </FRow3>
               <FRow>
-                <FGroup label="Berufsbezeichnung" required>
-                  <select className={inputClass} value={s.jobTitle ?? ''} onChange={(e) => update('jobTitle', e.target.value)}>
-                    <option>Barhufbearbeiter/in</option>
-                    <option>Hufschmied/in</option>
-                    <option>Tierheilpraktiker/in</option>
-                    <option>Sonstige</option>
-                  </select>
-                </FGroup>
                 <FGroup label="Qualifikation" hint="z. B. BPHC">
                   <input className={inputClass} value={s.qualification ?? ''} onChange={(e) => update('qualification', e.target.value)} placeholder="BPHC" />
                 </FGroup>

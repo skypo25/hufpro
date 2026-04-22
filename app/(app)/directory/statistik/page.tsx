@@ -27,7 +27,7 @@ export default async function DirectoryStatistikPage() {
   if (!stats) redirect('/directory/mein-profil')
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto w-full max-w-[1280px] space-y-7">
       <DirectoryStatisticsPageClient
         initial={{
           profileViewsTotal: stats.totals.profileViewsTotal,

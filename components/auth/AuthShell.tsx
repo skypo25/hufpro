@@ -11,7 +11,7 @@ export default function AuthShell({ children, step, totalSteps }: AuthShellProps
   return (
     <div style={{
       minHeight: '100dvh',
-      background: '#f7f7f7',
+      background: '#f8f8f8',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

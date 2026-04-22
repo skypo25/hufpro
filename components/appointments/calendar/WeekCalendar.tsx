@@ -170,13 +170,13 @@ export default function WeekCalendar({
               key={index}
               className={[
                 'border-b-2 border-[#E5E2DC] px-2 py-[14px] text-center',
-                isToday ? 'bg-[#edf3ef]' : 'bg-[rgba(0,0,0,0.015)]',
+                isToday ? 'bg-[#edf5f5]' : 'bg-[rgba(0,0,0,0.015)]',
               ].join(' ')}
             >
               <div
                 className={[
                   'text-[11px] font-semibold uppercase tracking-[0.08em]',
-                  isToday ? 'text-[#0f301b]' : 'text-[#6B7280]',
+                  isToday ? 'text-[#015555]' : 'text-[#6B7280]',
                 ].join(' ')}
               >
                 {dayNames[index]}
@@ -184,7 +184,7 @@ export default function WeekCalendar({
               <div
                 className={[
                   'mt-0.5 font-serif text-[20px] font-medium',
-                  isToday ? 'text-[#52b788]' : 'text-[#1B1F23]',
+                  isToday ? 'text-[#006d6d]' : 'text-[#1B1F23]',
                 ].join(' ')}
               >
                 {dayDate.getDate()}

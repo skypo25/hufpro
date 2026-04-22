@@ -17,7 +17,7 @@ export default function AdminUsersSortSelect(props: { value: string; q: string; 
 
   return (
     <select
-      className="cursor-pointer rounded-[7px] border-[1.5px] border-[#E5E2DC] bg-white py-[7px] pl-3 pr-8 text-[11px] font-semibold text-[#6B7280] outline-none transition hover:border-[#9CA3AF] focus:border-[#52b788]"
+      className="cursor-pointer rounded-[7px] border-[1.5px] border-[#E5E2DC] bg-white py-[7px] pl-3 pr-8 text-[11px] font-semibold text-[#6B7280] outline-none transition hover:border-[#9CA3AF] focus:border-[#006d6d]"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',

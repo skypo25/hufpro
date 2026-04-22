@@ -129,7 +129,7 @@ export default function ErstanamneseEditForm({ horseId, initialClinical, backHre
           type="button"
           disabled={saving}
           onClick={() => void handleSave()}
-          className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#0f301b] disabled:opacity-50"
+          className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#015555] disabled:opacity-50"
         >
           <i className="bi bi-check-lg" /> {saving ? 'Speichere…' : 'Erstanamnese speichern'}
         </button>

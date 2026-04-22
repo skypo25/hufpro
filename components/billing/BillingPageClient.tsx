@@ -504,7 +504,7 @@ export default function BillingPageClient({
               ui.iconTone === 'blue'
                 ? 'bg-[rgba(59,130,246,.06)] text-[#3B82F6]'
                 : ui.iconTone === 'accent'
-                  ? 'bg-[rgba(82,183,136,.06)] text-[#52b788]'
+                  ? 'bg-[rgba(0,109,109,.06)] text-[#006d6d]'
                   : ui.iconTone === 'warn'
                     ? 'bg-[#FDF6EC] text-[#B8860B]'
                     : ui.iconTone === 'danger'
@@ -536,7 +536,7 @@ export default function BillingPageClient({
             )}
 
             {ui.showNoCharge && (
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-[rgba(82,183,136,.15)] bg-[rgba(82,183,136,.06)] px-3 py-2 text-[12px] text-[#2D7A3A]">
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-[rgba(0,109,109,.15)] bg-[rgba(0,109,109,.06)] px-3 py-2 text-[12px] text-[#015555]">
                 <i className="bi bi-shield-check mt-[1px]" aria-hidden />
                 <div>
                   Während der Testphase erfolgt keine Abbuchung. Sie können jederzeit kündigen.
@@ -557,7 +557,7 @@ export default function BillingPageClient({
       {/* PLAN CARD */}
       <div className="huf-card border border-[#E5E2DC] overflow-hidden">
         <div className="border-b border-[#F0EEEA] px-6 py-5">
-          <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52b788]">
+          <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#006d6d]">
             {billingState.plan.label}
           </div>
 
@@ -570,7 +570,7 @@ export default function BillingPageClient({
           </div>
 
           <div className="mt-2 flex items-center gap-2 text-[13px] text-[#6B7280]">
-            <i className="bi bi-gift-fill text-[#52b788]" aria-hidden />
+            <i className="bi bi-gift-fill text-[#006d6d]" aria-hidden />
             14 Tage kostenlos testen — danach monatlich kündbar
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function BillingPageClient({
               'Verlaufsberichte & Vergleich',
             ].map((t) => (
               <div key={t} className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-                <i className="bi bi-check-circle-fill text-[#52b788]" aria-hidden />
+                <i className="bi bi-check-circle-fill text-[#006d6d]" aria-hidden />
                 <span>{t}</span>
               </div>
             ))}
@@ -611,7 +611,7 @@ export default function BillingPageClient({
           ) : hasLiveSubscription ? (
             <button
               type="button"
-              className="h-[48px] w-full rounded-[12px] bg-[#52b788] text-white text-[16px] font-bold hover:opacity-95 disabled:opacity-60"
+              className="h-[48px] w-full rounded-[12px] bg-[#006d6d] text-white text-[16px] font-bold hover:opacity-95 disabled:opacity-60"
               onClick={openPortal}
               disabled={busy !== null}
             >
@@ -622,7 +622,7 @@ export default function BillingPageClient({
               type="button"
               className={[
                 'h-[48px] w-full rounded-[12px] text-white text-[16px] font-bold hover:opacity-95',
-                ui.key === 'trial_expired' ? 'bg-[#1B1F23]' : 'bg-[#52b788]',
+                ui.key === 'trial_expired' ? 'bg-[#1B1F23]' : 'bg-[#006d6d]',
               ].join(' ')}
               onClick={() => {
                 // If a payment method already exists, guide to "subscribe now" (not "add payment method").
@@ -647,11 +647,11 @@ export default function BillingPageClient({
       {/* PAYMENT SECTION */}
       <div id="billing-payment" className="huf-card border border-[#E5E2DC] overflow-hidden">
         <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
-          <i className="bi bi-credit-card-fill text-[#52b788]" aria-hidden />
+          <i className="bi bi-credit-card-fill text-[#006d6d]" aria-hidden />
           <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Zahlungsmethode</div>
           <button
             type="button"
-            className="text-[12px] font-semibold text-[#52b788] hover:underline"
+            className="text-[12px] font-semibold text-[#006d6d] hover:underline"
             onClick={openPortal}
             disabled={busy !== null}
           >
@@ -776,11 +776,11 @@ export default function BillingPageClient({
       {/* INVOICES SECTION */}
       <div className="huf-card border border-[#E5E2DC] overflow-hidden">
         <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
-          <i className="bi bi-receipt text-[#52b788]" aria-hidden />
+          <i className="bi bi-receipt text-[#006d6d]" aria-hidden />
           <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Rechnungen</div>
           <button
             type="button"
-            className="text-[12px] font-semibold text-[#52b788] hover:underline"
+            className="text-[12px] font-semibold text-[#006d6d] hover:underline"
             onClick={openPortal}
             disabled={busy !== null}
           >
@@ -820,7 +820,7 @@ export default function BillingPageClient({
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="shrink-0 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#52b788] hover:border-[#52b788]"
+                        className="shrink-0 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#006d6d] hover:border-[#006d6d]"
                       >
                         Ansehen / PDF
                       </a>

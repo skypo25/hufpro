@@ -2,7 +2,7 @@
   box-sizing: border-box;
 }
 #dir-pw-root {
-  --bg:#fff;--soft:#f8f8f8;--dark:#0f1114;--accent:#52b788;--al:rgba(82,183,136,.06);--ad:#3d9e6e;--text:#1b1f23;--m:#6B7280;--l:#9CA3AF;--bd:#E5E7EB;--bl:#F3F4F6;
+  --bg:#fff;--soft:#f8f8f8;--dark:#0f1114;--accent:#006d6d;--al:rgba(0,109,109,.06);--ad:#015555;--text:#1b1f23;--m:#6B7280;--l:#9CA3AF;--bd:#E5E7EB;--bl:#F3F4F6;
   font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
   background:var(--bg);
   color:var(--text);

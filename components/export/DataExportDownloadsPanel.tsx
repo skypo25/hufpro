@@ -173,7 +173,7 @@ export default function DataExportDownloadsPanel({ className }: DataExportDownlo
               type="button"
               onClick={() => void downloadJob(job.id)}
               disabled={downloadingId === job.id}
-              className="shrink-0 rounded-lg bg-[#52b788] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#0f301b] disabled:opacity-60"
+              className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--accent-dark)] disabled:opacity-60"
             >
               {downloadingId === job.id ? 'Lädt …' : 'Herunterladen'}
             </button>

@@ -15,14 +15,23 @@
 .dir-profile-onb-root {
   --bg: #ffffff;
   --bg-soft: #f9f9f9;
-  --accent: #52b788;
-  --accent-light: rgba(82, 183, 136, 0.08);
-  --accent-dark: #3d9e6e;
+  /*
+    IMPORTANT:
+    Use *local* wizard tokens to avoid self-referential CSS variables.
+    (Defining `--accent: var(--accent)` is invalid.)
+  */
+  --wiz-accent: #006d6d;
+  --wiz-accent-light: rgba(0, 109, 109, 0.08);
+  --wiz-accent-dark: #015555;
+  /* Backwards-compatible aliases used across this file */
+  --accent: var(--wiz-accent);
+  --accent-light: var(--wiz-accent-light);
+  --accent-dark: var(--wiz-accent-dark);
   --text: #1b1f23;
   --text-secondary: #6b7280;
   --text-light: #9ca3af;
-  --border: #eaeaea;
-  --border-light: #f3f3f3;
+  /* Inherit global `:root --border` for one-source-of-truth. */
+  --border-light: color-mix(in oklab, var(--border, #dde9e9) 55%, white);
   --warn: #d4a017;
   --red: #ef4444;
   --radius: 16px;
@@ -84,7 +93,7 @@
 .dir-profile-onb-root .nav-logo .sq {
   width: 32px;
   height: 32px;
-  background: var(--accent);
+  background: var(--wiz-accent);
   border-radius: 9px;
   display: flex;
   align-items: center;
@@ -134,8 +143,8 @@
 }
 
 .dir-profile-onb-root .nav-save:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--wiz-accent);
+  color: var(--wiz-accent);
 }
 
 .dir-profile-onb-root .nav-close {
@@ -465,13 +474,13 @@
 
 .dir-profile-onb-root .dir-wiz-social-add:not(:disabled):hover {
   border-color: var(--accent, #154226);
-  background: rgba(82, 183, 136, 0.08);
+  background: var(--accent-light);
 }
 
 .dir-profile-onb-root .form-label {
   display: block;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: 6px;
 }
@@ -483,11 +492,11 @@
 
 .dir-profile-onb-root .form-input {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
+  padding: var(--form-control-padding-y, 9px) var(--form-control-padding-x, 12px);
+  border-radius: var(--form-radius, 8px);
   border: 1.5px solid var(--border);
-  font-size: 14px;
-  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: var(--form-control-font-size, 13.5px);
+  font-family: var(--form-font, var(--font-dm-sans)), 'DM Sans', sans-serif;
   color: var(--text);
   outline: none;
   transition: all 0.15s;
@@ -496,12 +505,18 @@
 
 .dir-profile-onb-root select.form-input {
   cursor: pointer;
-  appearance: auto;
+  appearance: none;
+  padding-right: calc(var(--form-control-padding-x, 12px) + var(--form-select-icon-size, 14px) + var(--form-select-icon-gap, 12px));
+  background:
+    #fff
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")
+    no-repeat right var(--form-control-padding-x, 12px) center;
+  background-size: var(--form-select-icon-size, 14px) var(--form-select-icon-size, 14px);
 }
 
 .dir-profile-onb-root .form-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.08);
+  border-color: var(--wiz-accent);
+  box-shadow: 0 0 0 3px var(--wiz-accent-light);
 }
 
 .dir-profile-onb-root .form-input::placeholder {
@@ -509,26 +524,51 @@
 }
 
 .dir-profile-onb-root .form-icon-input {
-  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--form-radius, 8px);
+  border: 1.5px solid var(--border);
+  background: #fff;
+  overflow: hidden;
+  transition: all 0.15s;
 }
 
 .dir-profile-onb-root .form-icon-input i {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  flex: 0 0 44px;
   font-size: 16px;
   color: var(--text-light);
+  background: color-mix(in oklab, #fff 85%, var(--border, #dde9e9));
+  border-right: 1px solid var(--border);
 }
 
 .dir-profile-onb-root .form-icon-input input,
 .dir-profile-onb-root .form-icon-input textarea {
-  padding-left: 40px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none !important;
+  flex: 1;
+}
+
+.dir-profile-onb-root .form-icon-input:focus-within {
+  border-color: var(--wiz-accent);
+  box-shadow: 0 0 0 3px var(--wiz-accent-light);
+}
+
+.dir-profile-onb-root .form-icon-input:focus-within i {
+  color: var(--wiz-accent);
 }
 
 .dir-profile-onb-root textarea.form-input {
   resize: vertical;
-  min-height: 90px;
+  min-height: 96px;
 }
 
 /* Validierung: fehlende / ungültige Felder nach „Weiter“ */
@@ -1150,7 +1190,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #52b788;
+  background: var(--accent);
   color: #fff;
   opacity: 1;
   isolation: isolate;
@@ -1167,7 +1207,7 @@
 }
 
 .dir-profile-onb-root .wizard-map-embed .dlp-mapbox-pin--active {
-  background: #3d9e6e;
+  background: var(--accent-dark);
 }
 
 .dir-profile-onb-root .preview-tabs {
@@ -1383,7 +1423,7 @@
   margin-top: 12px;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(82, 183, 136, 0.05);
+  background: color-mix(in oklab, var(--accent-light) 65%, white);
   font-size: 12px;
   color: var(--accent);
   line-height: 1.5;
@@ -1402,7 +1442,7 @@
   position: static;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e5e2dc;
+  border-top: 1px solid var(--border);
   background: transparent;
   z-index: auto;
 }
@@ -1461,13 +1501,13 @@
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  background: #52b788;
+  background: var(--accent);
   color: #fff;
   transition: background 0.15s, opacity 0.15s;
 }
 
 .dir-profile-onb-root .step-footer-primary:hover:not(:disabled) {
-  background: #0f301b;
+  background: var(--accent-dark);
 }
 
 .dir-profile-onb-root .step-footer-primary:disabled {
@@ -1500,7 +1540,7 @@
 
 .dir-profile-onb-root .onb-btn-primary:hover {
   background: var(--accent-dark);
-  box-shadow: 0 4px 16px rgba(82, 183, 136, 0.2);
+  box-shadow: 0 4px 16px color-mix(in oklab, var(--accent) 30%, transparent);
 }
 
 .dir-profile-onb-root .onb-btn-ghost {

@@ -263,7 +263,7 @@ function Divider() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{label}</label>
+      <label>{label}</label>
       {children}
     </div>
   )
@@ -275,7 +275,7 @@ function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       style={{
         width: '100%', padding: '11px 13px', border: '1.5px solid #cdcdd0',
-        borderRadius: 10, background: '#faf9f7', fontSize: 15, fontFamily: 'inherit',
+        borderRadius: 10, background: '#faf9f7', fontSize: 13, fontWeight: 400, fontFamily: 'inherit',
         color: '#111', outline: 'none', WebkitAppearance: 'none', boxSizing: 'border-box',
       }}
     />

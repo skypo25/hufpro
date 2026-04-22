@@ -1,0 +1,534 @@
+/* ============================================================
+   AniDocs – Form Styles (token-aligned)
+   - Uses existing app tokens from `app/globals.css`:
+     --accent, --accent-light, --accent-dark, --border
+     --font-dm-sans
+   - Does not override :root brand palette; provides scoped form tokens.
+   ============================================================ */
+
+:root {
+  --form-accent: var(--accent, #006d6d);
+  --form-accent-soft: var(--accent-light, #edf5f5);
+  --form-accent-dark: var(--accent-dark, #015555);
+
+  --form-border: var(--border, #dde9e9);
+  --form-surface: var(--card, #ffffff);
+  --form-radius: 8px;
+  --form-control-padding-y: 9px;
+  --form-control-padding-x: 12px;
+  --form-control-font-size: 13.5px;
+  --form-select-icon-size: 14px;
+  --form-select-icon-gap: 12px;
+  --form-font: var(--font-dm-sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif);
+
+  --form-text: var(--foreground, #1b1f23);
+  --form-muted: var(--text-secondary, #6b7280);
+  --form-muted-2: var(--text-light, #9ca3af);
+
+  --form-success-soft: rgba(34, 140, 74, 0.10);
+  --form-warn-soft: rgba(168, 120, 0, 0.10);
+  --form-error-soft: rgba(176, 48, 48, 0.10);
+  --form-error: #b03030;
+  --form-error-strong: #8c2020;
+
+  --form-transition: all 0.15s ease;
+}
+
+/* ============================================================
+   1. FORM GROUP / LABEL / HELPER
+   ============================================================ */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--form-text) 78%, black);
+  font-family: var(--form-font);
+}
+
+.form-label--required::after {
+  content: '*';
+  color: var(--form-error);
+  margin-left: 3px;
+}
+
+.form-helper {
+  font-size: 12px;
+  color: var(--form-muted);
+  margin-top: 2px;
+}
+
+.form-error {
+  font-size: 12px;
+  color: var(--form-error);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   2. TEXT INPUT
+   ============================================================ */
+
+.input {
+  width: 100%;
+  padding: var(--form-control-padding-y) var(--form-control-padding-x);
+  border-radius: var(--form-radius);
+  border: 1.5px solid var(--form-border);
+  background: var(--form-surface);
+  font-size: var(--form-control-font-size);
+  font-family: var(--form-font);
+  color: var(--form-text);
+  outline: none;
+  transition: var(--form-transition);
+}
+
+.input::placeholder {
+  color: var(--form-muted-2);
+}
+
+.input:hover {
+  border-color: color-mix(in oklab, var(--form-border) 30%, var(--form-text));
+}
+
+.input:focus {
+  border-color: var(--form-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+.input:disabled {
+  background: color-mix(in oklab, var(--form-surface) 84%, var(--form-border));
+  color: var(--form-muted-2);
+  cursor: not-allowed;
+  border-color: var(--form-border);
+}
+
+.input.is-invalid {
+  border-color: color-mix(in oklab, var(--form-error) 72%, white);
+}
+
+.input.is-invalid:focus {
+  box-shadow: 0 0 0 3px var(--form-error-soft);
+}
+
+/* ── Input with prefix/suffix wrapper ─────────── */
+.input-wrap {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--form-radius);
+  border: 1.5px solid var(--form-border);
+  background: var(--form-surface);
+  overflow: hidden;
+  transition: var(--form-transition);
+}
+
+.input-wrap:focus-within {
+  border-color: var(--form-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+.input-wrap.is-invalid {
+  border-color: color-mix(in oklab, var(--form-error) 72%, white);
+}
+.input-wrap.is-invalid:focus-within {
+  box-shadow: 0 0 0 3px var(--form-error-soft);
+}
+
+.input-wrap .input {
+  border: none;
+  box-shadow: none !important;
+  flex: 1;
+}
+
+.input-wrap .input:focus {
+  box-shadow: none;
+}
+
+.input-prefix,
+.input-suffix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 13px;
+  color: var(--form-muted);
+  background: color-mix(in oklab, var(--form-surface) 85%, var(--form-border));
+  font-family: var(--form-font);
+}
+
+.input-prefix {
+  border-right: 1px solid var(--form-border);
+}
+.input-suffix {
+  border-left: 1px solid var(--form-border);
+}
+
+/* ── Textarea ─────────────────────────────────── */
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: var(--form-font);
+}
+
+/* ============================================================
+   3. SELECT
+   ============================================================ */
+
+.select {
+  width: 100%;
+  padding: var(--form-control-padding-y)
+    calc(var(--form-control-padding-x) + var(--form-select-icon-size) + var(--form-select-icon-gap))
+    var(--form-control-padding-y) var(--form-control-padding-x);
+  border-radius: var(--form-radius);
+  border: 1.5px solid var(--form-border);
+  background:
+    var(--form-surface)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")
+    no-repeat right var(--form-control-padding-x) center;
+  background-size: var(--form-select-icon-size) var(--form-select-icon-size);
+  font-size: var(--form-control-font-size);
+  font-family: var(--form-font);
+  color: var(--form-text);
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: var(--form-transition);
+}
+
+.select:hover {
+  border-color: color-mix(in oklab, var(--form-border) 30%, var(--form-text));
+}
+.select:focus {
+  border-color: var(--form-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+.select:disabled {
+  background-color: color-mix(in oklab, var(--form-surface) 84%, var(--form-border));
+  color: var(--form-muted-2);
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   4. CHECKBOX
+   ============================================================ */
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--form-font);
+}
+
+.checkbox input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox__box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid color-mix(in oklab, var(--form-muted-2) 55%, white);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--form-transition);
+}
+
+.checkbox__box::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>")
+    no-repeat center;
+  background-size: contain;
+  opacity: 0;
+  transition: opacity 0.13s;
+}
+
+.checkbox input:checked + .checkbox__box {
+  background: var(--form-accent);
+  border-color: var(--form-accent);
+}
+
+.checkbox input:checked + .checkbox__box::after {
+  opacity: 1;
+}
+
+.checkbox input:focus-visible + .checkbox__box {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+.checkbox__label {
+  font-size: 13.5px;
+  color: color-mix(in oklab, var(--form-text) 88%, black);
+}
+
+/* Indeterminate state: add class `is-indeterminate` on .checkbox__box */
+.checkbox__box.is-indeterminate {
+  background: var(--form-accent);
+  border-color: var(--form-accent);
+}
+.checkbox__box.is-indeterminate::after {
+  opacity: 1;
+  width: 8px;
+  height: 2px;
+  background: white;
+  border-radius: 1px;
+}
+
+/* ============================================================
+   5. RADIO
+   ============================================================ */
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--form-font);
+}
+
+.radio input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio__dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in oklab, var(--form-muted-2) 55%, white);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--form-transition);
+}
+
+.radio__dot::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--form-accent);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.15s;
+}
+
+.radio input:checked + .radio__dot {
+  border-color: var(--form-accent);
+}
+.radio input:checked + .radio__dot::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.radio input:focus-visible + .radio__dot {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+.radio__label {
+  font-size: 13.5px;
+  color: color-mix(in oklab, var(--form-text) 88%, black);
+}
+
+/* ============================================================
+   6. TOGGLE / SWITCH
+   ============================================================ */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--form-font);
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle__track {
+  width: 42px;
+  height: 26px;
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--form-border) 55%, var(--form-muted-2));
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s;
+}
+
+.toggle__thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s;
+}
+
+.toggle input:checked + .toggle__track {
+  background: var(--form-accent);
+}
+
+.toggle input:checked + .toggle__track .toggle__thumb {
+  transform: translateX(16px);
+}
+
+.toggle input:focus-visible + .toggle__track {
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+/* Small variant: add class `toggle--sm` */
+.toggle--sm .toggle__track {
+  width: 34px;
+  height: 20px;
+  padding: 3px;
+}
+.toggle--sm .toggle__thumb {
+  width: 14px;
+  height: 14px;
+}
+.toggle--sm input:checked + .toggle__track .toggle__thumb {
+  transform: translateX(14px);
+}
+
+.toggle__label {
+  font-size: 13.5px;
+  color: color-mix(in oklab, var(--form-text) 88%, black);
+}
+
+/* ============================================================
+   8. TIME PICKER (custom component)
+   ============================================================ */
+
+.ad-timepicker-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: var(--form-radius);
+  border: 1.5px solid var(--form-border);
+  background: var(--form-surface);
+  padding: var(--form-control-padding-y) var(--form-control-padding-x);
+  font-family: var(--form-font);
+  font-size: var(--form-control-font-size);
+  color: var(--form-text);
+  cursor: pointer;
+  transition: var(--form-transition);
+  text-align: left;
+}
+
+.ad-timepicker-btn:hover {
+  border-color: color-mix(in oklab, var(--form-border) 30%, var(--form-text));
+}
+
+.ad-timepicker-btn:focus-visible {
+  outline: none;
+  border-color: var(--form-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--form-accent-soft) 70%, white);
+}
+
+.ad-timepicker-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ad-timepicker-icon {
+  color: var(--form-muted-2);
+  flex: 0 0 auto;
+}
+
+.ad-timepicker-popover {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  border-radius: 12px;
+  border: 1.5px solid var(--form-border);
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.ad-timepicker-col {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.ad-timepicker-col + .ad-timepicker-col {
+  border-left: 1px solid var(--form-border);
+}
+
+.ad-timepicker-opt {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: var(--form-control-font-size);
+  font-weight: 600;
+  transition: var(--form-transition);
+  color: var(--form-text);
+  background: transparent;
+  border: 0;
+}
+
+.ad-timepicker-opt:hover {
+  background: color-mix(in oklab, var(--form-accent-soft) 55%, white);
+}
+
+.ad-timepicker-opt[aria-selected='true'] {
+  background: var(--form-accent);
+  color: #fff;
+}
+
+/* ============================================================
+   7. LAYOUT HELPERS
+   ============================================================ */
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-row--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+

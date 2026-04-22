@@ -37,7 +37,7 @@ export default function AgbPage() {
       </p>
 
       <p style={{ marginTop: 24 }}>
-        <Link href="/login" style={{ color: '#52b788', fontWeight: 500 }}>← Zurück zur Anmeldung</Link>
+        <Link href="/login" style={{ color: '#006d6d', fontWeight: 500 }}>← Zurück zur Anmeldung</Link>
       </p>
     </div>
   )

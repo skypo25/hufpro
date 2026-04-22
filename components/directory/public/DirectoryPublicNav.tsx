@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -42,10 +43,14 @@ export function DirectoryPublicNav({ listingHome = false }: { listingHome?: bool
       <nav aria-label="Hauptnavigation">
         <div className="nav-inner">
           <Link href="/behandler" className="nav-logo">
-            <div className="sq" aria-hidden>
-              a
-            </div>
-            <span>anidocs</span>
+            <Image
+              src="/logo.svg"
+              alt="anidocs"
+              width={140}
+              height={44}
+              className="nav-logo-img"
+              priority
+            />
           </Link>
           {isProfilePage ? (
             <Link href={listingBackHref} className="nav-profile-back">
@@ -98,10 +103,14 @@ export function DirectoryPublicNav({ listingHome = false }: { listingHome?: bool
         <div className="mm-panel" onClick={(e) => e.stopPropagation()}>
           <div className="mm-header">
             <Link href="/behandler" className="nav-logo" onClick={closeMenu}>
-              <div className="sq" aria-hidden>
-                a
-              </div>
-              <span>anidocs</span>
+              <Image
+                src="/logo.svg"
+                alt="anidocs"
+                width={140}
+                height={44}
+                className="nav-logo-img"
+                priority
+              />
             </Link>
             <button type="button" className="mm-close" aria-label="Menü schließen" onClick={closeMenu}>
               <i className="bi bi-x-lg" aria-hidden />

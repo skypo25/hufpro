@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { showCustomerIntervalWeeksPreference } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import { reserveNextCustomerNumber } from '@/app/(app)/customers/actions'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
+import { PREFERRED_CONTACT_OPTIONS } from '@/components/customers/customerFormDefaults'
 
 const COUNTRIES = ['Deutschland', 'Österreich', 'Schweiz']
 const DAY_OPTIONS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
-const PREFERRED_CONTACT = ['Telefon / Anruf', 'WhatsApp', 'SMS', 'E-Mail', 'Signal / Telegram']
 const PREFERRED_TIME = ['Keine Präferenz', 'Vormittags (8–12 Uhr)', 'Nachmittags (12–17 Uhr)', 'Flexibel']
 const INTERVAL_WEEKS = ['4 Wochen', '5 Wochen', '6 Wochen', '7 Wochen', '8 Wochen', 'Individuell']
 const REMINDER_TIMING = ['1 Tag vorher', '3 Tage vorher', '1 Woche vorher', 'Keine Erinnerung']
@@ -27,6 +29,8 @@ const HORSE_SHOEING = ['Barhuf', 'Eisen vorne', 'Eisen hinten', 'Komplett beschl
 
 export default function MobileCustomerForm() {
   const router = useRouter()
+  const { profile } = useAppProfile()
+  const showIntervalWeeksField = showCustomerIntervalWeeksPreference(profile)
   const [saving, setSaving] = useState(false)
   const [errorFields, setErrorFields] = useState<string[]>([])
   const [dbError, setDbError] = useState('')
@@ -156,7 +160,7 @@ export default function MobileCustomerForm() {
         vat_id: vatId.trim() || null,
         preferred_days: preferredDays.length > 0 ? preferredDays : null,
         preferred_time: preferredTime || null,
-        interval_weeks: intervalWeeks || null,
+        interval_weeks: showIntervalWeeksField ? intervalWeeks || null : null,
         reminder_timing: reminderTiming || null,
         notes: notes.trim() || null,
         source: source.trim() || null,
@@ -296,7 +300,11 @@ export default function MobileCustomerForm() {
             <div className="mhf-f-group">
               <label className="mhf-f-label">Bevorzugter Kontaktweg</label>
               <select value={preferredContact} onChange={(e) => setPreferredContact(e.target.value)} className="mhf-f-select">
-                {PREFERRED_CONTACT.map((c) => <option key={c} value={c}>{c}</option>)}
+                {PREFERRED_CONTACT_OPTIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -390,16 +398,26 @@ export default function MobileCustomerForm() {
               </select>
             </div>
             <div className="mhf-f-row">
-              <div className="mhf-f-group">
-                <label className="mhf-f-label">Bearbeitungsintervall</label>
-                <select value={intervalWeeks} onChange={(e) => setIntervalWeeks(e.target.value)} className="mhf-f-select">
-                  {INTERVAL_WEEKS.map((i) => <option key={i} value={i}>{i}</option>)}
-                </select>
-              </div>
+              {showIntervalWeeksField ? (
+                <div className="mhf-f-group">
+                  <label className="mhf-f-label">Bearbeitungsintervall</label>
+                  <select value={intervalWeeks} onChange={(e) => setIntervalWeeks(e.target.value)} className="mhf-f-select">
+                    {INTERVAL_WEEKS.map((i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
               <div className="mhf-f-group">
                 <label className="mhf-f-label">Erinnerung senden</label>
                 <select value={reminderTiming} onChange={(e) => setReminderTiming(e.target.value)} className="mhf-f-select">
-                  {REMINDER_TIMING.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {REMINDER_TIMING.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

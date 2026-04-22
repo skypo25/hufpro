@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 5,
-    backgroundColor: "#52b788",
+    backgroundColor: "#006d6d",
   },
   header: {
     marginTop: 8,
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 12,
-    backgroundColor: "#edf3ef",
+    backgroundColor: "#edf5f5",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontFamily: "Helvetica-Bold",
     fontSize: 16,
-    color: "#0f301b",
+    color: "#015555",
   },
   companyName: {
     fontSize: 14,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 700,
-    color: "#52b788",
+    color: "#006d6d",
   },
   invNr: {
     fontSize: 10,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E2DC",
+    borderBottomColor: "#eff5f5",
     paddingVertical: 10,
     paddingHorizontal: 12,
     backgroundColor: "rgba(0,0,0,0.02)",
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E2DC",
+    borderBottomColor: "#eff5f5",
     paddingVertical: 12,
     paddingHorizontal: 12,
     alignItems: "center",
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   tdLeistung: { flex: 1, fontWeight: 700, color: "#1B1F23", fontSize: 11 },
   tdAnzahl: { width: 50, textAlign: "center", color: "#374151", fontSize: 11 },
   tdEinzel: { width: 75, textAlign: "right", fontSize: 11 },
-  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: "#52b788", fontSize: 11 },
+  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: "#006d6d", fontSize: 11 },
   summaryWrap: {
     alignItems: "flex-end",
     marginBottom: 16,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   summaryTotalAmount: {
-    color: "#52b788",
+    color: "#006d6d",
     fontSize: 14,
   },
   taxNotice: {
@@ -184,19 +184,19 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: "#52b788",
+    borderColor: "#006d6d",
     alignItems: "center",
     justifyContent: "center",
   },
   taxNoticeIconText: {
     fontSize: 10,
     fontWeight: 700,
-    color: "#52b788",
+    color: "#006d6d",
   },
   taxNoticeText: {
     flex: 1,
     fontSize: 10,
-    color: "#0f301b",
+    color: "#015555",
     lineHeight: 1.4,
   },
   paymentBox: {
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
     borderTopWidth: 1,
-    borderTopColor: "#E5E2DC",
+    borderTopColor: "#eff5f5",
     paddingTop: 12,
     fontSize: 8,
     color: "#9CA3AF",
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   footerAniDocs: {
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
-    color: "#52b788",
+    color: "#006d6d",
   },
 })
 

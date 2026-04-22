@@ -61,7 +61,7 @@ function MobileUmsatzBars({ monthlyCents, totalCents }: MobileUmsatzBarsProps) {
                 transitionDelay: `${i * 45}ms`,
               }}
             />
-            <div className="uc-month" style={i === currentMonth ? { color: '#52b788', fontWeight: 600 } : undefined}>{month}</div>
+            <div className="uc-month" style={i === currentMonth ? { color: '#006d6d', fontWeight: 600 } : undefined}>{month}</div>
           </div>
         )
       })}

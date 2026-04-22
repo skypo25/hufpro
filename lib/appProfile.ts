@@ -48,6 +48,8 @@ const ANIMAL_FOCUS: readonly AnimalFocus[] = [
 export type ClinicalIntakeBlockId = 'anamnesis' | 'locomotion' | 'history'
 
 export type AppProfile = {
+  /** Alle ausgewählten Fachrichtungen (Onboarding Multi-Select). */
+  professions: Profession[]
   profession: Profession
   animalFocus: AnimalFocus
   terminology: Terminology
@@ -63,9 +65,22 @@ export type AppProfile = {
 const DEFAULT_PROFESSION: Profession = 'hufbearbeiter'
 const DEFAULT_ANIMAL_FOCUS: AnimalFocus = 'nur_pferde'
 
-function normalizeProfession(value: unknown): Profession {
-  if (typeof value !== 'string') return DEFAULT_PROFESSION
-  return PROFESSIONS.includes(value as Profession) ? (value as Profession) : DEFAULT_PROFESSION
+function normalizeProfession(value: unknown): Profession | null {
+  if (typeof value !== 'string') return null
+  return PROFESSIONS.includes(value as Profession) ? (value as Profession) : null
+}
+
+function normalizeProfessions(value: unknown): Profession[] {
+  if (Array.isArray(value)) {
+    const out: Profession[] = []
+    for (const v of value) {
+      const p = normalizeProfession(v)
+      if (p && !out.includes(p)) out.push(p)
+    }
+    return out.length > 0 ? out : [DEFAULT_PROFESSION]
+  }
+  const single = normalizeProfession(value)
+  return [single ?? DEFAULT_PROFESSION]
 }
 
 function normalizeAnimalFocus(value: unknown): AnimalFocus {
@@ -81,9 +96,10 @@ export function deriveAppProfile(
   profession: unknown,
   animalFocus: unknown
 ): AppProfile {
-  const p = normalizeProfession(profession)
+  const professions = normalizeProfessions(profession)
+  const p = professions[0] ?? DEFAULT_PROFESSION
   const a = normalizeAnimalFocus(animalFocus)
-  const isHufbearbeiter = p === 'hufbearbeiter'
+  const isHufbearbeiter = professions.includes('hufbearbeiter')
 
   // Hufbearbeiter: immer Pferd-Terminologie und Huf-Dokumentation (wie bisherige App)
   const terminology: Terminology = isHufbearbeiter
@@ -111,6 +127,7 @@ export function deriveAppProfile(
     (a === 'pferde_und_kleintiere' || a === 'alle_tiere' || a === 'sonstiges')
 
   return {
+    professions,
     profession: p,
     animalFocus: a,
     terminology,
@@ -130,6 +147,14 @@ export function deriveAppProfile(
 export function deriveClinicalIntakeBlocks(profile: AppProfile): ClinicalIntakeBlockId[] {
   if (profile.isHufbearbeiter) return []
   return ['anamnesis', 'locomotion', 'history']
+}
+
+/**
+ * Kundenformular: Pferd-/Huf-spezifische Bereiche (Bearbeitungsintervall, „Erstes Pferd mit anlegen“).
+ * Bei Tier-Terminologie (`terminology === 'tier'`) ausblenden; `interval_weeks` dann beim Speichern null.
+ */
+export function showCustomerHorseSpecificFields(profile: AppProfile): boolean {
+  return profile.terminology === 'pferd'
 }
 
 // ─── UI-Labels (Terminologie) — zentral, für Navigation & Pferde-/Tier-Listen ───

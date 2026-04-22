@@ -12,7 +12,7 @@
   gap: 6px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #52b788;
+  color: #006d6d;
   text-decoration: none;
   margin-bottom: 20px;
 }
@@ -56,7 +56,7 @@
   content: '✓';
   position: absolute;
   left: 0;
-  color: #52b788;
+  color: #006d6d;
   font-weight: 700;
 }
 
@@ -95,7 +95,7 @@
 .dir-app-start-links a {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #52b788;
+  color: #006d6d;
   text-decoration: none;
 }
 
@@ -138,13 +138,13 @@
 }
 
 .dir-app-start-cta--accent {
-  background: #52b788;
+  background: #006d6d;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(82, 183, 136, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 109, 109, 0.3);
 }
 
 .dir-app-start-cta--accent:hover:not(:disabled) {
-  background: #449e76;
+  background: #015555;
 }
 
 .dir-app-start-cta-hint {
@@ -172,7 +172,7 @@
 .dir-app-start-link-login {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #52b788;
+  color: #006d6d;
   text-decoration: none;
 }
 

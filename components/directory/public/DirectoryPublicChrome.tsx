@@ -69,7 +69,7 @@ function DirectoryPublicChromeInner({ children }: { children: React.ReactNode })
         <div className="dir-sf-inner">
           <div className="dir-sf-logo">
             <Image
-              src="/logo-white.svg"
+              src="/logo.svg"
               alt="anidocs"
               width={120}
               height={40}

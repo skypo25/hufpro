@@ -108,7 +108,7 @@ export default function DataExportButton({
             <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg bg-[#52b788] px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
+                className="rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-60"
                 onClick={close}
                 disabled={busy}
               >

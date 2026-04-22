@@ -81,7 +81,7 @@ export function statusBadgeForBucket(bucket: AdminBillingBucket): {
       return {
         label: 'Aktiv',
         icon: 'bi-circle-fill',
-        className: 'bg-[rgba(82,183,136,.08)] text-[#52b788]',
+        className: 'bg-[rgba(0,109,109,.08)] text-[#006d6d]',
       }
     case 'trialing':
     case 'trial':
@@ -120,14 +120,14 @@ export function statusBadgeForBucket(bucket: AdminBillingBucket): {
 
 export function professionBadgeClass(prof: string): string {
   const p = prof.toLowerCase()
-  if (p.includes('huf')) return 'bg-[rgba(82,183,136,.08)] text-[#52b788]'
+  if (p.includes('huf')) return 'bg-[rgba(0,109,109,.08)] text-[#006d6d]'
   if (p.includes('physio')) return 'bg-[rgba(59,130,246,.08)] text-[#3B82F6]'
   if (p.includes('osteo')) return 'bg-[rgba(139,92,246,.08)] text-[#8B5CF6]'
   if (p.includes('heil') || p.includes('tierheil')) return 'bg-[rgba(249,115,22,.08)] text-[#F97316]'
   return 'bg-[rgba(107,114,128,.08)] text-[#6B7280]'
 }
 
-const AVATAR_HUES = ['#52b788', '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
+const AVATAR_HUES = ['#006d6d', '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
 
 export function avatarColorForUserId(id: string): string {
   let h = 0

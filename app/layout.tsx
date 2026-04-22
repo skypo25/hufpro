@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from 'next'
 import '@fontsource-variable/dm-sans/wght.css'
 import '@fontsource-variable/outfit/wght.css'
 import './globals.css'
+import './form-styles.css'
 /* Direkt importieren: verschachteltes @import nach tailwindcss wird sonst oft nicht gebündelt → /behandler wirkt „ohne CSS“. */
 import './behandler-verzeichnis.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import { CookieConsentLayer } from '@/components/consent/CookieConsentLayer'
+import { CookieConsentLayerGate } from '@/components/consent/CookieConsentLayerGate'
 import Preloader from '@/components/Preloader'
 import RouteLoader from '@/components/RouteLoader'
 import { ConsentProvider } from '@/lib/consent/ConsentProvider'
@@ -68,7 +69,7 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html,body{background:#f7f7f7;color:#1c1c1c;margin:0;min-height:100%}
+              html,body{background:#f8f8f8;color:#1c1c1c;margin:0;min-height:100%}
               @media (prefers-color-scheme: dark){
                 html,body{background:#111315;color:#f1f2f0}
               }
@@ -79,7 +80,7 @@ export default function RootLayout({
       </head>
       <body>
         <ConsentProvider>
-          <CookieConsentLayer />
+          <CookieConsentLayerGate />
           <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
             <Preloader />
             <RouteLoader />

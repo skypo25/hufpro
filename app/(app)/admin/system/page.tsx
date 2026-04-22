@@ -40,15 +40,15 @@ export default async function AdminSystemPage(props: {
       </div>
 
       {sp.saved === 'smtp' ? (
-        <div className="rounded-xl border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-4 py-3 text-[13px] text-[#154227]">
+        <div className="rounded-xl border border-[rgba(0,109,109,.25)] bg-[rgba(0,109,109,.06)] px-4 py-3 text-[13px] text-[#015555]">
           <strong className="font-semibold">Gespeichert.</strong> System SMTP wurde aktualisiert.
         </div>
       ) : sp.saved === 'smtp_test' ? (
-        <div className="rounded-xl border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-4 py-3 text-[13px] text-[#154227]">
+        <div className="rounded-xl border border-[rgba(0,109,109,.25)] bg-[rgba(0,109,109,.06)] px-4 py-3 text-[13px] text-[#015555]">
           <strong className="font-semibold">OK.</strong> Test-E-Mail wurde versendet.
         </div>
       ) : sp.saved === 'retention' ? (
-        <div className="rounded-xl border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-4 py-3 text-[13px] text-[#154227]">
+        <div className="rounded-xl border border-[rgba(0,109,109,.25)] bg-[rgba(0,109,109,.06)] px-4 py-3 text-[13px] text-[#015555]">
           <strong className="font-semibold">Gespeichert.</strong> Aufbewahrungsdauer für Datenexporte wurde aktualisiert.
         </div>
       ) : null}
@@ -67,7 +67,7 @@ export default async function AdminSystemPage(props: {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className={adminCardClass}>
           <div className={adminSectionHeaderClass}>
-            <i className="bi bi-heart-pulse text-[15px] text-[#52b788]" aria-hidden />
+            <i className="bi bi-heart-pulse text-[15px] text-[#006d6d]" aria-hidden />
             <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
               App & Datenhaltung
             </h2>
@@ -142,15 +142,15 @@ export default async function AdminSystemPage(props: {
           <form action={saveSystemSmtp} className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">Host</span>
-              <input name="host" defaultValue={smtpRow?.host ?? ''} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]" required />
+              <input name="host" defaultValue={smtpRow?.host ?? ''} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]" required />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">Port</span>
-              <input name="port" type="number" defaultValue={smtpRow?.port ?? 587} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]" required />
+              <input name="port" type="number" defaultValue={smtpRow?.port ?? 587} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]" required />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">User</span>
-              <input name="user" defaultValue={smtpRow?.smtp_user ?? ''} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]" required />
+              <input name="user" defaultValue={smtpRow?.smtp_user ?? ''} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]" required />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">Passwort</span>
@@ -158,27 +158,27 @@ export default async function AdminSystemPage(props: {
                 name="password"
                 type="password"
                 placeholder={smtpRow?.password ? '•••••••• (gespeichert)' : 'SMTP Passwort'}
-                className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]"
+                className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]"
               />
               <span className="mt-1 text-[11px] text-[#9CA3AF]">Leer lassen, um das bestehende Passwort beizubehalten.</span>
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">Secure</span>
-              <select name="secure" defaultValue={(smtpRow?.secure ?? false) ? 'true' : 'false'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]">
+              <select name="secure" defaultValue={(smtpRow?.secure ?? false) ? 'true' : 'false'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]">
                 <option value="false">STARTTLS (587)</option>
                 <option value="true">TLS (465)</option>
               </select>
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">From E-Mail</span>
-              <input name="from_email" defaultValue={smtpRow?.from_email ?? 'noreply@anidocs.de'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]" />
+              <input name="from_email" defaultValue={smtpRow?.from_email ?? 'noreply@anidocs.de'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]" />
             </label>
             <label className="flex flex-col gap-1 md:col-span-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">From Name</span>
-              <input name="from_name" defaultValue={smtpRow?.from_name ?? 'AniDocs'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]" />
+              <input name="from_name" defaultValue={smtpRow?.from_name ?? 'AniDocs'} className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]" />
             </label>
             <div className="md:col-span-2">
-              <button type="submit" className="inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#0f301b]">
+              <button type="submit" className="inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#015555]">
                 <i className="bi bi-check-lg" aria-hidden />
                 SMTP speichern
               </button>
@@ -192,7 +192,7 @@ export default async function AdminSystemPage(props: {
                 <input
                   name="to"
                   placeholder="(leer = an Admin E-Mail)"
-                  className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]"
+                  className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]"
                 />
               </label>
               <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#1B1F23] hover:border-[#2563EB] hover:bg-[#EFF6FF]">
@@ -206,7 +206,7 @@ export default async function AdminSystemPage(props: {
 
       <div className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
-          <i className="bi bi-archive text-[15px] text-[#52b788]" aria-hidden />
+          <i className="bi bi-archive text-[15px] text-[#006d6d]" aria-hidden />
           <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
             Datenexport (Aufbewahrung)
           </h2>
@@ -233,13 +233,13 @@ export default async function AdminSystemPage(props: {
                 min={1}
                 max={365}
                 defaultValue={(systemSettingsRow as { data_export_retention_days?: number } | null)?.data_export_retention_days ?? 14}
-                className="w-28 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#52b788]"
+                className="w-28 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#006d6d]"
                 required
               />
             </label>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#0f301b]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#015555]"
             >
               <i className="bi bi-check-lg" aria-hidden />
               Speichern
@@ -269,7 +269,7 @@ export default async function AdminSystemPage(props: {
             <strong className="font-semibold text-[#1B1F23]">Service-Role-Key</strong> und laufen nur auf dem Server.
           </p>
           <p>
-            <Link href="/admin" className="font-semibold text-[#52b788] hover:underline">
+            <Link href="/admin" className="font-semibold text-[#006d6d] hover:underline">
               Zum Dashboard
             </Link>
           </p>
@@ -283,11 +283,11 @@ function StatusRow(props: { label: string; status: string; ok: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <span
-        className={`h-2.5 w-2.5 shrink-0 rounded-full ${props.ok ? 'bg-[#52b788]' : 'bg-[#F97316]'}`}
+        className={`h-2.5 w-2.5 shrink-0 rounded-full ${props.ok ? 'bg-[#006d6d]' : 'bg-[#F97316]'}`}
         aria-hidden
       />
       <span className="flex-1 font-medium text-[#1B1F23]">{props.label}</span>
-      <span className={`text-[12px] font-semibold ${props.ok ? 'text-[#52b788]' : 'text-[#F97316]'}`}>
+      <span className={`text-[12px] font-semibold ${props.ok ? 'text-[#006d6d]' : 'text-[#F97316]'}`}>
         {props.status}
       </span>
     </div>

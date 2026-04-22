@@ -33,6 +33,8 @@ type TimePickerProps = {
   disabled?: boolean
 }
 
+const MIN_DROPDOWN_WIDTH = 240
+
 export default function TimePicker({
   value,
   onChange,
@@ -96,10 +98,11 @@ export default function TimePicker({
     const btn = buttonRef.current
     if (btn) {
       const rect = btn.getBoundingClientRect()
+      const width = Math.max(MIN_DROPDOWN_WIDTH, rect.width)
       setDropdownPosition({
         top: rect.bottom + 4,
         left: rect.left,
-        width: rect.width,
+        width,
       })
     }
   }, [open])
@@ -143,9 +146,12 @@ export default function TimePicker({
         id={id}
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`flex w-full items-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-left text-[14px] text-[#1B1F23] outline-none transition focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/20 disabled:opacity-50 ${className}`}
+        className={`ad-timepicker-btn ${className}`}
       >
         <span className={value ? '' : 'text-[#9CA3AF]'}>{display || placeholder}</span>
+        <span className="ad-timepicker-icon" aria-hidden>
+          <i className="bi bi-clock" />
+        </span>
       </button>
 
       {open &&
@@ -154,7 +160,7 @@ export default function TimePicker({
         createPortal(
           <div
             id="time-picker-portal"
-            className="fixed z-[100] flex rounded-xl border border-[#E5E2DC] bg-white shadow-lg"
+            className="ad-timepicker-popover"
             style={{
               top: dropdownPosition.top,
               left: dropdownPosition.left,
@@ -164,7 +170,7 @@ export default function TimePicker({
           >
             <div
               ref={hourListRef}
-              className="flex-1 overflow-y-auto rounded-l-xl px-1 py-1"
+              className="ad-timepicker-col"
               style={{ maxHeight: DROPDOWN_HEIGHT }}
             >
               {HOURS.map((h) => (
@@ -177,9 +183,7 @@ export default function TimePicker({
                     setHour(h)
                     commit(h, minute)
                   }}
-                  className={`flex w-full items-center justify-center rounded-lg text-[14px] font-medium transition ${
-                    h === hour ? 'bg-[#52b788] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
-                  }`}
+                  className="ad-timepicker-opt"
                   style={{ height: ROW_HEIGHT, minHeight: ROW_HEIGHT }}
                 >
                   {h}
@@ -188,7 +192,7 @@ export default function TimePicker({
             </div>
             <div
               ref={minuteListRef}
-              className="flex-1 overflow-y-auto border-l border-[#E5E2DC] rounded-r-xl px-1 py-1"
+              className="ad-timepicker-col"
               style={{ maxHeight: DROPDOWN_HEIGHT }}
             >
               {MINUTES.map((m) => (
@@ -201,9 +205,7 @@ export default function TimePicker({
                     setMinute(m)
                     commit(hour, m)
                   }}
-                  className={`flex w-full items-center justify-center rounded-lg text-[14px] font-medium transition ${
-                    m === minute ? 'bg-[#52b788] text-white' : 'text-[#1B1F23] hover:bg-[#edf3ef]'
-                  }`}
+                  className="ad-timepicker-opt"
                   style={{ height: ROW_HEIGHT, minHeight: ROW_HEIGHT }}
                 >
                   {m}

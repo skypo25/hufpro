@@ -72,7 +72,7 @@ export default function AppointmentSidebar({
                   <div className="min-w-[45px] text-[12px] font-semibold text-[#6B7280]">
                     {item.time}
                   </div>
-                  <div className="mt-1 h-7 w-[3px] rounded-full bg-[#52b788]" />
+                <div className="mt-1 h-7 w-[3px] rounded-full bg-[#006d6d]" />
                   <div className="min-w-0">
                     <div className="truncate text-[13px] font-medium text-[#1B1F23]">
                       {item.customerName}
@@ -105,7 +105,7 @@ export default function AppointmentSidebar({
               <span className="shrink-0 text-[#6B7280]">Telefon</span>
               <a
                 href={`tel:${selectedCustomer.phone.replace(/\s/g, '')}`}
-                className="max-w-[180px] text-right font-medium text-[#52b788] hover:underline"
+                className="max-w-[180px] text-right font-medium text-[#006d6d] hover:underline"
               >
                 {selectedCustomer.phone}
               </a>
@@ -149,7 +149,7 @@ export default function AppointmentSidebar({
           ) : null}
           <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Pferd(e)</span>
-            <span className="max-w-[180px] text-right font-medium text-[#52b788]">
+            <span className="max-w-[180px] text-right font-medium text-[#006d6d]">
               {selectedHorses.length > 0
                 ? selectedHorses.map((horse) => horse.name || '-').join(', ')
                 : '-'}

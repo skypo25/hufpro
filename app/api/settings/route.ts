@@ -3,7 +3,7 @@ import { requireUserSession } from '@/lib/auth/requireUserSession.server'
 
 /** Allowlist für Einstellungs-Keys – nur diese werden akzeptiert (Sicherheitshärtung). */
 const ALLOWED_SETTINGS_KEYS = new Set([
-  'salutation', 'firstName', 'lastName', 'jobTitle', 'qualification', 'phone', 'email', 'website', 'socialMedia',
+  'salutation', 'firstName', 'lastName', 'qualification', 'phone', 'email', 'website', 'socialMedia',
   'companyName', 'legalForm', 'street', 'city', 'zip', 'country',
   'taxNumber', 'taxOffice', 'kleinunternehmer', 'kleinunternehmerText', 'ustId', 'defaultTaxRate',
   'accountHolder', 'bank', 'iban', 'bic', 'paypal', 'paymentTerms',

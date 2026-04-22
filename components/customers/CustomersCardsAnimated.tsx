@@ -64,12 +64,12 @@ export default function CustomersCardsAnimated({
           <Link
             key={row.customer.id}
             href={`/customers/${row.customer.id}`}
-            className="huf-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 hover:-translate-y-[2px] hover:border-[#52b788] hover:shadow-md"
+            className="huf-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 hover:-translate-y-[2px] hover:border-[#006d6d] hover:shadow-md"
             style={{ transitionDelay: `${index * 60}ms` }}
           >
             <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-5">
               <div
-                className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#154227] text-[12px] font-semibold text-white"
+                className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#006d6d] text-[12px] font-semibold text-white"
               >
                 {getInitials(row.customer.name)}
               </div>
@@ -84,7 +84,7 @@ export default function CustomersCardsAnimated({
                 </div>
               </div>
 
-              <div className="rounded-lg bg-[#edf3ef] px-3 py-1 text-[12px] font-semibold text-[#0f301b]">
+              <div className="rounded-lg bg-[#edf5f5] px-3 py-1 text-[12px] font-semibold text-[#015555]">
                 {row.animalsSummary}
               </div>
             </div>
@@ -120,7 +120,7 @@ export default function CustomersCardsAnimated({
                   ? row.horseNames.join(' · ')
                   : 'Keine Tiere'}
               </span>
-              <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#52b788]">
+              <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-[#006d6d]">
                 Details →
               </span>
             </div>

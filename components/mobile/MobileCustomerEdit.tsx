@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { showCustomerIntervalWeeksPreference } from '@/lib/appProfile'
 import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { formatCustomerNumber } from '@/lib/format'
@@ -58,6 +60,8 @@ type HorseRow = {
 
 export default function MobileCustomerEdit({ customerId }: { customerId: string }) {
   const router = useRouter()
+  const { profile } = useAppProfile()
+  const showIntervalWeeksField = showCustomerIntervalWeeksPreference(profile)
   const [form, setForm] = useState<FormData>(EMPTY)
   const [customerNumber, setCustomerNumber] = useState<number | null>(null)
   const [horses, setHorses] = useState<HorseRow[]>([])
@@ -177,7 +181,10 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
       drive_time: form.driveTime.trim() || null,
       preferred_days: form.preferredDays.length ? form.preferredDays : null,
       preferred_time: form.preferredTime || null,
-      interval_weeks: form.intervalWeeks ? parseInt(form.intervalWeeks) : null,
+      interval_weeks:
+        showIntervalWeeksField && form.intervalWeeks
+          ? parseInt(form.intervalWeeks, 10)
+          : null,
       reminder_timing: form.reminderTiming || null,
       notes: form.notes.trim() || null, source: form.source || null,
     }).eq('id', customerId).eq('user_id', user.id)
@@ -201,7 +208,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: '#f7f7f7' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', background: '#f8f8f8' }}>
         <div style={{ fontSize: 14, color: '#9ca3af' }}>Lade Kundendaten…</div>
       </div>
     )
@@ -484,22 +491,55 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
             <FHint>An welchen Wochentagen ist der Kunde am liebsten verfügbar?</FHint>
           </FGroup>
 
-          <FRow>
+          {showIntervalWeeksField ? (
+            <FRow>
+              <FGroup>
+                <FLabel>Bevorzugte Uhrzeit</FLabel>
+                <FSelect
+                  value={form.preferredTime}
+                  onChange={(v) => set('preferredTime', v)}
+                  options={[
+                    '',
+                    'Früh (7–10 Uhr)',
+                    'Vormittag (10–12 Uhr)',
+                    'Mittag (12–14 Uhr)',
+                    'Nachmittag (14–17 Uhr)',
+                    'Abend (17–19 Uhr)',
+                    'Flexibel',
+                  ]}
+                  placeholder="Bitte wählen"
+                />
+              </FGroup>
+              <FGroup>
+                <FLabel>Bearbeitungsintervall</FLabel>
+                <FSelect
+                  value={form.intervalWeeks}
+                  onChange={(v) => set('intervalWeeks', v)}
+                  options={['', '4', '5', '6', '7', '8', '10', '12']}
+                  placeholder="Bitte wählen"
+                  renderLabel={(v) => (v ? `${v} Wochen` : 'Bitte wählen')}
+                />
+              </FGroup>
+            </FRow>
+          ) : (
             <FGroup>
               <FLabel>Bevorzugte Uhrzeit</FLabel>
-              <FSelect value={form.preferredTime} onChange={v => set('preferredTime', v)}
-                options={['', 'Früh (7–10 Uhr)', 'Vormittag (10–12 Uhr)', 'Mittag (12–14 Uhr)', 'Nachmittag (14–17 Uhr)', 'Abend (17–19 Uhr)', 'Flexibel']}
-                placeholder="Bitte wählen" />
-            </FGroup>
-            <FGroup>
-              <FLabel>Bearbeitungsintervall</FLabel>
-              <FSelect value={form.intervalWeeks} onChange={v => set('intervalWeeks', v)}
-                options={['', '4', '5', '6', '7', '8', '10', '12']}
+              <FSelect
+                value={form.preferredTime}
+                onChange={(v) => set('preferredTime', v)}
+                options={[
+                  '',
+                  'Früh (7–10 Uhr)',
+                  'Vormittag (10–12 Uhr)',
+                  'Mittag (12–14 Uhr)',
+                  'Nachmittag (14–17 Uhr)',
+                  'Abend (17–19 Uhr)',
+                  'Flexibel',
+                ]}
                 placeholder="Bitte wählen"
-                renderLabel={v => v ? `${v} Wochen` : 'Bitte wählen'}
               />
             </FGroup>
-          </FRow>
+          )}
 
           <FGroup>
             <FLabel>Erinnerung senden</FLabel>

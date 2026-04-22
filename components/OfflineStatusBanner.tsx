@@ -43,7 +43,7 @@ export default function OfflineStatusBanner({
 
   if (isSyncing) {
     return (
-      <div className={`${baseClass} border border-[#52b788]/40 bg-[#edf7f2] text-[#166534]`}>
+      <div className={`${baseClass} border border-[#006d6d]/40 bg-[#edf7f2] text-[#166534]`}>
         <span className="shrink-0 animate-pulse">📤</span>
         <span>Entwurf wird synchronisiert…</span>
       </div>
@@ -65,7 +65,7 @@ export default function OfflineStatusBanner({
 
   if (hasLocalDraft) {
     return (
-      <div className={`${baseClass} border border-[#52b788]/40 bg-[#edf7f2] text-[#166534]`}>
+      <div className={`${baseClass} border border-[#006d6d]/40 bg-[#edf7f2] text-[#166534]`}>
         <span className="shrink-0 text-base">✓</span>
         <span>Lokaler Entwurf vorhanden – Änderungen werden synchronisiert.</span>
       </div>

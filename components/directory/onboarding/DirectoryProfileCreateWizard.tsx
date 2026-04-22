@@ -45,6 +45,7 @@ import type {
 import { directorySpecialtyDisplayName } from '@/lib/directory/public/labels'
 import { DIRECTORY_AUTOCOMPLETE_COUNTRY_CODES, DIRECTORY_PHOTON_DACH_BBOX } from '@/lib/directory/public/listingParams'
 import { DirectoryWizardMapPreview } from '@/components/directory/onboarding/DirectoryWizardMapPreview'
+import TimePicker from '@/components/form/TimePicker'
 
 const TOTAL_STEPS = 8
 const MAX_GALLERY_PHOTOS = 6
@@ -1981,18 +1982,16 @@ export function DirectoryProfileCreateWizard({
                     {!row.closed ? (
                       <div className="dir-wiz-hours-slots">
                         <div className="dir-wiz-hours-slot">
-                          <input
-                            type="time"
-                            className="form-input dir-wiz-hours-time"
+                          <TimePicker
+                            className="dir-wiz-hours-time"
                             value={row.open1}
-                            onChange={(e) => patchHoursDay(dk, { open1: e.target.value })}
+                            onChange={(v) => patchHoursDay(dk, { open1: v })}
                           />
                           <span className="dir-wiz-hours-sep">–</span>
-                          <input
-                            type="time"
-                            className="form-input dir-wiz-hours-time"
+                          <TimePicker
+                            className="dir-wiz-hours-time"
                             value={row.close1}
-                            onChange={(e) => patchHoursDay(dk, { close1: e.target.value })}
+                            onChange={(v) => patchHoursDay(dk, { close1: v })}
                           />
                         </div>
                         <label className="dir-wiz-hours-split-toggle">
@@ -2005,18 +2004,16 @@ export function DirectoryProfileCreateWizard({
                         </label>
                         {row.useSecondPeriod ? (
                           <div className="dir-wiz-hours-slot dir-wiz-hours-slot--2">
-                            <input
-                              type="time"
-                              className="form-input dir-wiz-hours-time"
+                            <TimePicker
+                              className="dir-wiz-hours-time"
                               value={row.open2}
-                              onChange={(e) => patchHoursDay(dk, { open2: e.target.value })}
+                              onChange={(v) => patchHoursDay(dk, { open2: v })}
                             />
                             <span className="dir-wiz-hours-sep">–</span>
-                            <input
-                              type="time"
-                              className="form-input dir-wiz-hours-time"
+                            <TimePicker
+                              className="dir-wiz-hours-time"
                               value={row.close2}
-                              onChange={(e) => patchHoursDay(dk, { close2: e.target.value })}
+                              onChange={(v) => patchHoursDay(dk, { close2: v })}
                             />
                           </div>
                         ) : null}

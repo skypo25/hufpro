@@ -12,7 +12,7 @@ import { MainWithMargin } from '@/components/layout/MainWithMargin'
 
 const MobileAppBranch = dynamic(() => import('./mobile/MobileAppBranch'), {
   loading: () => (
-    <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-2 bg-[#f7f7f7] text-[14px] text-[#6B7280]">
+    <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-2 bg-[#f8f8f8] text-[14px] text-[#6B7280]">
       <span className="inline-block h-6 w-6 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
       App wird geladen…
     </div>
@@ -31,12 +31,12 @@ function DesktopLayout({
       <div
         className="relative min-h-screen text-slate-900"
         style={{
-          backgroundColor: '#f7f7f7',
+          backgroundColor: '#f8f8f8',
         }}
       >
         <div
           className="pointer-events-none fixed inset-0 z-0"
-          style={{ background: 'rgba(247, 247, 247, 0.82)' }}
+          style={{ background: 'rgba(248, 248, 248, 0.82)' }}
           aria-hidden
         />
         <Sidebar />

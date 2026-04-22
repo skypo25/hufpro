@@ -141,11 +141,11 @@ export default async function BehandlerAppStartenPage({
       {user && hasAppAccess ? (
         <p className="dir-app-start-lead" style={{ marginTop: 24 }}>
           Nur Verzeichnis ohne App?{' '}
-          <Link href={hrefDirectoryWizard} style={{ color: '#52b788', fontWeight: 600 }}>
+          <Link href={hrefDirectoryWizard} style={{ color: '#006d6d', fontWeight: 600 }}>
             Zum Gratis-Profil
           </Link>{' '}
           oder{' '}
-          <Link href="/behandler/paket-waehlen" style={{ color: '#52b788', fontWeight: 600 }}>
+          <Link href="/behandler/paket-waehlen" style={{ color: '#006d6d', fontWeight: 600 }}>
             Paketwahl
           </Link>
           .

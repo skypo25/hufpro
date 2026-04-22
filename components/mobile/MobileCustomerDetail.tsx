@@ -587,7 +587,7 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
             <div className="cd-section cd-notiz-card">
               <div className="cd-section-header flex justify-between items-center">
                 <h3>Notizen</h3>
-                <span className="text-[12px] font-medium text-[#52b788]">+ Notiz</span>
+                  <span className="text-[12px] font-medium text-[#006d6d]">+ Notiz</span>
               </div>
               <div className="cd-notiz-body">
                 {customer.notes?.trim() && <p>{customer.notes.trim()}</p>}
@@ -775,7 +775,7 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
               {horses.length > 0 && (
                 <p className="mt-2 text-[13px]">
                   →{' '}
-                  <Link href={`/animals/${horses[0].id}`} className="text-[#52b788] font-semibold">
+                  <Link href={`/animals/${horses[0].id}`} className="text-[#006d6d] font-semibold">
                     {horses[0].name} öffnen
                   </Link>
                 </p>
