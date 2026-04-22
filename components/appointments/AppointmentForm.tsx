@@ -335,7 +335,7 @@ export default function AppointmentForm({
       onSubmit={handleSubmit}
       className="grid max-w-[1280px] grid-cols-1 gap-7 xl:grid-cols-[1fr_360px]"
     >
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <div className="huf-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
@@ -405,8 +405,8 @@ export default function AppointmentForm({
             <h3 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Datum & Uhrzeit</h3>
           </div>
           <div className="px-[22px] py-[22px]">
-            <div className="grid gap-5 md:grid-cols-3">
-              <div className="form-group">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+              <div className="form-group min-w-0">
                 <label className="form-label">Datum</label>
                 <input
                   type="date"
@@ -416,16 +416,16 @@ export default function AppointmentForm({
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group min-w-0">
                 <label className="form-label">Uhrzeit</label>
                 <TimePicker
                   value={appointmentTime}
                   onChange={setAppointmentTime}
-                  className="w-full"
+                  className="w-full min-w-0"
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group min-w-0">
                 <label className="form-label">Geschätzte Dauer</label>
                 <select
                   value={duration}
@@ -440,7 +440,7 @@ export default function AppointmentForm({
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="form-group min-w-0 md:col-span-3">
                 <label className="form-label">E-Mail-Erinnerung (Kund:in)</label>
                 <select
                   value={reminderSelect}
@@ -478,8 +478,8 @@ export default function AppointmentForm({
             <span className="text-[11px] text-[#9CA3AF]">Optional</span>
           </div>
           <div className="px-[22px] py-[22px]">
-            <div className="grid gap-5 md:grid-cols-2">
-              <div className="form-group">
+            <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
+              <div className="form-group min-w-0">
                 <label className="form-label">Termin-Status</label>
                 <select
                   value={status}

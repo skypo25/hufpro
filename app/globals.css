@@ -3621,6 +3621,14 @@ button.huf-btn-dark {
   font-weight: 400;
   font-family: var(--form-font, var(--font-dm-sans), 'DM Sans', ui-sans-serif, system-ui, sans-serif);
 }
+/* iOS/WebKit: Datum/Zeit-Controls haben große intrinsische Mindestbreite — Grid-Spalten dürfen schrumpfen */
+.mobile-app .mobile-form-embed-root .input[type='date'],
+.mobile-app .mobile-form-embed-root .input[type='datetime-local'],
+.mobile-app .mobile-form-embed-root .input[type='time'] {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
 /* Platzhalter wie Desktop (`form-styles`); Feldtext 16px bleibt (iOS-Zoom) */
 .mobile-app .mobile-form-embed-root .huf-input::placeholder,
 .mobile-app .mobile-form-embed-root .huf-input--multiline::placeholder,

@@ -139,7 +139,7 @@ export default function TimePicker({
   const display = value || (open ? `${hour}:${minute}` : '')
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0 max-w-full">
       <button
         ref={buttonRef}
         type="button"

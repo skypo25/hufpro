@@ -106,7 +106,7 @@ function Field({
   children: React.ReactNode
 }) {
   return (
-    <div className="form-group">
+    <div className="form-group min-w-0">
       <label className={`form-label${required ? ' form-label--required' : ''}`}>{label}</label>
       {children}
       {hint && <div className="form-helper">{hint}</div>}
@@ -625,7 +625,7 @@ export default function HorseForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 space-y-6">
       <Section title="Besitzer / Kunde zuordnen" icon={<i className="bi bi-person-fill-check" />}>
         <div className="space-y-4">
           <Field label="Kunde" required>
@@ -666,7 +666,7 @@ export default function HorseForm({
       </Section>
 
       <Section title="Stammdaten" icon={<HorseIcon className="h-[14px] w-[14px]" />}>
-        <div className="grid min-w-0 gap-5 md:grid-cols-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(3,minmax(0,1fr))]">
           <Field label="Name des Pferdes" required>
             <input
               value={name}
@@ -710,7 +710,7 @@ export default function HorseForm({
           </Field>
         </div>
 
-        <div className="grid min-w-0 gap-5 md:grid-cols-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
           <Field label="Geburtsjahr">
             <input
               value={birthYear}
@@ -802,7 +802,7 @@ export default function HorseForm({
               className="input"
             />
           </Field>
-          <div className="grid min-w-0 gap-5 md:grid-cols-[2fr_1fr_1fr]">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <Field label="Ort">
               <input
                 value={stableCity}
@@ -835,7 +835,7 @@ export default function HorseForm({
               </select>
             </Field>
           </div>
-          <div className="grid min-w-0 gap-5 md:grid-cols-2">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
             <Field label="Ansprechpartner vor Ort" hint="Optional">
               <input
                 value={stableContact}
@@ -868,7 +868,7 @@ export default function HorseForm({
       )}
 
       <Section title="Nutzung & Haltung" icon={<HorseIcon className="h-[14px] w-[14px]" />}>
-        <div className="grid min-w-0 gap-5 md:grid-cols-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
           <Field label="Nutzungsart" required>
             <select
               value={usage}
@@ -902,7 +902,7 @@ export default function HorseForm({
       </Section>
 
       <Section title="Hufstatus & Beschlagshistorie" icon={<i className="bi bi-clipboard2-pulse" />} badge="Kernbereich">
-        <div className="grid min-w-0 gap-5 md:grid-cols-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
           <Field label="Aktueller Beschlag">
             <select
               value={hoofStatus}
@@ -986,7 +986,7 @@ export default function HorseForm({
 
           {planFirstAppointment && (
             <div className="space-y-5 border-t border-[var(--border)] pt-5">
-              <div className="grid min-w-0 gap-5 md:grid-cols-2">
+              <div className="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-[repeat(2,minmax(0,1fr))]">
                 <Field label="Datum">
                   <input
                     value={firstAppointmentDate}
