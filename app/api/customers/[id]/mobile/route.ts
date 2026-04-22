@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
+import { pickPrimaryStallHorse, stallOverviewLine } from '@/lib/nav/horseStableAddress'
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
@@ -198,8 +198,7 @@ export async function GET(
   const nextAptHorse = nextAptHorseId
     ? horseList.find((h) => h.id === nextAptHorseId)
     : null
-  const nextAppointmentStableDisplay =
-    stallDisplayLabel(nextAptHorse ?? {}, customer.city) || customer.city || null
+  const nextAppointmentStableDisplay = nextAptHorse ? stallOverviewLine(nextAptHorse) : null
 
   return NextResponse.json({
     customer: {

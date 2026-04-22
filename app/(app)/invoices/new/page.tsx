@@ -109,15 +109,23 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
   const sellerAddress = [s.street, [s.zip, s.city].filter(Boolean).join(' '), s.country].filter(Boolean).join(', ') || '–'
 
   return (
-    <div className="mx-auto max-w-[1280px] w-full space-y-7">
+    <main className="mx-auto max-w-[1280px] w-full space-y-7">
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/invoices" className="text-[#006d6d] hover:underline">Rechnungen</Link>
+        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
+          Dashboard
+        </Link>
         <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Neue Rechnung erstellen</span>
+        <Link href="/invoices" className="text-[var(--accent)] hover:underline">
+          Rechnungen
+        </Link>
+        <span aria-hidden>›</span>
+        <span>Neue Rechnung erstellen</span>
       </div>
 
       <div>
-        <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Neue Rechnung erstellen</h1>
+        <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
+          Neue Rechnung erstellen
+        </h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">Rechnungsnummer wird automatisch vergeben</p>
       </div>
 
@@ -134,6 +142,6 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
         sellerName={sellerName}
         sellerAddress={sellerAddress}
       />
-    </div>
+    </main>
   )
 }

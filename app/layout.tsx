@@ -7,8 +7,7 @@ import './form-styles.css'
 import './behandler-verzeichnis.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import { CookieConsentLayerGate } from '@/components/consent/CookieConsentLayerGate'
-import Preloader from '@/components/Preloader'
-import RouteLoader from '@/components/RouteLoader'
+import AnidocsAppLoader from '@/components/AnidocsAppLoader'
 import { ConsentProvider } from '@/lib/consent/ConsentProvider'
 import { SerwistProvider } from './serwist-provider'
 
@@ -69,7 +68,7 @@ export default function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html,body{background:#f8f8f8;color:#1c1c1c;margin:0;min-height:100%}
+              html,body{background:#f5f9f9;color:#1c1c1c;margin:0;min-height:100%}
               @media (prefers-color-scheme: dark){
                 html,body{background:#111315;color:#f1f2f0}
               }
@@ -82,8 +81,7 @@ export default function RootLayout({
         <ConsentProvider>
           <CookieConsentLayerGate />
           <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>
-            <Preloader />
-            <RouteLoader />
+            <AnidocsAppLoader />
             {children}
           </SerwistProvider>
         </ConsentProvider>

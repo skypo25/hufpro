@@ -21,6 +21,11 @@ import {
   reminderOptionsForSelect,
 } from '@/lib/appointments/reminderOptions'
 
+const APT_CARD_HEAD =
+  'flex items-center gap-3 border-b border-[var(--border)] px-[22px] py-[18px]'
+const APT_ICON_WRAP =
+  'flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-light)] text-[14px] text-[var(--accent)]'
+
 export default function AppointmentForm({
   mode,
   customers,
@@ -328,17 +333,17 @@ export default function AppointmentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid max-w-[1200px] grid-cols-1 gap-7 xl:grid-cols-[1fr_360px]"
+      className="grid max-w-[1280px] grid-cols-1 gap-7 xl:grid-cols-[1fr_360px]"
     >
       <div className="space-y-6">
         <div className="huf-card">
-          <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+          <div className={APT_CARD_HEAD}>
+            <div className={APT_ICON_WRAP}>
               <i className="bi bi-person-fill-check" />
             </div>
-            <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Kunde auswählen</h3>
+            <h3 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Kunde auswählen</h3>
           </div>
-          <div className="p-6">
+          <div className="px-[22px] py-[22px]">
             <CustomerPicker
               customers={customers}
               selectedCustomerId={selectedCustomerId}
@@ -351,18 +356,18 @@ export default function AppointmentForm({
         </div>
 
         <div className="huf-card">
-          <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#154226]">
+          <div className={APT_CARD_HEAD}>
+            <div className={APT_ICON_WRAP}>
               <FontAwesomeIcon icon={faHorse} className="text-[14px]" />
             </div>
-            <h3 className="dashboard-serif flex-1 text-[16px] text-[#1B1F23]">
+            <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
               Pferde auswählen
             </h3>
             <span className="text-[11px] text-[#9CA3AF]">
               {customerHorses.length > 1 ? 'Mehrfachauswahl möglich' : ''}
             </span>
           </div>
-          <div className="p-6">
+          <div className="px-[22px] py-[22px]">
             {selectedCustomerId ? (
               <HorsePicker
                 horses={customerHorses}
@@ -370,7 +375,7 @@ export default function AppointmentForm({
                 onToggleHorse={handleToggleHorse}
               />
             ) : (
-              <div className="rounded-lg border border-dashed border-[#E5E2DC] px-4 py-6 text-center text-[13px] text-[#6B7280]">
+              <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-6 text-center text-[13px] text-[#6B7280]">
                 Bitte zuerst einen Kunden auswählen.
               </div>
             )}
@@ -378,13 +383,13 @@ export default function AppointmentForm({
         </div>
 
         <div className="huf-card">
-          <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+          <div className={APT_CARD_HEAD}>
+            <div className={APT_ICON_WRAP}>
               <i className="bi bi-calendar2-heart-fill" />
             </div>
-            <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Terminart</h3>
+            <h3 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Terminart</h3>
           </div>
-          <div className="p-6">
+          <div className="px-[22px] py-[22px]">
             <AppointmentTypePicker
               value={appointmentType}
               onChange={setAppointmentType}
@@ -393,30 +398,26 @@ export default function AppointmentForm({
         </div>
 
         <div className="huf-card">
-          <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+          <div className={APT_CARD_HEAD}>
+            <div className={APT_ICON_WRAP}>
               <i className="bi bi-clock-fill" />
             </div>
-            <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Datum & Uhrzeit</h3>
+            <h3 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Datum & Uhrzeit</h3>
           </div>
-          <div className="p-6">
+          <div className="px-[22px] py-[22px]">
             <div className="grid gap-5 md:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                  Datum
-                </label>
+              <div className="form-group">
+                <label className="form-label">Datum</label>
                 <input
                   type="date"
                   value={appointmentDate}
                   onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
+                  className="input"
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                  Uhrzeit
-                </label>
+              <div className="form-group">
+                <label className="form-label">Uhrzeit</label>
                 <TimePicker
                   value={appointmentTime}
                   onChange={setAppointmentTime}
@@ -424,14 +425,12 @@ export default function AppointmentForm({
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                  Geschätzte Dauer
-                </label>
+              <div className="form-group">
+                <label className="form-label">Geschätzte Dauer</label>
                 <select
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
+                  className="select"
                 >
                   <option>30 Minuten</option>
                   <option>45 Minuten</option>
@@ -441,15 +440,13 @@ export default function AppointmentForm({
                 </select>
               </div>
 
-              <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                  E-Mail-Erinnerung (Kund:in)
-                </label>
+              <div className="form-group">
+                <label className="form-label">E-Mail-Erinnerung (Kund:in)</label>
                 <select
                   value={reminderSelect}
                   onChange={(e) => setReminderSelect(e.target.value)}
                   disabled={!emailRemindersEnabled}
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="select"
                 >
                   {reminderOptions.map((o) => (
                     <option
@@ -460,7 +457,7 @@ export default function AppointmentForm({
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-[11px] text-[#9CA3AF]">
+                <p className="form-helper">
                   {emailRemindersEnabled
                     ? 'Benötigt SMTP und E-Mail beim Kunden. Standardwert unter Einstellungen → Benachrichtigungen.'
                     : 'Termin-Erinnerungen sind in den Einstellungen unter „Benachrichtigungen“ deaktiviert.'}
@@ -471,21 +468,19 @@ export default function AppointmentForm({
         </div>
 
         <div className="huf-card">
-          <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf3ef] text-[14px] text-[#52b788]">
+          <div className={APT_CARD_HEAD}>
+            <div className={APT_ICON_WRAP}>
               <i className="bi bi-chat-quote-fill" />
             </div>
-            <h3 className="dashboard-serif flex-1 text-[16px] text-[#1B1F23]">
+            <h3 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
               Notizen
             </h3>
             <span className="text-[11px] text-[#9CA3AF]">Optional</span>
           </div>
-          <div className="p-6">
+          <div className="px-[22px] py-[22px]">
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                  Termin-Status
-                </label>
+              <div className="form-group">
+                <label className="form-label">Termin-Status</label>
                 <select
                   value={status}
                   onChange={(e) =>
@@ -493,7 +488,7 @@ export default function AppointmentForm({
                       e.target.value as 'Bestätigt' | 'Vorgeschlagen' | 'Warteliste'
                     )
                   }
-                  className="w-full rounded-lg border border-[#E5E2DC] px-4 py-2.5 text-[14px] outline-none focus:border-[#52b788]"
+                  className="select"
                 >
                   <option value="Bestätigt">Bestätigt</option>
                   <option value="Vorgeschlagen">Vorgeschlagen</option>
@@ -502,15 +497,13 @@ export default function AppointmentForm({
               </div>
             </div>
 
-            <div className="mt-5">
-              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-                Notizen zum Termin
-              </label>
+            <div className="form-group mt-5">
+              <label className="form-label">Notizen zum Termin</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-[#E5E2DC] px-4 py-3 text-[14px] outline-none focus:border-[#52b788]"
+                className="input textarea leading-6"
                 placeholder="z. B. Bitte Scoot Boots mitbringen…"
               />
             </div>
@@ -532,19 +525,19 @@ export default function AppointmentForm({
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => router.push('/calendar')}
-            className="rounded-lg bg-transparent px-4 py-3 text-[14px] text-[#6B7280] hover:text-[#1B1F23]"
+            className="rounded-lg border border-transparent px-4 py-3 text-[14px] text-[var(--text-secondary)] hover:bg-[color-mix(in_oklab,var(--foreground)_4%,var(--card))]"
           >
             ← Abbrechen
           </button>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              className="rounded-lg border border-[#E5E2DC] bg-white px-6 py-3 text-[14px] font-medium text-[#1B1F23] hover:border-[#9CA3AF]"
+              className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-6 py-3 text-[14px] font-medium text-[#1B1F23] hover:bg-[color-mix(in_oklab,var(--foreground)_4%,var(--card))]"
             >
               Als Entwurf speichern
             </button>
@@ -552,7 +545,7 @@ export default function AppointmentForm({
             <button
               type="submit"
               disabled={loading}
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-8 py-3 text-[15px] font-medium text-white hover:bg-[#0f301b] disabled:opacity-60"
+              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium text-white hover:bg-[var(--accent-dark)] disabled:opacity-60"
             >
               <i className="bi bi-check-lg text-[15px]" />
               {loading

@@ -59,21 +59,27 @@ export default function AppointmentSidebar({
   return (
     <div className="space-y-6">
       <div className="huf-card">
-        <div className="border-b border-[#E5E2DC] px-5 py-4">
-          <h4 className="dashboard-serif text-[15px] text-[#1B1F23]">Tagesübersicht</h4>
+        <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
+          <h4 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Tagesübersicht</h4>
         </div>
-        <div className="p-5">
+        <div className="px-[22px] py-[22px]">
           {dayItems.length === 0 ? (
             <div className="text-[13px] text-[#9CA3AF]">Keine Termine an diesem Tag.</div>
           ) : (
             <div className="space-y-3">
               {dayItems.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 border-b border-[rgba(0,0,0,0.04)] pb-3 last:border-b-0">
-                  <div className="min-w-[45px] text-[12px] font-semibold text-[#6B7280]">
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] pb-3 last:border-b-0"
+                >
+                  <div className="min-w-[45px] shrink-0 pt-0.5 text-[12px] font-semibold text-[#6B7280]">
                     {item.time}
                   </div>
-                <div className="mt-1 h-7 w-[3px] rounded-full bg-[#006d6d]" />
-                  <div className="min-w-0">
+                  <div
+                    className="mt-0.5 h-7 w-[3px] shrink-0 rounded-full bg-[var(--accent)]"
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-[#1B1F23]">
                       {item.customerName}
                     </div>
@@ -90,46 +96,46 @@ export default function AppointmentSidebar({
       </div>
 
       <div className="huf-card">
-        <div className="border-b border-[#E5E2DC] px-5 py-4">
-          <h4 className="dashboard-serif text-[15px] text-[#1B1F23]">Zusammenfassung</h4>
+        <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
+          <h4 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Zusammenfassung</h4>
         </div>
-        <div className="p-5">
-          <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+        <div className="px-[22px] py-[22px]">
+          <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Kunde</span>
             <span className="max-w-[180px] text-right font-medium text-[#1B1F23]">
               {selectedCustomer?.name || '-'}
             </span>
           </div>
           {selectedCustomer?.phone ? (
-            <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+            <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
               <span className="shrink-0 text-[#6B7280]">Telefon</span>
               <a
                 href={`tel:${selectedCustomer.phone.replace(/\s/g, '')}`}
-                className="max-w-[180px] text-right font-medium text-[#006d6d] hover:underline"
+                className="max-w-[180px] text-right font-medium text-[var(--accent)] hover:underline"
               >
                 {selectedCustomer.phone}
               </a>
             </div>
           ) : (
-            <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+            <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
               <span className="text-[#6B7280]">Telefon</span>
               <span className="text-right text-[#9CA3AF]">–</span>
             </div>
           )}
           {billingBlock ? (
-            <div className="border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+            <div className="border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
               <div className="mb-1 text-[#6B7280]">Rechnungsadresse</div>
               <div className="text-right font-medium leading-snug text-[#1B1F23]">{billingBlock}</div>
             </div>
           ) : selectedCustomer ? (
-            <div className="border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+            <div className="border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
               <div className="mb-1 text-[#6B7280]">Rechnungsadresse</div>
               <div className="text-right text-[#9CA3AF]">–</div>
             </div>
           ) : null}
           {showStable && stableBlock ? (
             <>
-              <div className="border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+              <div className="border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
                 <div className="mb-1 text-[#6B7280]">
                   Stall / Standort{stallHorse?.name ? ` (${stallHorse.name})` : ''}
                 </div>
@@ -138,7 +144,7 @@ export default function AppointmentSidebar({
                 </div>
               </div>
               {stallHorse?.stable_directions?.trim() ? (
-                <div className="border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+                <div className="border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
                   <div className="mb-1 text-[#6B7280]">Anfahrt zum Standort</div>
                   <div className="text-right text-[13px] leading-snug text-[#1B1F23]">
                     {stallHorse.stable_directions.trim()}
@@ -147,25 +153,25 @@ export default function AppointmentSidebar({
               ) : null}
             </>
           ) : null}
-          <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+          <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Pferd(e)</span>
-            <span className="max-w-[180px] text-right font-medium text-[#006d6d]">
+            <span className="max-w-[180px] text-right font-medium text-[var(--accent)]">
               {selectedHorses.length > 0
                 ? selectedHorses.map((horse) => horse.name || '-').join(', ')
                 : '-'}
             </span>
           </div>
-          <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+          <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Terminart</span>
             <span className="font-medium text-[#1B1F23]">{appointmentType}</span>
           </div>
-          <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+          <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Datum</span>
             <span className="font-medium text-[#1B1F23]">
               {appointmentDate ? formatDateLabel(appointmentDate) : '-'}
             </span>
           </div>
-          <div className="flex justify-between border-b border-[rgba(0,0,0,0.04)] py-2 text-[13px]">
+          <div className="flex justify-between border-b border-[color-mix(in_oklab,var(--foreground)_8%,transparent)] py-2 text-[13px]">
             <span className="text-[#6B7280]">Uhrzeit</span>
             <span className="font-medium text-[#1B1F23]">{appointmentTime || '-'}</span>
           </div>

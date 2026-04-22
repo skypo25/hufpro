@@ -72,3 +72,13 @@ export function stallDisplayLabel(h: HorseStallFields, fallbackCity?: string | n
     ''
   )
 }
+
+/** Einzeiler nur aus Pferd-Stallfeldern (ohne Fallback auf Kundenort). Für Kunden-Detail & Listen. */
+export function stallOverviewLine(h: HorseStallFields): string | null {
+  const name = h.stable_name?.trim()
+  const addr = formatAddressLine(h.stable_street, h.stable_zip, h.stable_city).trim()
+  if (name && addr) return `${name} · ${addr}`
+  if (name) return name
+  if (addr) return addr
+  return null
+}

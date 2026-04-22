@@ -6,7 +6,7 @@ import AppointmentAnimalsInline, {
 } from '@/components/appointments/AppointmentAnimalsInline'
 import ActionButton from '@/components/ui/ActionButton'
 import { formatCustomerNumber, formatPreferredDaysGerman } from '@/lib/format'
-import { pickPrimaryStallHorse, stallDisplayLabel } from '@/lib/nav/horseStableAddress'
+import { pickPrimaryStallHorse, stallOverviewLine } from '@/lib/nav/horseStableAddress'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHorse, faPaw } from '@fortawesome/free-solid-svg-icons'
 import {
@@ -356,12 +356,12 @@ export default async function CustomerDetailPage({
   const totalRevenueCents = monthlyRevenueCents.reduce((a, b) => a + b, 0)
 
   const primaryStallHorse = pickPrimaryStallHorse(horses)
-  const headerLocationLabel =
-    stallDisplayLabel(primaryStallHorse ?? {}, customer.city) || customer.city || '-'
+  const headerLocationLabel = primaryStallHorse ? stallOverviewLine(primaryStallHorse) : null
   const upcomingPrimaryHorse =
     upcomingDocHorseId ? horses.find((h) => h.id === upcomingDocHorseId) : null
-  const nextAppointmentLocationLabel =
-    stallDisplayLabel(upcomingPrimaryHorse ?? {}, customer.city) || customer.city || '-'
+  const nextAppointmentLocationLabel = upcomingPrimaryHorse
+    ? stallOverviewLine(upcomingPrimaryHorse)
+    : null
 
   return (
     <main className="mx-auto max-w-[1280px] w-full space-y-7">
@@ -392,10 +392,12 @@ export default async function CustomerDetailPage({
               <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#006d6d]">
                 {formatCustomerNumber(customer.customer_number)}
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <i className="bi bi-geo-alt text-[14px]" />
-                {headerLocationLabel}
-              </span>
+              {headerLocationLabel ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="bi bi-geo-alt text-[14px]" />
+                  {headerLocationLabel}
+                </span>
+              ) : null}
               <span className="inline-flex items-center gap-1.5">
                 <FontAwesomeIcon
                   icon={headerAnimalsIcon}
@@ -577,6 +579,7 @@ export default async function CustomerDetailPage({
               ) : (
                 horses.map((horse, index) => {
                   const nextDate = nextAppointmentByHorse.get(horse.id) || null
+                  const stallLine = stallOverviewLine(horse)
 
                   return (
                     <Link
@@ -599,9 +602,9 @@ export default async function CustomerDetailPage({
                         </div>
                         <div className="truncate text-[12px] text-[#6B7280]">
                           {getHorseMeta(horse)}
-                          {stallDisplayLabel(horse, customer.city) ? (
+                          {stallLine ? (
                             <span className="block truncate text-[11px] text-[#9CA3AF]">
-                              Standort: {stallDisplayLabel(horse, customer.city)}
+                              Standort: {stallLine}
                             </span>
                           ) : null}
                         </div>
@@ -718,8 +721,12 @@ export default async function CustomerDetailPage({
                   </div>
 
                   <div className="text-[13px] leading-6 text-[#6B7280]">
-                    {nextAppointmentLocationLabel}
-                    <br />
+                    {nextAppointmentLocationLabel ? (
+                      <>
+                        {nextAppointmentLocationLabel}
+                        <br />
+                      </>
+                    ) : null}
                     <span className="inline-flex flex-wrap items-center gap-x-1">
                       <span>{animalsPlural}:</span>
                       {upcomingAnimals.length > 0 ? (

@@ -4419,108 +4419,93 @@ button.huf-btn-dark {
 }
 .mrd-back:active { color: #1B1F23; }
 
-/* ─── Splash / Preloader ─────────────────────────────────────────────────── */
-.splash-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: #f7f7f7;
-  pointer-events: all;
+/* ─── AniDocs App Loader (96 px · hell, Breathe + Halo) ─────────────────── */
+.anidocs-app-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f9f9;
 }
-.splash-inner {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 0;
-  animation: splash-fade-in .8s ease-out;
+
+.anidocs-loader {
+  --size: 96px;
+  --brand: #006d6d;
+  --fg: #ffffff;
+  width: var(--size);
+  height: var(--size);
+  position: relative;
+  display: inline-block;
 }
-.splash-logo {
-  width: 80px; height: 80px;
-  margin-bottom: 20px;
-  animation: splash-breathe 2s ease-in-out infinite;
+
+.anidocs-loader svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
-.splash-brand {
-  font-size: 28px; font-weight: 800;
-  font-family: var(--font-outfit, "Outfit", sans-serif);
-  color: #1c1c1c; letter-spacing: -.03em;
-  margin-bottom: 6px;
-  animation: splash-fade-up .6s ease-out .3s both;
+
+.anidocs-loader__box {
+  fill: var(--brand);
+  transform-origin: center;
+  animation: anidocs-breathe 1.6s ease-in-out infinite;
 }
-.splash-tagline {
-  font-size: 13px; color: #9CA3AF;
-  font-weight: 400; letter-spacing: .02em;
-  animation: splash-fade-up .6s ease-out .5s both;
+
+.anidocs-loader__letter {
+  fill: var(--fg);
+  transform-origin: center;
+  animation: anidocs-letter 1.6s ease-in-out infinite;
 }
-.splash-dots {
-  display: flex; gap: 6px;
-  margin-top: 40px;
-  animation: splash-fade-up .6s ease-out .7s both;
-}
-.splash-dots span {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: color-mix(in oklab, var(--accent, #006d6d) 32%, transparent);
-  animation: splash-dot 1.4s ease-in-out infinite;
-}
-.splash-dots span:nth-child(2) { animation-delay: .15s; }
-.splash-dots span:nth-child(3) { animation-delay: .3s; }
-.splash-bottom {
+
+.anidocs-loader::before,
+.anidocs-loader::after {
+  content: '';
   position: absolute;
-  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-  font-size: 11px; color: #D1D5DB;
-  font-weight: 500; letter-spacing: .04em;
-  animation: splash-fade-up .6s ease-out .9s both;
+  inset: 0;
+  border-radius: 22.37%;
+  pointer-events: none;
 }
 
-/* ─── Route Loader ───────────────────────────────────────────────────────── */
-.route-loader-inner {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 20px;
-}
-.route-loader-logo {
-  width: 52px; height: 52px;
-  animation: splash-breathe 1.6s ease-in-out infinite;
-}
-.route-loader-dots {
-  display: flex; gap: 6px;
-}
-.route-loader-dots span {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: color-mix(in oklab, var(--accent, #006d6d) 32%, transparent);
-  animation: splash-dot 1.4s ease-in-out infinite;
-}
-.route-loader-dots span:nth-child(2) { animation-delay: .15s; }
-.route-loader-dots span:nth-child(3) { animation-delay: .3s; }
-
-/* Keep route loader on light background even in system dark mode (PWA / mobile). */
-@media (prefers-color-scheme: dark) {
-  .route-loader-inner { background: transparent; }
+.anidocs-loader::before {
+  box-shadow: 0 0 0 0 rgba(0, 109, 109, 0.65);
+  animation: anidocs-halo 1.6s ease-out infinite;
 }
 
-@keyframes splash-breathe {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
-  50%       { transform: scale(1.04); filter: drop-shadow(0 0 16px color-mix(in oklab, var(--accent, #006d6d) 28%, transparent)); }
+.anidocs-loader::after {
+  box-shadow: 0 0 0 0 rgba(0, 109, 109, 0.4);
+  animation: anidocs-halo 1.6s ease-out 0.4s infinite;
 }
-@keyframes splash-fade-in {
-  from { opacity: 0; } to { opacity: 1; }
+
+@keyframes anidocs-breathe {
+  0%, 100% { transform: scale(0.86); }
+  50% { transform: scale(1.04); }
 }
-@keyframes splash-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+@keyframes anidocs-letter {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(0.94); opacity: 1; }
 }
-@keyframes splash-dot {
-  0%, 100% { opacity: .3; transform: scale(1); }
-  50%      { opacity: 1;  transform: scale(1.3); }
+
+@keyframes anidocs-halo {
+  0% { box-shadow: 0 0 0 0 rgba(0, 109, 109, 0.6); }
+  70% { box-shadow: 0 0 0 28px rgba(0, 109, 109, 0); }
+  100% { box-shadow: 0 0 0 28px rgba(0, 109, 109, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash-logo, .splash-brand, .splash-tagline,
-  .splash-dots, .splash-bottom { animation: none; opacity: 1; transform: none; }
-  .splash-dots span { animation: none; opacity: .5; }
+  .anidocs-loader__box,
+  .anidocs-loader__letter,
+  .anidocs-loader::before,
+  .anidocs-loader::after {
+    animation-duration: 3s;
+  }
 }
-/* Splash stays on brand light bg; avoid black splash on phones with dark mode. */
+
 @media (prefers-color-scheme: dark) {
-  .splash-overlay { background: #f7f7f7; }
-  .splash-brand { color: #1c1c1c; }
-  .splash-tagline { color: #9CA3AF; }
-  .splash-bottom { color: #D1D5DB; }
+  .anidocs-app-loader-overlay {
+    background: #f5f9f9;
+  }
 }
 
 /* ─── Mobile Camera Capture ──────────────────────────────────────────────── */

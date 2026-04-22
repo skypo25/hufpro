@@ -109,17 +109,27 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-[1220px]">
-      <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/invoices" className="text-[#52b788] hover:underline">Rechnungen</Link>
+    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
+        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
+          Dashboard
+        </Link>
         <span aria-hidden>›</span>
-        <Link href={`/invoices/${invoiceId}`} className="text-[#52b788] hover:underline">{inv.invoice_number}</Link>
+        <Link href="/invoices" className="text-[var(--accent)] hover:underline">
+          Rechnungen
+        </Link>
         <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Bearbeiten</span>
+        <Link href={`/invoices/${invoiceId}`} className="text-[var(--accent)] hover:underline">
+          {inv.invoice_number}
+        </Link>
+        <span aria-hidden>›</span>
+        <span>Bearbeiten</span>
       </div>
 
-      <div className="mb-8">
-        <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Rechnung bearbeiten</h1>
+      <div>
+        <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
+          Rechnung bearbeiten
+        </h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">Entwurf: {inv.invoice_number}</p>
       </div>
 
@@ -150,6 +160,6 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
           initialLineItems: lineItems,
         }}
       />
-    </div>
+    </main>
   )
 }

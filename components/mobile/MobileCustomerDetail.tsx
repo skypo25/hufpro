@@ -318,6 +318,15 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
   const hasStableAddress = !!(customer.stableStreet?.trim() || customer.stableZip || customer.stableCity)
   const hasAnyAddress = hasCustomerAddress || hasStableAddress
   const hasBothAddresses = hasCustomerAddress && hasStableAddress
+  const hasStallFieldsFromHorse = !!(
+    customer.stableName?.trim() ||
+    customer.stableStreet?.trim() ||
+    customer.stableZip?.trim() ||
+    customer.stableCity?.trim() ||
+    customer.stableContact?.trim() ||
+    customer.stablePhone?.trim() ||
+    customer.directions?.trim()
+  )
 
   const customerAddressString = [customer.street?.trim(), [customer.postalCode, customer.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
   const stableAddressString = [customer.stableStreet?.trim(), [customer.stableZip, customer.stableCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
@@ -537,52 +546,60 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
                       {[customer.postalCode, customer.city].filter(Boolean).join(' ') || '–'}
                     </div>
                   </div>
+                  {!hasStallFieldsFromHorse && customer.driveTime?.trim() ? (
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Entfernung (Rechnungsadresse)</div>
+                      <div className="cd-dg-value">{customer.driveTime.trim()}</div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
 
-            <div className="cd-section">
-              <div className="cd-section-header flex justify-between items-center">
-                <h3>Stalldaten</h3>
-                <Link href={`/customers/${customer.id}/edit`}>Bearbeiten</Link>
-              </div>
-              <div className="cd-section-body">
-                <div className="cd-dg grid grid-cols-2">
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Stallname</div>
-                    <div className="cd-dg-value">{customer.stableName?.trim() || '–'}</div>
-                  </div>
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Straße & Hausnummer</div>
-                    <div className="cd-dg-value">{customer.stableStreet?.trim() || '–'}</div>
-                  </div>
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Ort</div>
-                    <div className="cd-dg-value">
-                      {[customer.stableZip, customer.stableCity].filter(Boolean).join(' ') || '–'}
+            {hasStallFieldsFromHorse ? (
+              <div className="cd-section">
+                <div className="cd-section-header flex justify-between items-center">
+                  <h3>Stalldaten</h3>
+                  <Link href={`/customers/${customer.id}/edit`}>Bearbeiten</Link>
+                </div>
+                <div className="cd-section-body">
+                  <div className="cd-dg grid grid-cols-2">
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Stallname</div>
+                      <div className="cd-dg-value">{customer.stableName?.trim() || '–'}</div>
                     </div>
-                  </div>
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Ansprechpartner vor Ort</div>
-                    <div className="cd-dg-value">{customer.stableContact?.trim() || '–'}</div>
-                  </div>
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Telefon vor Ort</div>
-                    <div className="cd-dg-value">
-                      {customer.stablePhone ? (
-                        <a href={`tel:${customer.stablePhone}`}>{customer.stablePhone}</a>
-                      ) : (
-                        '–'
-                      )}
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Straße & Hausnummer</div>
+                      <div className="cd-dg-value">{customer.stableStreet?.trim() || '–'}</div>
                     </div>
-                  </div>
-                  <div className="cd-dg-item">
-                    <div className="cd-dg-label">Anfahrtszeit</div>
-                    <div className="cd-dg-value">{customer.driveTime || '–'}</div>
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Ort</div>
+                      <div className="cd-dg-value">
+                        {[customer.stableZip, customer.stableCity].filter(Boolean).join(' ') || '–'}
+                      </div>
+                    </div>
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Ansprechpartner vor Ort</div>
+                      <div className="cd-dg-value">{customer.stableContact?.trim() || '–'}</div>
+                    </div>
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Telefon vor Ort</div>
+                      <div className="cd-dg-value">
+                        {customer.stablePhone ? (
+                          <a href={`tel:${customer.stablePhone}`}>{customer.stablePhone}</a>
+                        ) : (
+                          '–'
+                        )}
+                      </div>
+                    </div>
+                    <div className="cd-dg-item">
+                      <div className="cd-dg-label">Anfahrtszeit</div>
+                      <div className="cd-dg-value">{customer.driveTime || '–'}</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="cd-section cd-notiz-card">
               <div className="cd-section-header flex justify-between items-center">
