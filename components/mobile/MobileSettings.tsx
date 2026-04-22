@@ -63,7 +63,10 @@ function SecAccordion({
 
 // ─── Form layout matching MobileCustomerEdit ──────────────────────────────────
 
-const inputClass = 'w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[15px] text-[#111] outline-none placeholder:text-[#9CA3AF] focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10 font-[inherit]'
+const fieldBaseClass =
+  'w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[#111] outline-none placeholder:text-[#9CA3AF] focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10 font-[inherit]'
+const inputClass = `${fieldBaseClass} text-[15px]`
+const selectClass = `${fieldBaseClass} text-[var(--form-control-font-size,13.5px)]`
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '11px 13px',
@@ -130,6 +133,7 @@ function FSelect({ value, onChange, options, placeholder, renderLabel }: {
       value={value} onChange={e => onChange(e.target.value)}
       style={{
         ...inputStyle,
+        fontSize: 'var(--form-control-font-size, 13.5px)',
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C%2Fsvg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
         cursor: 'pointer', appearance: 'none' as const,
@@ -297,7 +301,7 @@ export default function MobileSettings() {
             <SecAccordion open icon="bi-person-fill" title="Persönliche Daten" hint="Pflichtangaben">
               <FRow3>
                 <FGroup label="Anrede">
-                  <select className={inputClass} value={s.salutation ?? ''} onChange={(e) => update('salutation', e.target.value)}>
+                  <select className={selectClass} value={s.salutation ?? ''} onChange={(e) => update('salutation', e.target.value)}>
                     <option>Herr</option>
                     <option>Frau</option>
                     <option>Divers</option>
@@ -339,7 +343,7 @@ export default function MobileSettings() {
                   <input className={inputClass} value={s.companyName ?? ''} onChange={(e) => update('companyName', e.target.value)} />
                 </FGroup>
                 <FGroup label="Rechtsform">
-                  <select className={inputClass} value={s.legalForm ?? ''} onChange={(e) => update('legalForm', e.target.value)}>
+                  <select className={selectClass} value={s.legalForm ?? ''} onChange={(e) => update('legalForm', e.target.value)}>
                     <option>Einzelunternehmen / Freiberufler</option>
                     <option>GbR</option>
                     <option>GmbH</option>
@@ -358,7 +362,7 @@ export default function MobileSettings() {
                   <input className={inputClass} value={s.zip ?? ''} onChange={(e) => update('zip', e.target.value)} inputMode="numeric" />
                 </FGroup>
                 <FGroup label="Land">
-                  <select className={inputClass} value={s.country ?? 'Deutschland'} onChange={(e) => update('country', e.target.value)}>
+                  <select className={selectClass} value={s.country ?? 'Deutschland'} onChange={(e) => update('country', e.target.value)}>
                     <option>Deutschland</option>
                     <option>Österreich</option>
                     <option>Schweiz</option>
@@ -369,7 +373,7 @@ export default function MobileSettings() {
 
             <SecAccordion icon="bi-compass-fill" title="Navigation">
               <FGroup label="Bevorzugte Navigations-App" hint="Für Routen zu Terminen">
-                <select className={inputClass} value={s.preferredNavApp ?? ''} onChange={(e) => update('preferredNavApp', e.target.value as SettingsData['preferredNavApp'])}>
+                <select className={selectClass} value={s.preferredNavApp ?? ''} onChange={(e) => update('preferredNavApp', e.target.value as SettingsData['preferredNavApp'])}>
                   <option value="">Google Maps (Standard)</option>
                   <option value="google">Google Maps</option>
                   <option value="apple">Apple Karten</option>
@@ -496,7 +500,7 @@ export default function MobileSettings() {
                   <input className={inputClass} type="email" value={s.paypal ?? ''} onChange={(e) => update('paypal', e.target.value)} />
                 </FGroup>
                 <FGroup label="Standard-Zahlungsziel">
-                  <select className={inputClass} value={s.paymentTerms ?? ''} onChange={(e) => update('paymentTerms', e.target.value)}>
+                  <select className={selectClass} value={s.paymentTerms ?? ''} onChange={(e) => update('paymentTerms', e.target.value)}>
                     <option>Sofort fällig</option>
                     <option>7 Tage</option>
                     <option>14 Tage</option>
@@ -528,13 +532,13 @@ export default function MobileSettings() {
               </FRow>
               <FRow>
                 <FGroup label="Währung">
-                  <select className={inputClass} value={s.currency ?? 'EUR (€)'} onChange={(e) => update('currency', e.target.value)}>
+                  <select className={selectClass} value={s.currency ?? 'EUR (€)'} onChange={(e) => update('currency', e.target.value)}>
                     <option>EUR (€)</option>
                     <option>CHF (Fr.)</option>
                   </select>
                 </FGroup>
                 <FGroup label="Rechnungsversand">
-                  <select className={inputClass} value={s.invoiceDelivery ?? ''} onChange={(e) => update('invoiceDelivery', e.target.value)}>
+                  <select className={selectClass} value={s.invoiceDelivery ?? ''} onChange={(e) => update('invoiceDelivery', e.target.value)}>
                     <option>Nur erstellen (manueller Versand)</option>
                     <option>Automatisch per E-Mail</option>
                   </select>
@@ -626,7 +630,7 @@ export default function MobileSettings() {
               <div className="text-[12px] font-semibold text-[#1B1F23]">Standard bei neuen Terminen</div>
               <div className="text-[10px] text-[#9CA3AF] mb-2">Voreinstellung im Terminformular (Mobil und Desktop)</div>
               <select
-                className="w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[14px]"
+                className={selectClass}
                 disabled={s.emailReminders === false}
                 value={
                   s.appointmentReminderDefaultMinutes == null

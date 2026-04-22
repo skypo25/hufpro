@@ -723,6 +723,7 @@ function FSelect({ value, onChange, options, placeholder, renderLabel }: {
       value={value} onChange={e => onChange(e.target.value)}
       style={{
         ...inputStyle,
+        fontSize: 'var(--form-control-font-size, 13.5px)',
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C%2Fsvg%3E")`,
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
         cursor: 'pointer', appearance: 'none' as const,
