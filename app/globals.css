@@ -3781,6 +3781,14 @@ button.huf-btn-dark {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+  /* iOS Safari/WebKit: native controls can ignore width/max-width and overflow the card */
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  overflow: hidden;
 }
 .mhf-f-input:focus,
 .mhf-f-select:focus {
