@@ -3647,6 +3647,15 @@ button.huf-btn-dark {
   min-width: 0;
   max-width: 100%;
   width: 100%;
+  /* iOS Safari/WebKit: native date/time can overflow even with width/max-width */
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 /* Platzhalter wie Desktop (`form-styles`); Feldtext 16px bleibt (iOS-Zoom) */
 .mobile-app .mobile-form-embed-root .huf-input::placeholder,
