@@ -3580,7 +3580,15 @@ button.huf-btn-dark {
 .mce-autocomplete:focus { border-color: var(--accent, #006d6d); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent, #006d6d) 12%, white); background: #fff; }
 
 /* ─── Mobile Form-Shell (Tier anlegen/bearbeiten, eingebettete HorseForm/AnimalForm) ─ */
-.mhf-root { background: var(--m-bg, #f6f5f3); min-height: 100dvh; }
+.mhf-root {
+  background: var(--m-bg, #f6f5f3);
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
 .mhf-header {
   background: #1c2023;
   color: #fff;
@@ -3602,7 +3610,18 @@ button.huf-btn-dark {
 .mhf-ah-close svg { width: 20px; height: 20px; }
 .mhf-ah-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 4px; }
 
-.mhf-content { padding: 14px 16px 120px; }
+.mhf-content {
+  padding: 14px 16px 120px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.mobile-app .mobile-form-embed-root {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
 /* HorseForm / AnimalForm in der PWA: volle Breite, leichte Kartenoptik */
 .mobile-app .mobile-form-embed-root .huf-card {
   border-radius: 14px;
@@ -3684,6 +3703,8 @@ button.huf-btn-dark {
   border: 1px solid var(--m-border, #E5E2DC);
   box-shadow: 0 1px 3px rgba(0,0,0,.06);
   margin-bottom: 10px;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   animation: mhf-slideUp .25s ease-out both;
 }
@@ -3702,7 +3723,12 @@ button.huf-btn-dark {
 .mhf-s-header .mhf-s-icon { font-size: 15px; color: var(--accent, #006d6d); flex-shrink: 0; }
 .mhf-s-header h3 { font-size: 14px; font-weight: 600; flex: 1; margin: 0; }
 .mhf-s-hint { font-size: 10px; color: var(--accent, #006d6d); font-weight: 600; }
-.mhf-s-body { padding: 14px 16px; }
+.mhf-s-body {
+  padding: 14px 16px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
 .mhf-f-group { margin-bottom: 12px; min-width: 0; }
 .mhf-f-group:last-child { margin-bottom: 0; }
@@ -3749,9 +3775,12 @@ button.huf-btn-dark {
   font-size: var(--form-control-font-size, 13.5px);
   font-weight: 400;
 }
-.mhf-f-input[type="date"],
-.mhf-f-input[type="time"] {
+.mhf-f-input[type='date'],
+.mhf-f-input[type='time'] {
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 .mhf-f-input:focus,
 .mhf-f-select:focus {
@@ -4143,8 +4172,10 @@ button.huf-btn-dark {
 
 .maf-terminart-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 .maf-ta-option {
   display: flex;
@@ -4155,6 +4186,9 @@ button.huf-btn-dark {
   border: 1.5px solid var(--m-border, #E5E2DC);
   border-radius: 12px;
   box-shadow: none;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: border-color 0.12s, background 0.12s, box-shadow 0.12s, transform 0.12s;
@@ -4201,21 +4235,21 @@ button.huf-btn-dark {
 .maf-ti-name { font-size: 13px; font-weight: 600; }
 .maf-ti-detail { font-size: 11px; color: var(--m-text-light, #9CA3AF); }
 
-/* Datum volle Zeile; Uhrzeit + Dauer darunter (2 Spalten). Drei Controls in einer Zeile sind auf ~390px Breite zu eng / WebKit-Mindestbreiten. */
+/* Eine Spalte: iOS/WebKit erzwingt für date/time große Mindestbreiten — nebeneinander überlappen die Felder trotz minmax(0,1fr). */
 .maf-datetime-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
   row-gap: 12px;
   margin-bottom: 0;
   align-items: end;
-}
-.maf-datetime-date-full {
-  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .maf-datetime-row .mhf-f-group {
   margin-bottom: 0;
   min-width: 0;
+  max-width: 100%;
 }
 .maf-datetime-row .mhf-f-input,
 .maf-datetime-row .mhf-f-select {
@@ -4223,10 +4257,6 @@ button.huf-btn-dark {
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
-}
-.maf-datetime-time-col .mhf-f-input,
-.maf-datetime-duration-col .mhf-f-select {
-  min-width: 0;
 }
 
 .maf-zf-row {

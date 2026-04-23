@@ -67,9 +67,9 @@ export default function MobileShell({
   }, [])
 
   return (
-    <div className="mobile-app flex min-h-screen flex-col">
+    <div className="mobile-app flex min-h-screen min-w-0 max-w-full flex-col overflow-x-clip">
       {/* Hauptinhalt – Header kommt von der jeweiligen Seite */}
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-clip overflow-y-auto">
         <BillingSystemBanner />
         {readOnlyBanner ? (
           <div className="px-4 pt-1 pb-1">
