@@ -789,7 +789,7 @@ export default function AnimalForm({
             : 'border-[var(--border)] bg-white hover:border-[#9CA3AF]',
         ].join(' ')}
       >
-        <div className="text-[22px] leading-none">
+        <div className="text-[22px] leading-none text-[#006e6d]">
           <FontAwesomeIcon icon={icon} />
         </div>
         <div className={['text-[12px] font-semibold', selected ? 'text-[var(--accent)]' : 'text-[#6B7280]'].join(' ')}>

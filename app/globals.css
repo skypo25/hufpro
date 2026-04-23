@@ -4153,18 +4153,27 @@ button.huf-btn-dark {
   gap: 6px;
   padding: 16px 10px;
   border: 1.5px solid var(--m-border, #E5E2DC);
-  border-radius: 10px;
+  border-radius: 12px;
+  box-shadow: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: all .12s;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s, transform 0.12s;
   text-align: center;
   font: inherit;
   background: var(--m-card, #fff);
 }
 .maf-ta-option:active { transform: scale(.96); }
-.maf-ta-option.selected { border-color: var(--accent, #006d6d); background: color-mix(in oklab, var(--accent-light, #edf5f5) 88%, var(--accent, #006d6d) 12%); }
-.maf-ta-icon { font-size: 22px; color: var(--m-text-light, #9CA3AF); transition: color .12s; }
-.maf-ta-option.selected .maf-ta-icon { color: var(--accent, #006d6d); }
+/* wie Tierart-Kacheln (AnimalForm TierCard): Akzent-Rand + Ring */
+.maf-ta-option.selected {
+  border-color: var(--accent, #006d6d);
+  background: color-mix(in oklab, var(--accent-light, #edf5f5) 88%, var(--accent, #006d6d) 12%);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent, #006d6d) 18%, transparent);
+}
+.maf-ta-icon {
+  font-size: 22px;
+  color: #006e6d;
+  transition: color 0.12s;
+}
 .maf-ta-title { font-size: 12px; font-weight: 700; }
 .maf-ta-sub { font-size: 10px; color: var(--m-text-light, #9CA3AF); }
 

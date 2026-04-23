@@ -38,13 +38,13 @@ export default function AppointmentTypePicker({
             type="button"
             onClick={() => onChange(type.value)}
             className={[
-              'rounded-[10px] border px-4 py-4 text-center transition',
+              'rounded-xl border px-4 py-4 text-center transition',
               selected
-                ? 'border-[var(--accent)] bg-[var(--accent-light)]'
+                ? 'border-[var(--accent)] bg-[var(--accent-light)] ring-4 ring-[color-mix(in_oklab,var(--accent)_18%,transparent)]'
                 : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--accent)] hover:bg-[var(--accent-light)]',
             ].join(' ')}
           >
-            <div className="mb-2 text-[22px] text-[var(--accent)]">
+            <div className="mb-2 text-[22px] text-[#006e6d]">
               <i className={`bi ${type.iconClass}`} />
             </div>
             <div className="text-[13px] font-semibold text-[#1B1F23]">{type.label}</div>

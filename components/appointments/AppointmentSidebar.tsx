@@ -16,17 +16,22 @@ type AppointmentSidebarProps = {
   dayItems: AppointmentDayItem[]
 }
 
+/** Kurzes deutsches Datum — ohne Intl (Node vs. Browser liefert sonst z. B. "Do.," vs "Do." → Hydration-Mismatch). */
+const WEEKDAY_DE_SHORT = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'] as const
+
 function formatDateLabel(dateString: string) {
   if (!dateString) return '-'
-  const date = new Date(dateString)
+  const [yStr, mStr, dStr] = dateString.split('-')
+  const y = Number(yStr)
+  const m = Number(mStr)
+  const d = Number(dStr)
+  if (!yStr || !mStr || !dStr || Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return '-'
+  const date = new Date(y, m - 1, d)
   if (Number.isNaN(date.getTime())) return '-'
-
-  return new Intl.DateTimeFormat('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
+  const wd = WEEKDAY_DE_SHORT[date.getDay()]
+  const dd = String(d).padStart(2, '0')
+  const mm = String(m).padStart(2, '0')
+  return `${wd} ${dd}.${mm}.${y}`
 }
 
 function formatBillingAddress(c: AppointmentCustomer) {
