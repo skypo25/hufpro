@@ -145,5 +145,5 @@ export function DirectoryPublicNav({ listingHome = false }: { listingHome?: bool
     return navUi
   }
 
-  return <div className="beh-ref w-full">{navUi}</div>
+  return navUi
 }

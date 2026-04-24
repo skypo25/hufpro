@@ -13,7 +13,7 @@ import { MainWithMargin } from '@/components/layout/MainWithMargin'
 const MobileAppBranch = dynamic(() => import('./mobile/MobileAppBranch'), {
   loading: () => (
     <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-2 bg-[#f8f8f8] text-[14px] text-[#6B7280]">
-      <span className="inline-block h-6 w-6 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
+      <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
       App wird geladen…
     </div>
   ),

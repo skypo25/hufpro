@@ -3611,7 +3611,8 @@ button.huf-btn-dark {
 .mhf-ah-sub { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 4px; }
 
 .mhf-content {
-  padding: 14px 16px 120px;
+  /* genug Platz für fixe Button-Bar + Tab-Bar */
+  padding: 14px 16px calc(120px + var(--m-tab-height, 64px));
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -4217,7 +4218,8 @@ button.huf-btn-dark {
 /* wie Tierart-Kacheln (AnimalForm TierCard): Akzent-Rand + Ring */
 .maf-ta-option.selected {
   border-color: var(--accent, #006d6d);
-  background: color-mix(in oklab, var(--accent-light, #edf5f5) 88%, var(--accent, #006d6d) 12%);
+  /* wie Desktop-Terminart (AppointmentTypePicker): exakt #edf5f5 (PWA/SW-cache + Token-Overrides umgehen) */
+  background: #edf5f5;
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent, #006d6d) 18%, transparent);
 }
 .maf-ta-icon {
@@ -4292,17 +4294,19 @@ button.huf-btn-dark {
 
 .maf-bottom-bar {
   position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  /* über Tab-Bar platzieren (Tab-Bar bleibt sichtbar) */
+  bottom: var(--m-tab-height, 64px);
+  left: 0;
+  transform: none;
   width: 100%;
-  max-width: 430px;
+  max-width: none;
   background: rgba(255,255,255,.95);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border-top: 1px solid rgba(0,0,0,.08);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  z-index: 50;
+  /* über Tab-Bar (mobile-tab-bar-z: 110) */
+  z-index: 120;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -4321,22 +4325,6 @@ button.huf-btn-dark {
   flex-shrink: 0;
 }
 .maf-bb-cancel:active { background: var(--m-bg, #f6f5f3); }
-.maf-bb-draft {
-  flex: 1;
-  padding: 11px;
-  border-radius: 10px;
-  border: 1px solid var(--m-border, #E5E2DC);
-  background: var(--m-card, #fff);
-  color: var(--m-text, #1A1A1A);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  text-align: center;
-}
-.maf-bb-draft:active { background: var(--m-bg, #f6f5f3); }
-.maf-bb-draft:disabled { opacity: .6; cursor: not-allowed; }
 .maf-bb-save {
   flex: 1;
   display: flex;
@@ -8249,8 +8237,9 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
 .dir-prof-v2 {
   --dir-v2-soft: #fafafa;
   --dir-v2-dark: #0f1114;
-  --dir-v2-al: rgba(82, 183, 136, 0.07);
-  --dir-v2-bd: #e5e7eb;
+  /* neue App-Farben */
+  --dir-v2-al: var(--accent-light, #edf5f5);
+  --dir-v2-bd: var(--border, #dde9e9);
   --dir-v2-bl: #f3f4f6;
   --dir-v2-r: 20px;
   --dir-v2-rs: 14px;
@@ -8632,6 +8621,17 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
   max-width: 100%;
 }
 
+/* Desktop: Chips linksbündig statt zentriert */
+@media (min-width: 992px) {
+  .dir-prof-v2-h-tags {
+    align-items: flex-start;
+  }
+  .dir-prof-v2-h-tags-svc,
+  .dir-prof-v2-h-tags-ani {
+    justify-content: flex-start;
+  }
+}
+
 .dir-prof-v2-hero .dir-prof-v2-h-tags {
   margin-top: 12px;
 }
@@ -8652,9 +8652,9 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
 }
 
 .dir-prof-v2-hero .dir-prof-v2-ht--svc {
-  background: rgba(82, 183, 136, 0.2);
-  color: #a7f3d0;
-  border: 1px solid rgba(82, 183, 136, 0.35);
+  color: #fff;
+  background: #006d6d42;
+  border: 1px solid #006d6d;
 }
 
 .dir-prof-v2-ht--ani {
@@ -9004,6 +9004,10 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
     gap: 32px 40px;
     align-items: start;
+    /* Gives the sticky sidebar some breathing room at page end. */
+    padding-bottom: 28px;
+    /* Abstand zum folgenden Claim-Block (außerhalb des Layout-Grids). */
+    margin-bottom: 28px;
   }
 
   .dir-prof-v2-profile-layout > .dir-prof-v2-facts-main-stack {
@@ -9028,9 +9032,9 @@ aside.dir-prof-v2-facts-sidebar {
   --dir-prof-sidebar-kontakt-gap: 24px;
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 8px 30px #15422614, 0 1px 3px #0000000a;
+  box-shadow: 0 8px 30px color-mix(in oklab, var(--accent, #006d6d) 12%, transparent), 0 1px 3px #0000000a;
   border: none;
-  border-top: 5px solid #52b789;
+  border-top: 5px solid var(--accent, #006d6d);
   overflow: hidden;
 }
 
@@ -9038,8 +9042,12 @@ aside.dir-prof-v2-facts-sidebar {
   /* Karte nach oben in den Hero ziehen; über Tab-Leiste (50), Hauptspalte bleibt darunter (z-index 1) */
   .dir-prof-v2-profile-layout .dir-prof-v2-facts-sidebar {
     position: sticky;
-    top: 88px;
-    margin-top: clamp(-168px, -11vw, -112px);
+    top: 96px;
+    /* Weniger aggressiv, damit die Karte nicht oben aus dem Bild rutscht. */
+    margin-top: clamp(-132px, -9vw, -92px);
+    bottom: 28px;
+    max-height: calc(100vh - 96px - 28px);
+    overflow: auto;
     z-index: 60;
   }
 }
@@ -9139,7 +9147,7 @@ aside.dir-prof-v2-facts-sidebar {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  color: #154226;
+  color: var(--accent, #006d6d);
   font-size: 17px;
   line-height: 1.25;
   margin-top: 2px;
@@ -9158,7 +9166,7 @@ aside.dir-prof-v2-facts-sidebar {
 }
 
 .dir-prof-v2-facts-sidebar-phone {
-  color: #154226;
+  color: var(--accent, #006d6d);
   font-weight: 600;
   text-decoration: none;
 }
@@ -9315,19 +9323,21 @@ aside.dir-prof-v2-facts-sidebar {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: none;
-  background: #edf3ef;
+  border: 1px solid color-mix(in oklab, var(--accent, #006d6d) 18%, transparent);
+  background: var(--accent-light, #edf5f5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  color: #154226;
-  transition: color 0.15s, background 0.15s;
+  color: var(--accent, #006d6d);
+  transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.15s;
 }
 
 .dir-prof-v2-facts-sidebar-soc-a:hover {
-  color: #0f3019;
-  background: #dfe8e2;
+  color: var(--accent-dark, #015555);
+  background: color-mix(in oklab, var(--accent-light, #edf5f5) 80%, white);
+  border-color: var(--accent, #006d6d);
+  transform: translateY(-1px);
 }
 
 /* Adresse (Legacy / andere Bereiche): Straße, PLZ, Ort, Land */
@@ -9410,8 +9420,8 @@ aside.dir-prof-v2-facts-sidebar {
 }
 
 .dir-prof-v2-bc-icon {
-  color: #154227;
-  background: #edf3ef;
+  color: var(--accent, #006d6d);
+  background: var(--accent-light, #edf5f5);
   border-radius: 11px;
   justify-content: center;
   align-items: center;
@@ -9449,7 +9459,7 @@ aside.dir-prof-v2-facts-sidebar {
 
 .dir-prof-v2-bc-icon svg.cat-icon-img {
   overflow: visible;
-  color: #154227;
+  color: inherit;
 }
 
 .dir-prof-v2-bc:hover .dir-prof-v2-bc-icon svg.cat-icon-img {
@@ -9458,9 +9468,28 @@ aside.dir-prof-v2-facts-sidebar {
 
 /**
  * Inline-Fach-SVGs (Turbopack): Farbe über `color` am Elterncontainer.
+ * Zusätzlich: SVGs aus `public/` werden als Inline-Markup gerendert (Wrapper `.cat-icon-img`),
+ * daher auch Descendant-Selector unterstützen.
  * Illustrator-Pfade oft ohne `fill` (UA-Schwarz) oder mit #000 — daher Shapes gezielt auf currentColor.
  * Explizites #fff/#FFF bleibt (Highlights); `fill="none"` bleibt Outline-only.
  */
+span.cat-icon-img svg {
+  fill: currentColor;
+  color: inherit;
+}
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line) {
+  fill: currentColor !important;
+}
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line)[fill="none"] {
+  fill: none !important;
+}
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line)[fill="#fff"],
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line)[fill="#FFF"],
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line)[fill="#ffffff"],
+span.cat-icon-img svg :where(path, circle, rect, ellipse, polygon, polyline, line)[fill="#FFFFFF"] {
+  fill: #fff !important;
+}
+
 svg.cat-icon-img {
   fill: currentColor;
   color: inherit;
@@ -9886,7 +9915,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 }
 
 .dir-prof-v2-map-embed .dlp-mapbox-pin--active {
-  background: #3d9e6e;
+  background: #006d6d;
 }
 
 .dir-prof-v2-map-embed .dlp-map-root--fallback {
@@ -10016,8 +10045,8 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #edf3ef;
-  color: #154226;
+  background: var(--accent-light, #edf5f5);
+  color: var(--accent, #006d6d);
   font-size: 16px;
 }
 
@@ -10076,7 +10105,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 }
 
 .dir-prof-v2-kontakt-pane-h i {
-  color: var(--dir-accent-dark);
+  color: var(--accent, #006d6d);
   font-size: 17px;
   opacity: 0.9;
 }
@@ -10113,17 +10142,17 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 }
 
 .dir-prof-v2-kontakt-link-row:hover {
-  border-color: rgba(82, 183, 136, 0.35);
+  border-color: color-mix(in oklab, var(--accent, #006d6d) 35%, transparent);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
-    0 6px 20px rgba(82, 183, 136, 0.1);
+    0 6px 20px color-mix(in oklab, var(--accent, #006d6d) 12%, transparent);
   transform: translateY(-1px);
 }
 
 .dir-prof-v2-kontakt-link-row:focus-visible {
   outline: none;
-  border-color: var(--dir-accent);
-  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.22);
+  border-color: var(--accent, #006d6d);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent, #006d6d) 22%, transparent);
 }
 
 .dir-prof-v2-kontakt-link-ic {
@@ -10134,8 +10163,8 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #edf3ef;
-  color: #154226;
+  background: var(--accent-light, #edf5f5);
+  color: var(--accent, #006d6d);
   font-size: 19px;
 }
 
@@ -10158,7 +10187,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 .dir-prof-v2-kontakt-link-url {
   font-size: 14px;
   font-weight: 500;
-  color: var(--dir-accent-dark);
+  color: var(--accent-dark, #015555);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -10170,7 +10199,7 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 }
 
 .dir-prof-v2-kontakt-link-row:hover .dir-prof-v2-kontakt-link-go {
-  color: var(--dir-accent-dark);
+  color: var(--accent-dark, #015555);
 }
 
 @media (max-width: 600px) {
@@ -10553,10 +10582,11 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
 .dir-prof-v2-claim-sec {
   background: var(--dir-v2-dark);
   padding: 48px 32px;
-  max-width: var(--dir-listing-card-max-w);
+  max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
   box-sizing: border-box;
+  border-radius: 18px;
 }
 
 .dir-prof-v2-claim-in {
@@ -10565,6 +10595,8 @@ svg.cat-icon-img :where(path, circle, rect, ellipse, polygon, polyline, line)[fi
   display: flex;
   align-items: center;
   gap: 40px;
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .dir-prof-v2-cl-left {

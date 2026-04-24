@@ -8,7 +8,7 @@ import type { ReactNode } from 'react'
 function RouteFallback() {
   return (
     <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
-      <span className="inline-block h-5 w-5 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
+      <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
       Laden…
     </div>
   )

@@ -7,4 +7,5 @@ export type DirectoryListingMapPoint = {
   title: string
   subtitle: string
   href: string
+  isPremium?: boolean
 }

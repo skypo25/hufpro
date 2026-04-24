@@ -11,6 +11,7 @@ export type { DirectoryListingMapPoint } from '@/components/directory/public/lis
 const RADIUS_SOURCE = 'dlp-service-radius'
 const RADIUS_FILL = 'dlp-service-radius-fill'
 const RADIUS_LINE = 'dlp-service-radius-line'
+const ACCENT = '#006d6d'
 
 type Props = {
   points: DirectoryListingMapPoint[]
@@ -143,14 +144,14 @@ function DirectoryListingMapboxMapInner({
         id: RADIUS_FILL,
         type: 'fill',
         source: RADIUS_SOURCE,
-        paint: { 'fill-color': '#52b788', 'fill-opacity': 0.12 },
+        paint: { 'fill-color': ACCENT, 'fill-opacity': 0.12 },
       })
       map.addLayer({
         id: RADIUS_LINE,
         type: 'line',
         source: RADIUS_SOURCE,
         paint: {
-          'line-color': '#52b788',
+          'line-color': ACCENT,
           'line-width': 2,
           'line-opacity': 0.55,
         },
@@ -174,7 +175,14 @@ function DirectoryListingMapboxMapInner({
       wrap.className = 'dlp-map-marker-wrap'
       const isActive = p.id === activeId
       const pin = document.createElement('div')
-      pin.className = `dlp-mapbox-pin${isActive ? ' dlp-mapbox-pin--active' : ''}`
+      const isPremium = p.isPremium === true
+      pin.className = [
+        'dlp-mapbox-pin',
+        isPremium ? 'dlp-mapbox-pin--premium' : '',
+        isActive ? 'dlp-mapbox-pin--active' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
       pin.textContent = p.initials
       wrap.appendChild(pin)
 

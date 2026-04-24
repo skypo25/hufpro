@@ -27,6 +27,31 @@
   min-height: 100vh;
 }
 
+/* Lightweight variable provider (for embedding listing cards elsewhere). */
+.dlp-vars {
+  --dlp-bg: #fff;
+  --dlp-bg-soft: #f9f9f9;
+  --dlp-accent: #006d6d;
+  --dlp-accent-light: rgba(0, 109, 109, 0.08);
+  --dlp-accent-dark: #015555;
+  --dlp-text: #1b1f23;
+  --dlp-muted: #6b7280;
+  --dlp-light: #9ca3af;
+  --dlp-border: #eaeaea;
+  --dlp-border-lt: #f3f3f3;
+  --dlp-warn: #d4a017;
+  --dlp-blue: #3b82f6;
+  --dlp-orange: #f97316;
+  --dlp-purple: #8b5cf6;
+  --dlp-pink: #ec4899;
+  --dlp-red: #ef4444;
+  --dlp-r: 16px;
+  --dlp-rs: 12px;
+  font-family: var(--font-directory-sans, 'DM Sans'), system-ui, sans-serif;
+  color: var(--dlp-text);
+  -webkit-font-smoothing: antialiased;
+}
+
 .dlp-root h1,
 .dlp-root h2,
 .dlp-root h3,
@@ -297,7 +322,7 @@
 .dlp-fb-field:focus-within {
   border-color: var(--dlp-accent);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.06);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent, #006d6d) 10%, transparent);
 }
 
 .dlp-fb-field i {
@@ -953,7 +978,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #52b788;
+  background: var(--accent, #006d6d);
   color: #fff;
   opacity: 1;
   isolation: isolate;
@@ -974,7 +999,16 @@
 
 .dlp-map-marker-wrap .dlp-mapbox-pin--active {
   transform: scale(1.25);
-  background: #3d9e6e;
+  background: var(--accent-dark, #015555);
+}
+
+.dlp-map-marker-wrap .dlp-mapbox-pin--premium {
+  background: #90631d;
+  color: #f8f1e8;
+}
+
+.dlp-map-marker-wrap .dlp-mapbox-pin--premium.dlp-mapbox-pin--active {
+  background: #90631d;
 }
 
 .dlp-map-popup__t {
@@ -1172,10 +1206,30 @@
   color: inherit;
 }
 
-.dlp-card:hover {
-  box-shadow: 0 4px 30px #272c3f0f;
-  transform: translateY(-2px);
+.dlp-card.dlp-card--top {
+  border: 1px solid #e4ccaa;
+  border-left: 1px solid #e4ccaa;
+  background: linear-gradient(90deg, #fffdf5 0%, #fff 8%);
 }
+
+.dlp-card.dlp-card--top .dlp-cb-avatar {
+  background: rgba(183, 121, 31, 0.10);
+  color: #8a5a11;
+  border: 1px solid rgba(183, 121, 31, 0.16);
+}
+
+.dlp-card.dlp-card--top .dlp-card-fav {
+  color: #f8f1e8;
+  background: #90631d;
+  border-color: #b7791f38;
+}
+
+.dlp-card.dlp-card--top .dlp-card-toplabel {
+  color: #f8f1e8;
+  font-family: var(--font-directory-display, 'Outfit'), system-ui, sans-serif;
+}
+
+/* Per design: no animal/service-specific chip colors (use standard `.dlp-tag-*`). */
 
 .dlp-card-badge {
   position: absolute;
@@ -1235,7 +1289,7 @@
   right: 12px;
   height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.92);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
@@ -1261,12 +1315,17 @@ a.dlp-card .dlp-card-fav {
 }
 
 .dlp-card-toplabel {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #8a5a11;
   line-height: 1;
+}
+
+.dlp-card-fav .bi,
+.dlp-card-fav .bi::before {
+  color: currentColor;
 }
 
 .dlp-card-body {
@@ -1286,14 +1345,14 @@ a.dlp-card .dlp-card-fav {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: #edf3ef;
+  background: var(--accent-light, #edf5f5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-directory-display, 'Outfit'), system-ui, sans-serif;
   font-weight: 800;
   font-size: 16px;
-  color: #154226;
+  color: var(--accent, #006d6d);
   flex-shrink: 0;
 }
 
@@ -1316,13 +1375,13 @@ a.dlp-card .dlp-card-fav {
 .dlp-verified {
   width: 15px;
   height: 15px;
-  border-radius: 50%;
-  background: var(--dlp-accent);
-  color: #fff;
+  border-radius: 0;
+  background: transparent;
+  color: #006d6d;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 
@@ -1334,15 +1393,19 @@ a.dlp-card .dlp-card-fav {
   font-size: 12px;
   color: var(--dlp-muted);
   margin-top: 1px;
-  white-space: nowrap;
+  line-height: 1.25;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .dlp-cb-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  margin-top: 8px;
 }
 
 .dlp-tag {
@@ -1358,8 +1421,8 @@ a.dlp-card .dlp-card-fav {
 }
 
 .dlp-tag-a {
-  background: rgba(59, 130, 246, 0.06);
-  color: var(--dlp-blue);
+  background: var(--dlp-accent-light);
+  color: var(--dlp-accent);
 }
 
 .dlp-tag-m {

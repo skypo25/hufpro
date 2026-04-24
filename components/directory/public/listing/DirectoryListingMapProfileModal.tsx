@@ -38,7 +38,8 @@ export function DirectoryListingMapProfileModal({
   }, [])
 
   const href = `/behandler/${profile.slug}`
-  const primaryFach = taxonomy?.specialties?.[0] ?? 'Tierbehandler:in'
+  const fachList = (taxonomy?.specialties ?? []).filter(Boolean)
+  const fachText = fachList.length > 0 ? fachList.join(' · ') : 'Tierbehandler:in'
   const loc = [profile.postal_code, profile.city].filter(Boolean).join(' ')
   const locLine =
     distanceKm != null && Number.isFinite(distanceKm)
@@ -83,7 +84,7 @@ export function DirectoryListingMapProfileModal({
                   </span>
                 ) : null}
               </div>
-              <div className="dlp-mapmod__fach">{primaryFach}</div>
+              <div className="dlp-mapmod__fach">{fachText}</div>
               <div className="dlp-mapmod__loc">
                 <i className="bi bi-geo-alt-fill" aria-hidden />
                 {locLine}
@@ -111,7 +112,6 @@ export function DirectoryListingMapProfileModal({
               {locLine}
             </div>
             <Link href={href} className="dlp-cf-btn dlp-cf-primary" onClick={onClose}>
-              <i className="bi bi-calendar-plus" aria-hidden />
               Profil ansehen
             </Link>
           </div>

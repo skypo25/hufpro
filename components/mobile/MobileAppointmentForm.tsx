@@ -772,7 +772,6 @@ export default function MobileAppointmentForm({ mode, appointmentId }: Props) {
 
       <div className="maf-bottom-bar">
         <button type="button" className="maf-bb-cancel" onClick={() => router.back()}>← Abbrechen</button>
-        <button type="button" className="maf-bb-draft" onClick={() => handleSubmit(true)} disabled={saving}>Als Entwurf</button>
         <button type="button" className="maf-bb-save" onClick={() => handleSubmit(false)} disabled={saving}>
           <i className="bi bi-check-lg" aria-hidden />{saving ? 'Wird gespeichert…' : 'Termin speichern'}
         </button>

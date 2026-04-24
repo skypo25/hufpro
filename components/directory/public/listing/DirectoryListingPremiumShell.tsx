@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -371,6 +372,7 @@ export function DirectoryListingPremiumShell({
           title: p.display_name,
           subtitle: loc || p.practice_name?.trim() || '',
           href: `/behandler/${p.slug}`,
+          isPremium: p.top_active === true,
         }
       })
   }, [profiles])
@@ -396,10 +398,14 @@ export function DirectoryListingPremiumShell({
         <nav aria-label="Hauptnavigation">
           <div className="nav-inner">
             <Link href="/behandler" className="nav-logo">
-              <div className="sq" aria-hidden>
-                a
-              </div>
-              <span>anidocs</span>
+              <Image
+                src="/logo.svg"
+                alt="anidocs"
+                width={140}
+                height={44}
+                className="nav-logo-img"
+                priority
+              />
             </Link>
             <div className="nav-links">
               <span className="nav-link active">Behandler finden</span>
@@ -440,10 +446,14 @@ export function DirectoryListingPremiumShell({
           <div className="mm-panel" onClick={(e) => e.stopPropagation()}>
             <div className="mm-header">
               <Link href="/behandler" className="nav-logo" onClick={closeNavMenu}>
-                <div className="sq" aria-hidden>
-                  a
-                </div>
-                <span>anidocs</span>
+                <Image
+                  src="/logo.svg"
+                  alt="anidocs"
+                  width={140}
+                  height={44}
+                  className="nav-logo-img"
+                  priority
+                />
               </Link>
               <button type="button" className="mm-close" aria-label="Menü schließen" onClick={closeNavMenu}>
                 <i className="bi bi-x-lg" aria-hidden />
@@ -953,7 +963,8 @@ export function DirectoryListingPremiumShell({
                 const href = `/behandler/${p.slug}`
                 const tax = taxonomyByProfileId.get(p.id)
                 const dist = distancesKmByProfileId?.get(p.id)
-                const primaryFach = tax?.specialties?.[0] ?? 'Tierbehandler:in'
+                const fachList = (tax?.specialties ?? []).filter(Boolean)
+                const fachText = fachList.length > 0 ? fachList.join(' · ') : 'Tierbehandler:in'
                 const loc = [p.postal_code, p.city].filter(Boolean).join(' ')
                 const locLine =
                   dist != null && Number.isFinite(dist)
@@ -962,9 +973,13 @@ export function DirectoryListingPremiumShell({
                 const isTop = p.top_active === true
                 const ini = directoryPremiumInitialsFromName(p.display_name)
                 const tagA = (tax?.animals ?? []).slice(0, 3)
-
                 return (
-                  <Link key={p.id} href={href} className="dlp-card" data-dlp-profile={p.id}>
+                  <Link
+                    key={p.id}
+                    href={href}
+                    className={`dlp-card${isTop ? ' dlp-card--top' : ''}`}
+                    data-dlp-profile={p.id}
+                  >
                     {isTop ? (
                       <span className="dlp-card-fav" aria-hidden="true">
                         <i className="bi bi-stars" />
@@ -983,7 +998,7 @@ export function DirectoryListingPremiumShell({
                               </span>
                             ) : null}
                           </div>
-                          <div className="dlp-cb-fach">{primaryFach}</div>
+                          <div className="dlp-cb-fach">{fachText}</div>
                         </div>
                       </div>
                       <div className="dlp-cb-tags">
@@ -1007,7 +1022,6 @@ export function DirectoryListingPremiumShell({
                       </div>
                       <div className="dlp-cf-actions">
                         <span className="dlp-cf-btn dlp-cf-primary">
-                          <i className="bi bi-calendar-plus" aria-hidden />
                           Profil ansehen
                         </span>
                       </div>

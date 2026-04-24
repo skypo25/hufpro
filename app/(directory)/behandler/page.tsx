@@ -291,8 +291,10 @@ export default async function BehandlerDirectoryPage({ searchParams }: PageProps
     countsBySpecialtyId = await fetchPublicCountsBySpecialtyIds(categorySpecialties.map((s) => s.id))
   }
 
-  const featured = await listPublicProfiles({ pageSize: 12, page: 1, sort: 'newest' })
-  featuredProfiles = featured.profiles
+  // Startseite: statt "Neueste" bewusst Top-/Premium-Profile zeigen (stabil rotiert).
+  // Wir holen eine größere Seite und filtern anschließend, damit genug Top-Profile verfügbar sind.
+  const featured = await listPublicProfiles({ pageSize: 48, page: 1, sort: 'display_name' })
+  featuredProfiles = featured.profiles.filter((p) => Boolean(p.top_active)).slice(0, 12)
   if (featuredProfiles.length > 0) {
     featuredTaxonomy = await fetchPublicTaxonomyLabelsForProfiles(featuredProfiles.map((p) => p.id))
   }

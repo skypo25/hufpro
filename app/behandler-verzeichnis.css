@@ -57,6 +57,21 @@
   color: var(--text);
 }
 
+.beh-ref .nav-logo .sq {
+  width: 30px;
+  height: 30px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-outfit), "Outfit", sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
 .beh-ref .nav-logo .nav-logo-img {
   height: 40px;
   width: auto;
@@ -472,7 +487,7 @@
   justify-content: center;
   font-size: 50px;
   line-height: 1;
-  color: #154226;
+  color: var(--accent, #006d6d);
   margin: 0 auto 14px;
 }
 
@@ -484,7 +499,7 @@
 
 /* Inline-SVG: `currentColor` am Path braucht gesetztes `color` am <svg> (Link .cat-card setzt sonst Textfarbe) */
 .beh-ref .cat-icon > svg.cat-icon-img {
-  color: #154226;
+  color: var(--accent, #006d6d);
 }
 
 .beh-ref .cat-name {
@@ -1267,10 +1282,10 @@
   }
 
   .beh-ref .search-bar:focus-within {
-    border-bottom-color: rgba(82, 183, 136, 0.35);
+    border-bottom-color: color-mix(in oklab, var(--accent, #006d6d) 35%, transparent);
     box-shadow:
       0 10px 32px rgba(39, 44, 63, 0.06),
-      0 0 0 2px rgba(82, 183, 136, 0.22);
+      0 0 0 2px color-mix(in oklab, var(--accent, #006d6d) 22%, transparent);
   }
 
   .beh-ref .search-bar .sb-field--location {

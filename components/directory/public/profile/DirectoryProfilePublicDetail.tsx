@@ -419,11 +419,6 @@ export function DirectoryProfilePublicDetail({
                 Galerie
               </div>
               <h2 className="dir-prof-v2-sec-h2">Eindrücke</h2>
-              <p className="dir-prof-v2-sec-sub dir-prof-v2-gal-intro">
-                Kacheln einheitlich im Format 16:9 (hochformatige Motive werden in der Übersicht beschnitten). Klick
-                öffnet die Großansicht im Originalformat; Pfeiltasten oder die Seiten-Buttons blättern zwischen den
-                Bildern.
-              </p>
               <DirectoryProfileGalleryGrid
                 photos={galleryWithUrl.map((m) => ({
                   id: m.id,

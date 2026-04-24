@@ -34,6 +34,31 @@ const VIEW_PROFILE_METHODS = 'directory_public_profile_methods'
 const VIEW_MEDIA = 'directory_public_profile_media'
 const VIEW_SOCIAL = 'directory_public_profile_social_links'
 
+const MS_PER_DAY = 86_400_000
+
+function utcDayIndex(d: Date = new Date()): number {
+  return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / MS_PER_DAY)
+}
+
+function rotateArray<T>(items: T[], offset: number): T[] {
+  const n = items.length
+  if (n <= 1) return items
+  const o = ((offset % n) + n) % n
+  if (o === 0) return items
+  return [...items.slice(o), ...items.slice(0, o)]
+}
+
+function premiumFirstWithDailyRotation<T extends { top_active?: boolean | null }>(rows: T[]): T[] {
+  const premium: T[] = []
+  const normal: T[] = []
+  for (const r of rows) {
+    if (r.top_active) premium.push(r)
+    else normal.push(r)
+  }
+  if (premium.length <= 1) return [...premium, ...normal]
+  return [...rotateArray(premium, utcDayIndex()), ...normal]
+}
+
 function directoryDataError(operation: string, error: { message: string }): Error {
   const base = `${operation}: ${error.message}`
   if (/fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|getaddrinfo/i.test(error.message)) {
@@ -220,11 +245,23 @@ export async function listPublicProfilesNear(
     return a.row.display_name.localeCompare(b.row.display_name, 'de')
   })
 
-  const totalCount = scored.length
+  // Premium/Top-Profile zuerst; innerhalb der Premium-Gruppe tägliche, stabile Rotation.
+  const rotatedScored = (() => {
+    const prem: Scored[] = []
+    const norm: Scored[] = []
+    for (const s of scored) {
+      if (s.row.top_active) prem.push(s)
+      else norm.push(s)
+    }
+    if (prem.length <= 1) return [...prem, ...norm]
+    return [...rotateArray(prem, utcDayIndex()), ...norm]
+  })()
+
+  const totalCount = rotatedScored.length
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const page = Math.min(requestedPage, totalPages)
   const from = (page - 1) * pageSize
-  const slice = scored.slice(from, from + pageSize)
+  const slice = rotatedScored.slice(from, from + pageSize)
 
   const distancesKmByProfileId = new Map<string, number>()
   for (const s of slice) {
@@ -499,6 +536,7 @@ export async function listPublicProfiles(
   let rows: DirectoryPublicProfileRow[] = []
   if (sort === 'newest') {
     const withCreated = await makeDataQuery()
+      .order('top_active', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false, nullsFirst: false })
       .order('display_name', { ascending: true })
       .range(from, to)
@@ -507,6 +545,7 @@ export async function listPublicProfiles(
       /created_at|does not exist/i.test(withCreated.error.message)
     ) {
       const byName = await makeDataQuery()
+        .order('top_active', { ascending: false, nullsFirst: false })
         .order('display_name', { ascending: true })
         .range(from, to)
       if (byName.error) throw directoryDataError('listPublicProfiles', byName.error)
@@ -517,13 +556,16 @@ export async function listPublicProfiles(
       rows = (withCreated.data ?? []) as DirectoryPublicProfileRow[]
     }
   } else {
-    const byName = await makeDataQuery().order('display_name', { ascending: true }).range(from, to)
+    const byName = await makeDataQuery()
+      .order('top_active', { ascending: false, nullsFirst: false })
+      .order('display_name', { ascending: true })
+      .range(from, to)
     if (byName.error) throw directoryDataError('listPublicProfiles', byName.error)
     rows = (byName.data ?? []) as DirectoryPublicProfileRow[]
   }
 
   return {
-    profiles: rows,
+    profiles: premiumFirstWithDailyRotation(rows),
     totalCount,
     page,
     pageSize,
