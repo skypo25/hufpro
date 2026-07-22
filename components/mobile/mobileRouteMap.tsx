@@ -4,10 +4,13 @@ import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { MobileRouteLoading } from './MobileRouteLoading'
 
+/**
+ * Kein globales „Laden...“ beim Chunk-Load — die Zielseite zeigt ihren eigenen
+ * Ladezustand (z. B. „Kunden werden geladen…“). Sonst: weißer Screen mit doppeltem Loader.
+ */
 function RouteFallback() {
-  return <MobileRouteLoading />
+  return null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
