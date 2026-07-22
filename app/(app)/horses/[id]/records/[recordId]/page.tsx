@@ -17,6 +17,7 @@ import {
 } from '@/lib/cache/tags'
 import PhotoLightbox from '@/components/photos/PhotoLightbox'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
+import { shouldSkipAppRecordDetailSsr } from '@/lib/mobile/shouldSkipAppRecordDetailSsr'
 
 type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
@@ -300,20 +301,31 @@ function SectionCard({ title, titleRight, children }: {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default async function RecordDetailPage({ params }: RecordDetailPageProps) {
+  const { id: horseId, recordId } = await params
+
+  // Mobile-Shell nutzt `{children}` nicht → schwere SSR + Signed URLs sparen.
+  // Daten kommen dort über `/api/horses/.../records/.../mobile`.
+  if (await shouldSkipAppRecordDetailSsr()) {
+    return null
+  }
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { id: horseId, recordId } = await params
+  const [horseResult, docLoad] = await Promise.all([
+    supabase
+      .from('horses')
+      .select(
+        'id, name, breed, sex, birth_year, usage, hoof_status, care_interval, customer_id, stable_name, stable_city, customers (id, customer_number, name, city)'
+      )
+      .eq('id', horseId)
+      .eq('user_id', user.id)
+      .single<Horse>(),
+    loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId),
+  ])
 
-  const { data: horse } = await supabase
-    .from('horses')
-    .select(
-      'id, name, breed, sex, birth_year, usage, hoof_status, care_interval, customer_id, stable_name, stable_city, customers (id, customer_number, name, city)'
-    )
-    .eq('id', horseId)
-    .eq('user_id', user.id)
-    .single<Horse>()
+  const horse = horseResult.data
 
   if (!horse) {
     return (
@@ -324,8 +336,6 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       </main>
     )
   }
-
-  const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
 
   let record: HoofRecord
   let photoRows: HoofPhoto[]
@@ -343,15 +353,25 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       console.warn('[record-detail] Fallback: hoof_*', { recordId, reason: docLoad.reason })
     }
 
-    const { data: recordBase } = await supabase
-      .from('hoof_records')
-      .select('id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at')
-      .eq('id', recordId)
-      .eq('horse_id', horseId)
-      .eq('user_id', user.id)
-      .single<HoofRecord>()
+    const [{ data: recordFull }, { data: hoofPhotos }] = await Promise.all([
+      supabase
+        .from('hoof_records')
+        .select(
+          'id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at, general_condition, gait, handling_behavior, horn_quality, hoofs_json, record_type, doc_number'
+        )
+        .eq('id', recordId)
+        .eq('horse_id', horseId)
+        .eq('user_id', user.id)
+        .single<HoofRecord>(),
+      supabase
+        .from('hoof_photos')
+        .select('id, file_path, photo_type, annotations_json, width, height')
+        .eq('hoof_record_id', recordId)
+        .eq('user_id', user.id)
+        .returns<HoofPhoto[]>(),
+    ])
 
-    if (!recordBase) {
+    if (!recordFull) {
       return (
         <main className="mx-auto max-w-[1200px] w-full space-y-7">
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
@@ -361,50 +381,36 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       )
     }
 
-    let extRecord: Partial<HoofRecord> = {}
-    const { data: extRow } = await supabase
-      .from('hoof_records')
-      .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json, record_type, doc_number')
-      .eq('id', recordId)
-      .eq('user_id', user.id)
-      .maybeSingle<Partial<HoofRecord>>()
-    if (extRow) extRecord = extRow
-
-    record = { ...recordBase, ...extRecord }
-
-    const { data: hoofPhotos } = await supabase
-      .from('hoof_photos')
-      .select('id, file_path, photo_type, annotations_json, width, height')
-      .eq('hoof_record_id', recordId)
-      .eq('user_id', user.id)
-      .returns<HoofPhoto[]>()
-
+    record = recordFull
     photoRows = hoofPhotos ?? []
   }
 
-  // Previous record (unverändert über hoof_records – stabile Nachbar-URLs)
-  const { data: prevRows } = await supabase
-    .from('hoof_records')
-    .select('id, record_date')
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-    .neq('id', recordId)
-    .order('record_date', { ascending: false })
-    .limit(1)
-  const prevRecord = (prevRows as { id: string; record_date: string | null }[] | null)?.[0] ?? null
+  const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
+
+  // Previous record + Signed URLs parallel (beide unabhängig)
+  const [prevRowsResult, signedByPath] = await Promise.all([
+    supabase
+      .from('hoof_records')
+      .select('id, record_date')
+      .eq('horse_id', horseId)
+      .eq('user_id', user.id)
+      .neq('id', recordId)
+      .order('record_date', { ascending: false })
+      .limit(1),
+    createHoofPhotoSignedUrls(supabase, paths, 60 * 60),
+  ])
+
+  const prevRecord =
+    (prevRowsResult.data as { id: string; record_date: string | null }[] | null)?.[0] ?? null
 
   const photoMap: Record<string, string> = {}
   const photoMetaMap: Record<string, HoofPhoto> = {}
-  if (photoRows.length) {
-    const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
-    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 60 * 60)
-    for (const p of photoRows) {
-      if (!p.file_path || !p.photo_type) continue
-      const signedUrl = signedByPath.get(p.file_path)
-      if (signedUrl) {
-        photoMap[p.photo_type] = signedUrl
-        photoMetaMap[p.photo_type] = p
-      }
+  for (const p of photoRows) {
+    if (!p.file_path || !p.photo_type) continue
+    const signedUrl = signedByPath.get(p.file_path)
+    if (signedUrl) {
+      photoMap[p.photo_type] = signedUrl
+      photoMetaMap[p.photo_type] = p
     }
   }
 

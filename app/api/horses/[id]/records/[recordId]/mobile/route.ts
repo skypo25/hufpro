@@ -50,18 +50,20 @@ export async function GET(
     return NextResponse.json({ error: 'horseId oder recordId fehlt' }, { status: 400 })
   }
 
-  const { data: horse } = await supabase
-    .from('horses')
-    .select('id,name,breed,sex,birth_year,customer_id,stable_name')
-    .eq('id', horseId)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [horseResult, docLoad] = await Promise.all([
+    supabase
+      .from('horses')
+      .select('id,name,breed,sex,birth_year,customer_id,stable_name')
+      .eq('id', horseId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId),
+  ])
 
+  const horse = horseResult.data
   if (!horse) {
     return NextResponse.json({ error: 'Dokumentation nicht gefunden' }, { status: 404 })
   }
-
-  const docLoad = await loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId)
 
   let record: RecordDetailHoofRecord
   let photoRows: HoofPhoto[]
@@ -79,69 +81,62 @@ export async function GET(
       console.warn('[mobile record API] Fallback: hoof_*', { recordId, reason: docLoad.reason })
     }
 
-    const { data: recordBase } = await supabase
-      .from('hoof_records')
-      .select('id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at')
-      .eq('id', recordId)
-      .eq('horse_id', horseId)
-      .eq('user_id', user.id)
-      .maybeSingle<HoofRecord>()
+    const [{ data: recordFull }, { data: hoofPhotos }] = await Promise.all([
+      supabase
+        .from('hoof_records')
+        .select(
+          'id, horse_id, record_date, hoof_condition, treatment, notes, created_at, updated_at, general_condition, gait, handling_behavior, horn_quality, hoofs_json, record_type, doc_number'
+        )
+        .eq('id', recordId)
+        .eq('horse_id', horseId)
+        .eq('user_id', user.id)
+        .maybeSingle<HoofRecord>(),
+      supabase
+        .from('hoof_photos')
+        .select('id, file_path, photo_type, annotations_json, width, height')
+        .eq('hoof_record_id', recordId)
+        .eq('user_id', user.id)
+        .returns<HoofPhoto[]>(),
+    ])
 
-    if (!recordBase) {
+    if (!recordFull) {
       return NextResponse.json({ error: 'Dokumentation nicht gefunden' }, { status: 404 })
     }
 
-    let extRecord: Partial<HoofRecord> = {}
-    const { data: extRow } = await supabase
-      .from('hoof_records')
-      .select('general_condition, gait, handling_behavior, horn_quality, hoofs_json, record_type, doc_number')
-      .eq('id', recordId)
-      .eq('user_id', user.id)
-      .maybeSingle<Partial<HoofRecord>>()
-    if (extRow) extRecord = extRow
-
-    record = { ...recordBase, ...extRecord }
-
-    const { data: hoofPhotos } = await supabase
-      .from('hoof_photos')
-      .select('id, file_path, photo_type, annotations_json, width, height')
-      .eq('hoof_record_id', recordId)
-      .eq('user_id', user.id)
-      .returns<HoofPhoto[]>()
-
+    record = recordFull
     photoRows = hoofPhotos ?? []
   }
 
-  let customer: { id: string; name: string | null } | null = null
-  if (horse.customer_id) {
-    const { data: c } = await supabase
-      .from('customers')
-      .select('id,name')
-      .eq('id', horse.customer_id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (c) customer = c
-  }
+  const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
+
+  const [customerResult, signedByPath] = await Promise.all([
+    horse.customer_id
+      ? supabase
+          .from('customers')
+          .select('id,name')
+          .eq('id', horse.customer_id)
+          .eq('user_id', user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { id: string; name: string | null } | null }),
+    createHoofPhotoSignedUrls(supabase, paths, 3600),
+  ])
+
+  const customer = customerResult.data
   const horseWithCustomer = { ...horse, customers: customer }
 
   const photoUrls: Partial<Record<PhotoSlotKey, string>> = {}
   const photoMeta: Partial<Record<PhotoSlotKey, { annotations: unknown; width: number; height: number }>> = {}
 
-  if (photoRows.length) {
-    const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
-    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 3600)
-
-    for (const p of photoRows) {
-      if (!p.file_path || !p.photo_type) continue
-      const slot = toCanonicalPhotoSlot(p.photo_type)
-      if (!slot) continue
-      const signedUrl = signedByPath.get(p.file_path)
-      if (signedUrl) photoUrls[slot] = signedUrl
-      photoMeta[slot] = {
-        annotations: p.annotations_json ?? {},
-        width: p.width ?? 900,
-        height: p.height ?? 1600,
-      }
+  for (const p of photoRows) {
+    if (!p.file_path || !p.photo_type) continue
+    const slot = toCanonicalPhotoSlot(p.photo_type)
+    if (!slot) continue
+    const signedUrl = signedByPath.get(p.file_path)
+    if (signedUrl) photoUrls[slot] = signedUrl
+    photoMeta[slot] = {
+      annotations: p.annotations_json ?? {},
+      width: p.width ?? 900,
+      height: p.height ?? 1600,
     }
   }
 
