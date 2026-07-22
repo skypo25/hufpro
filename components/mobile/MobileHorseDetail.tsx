@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { formatAnimalTypeLabel, formatNeuteredLabel, formatWeightKgKg } from '@/lib/animalTypeDisplay'
 import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
-import { MobileRouteLoading } from '@/components/mobile/MobileRouteLoading'
 
 type Owner = {
   id: string
@@ -205,7 +204,14 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
     : ''
 
   if (loading) {
-    return <MobileRouteLoading />
+    return (
+      <>
+        <div className="status-bar" aria-hidden />
+        <header className="mobile-header">
+          <div className="mobile-greeting">Pferd wird geladen…</div>
+        </header>
+      </>
+    )
   }
 
   if (error || !horse) {

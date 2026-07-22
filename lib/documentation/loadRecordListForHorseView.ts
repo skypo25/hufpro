@@ -104,30 +104,27 @@ export async function loadRecordListForHorseView(
   horseId: string
 ): Promise<LoadRecordListForHorseViewResult> {
   // Kein hoof_records.doc_number: Spalte fehlt in älteren DBs; Nummer kommt aus documentation_records.
-  const [hoofResult, docResult] = await Promise.all([
-    supabase
-      .from('hoof_records')
-      .select('id, horse_id, record_date, created_at, updated_at')
-      .eq('horse_id', horseId)
-      .eq('user_id', userId)
-      .returns<HoofListRow[]>(),
-    supabase
-      .from('documentation_records')
-      .select('id, session_date, doc_number, metadata, created_at, updated_at')
-      .eq('animal_id', horseId)
-      .eq('user_id', userId)
-      .returns<DocListRow[]>(),
-  ])
+  const { data: hoofRows, error: hoofErr } = await supabase
+    .from('hoof_records')
+    .select('id, horse_id, record_date, created_at, updated_at')
+    .eq('horse_id', horseId)
+    .eq('user_id', userId)
+    .returns<HoofListRow[]>()
 
-  if (hoofResult.error) {
-    throw new Error(`hoof_records (Liste): ${hoofResult.error.message}`)
-  }
-  if (docResult.error) {
-    throw new Error(`documentation_records (Liste): ${docResult.error.message}`)
+  if (hoofErr) {
+    throw new Error(`hoof_records (Liste): ${hoofErr.message}`)
   }
 
-  const hoofRows = hoofResult.data
-  const docRows = docResult.data
+  const { data: docRows, error: docErr } = await supabase
+    .from('documentation_records')
+    .select('id, session_date, doc_number, metadata, created_at, updated_at')
+    .eq('animal_id', horseId)
+    .eq('user_id', userId)
+    .returns<DocListRow[]>()
+
+  if (docErr) {
+    throw new Error(`documentation_records (Liste): ${docErr.message}`)
+  }
 
   const legacyToDoc = new Map<string, DocListRow>()
   for (const row of docRows ?? []) {
@@ -187,35 +184,20 @@ export async function loadRecordListForHorseView(
   const allLegacyHoofIds = merged.map((m) => m.legacyHoofId)
 
   const docCountByLegacy = new Map<string, number>()
-  const hoofCountByLegacy = new Map<string, number>()
-
-  const [docPhotosResult, hoofPhotosResult] = await Promise.all([
-    docIds.length > 0
-      ? supabase
-          .from('documentation_photos')
-          .select('documentation_record_id, photo_type')
-          .eq('user_id', userId)
-          .in('documentation_record_id', docIds)
-      : Promise.resolve({ data: null as { documentation_record_id: string | null; photo_type: string | null }[] | null, error: null }),
-    allLegacyHoofIds.length > 0
-      ? supabase
-          .from('hoof_photos')
-          .select('hoof_record_id, photo_type')
-          .eq('user_id', userId)
-          .in('hoof_record_id', allLegacyHoofIds)
-      : Promise.resolve({ data: null as { hoof_record_id: string | null; photo_type: string | null }[] | null, error: null }),
-  ])
-
-  if (docPhotosResult.error) {
-    throw new Error(`documentation_photos (Liste): ${docPhotosResult.error.message}`)
-  }
-  if (hoofPhotosResult.error) {
-    throw new Error(`hoof_photos (Liste): ${hoofPhotosResult.error.message}`)
-  }
 
   if (docIds.length > 0) {
+    const { data: docPhotos, error: dpErr } = await supabase
+      .from('documentation_photos')
+      .select('documentation_record_id, photo_type')
+      .eq('user_id', userId)
+      .in('documentation_record_id', docIds)
+
+    if (dpErr) {
+      throw new Error(`documentation_photos (Liste): ${dpErr.message}`)
+    }
+
     const byDocId = new Map<string, { photo_type: string | null }[]>()
-    for (const p of docPhotosResult.data ?? []) {
+    for (const p of docPhotos ?? []) {
       const row = p as { documentation_record_id: string | null; photo_type: string | null }
       const rid = row.documentation_record_id
       if (!rid) continue
@@ -238,9 +220,20 @@ export async function loadRecordListForHorseView(
     }
   }
 
+  const hoofCountByLegacy = new Map<string, number>()
   if (allLegacyHoofIds.length > 0) {
+    const { data: hoofPhotos, error: hpErr } = await supabase
+      .from('hoof_photos')
+      .select('hoof_record_id, photo_type')
+      .eq('user_id', userId)
+      .in('hoof_record_id', allLegacyHoofIds)
+
+    if (hpErr) {
+      throw new Error(`hoof_photos (Liste): ${hpErr.message}`)
+    }
+
     const byHoof = new Map<string, { photo_type: string | null }[]>()
-    for (const p of hoofPhotosResult.data ?? []) {
+    for (const p of hoofPhotos ?? []) {
       const row = p as { hoof_record_id: string | null; photo_type: string | null }
       const hid = row.hoof_record_id
       if (!hid) continue
