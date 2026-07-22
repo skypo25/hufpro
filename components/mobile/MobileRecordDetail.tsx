@@ -12,6 +12,7 @@ import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
+import { MobileRouteLoading } from '@/components/mobile/MobileRouteLoading'
 import { usePhotoGridDebugVersion } from '@/components/mobile/usePhotoGridDebugVersion'
 import {
   gridSectionLabelForIndex,
@@ -854,13 +855,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   }
 
   if (loading) {
-    // Gleicher Fallback wie mobileRouteMap.RouteFallback — kein zweites, anderes Loader-UI.
-    return (
-      <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
-        <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
-        Laden…
-      </div>
-    )
+    return <MobileRouteLoading />
   }
 
   if (!record) {

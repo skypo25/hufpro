@@ -4,14 +4,10 @@ import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { MobileRouteLoading } from './MobileRouteLoading'
 
 function RouteFallback() {
-  return (
-    <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
-      <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
-      Laden…
-    </div>
-  )
+  return <MobileRouteLoading />
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
