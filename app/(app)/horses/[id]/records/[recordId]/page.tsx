@@ -17,7 +17,7 @@ import {
 } from '@/lib/cache/tags'
 import PhotoLightbox from '@/components/photos/PhotoLightbox'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
-import { shouldSkipAppRecordDetailSsr } from '@/lib/mobile/shouldSkipAppRecordDetailSsr'
+import { shouldSkipAppHeavySsrForMobileShell } from '@/lib/mobile/shouldSkipAppRecordDetailSsr'
 
 type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
@@ -305,7 +305,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
 
   // Mobile-Shell nutzt `{children}` nicht → schwere SSR + Signed URLs sparen.
   // Daten kommen dort über `/api/horses/.../records/.../mobile`.
-  if (await shouldSkipAppRecordDetailSsr()) {
+  if (await shouldSkipAppHeavySsrForMobileShell()) {
     return null
   }
 

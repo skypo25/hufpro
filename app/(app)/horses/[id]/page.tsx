@@ -13,6 +13,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { profilePhotoPathFromIntake } from '@/lib/animals/clinicalIntakeTypes'
+import { shouldSkipAppHeavySsrForMobileShell } from '@/lib/mobile/shouldSkipAppRecordDetailSsr'
+import { createHoofPhotoSignedUrls } from '@/lib/photos/createHoofPhotoSignedUrls'
 
 type HorsePageProps = {
   params: Promise<{ id: string }>
@@ -150,6 +152,13 @@ function InfoItem({
 }
 
 export default async function HorseDetailPage({ params }: HorsePageProps) {
+  const { id } = await params
+
+  // Mobile-Shell nutzt `{children}` nicht → schwere SSR + Signed URLs sparen.
+  if (await shouldSkipAppHeavySsrForMobileShell()) {
+    return null
+  }
+
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -159,8 +168,6 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
   if (!user) {
     redirect('/login')
   }
-
-  const { id } = await params
 
   const { data: settingsRow } = await supabase
     .from('user_settings')
@@ -276,23 +283,22 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
   if (wholeBodyPhotoSources.length > 0) {
-    const withUrls = await Promise.all(
-      wholeBodyPhotoSources.map(async (p) => {
+    const paths = wholeBodyPhotoSources
+      .map((p) => p.file_path)
+      .filter((p): p is string => Boolean(p))
+    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 60 * 60)
+    wholeBodyPhotos = wholeBodyPhotoSources
+      .map((p) => {
         if (!p.file_path) return null
-        const { data: signed } = await supabase.storage
-          .from('hoof-photos')
-          .createSignedUrl(p.file_path, 60 * 60)
-        if (!signed?.signedUrl) return null
+        const imageUrl = signedByPath.get(p.file_path)
+        if (!imageUrl) return null
         return {
           id: p.id,
-          imageUrl: signed.signedUrl,
+          imageUrl,
           label: (p.photo_type && SLOT_LABELS[p.photo_type]) ?? p.photo_type ?? 'Ganzkörper',
         }
       })
-    )
-    wholeBodyPhotos = withUrls.filter(
-      (x): x is { id: string; imageUrl: string; label: string } => x != null
-    )
+      .filter((x): x is { id: string; imageUrl: string; label: string } => x != null)
     wholeBodyPhotos.sort(
       (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
     )

@@ -5,9 +5,9 @@ import { ANIDOCS_SHELL_COOKIE, parseAnidocsShellCookie } from '@/lib/mobile/shel
 
 /**
  * Mobile-Shell rendert `{children}` nicht (`AppLayoutClient` → `MobileAppBranch`).
- * Schwere Record-Detail-SSR (inkl. Signed URLs) wäre dort verschwendet.
+ * Schwere SSR (Tier-/Doku-Detail inkl. Signed URLs) wäre dort verschwendet.
  */
-export async function shouldSkipAppRecordDetailSsr(): Promise<boolean> {
+export async function shouldSkipAppHeavySsrForMobileShell(): Promise<boolean> {
   const jar = await cookies()
   const shell = parseAnidocsShellCookie(jar.get(ANIDOCS_SHELL_COOKIE)?.value)
   if (shell === 'mobile') return true
@@ -17,3 +17,6 @@ export async function shouldSkipAppRecordDetailSsr(): Promise<boolean> {
   const ua = userAgent({ headers: await headers() })
   return ua.device.type === 'mobile'
 }
+
+/** @deprecated Alias — nutze {@link shouldSkipAppHeavySsrForMobileShell} */
+export const shouldSkipAppRecordDetailSsr = shouldSkipAppHeavySsrForMobileShell
