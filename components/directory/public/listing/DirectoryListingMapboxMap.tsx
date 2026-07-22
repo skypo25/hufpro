@@ -185,6 +185,8 @@ function DirectoryListingMapboxMapInner({
         .join(' ')
       pin.textContent = p.initials
       wrap.appendChild(pin)
+      // Stacking: active above premium above normal (helps when markers overlap).
+      wrap.style.zIndex = String(isActive ? 30 : isPremium ? 20 : 10)
 
       const marker = new mapboxgl.Marker({ element: wrap, anchor: 'bottom' })
         .setLngLat([p.lng, p.lat])

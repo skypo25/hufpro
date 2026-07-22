@@ -10,6 +10,7 @@ import {
   type RecordDetailHoofPhoto,
   type RecordDetailHoofRecord,
 } from '@/lib/documentation/loadRecordForDetailView'
+import { createHoofPhotoSignedUrls } from '@/lib/photos/createHoofPhotoSignedUrls'
 
 type EditRecordPageProps = {
   params: Promise<{
@@ -294,6 +295,11 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
   }[] = []
   const existingPhotoUrls: Record<string, string> = {}
   if (photoRowsForDisplay.length) {
+    const paths = photoRowsForDisplay
+      .map((p) => p.file_path)
+      .filter((p): p is string => Boolean(p))
+    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 60 * 60)
+
     for (const p of photoRowsForDisplay) {
       if (!p.file_path || !p.photo_type) continue
       const hoofMatch = hoofBySlot.get(p.photo_type)
@@ -305,11 +311,9 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         width: p.width ?? null,
         height: p.height ?? null,
       })
-      const { data: signed } = await supabase.storage
-        .from('hoof-photos')
-        .createSignedUrl(p.file_path, 60 * 60)
-      if (signed?.signedUrl) {
-        existingPhotoUrls[p.photo_type] = signed.signedUrl
+      const signedUrl = signedByPath.get(p.file_path)
+      if (signedUrl) {
+        existingPhotoUrls[p.photo_type] = signedUrl
       }
     }
   }

@@ -8752,11 +8752,12 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
     backdrop-filter 0.2s ease;
 }
 
-.dir-prof-v2-tabs-track--pinned {
+.dir-prof-v2-tabs-track.dir-prof-v2-tabs-track--pinned {
   background: var(--dir-header);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border-bottom-color: rgba(255, 255, 255, 0.1);
+  z-index: 999999 !important;
 }
 
 .dir-prof-v2-tabs-track--pinned .dir-prof-v2-tab {

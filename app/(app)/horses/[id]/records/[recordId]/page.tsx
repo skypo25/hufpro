@@ -9,6 +9,7 @@ import {
 } from '@/lib/documentation/loadRecordForDetailView'
 import DeleteRecordForm from './DeleteRecordForm'
 import { SLOT_LABELS, SLOT_SOLAR, SLOT_LATERAL } from '@/lib/photos/photoTypes'
+import { createHoofPhotoSignedUrls } from '@/lib/photos/createHoofPhotoSignedUrls'
 import { formatCustomerNumber } from '@/lib/format'
 import {
   revalidateDashboardMobileForUser,
@@ -395,13 +396,13 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
   const photoMap: Record<string, string> = {}
   const photoMetaMap: Record<string, HoofPhoto> = {}
   if (photoRows.length) {
+    const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
+    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 60 * 60)
     for (const p of photoRows) {
       if (!p.file_path || !p.photo_type) continue
-      const { data: signed } = await supabase.storage
-        .from('hoof-photos')
-        .createSignedUrl(p.file_path, 60 * 60)
-      if (signed?.signedUrl) {
-        photoMap[p.photo_type] = signed.signedUrl
+      const signedUrl = signedByPath.get(p.file_path)
+      if (signedUrl) {
+        photoMap[p.photo_type] = signedUrl
         photoMetaMap[p.photo_type] = p
       }
     }

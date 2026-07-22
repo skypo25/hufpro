@@ -5,6 +5,7 @@ import {
   type RecordDetailHoofPhoto,
   type RecordDetailHoofRecord,
 } from '@/lib/documentation/loadRecordForDetailView'
+import { createHoofPhotoSignedUrls } from '@/lib/photos/createHoofPhotoSignedUrls'
 import { toCanonicalPhotoSlot } from '@/lib/photos/photoTypes'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 
@@ -127,12 +128,15 @@ export async function GET(
   const photoMeta: Partial<Record<PhotoSlotKey, { annotations: unknown; width: number; height: number }>> = {}
 
   if (photoRows.length) {
+    const paths = photoRows.map((p) => p.file_path).filter((p): p is string => Boolean(p))
+    const signedByPath = await createHoofPhotoSignedUrls(supabase, paths, 3600)
+
     for (const p of photoRows) {
       if (!p.file_path || !p.photo_type) continue
       const slot = toCanonicalPhotoSlot(p.photo_type)
       if (!slot) continue
-      const { data: s } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-      if (s?.signedUrl) photoUrls[slot] = s.signedUrl
+      const signedUrl = signedByPath.get(p.file_path)
+      if (signedUrl) photoUrls[slot] = signedUrl
       photoMeta[slot] = {
         annotations: p.annotations_json ?? {},
         width: p.width ?? 900,

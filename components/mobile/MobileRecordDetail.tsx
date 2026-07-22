@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordByLegacyHoofId } from '@/lib/documentation/mirrorDocumentationPhotos'
 import {
-  loadRecordDetailFromDocumentation,
-  recordDetailHoofRecordToMobileRecord,
   type MobileRecordDetailState,
 } from '@/lib/documentation/loadRecordForDetailView'
 import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS, toCanonicalPhotoSlot } from '@/lib/photos/photoTypes'
@@ -55,15 +53,6 @@ type HoofEntry = {
 
 /** Alias: gemeinsames Mapping mit Desktop (loadRecordForDetailView). */
 type MrdRecord = MobileRecordDetailState
-
-type HoofPhoto = {
-  id: string
-  file_path: string
-  photo_type: string
-  annotations_json?: unknown
-  width?: number | null
-  height?: number | null
-}
 
 const GRID_PHOTO_STAGGER_MS = 52
 
@@ -727,6 +716,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const photoRetryDoneRef = useRef(false)
 
   const invalidatePhotoSlot = useCallback((slot: PhotoSlotKey) => {
     setPhotoUrls((prev) => {
@@ -743,192 +733,93 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
     })
   }, [])
 
-  const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setLoading(false)
-      return
+  const load = useCallback(async (opts?: { isRetry?: boolean }) => {
+    const isRetry = opts?.isRetry === true
+    if (!isRetry) {
+      setPhotoUrls({})
+      setPhotoMeta({})
     }
 
-    setPhotoUrls({})
-    setPhotoMeta({})
+    try {
+      const res = await fetch(`/api/horses/${horseId}/records/${recordId}/mobile`, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
 
-    const [horseRes, docLoad] = await Promise.all([
-      supabase
-        .from('horses')
-        .select('id,name,breed,sex,birth_year,customer_id,stable_name')
-        .eq('id', horseId)
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      loadRecordDetailFromDocumentation(supabase, user.id, horseId, recordId),
-    ])
-
-    const { data: horseData } = horseRes
-
-    let horseWithCustomer: Horse | null = null
-    if (horseData) {
-      const cid = (horseData as { customer_id?: string | null }).customer_id
-      if (cid) {
-        const { data: cust } = await supabase
-          .from('customers')
-          .select('name')
-          .eq('id', cid)
-          .eq('user_id', user.id)
-          .maybeSingle()
-        horseWithCustomer = { ...(horseData as Horse), customers: cust ?? null }
-      } else {
-        horseWithCustomer = horseData as Horse
-      }
-    }
-    if (horseWithCustomer) setHorse(horseWithCustomer)
-
-    type PhotoRow = {
-      file_path: string | null
-      photo_type: string | null
-      annotations_json?: unknown
-      width?: number | null
-      height?: number | null
-    }
-
-    let photoRows: PhotoRow[] = []
-    let usedDocumentation = false
-
-    if (docLoad.ok) {
-      usedDocumentation = true
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.info('[mobile-record-detail] Quelle: documentation_*', { recordId })
-      }
-      setRecord(recordDetailHoofRecordToMobileRecord(docLoad.record))
-      photoRows = docLoad.photos
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn('[mobile-record-detail] Fallback: hoof_*', { recordId, reason: docLoad.reason })
-      }
-
-      const { data: rec } = await supabase
-        .from('hoof_records')
-        .select('id,record_date,record_type,general_condition,gait,handling_behavior,horn_quality,hoofs_json,hoof_condition,notes,created_at,updated_at')
-        .eq('id', recordId)
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (!rec) {
-        setRecord(null)
-        setPhotoUrls({})
-        setPhotoMeta({})
+      if (res.status === 401) {
         setLoading(false)
         return
       }
 
-      const r = rec as MrdRecord & { hoof_condition?: string | null }
-      setRecord({ ...r, summary_notes: r.hoof_condition ?? null } as MrdRecord)
+      if (!res.ok) {
+        if (!isRetry) {
+          setHorse(null)
+          setRecord(null)
+        }
+        setLoading(false)
+        return
+      }
 
-      const { data: photos } = await supabase
-        .from('hoof_photos')
-        .select('id,file_path,photo_type,annotations_json,width,height')
-        .eq('hoof_record_id', recordId)
-        .eq('user_id', user.id)
+      const data = (await res.json()) as {
+        horse: Horse
+        record: MrdRecord
+        photoUrls: Partial<Record<PhotoSlotKey, string>>
+        photoMeta: Partial<Record<PhotoSlotKey, { annotations: unknown; width: number; height: number }>>
+      }
 
-      photoRows = (photos ?? []) as PhotoRow[]
-    }
+      setHorse(data.horse)
+      setRecord(data.record)
 
-    const fillSlotsFromPhotoRows = async (rows: PhotoRow[]) => {
-      if (!rows.length) {
-        setPhotoUrls({})
-        setPhotoMeta({})
+      const urls = data.photoUrls ?? {}
+      const meta: Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>> = {}
+      for (const [slot, m] of Object.entries(data.photoMeta ?? {}) as [
+        PhotoSlotKey,
+        { annotations: unknown; width: number; height: number },
+      ][]) {
+        meta[slot] = {
+          annotations: parseAnnotationsJson(m.annotations),
+          width: m.width ?? 900,
+          height: m.height ?? 1600,
+        }
+      }
+
+      if (isPhotoDocumentationDebugEnabled()) {
+        const rows = Object.entries(urls).map(([slot, signed]) => ({
+          file_path: signed?.split('/object/sign/hoof-photos/')[1]?.split('?')[0] ?? null,
+          photo_type: slot,
+          width: meta[slot as PhotoSlotKey]?.width ?? null,
+          height: meta[slot as PhotoSlotKey]?.height ?? null,
+        }))
+        logPhotoDocumentationSignedUrls(rows, urls)
+      }
+
+      setPhotoUrls(urls)
+      setPhotoMeta(meta)
+
+      // One retry if API returned record without photos (race after save).
+      if (!Object.keys(urls).length && !photoRetryDoneRef.current) {
+        photoRetryDoneRef.current = true
         if (retryTimerRef.current) {
           clearTimeout(retryTimerRef.current)
           retryTimerRef.current = null
         }
-        retryTimerRef.current = setTimeout(async () => {
-          const { data: { user: u } } = await supabase.auth.getUser()
-          if (!u) return
-          if (usedDocumentation) {
-            const again = await loadRecordDetailFromDocumentation(supabase, u.id, horseId, recordId)
-            if (again.ok && again.photos.length) {
-              const urls: Partial<Record<PhotoSlotKey, string>> = {}
-              const meta: Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>> = {}
-              for (const p of again.photos) {
-                if (!p.file_path || !p.photo_type) continue
-                const slot = toCanonicalPhotoSlot(p.photo_type)
-                if (!slot) continue
-                const { data: s, error: urlErr } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-                if (urlErr) console.warn('[Fotos] Signed URL fehlgeschlagen:', p.file_path, urlErr.message)
-                if (s?.signedUrl) urls[slot] = s.signedUrl
-                if (p.annotations_json && slot) {
-                  meta[slot] = {
-                    annotations: parseAnnotationsJson(p.annotations_json),
-                    width: p.width ?? 900,
-                    height: p.height ?? 1600,
-                  }
-                }
-              }
-              logPhotoDocumentationSignedUrls(again.photos, urls)
-              setPhotoUrls(urls)
-              setPhotoMeta(meta)
-            }
-          } else {
-            const { data: retryPhotos } = await supabase
-              .from('hoof_photos')
-              .select('id,file_path,photo_type,annotations_json,width,height')
-              .eq('hoof_record_id', recordId)
-              .eq('user_id', u.id)
-            if (retryPhotos?.length) {
-              const urls: Partial<Record<PhotoSlotKey, string>> = {}
-              const meta: Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>> = {}
-              for (const p of retryPhotos as HoofPhoto[]) {
-                if (!p.file_path || !p.photo_type) continue
-                const slot = toCanonicalPhotoSlot(p.photo_type)
-                if (!slot) continue
-                const { data: s, error: urlErr } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-                if (urlErr) console.warn('[Fotos] createSignedUrl (Retry) fehlgeschlagen:', p.file_path, urlErr.message)
-                if (s?.signedUrl) urls[slot] = s.signedUrl
-                if (p.annotations_json) {
-                  meta[slot] = {
-                    annotations: parseAnnotationsJson(p.annotations_json),
-                    width: p.width ?? 900,
-                    height: p.height ?? 1600,
-                  }
-                }
-              }
-              logPhotoDocumentationSignedUrls(retryPhotos as PhotoRowLike[], urls)
-              setPhotoUrls(urls)
-              setPhotoMeta(meta)
-            }
-          }
+        retryTimerRef.current = setTimeout(() => {
+          void load({ isRetry: true })
         }, 2000)
-        return
       }
-
-      const urls: Partial<Record<PhotoSlotKey, string>> = {}
-      const meta: Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>> = {}
-      for (const p of rows) {
-        if (!p.file_path || !p.photo_type) continue
-        const slot = toCanonicalPhotoSlot(p.photo_type)
-        if (!slot) continue
-        const { data: s, error: urlErr } = await supabase.storage.from('hoof-photos').createSignedUrl(p.file_path, 3600)
-        if (urlErr) console.warn('[Fotos] Signed URL fehlgeschlagen:', p.file_path, urlErr.message)
-        if (s?.signedUrl) urls[slot] = s.signedUrl
-        if (p.annotations_json && slot) {
-          meta[slot] = {
-            annotations: parseAnnotationsJson(p.annotations_json),
-            width: p.width ?? 900,
-            height: p.height ?? 1600,
-          }
-        }
+    } catch (err) {
+      console.warn('[mobile-record-detail] Laden fehlgeschlagen:', err)
+      if (!isRetry) {
+        setHorse(null)
+        setRecord(null)
       }
-      logPhotoDocumentationSignedUrls(rows, urls)
-      setPhotoUrls(urls)
-      setPhotoMeta(meta)
+    } finally {
+      setLoading(false)
     }
-
-    await fillSlotsFromPhotoRows(photoRows)
-    setLoading(false)
   }, [horseId, recordId])
 
   useEffect(() => {
+    photoRetryDoneRef.current = false
     load()
     return () => {
       if (retryTimerRef.current) {
