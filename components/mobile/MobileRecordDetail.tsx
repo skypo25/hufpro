@@ -854,8 +854,9 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   }
 
   if (loading) {
+    // Gleicher Fallback wie mobileRouteMap.RouteFallback — kein zweites, anderes Loader-UI.
     return (
-      <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
+      <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
         <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-[#E5E2DC]" aria-hidden />
         Laden…
       </div>
