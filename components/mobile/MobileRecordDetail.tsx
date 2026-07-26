@@ -656,21 +656,32 @@ function PhotoSlotView({
 
       {lightboxOpen && photoUrl && (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90 px-4"
+          style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+          }}
           onClick={() => setLightboxOpen(false)}
         >
           <button
             type="button"
             onClick={() => setLightboxOpen(false)}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white"
+            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+            aria-label="Foto schließen"
           >
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} width={20} height={20}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <p className="absolute left-4 top-4 rounded-xl bg-white/20 px-3 py-1.5 text-[13px] font-medium text-white">{label}</p>
+          <p
+            className="absolute left-4 max-w-[calc(100%-5.5rem)] truncate rounded-xl bg-white/20 px-3 py-1.5 text-[13px] font-medium text-white"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+          >
+            {label}
+          </p>
           <div
-            className="relative max-h-[calc(100dvh-5rem)] w-auto"
+            className="relative max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] w-auto"
             style={{ aspectRatio: `${imgWidth}/${imgHeight}` }}
             onClick={e => e.stopPropagation()}
           >
@@ -891,7 +902,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
               </span>
             </div>
             <div className="cd-meta">
-              {[horse?.breed, horse?.sex === 'male' ? 'Hengst' : horse?.sex === 'female' ? 'Stute' : horse?.sex === 'gelding' ? 'Wallach' : horse?.sex, horse?.birth_year ? `${new Date().getFullYear() - horse.birth_year} J.` : null, customer?.name, horse?.stable_name].filter(Boolean).join(' · ')}
+              Dokumentation vom: {fmtDate(record.record_date)}
             </div>
           </div>
         </div>

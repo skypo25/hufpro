@@ -86,18 +86,24 @@ export default function PhotoLightbox({ label, signedUrl, annotations = [], widt
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 px-4"
           role="dialog"
           aria-modal="true"
           aria-label={label}
+          style={{
+            paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+          }}
           onClick={close}
         >
           {/* Close button */}
           <button
             type="button"
             onClick={close}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white hover:bg-white/30 transition"
+            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-white transition hover:bg-white/30"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
             title="Schließen"
+            aria-label="Foto schließen"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -105,13 +111,16 @@ export default function PhotoLightbox({ label, signedUrl, annotations = [], widt
           </button>
 
           {/* Label */}
-          <p className="absolute left-4 top-4 rounded-xl bg-white/20 px-3 py-1.5 text-[13px] font-medium text-white">
+          <p
+            className="absolute left-4 max-w-[calc(100%-5.5rem)] truncate rounded-xl bg-white/20 px-3 py-1.5 text-[13px] font-medium text-white"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+          >
             {label}
           </p>
 
           {/* Image */}
           <div
-            className="relative max-h-[calc(100dvh-5rem)] w-auto"
+            className="relative max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] w-auto"
             style={{ aspectRatio: `${W}/${H}` }}
             onClick={(e) => e.stopPropagation()}
           >
