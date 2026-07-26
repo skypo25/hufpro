@@ -18,6 +18,7 @@ import {
   faUsers,
   faGear,
 } from '@fortawesome/free-solid-svg-icons'
+import { signalAnidocsShellReady } from '@/lib/mobile/shellReady'
 
 export default function MobileShell({
   children,
@@ -38,6 +39,10 @@ export default function MobileShell({
     ],
     [profile.terminology, animalsIcon]
   )
+
+  useEffect(() => {
+    signalAnidocsShellReady()
+  }, [])
   const [moreSheetOpen, setMoreSheetOpen] = useState(false)
   const [todayAppointmentCount, setTodayAppointmentCount] = useState(0)
   const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|animals\/new|animals\/[^/]+\/edit|animals\/[^/]+\/erstanamnese(\/edit)?)$/.test(

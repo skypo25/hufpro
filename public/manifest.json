@@ -4,8 +4,8 @@
   "description": "AniDocs – Dokumentation, Kunden und Termine für Tiergesundheitsberufe",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#1b1f23",
-  "theme_color": "#1b1f23",
+  "background_color": "#f5f9f9",
+  "theme_color": "#f5f9f9",
   "orientation": "portrait-primary",
   "lang": "de",
   "icons": [
