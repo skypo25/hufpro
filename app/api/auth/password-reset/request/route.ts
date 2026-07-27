@@ -51,12 +51,41 @@ export async function POST(req: Request) {
     }
 
     const db = createSupabaseServiceRoleClient()
+
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      null
+
+    // Rate-Limit: max. 5 Anfragen / 15 Min. pro IP (bzw. ohne IP global drosseln über E-Mail weiter unten)
+    const sinceIso = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    if (ip) {
+      const { count: ipCount } = await db
+        .from('password_reset_tokens')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_ip', ip)
+        .gte('created_at', sinceIso)
+      if ((ipCount ?? 0) >= 5) {
+        return NextResponse.json({ ok: true })
+      }
+    }
+
     const userRow = await findUserIdByEmail(db, email)
 
     if (!userRow?.id) {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('[password-reset][request]', { requestId, status: 'user_not_found' })
       }
+      return NextResponse.json({ ok: true })
+    }
+
+    // Rate-Limit pro User: max. 3 Tokens / 15 Min.
+    const { count: userCount } = await db
+      .from('password_reset_tokens')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userRow.id)
+      .gte('created_at', sinceIso)
+    if ((userCount ?? 0) >= 3) {
       return NextResponse.json({ ok: true })
     }
 
@@ -79,10 +108,6 @@ export async function POST(req: Request) {
     const tokenHash = sha256Hex(token)
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000) // 30 min
 
-    const ip =
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      req.headers.get('x-real-ip') ||
-      null
     const userAgent = req.headers.get('user-agent')
 
     await db.from('password_reset_tokens').insert({

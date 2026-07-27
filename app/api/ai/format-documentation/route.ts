@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 
 type TherapyType = 'huf' | 'physio' | 'osteo' | 'heilpraktiker'
 
@@ -18,14 +18,8 @@ const THERAPY_LABELS: Record<TherapyType, string> = {
  * Optional: Andere kompatible Chat-API (z. B. Azure OpenAI, OpenRouter) durch Anpassung von buildMessages + fetch ersetzbar.
  */
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const gate = await requireAppAccess({ mode: 'write' })
+  if (!gate.ok) return gate.response
 
   let rawText: string
   let therapyType: TherapyType

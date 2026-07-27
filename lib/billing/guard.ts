@@ -5,8 +5,8 @@ import { getBillingState, canAccessApp } from '@/lib/billing/state'
 import type { BillingState } from '@/lib/billing/types'
 
 /**
- * Zentrale Billing-Guard-Logik, um Bereiche später leicht zu sperren.
- * Nutzt die synchronisierte Supabase-Sicht (Stripe bleibt Source of Truth via Webhooks).
+ * Zentrale Billing-Guard-Logik für Seiten (Redirect).
+ * Für APIs bitte {@link requireAppAccess} aus `@/lib/billing/requireAppAccess` nutzen.
  */
 export async function requireBillingAccess(): Promise<BillingState> {
   const { account } = await getBillingAccountForCurrentUser()

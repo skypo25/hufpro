@@ -28,7 +28,7 @@ export type StagedPhoto = {
 
 /**
  * Upload eines bereits verarbeiteten Bildes zu Storage + DB.
- * Pfad: horse_id/record_id/slot.jpg
+ * Pfad: userId/horse_id/record_id/slot.jpg
  */
 export async function uploadProcessedPhoto(
   params: {
@@ -46,7 +46,8 @@ export async function uploadProcessedPhoto(
 
   const ext = 'jpg'
   const fileName = `${params.slot}.${ext}`
-  const filePath = `${params.horseId}/${params.recordId}/${fileName}`
+  // Erster Ordner = userId (Storage-RLS Ownership)
+  const filePath = `${user.id}/${params.horseId}/${params.recordId}/${fileName}`
 
   const { error: uploadError } = await supabase.storage
     .from('hoof-photos')

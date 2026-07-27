@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
+import { DATA_EXPORTS_BUCKET } from '@/lib/export/dataExportsBucket'
+import { requireExportAccess } from '@/lib/export/exportAccess.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,10 +19,24 @@ type Row = {
   completed_at: string | null
 }
 
+function isAllowedExportObjectPath(userId: string, bucket: string, path: string): boolean {
+  if (bucket === DATA_EXPORTS_BUCKET) {
+    return path.startsWith(`${userId}/`) && path.endsWith('.zip')
+  }
+  // Legacy-Fallback-Upload unter hoof-photos
+  if (bucket === 'hoof-photos') {
+    return path.startsWith(`__anidocs-export-temp/${userId}/`) && path.endsWith('.zip')
+  }
+  return false
+}
+
 /**
  * Polling: Status + bei Erfolg frisch signierte Download-URL (Kurzlebigkeit wie bisher).
  */
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const gate = await requireExportAccess()
+  if (!gate.ok) return gate.response
+
   const { id } = await ctx.params
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ error: 'Ungültige Job-ID.' }, { status: 400 })
@@ -56,6 +72,21 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
 
   if (row.status !== 'complete' || !row.storage_bucket || !row.storage_object_path) {
     return NextResponse.json(base)
+  }
+
+  if (!isAllowedExportObjectPath(user.id, row.storage_bucket, row.storage_object_path)) {
+    console.warn(
+      JSON.stringify({
+        event: 'export_signed_url_path_rejected',
+        userId: user.id,
+        jobId: row.id,
+        bucket: row.storage_bucket,
+      })
+    )
+    return NextResponse.json({
+      ...base,
+      error_message: 'Download-Pfad ungültig.',
+    })
   }
 
   const admin = createSupabaseServiceRoleClient()

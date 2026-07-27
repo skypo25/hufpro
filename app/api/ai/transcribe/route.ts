@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 
 const OPENAI_TRANSCRIPTIONS_URL = 'https://api.openai.com/v1/audio/transcriptions'
 
@@ -10,14 +10,8 @@ const OPENAI_TRANSCRIPTIONS_URL = 'https://api.openai.com/v1/audio/transcription
  * @see https://platform.openai.com/docs/api-reference/audio/createTranscription
  */
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const gate = await requireAppAccess({ mode: 'write' })
+  if (!gate.ok) return gate.response
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {

@@ -6,6 +6,7 @@ import InvoicePdfDocument from '@/components/pdf/InvoicePdfDocument'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { embedZugferdIntoPdf } from '@/lib/einvoice/zugferd'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,8 +50,11 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const gate = await requireAppAccess({ mode: 'write' })
+  if (!gate.ok) return gate.response
+
   const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = gate.user
   if (!user) {
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 import { CACHE_REVALIDATE_SECONDS } from '@/lib/cache/tags'
 
 const OSRM_URL = 'https://router.project-osrm.org/route/v1/driving'
@@ -18,11 +18,8 @@ function roundCoord(n: number, decimals: number): number {
  * Cache: nur nach Auth; Key aus gerundeten Koordinaten (kein PII, gleiche Strecke → gleicher Eintrag).
  */
 export async function GET(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const gate = await requireAppAccess({ mode: 'read' })
+  if (!gate.ok) return gate.response
 
   const { searchParams } = new URL(request.url)
   const originLon = searchParams.get('originLon')

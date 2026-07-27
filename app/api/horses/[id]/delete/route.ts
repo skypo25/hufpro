@@ -6,6 +6,7 @@ import {
 } from '@/lib/cache/tags'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { removeAnimalProfilePhotoFromStorageSafe } from '@/lib/animals/animalProfilePhotoUpload'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 
 /** Liefert Termin-Info für den Lösch-Dialog (nächster künftiger Termin). */
 export async function GET(
@@ -51,14 +52,11 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const gate = await requireAppAccess({ mode: 'write' })
+  if (!gate.ok) return gate.response
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const supabase = await createSupabaseServerClient()
+  const user = gate.user
 
   const { id: horseId } = await params
   if (!horseId) {

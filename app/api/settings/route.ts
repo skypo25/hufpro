@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireUserSession } from '@/lib/auth/requireUserSession.server'
+import { requireAppAccess } from '@/lib/billing/requireAppAccess'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 /** Allowlist für Einstellungs-Keys – nur diese werden akzeptiert (Sicherheitshärtung). */
 const ALLOWED_SETTINGS_KEYS = new Set([
@@ -16,9 +17,10 @@ const ALLOWED_SETTINGS_KEYS = new Set([
 ])
 
 export async function POST(request: Request) {
-  const session = await requireUserSession()
-  if (!session.ok) return session.response
-  const { user, supabase } = session
+  const gate = await requireAppAccess({ mode: 'write' })
+  if (!gate.ok) return gate.response
+
+  const supabase = await createSupabaseServerClient()
 
   let body: unknown
   try {
@@ -27,26 +29,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
   }
 
-  const raw = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {}
-  const merged: Record<string, unknown> = {}
+  const raw = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
+  const patch: Record<string, unknown> = {}
   for (const key of Object.keys(raw)) {
-    if (ALLOWED_SETTINGS_KEYS.has(key)) merged[key] = raw[key]
+    if (ALLOWED_SETTINGS_KEYS.has(key)) patch[key] = raw[key]
   }
 
-  if (merged.smtpPassword === '' || merged.smtpPassword === undefined) {
-    const { data: existing } = await supabase
-      .from('user_settings')
-      .select('settings')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    const existingSettings = (existing?.settings ?? {}) as Record<string, unknown>
+  const { data: existing } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', gate.userId)
+    .maybeSingle()
+
+  const existingSettings = (existing?.settings ?? {}) as Record<string, unknown>
+  const merged: Record<string, unknown> = { ...existingSettings, ...patch }
+
+  if (patch.smtpPassword === '' || patch.smtpPassword === undefined) {
     if (existingSettings.smtpPassword) merged.smtpPassword = existingSettings.smtpPassword
+    else delete merged.smtpPassword
   }
 
   const { error } = await supabase
     .from('user_settings')
     .upsert(
-      { user_id: user.id, settings: merged, updated_at: new Date().toISOString() },
+      { user_id: gate.userId, settings: merged, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     )
 
