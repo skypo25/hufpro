@@ -239,7 +239,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Nach Onboarding: ohne App-Zugriff (z. B. Test abgelaufen) nur noch Billing + Export-Fenster
-    if (user && isProtectedPage && onboardingComplete && !isBillingPath) {
+    if (user && !isAdminUser && isProtectedPage && onboardingComplete && !isBillingPath) {
       const { data: billingRow, error: billingFetchError } = await supabase
         .from('billing_accounts')
         .select(BILLING_ACCOUNT_COLUMNS)

@@ -8,6 +8,7 @@ import {
   canWriteAppData,
   getBillingState,
 } from '@/lib/billing/state'
+import { isAdminUserId } from '@/lib/admin/config'
 import type { BillingAccountRow, BillingState } from '@/lib/billing/types'
 
 export type AppAccessOk = {
@@ -85,6 +86,16 @@ export async function requireAppAccess(opts?: {
     account: (row as BillingAccountRow | null) ?? null,
     priceIdMonthly: process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null,
   })
+
+  if (isAdminUserId(user.id)) {
+    return {
+      ok: true,
+      user,
+      userId: user.id,
+      state,
+      accessScope,
+    }
+  }
 
   if (mode === 'read') {
     if (!canAccessApp(state)) {

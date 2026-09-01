@@ -77,7 +77,7 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
   async function handleLogout() {
     onClose()
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.assign('/login')
   }
 
   function handleNav(href: string) {

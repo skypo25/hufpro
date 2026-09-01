@@ -1,7 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { ANIDOCS_SHELL_READY_EVENT } from '@/lib/mobile/shellReady'
+import { usePathname } from 'next/navigation'
+import {
+  ANIDOCS_SHELL_READY_EVENT,
+  hideAnidocsBootSplash,
+  isNonAppShellPath,
+} from '@/lib/mobile/shellReady'
 
 const MIN_VISIBLE_MS = 320
 const NON_APP_FALLBACK_MS = 500
@@ -19,6 +24,8 @@ declare global {
  * (oder Max-Timeout), nicht nach fester Kurzzeit → weniger weiße Lücken in der PWA.
  */
 export default function AnidocsAppLoader() {
+  const pathname = usePathname() ?? ''
+
   useEffect(() => {
     const el = document.getElementById('anidocs-boot-splash')
     if (!el) return
@@ -30,15 +37,19 @@ export default function AnidocsAppLoader() {
     const hide = () => {
       if (hidden || !shellReady || !minElapsed) return
       hidden = true
-      el.classList.add('anidocs-boot-splash--hide')
-      window.setTimeout(() => {
-        el.remove()
-      }, 380)
+      hideAnidocsBootSplash()
     }
 
     const markReady = () => {
       shellReady = true
       hide()
+    }
+
+    // Login/Register: kein App-Shell — Splash sofort freigeben (auch nach Abmelden mid-load).
+    if (isNonAppShellPath(pathname)) {
+      minElapsed = true
+      markReady()
+      return
     }
 
     window.addEventListener(ANIDOCS_SHELL_READY_EVENT, markReady)
@@ -48,7 +59,7 @@ export default function AnidocsAppLoader() {
       hide()
     }, MIN_VISIBLE_MS)
 
-    // Login/Marketing: kein AppLayoutClient → nach kurzer Zeit freigeben
+    // Marketing o. Ä.: kein AppLayoutClient → nach kurzer Zeit freigeben
     const tNonApp = window.setTimeout(() => {
       if (!window.__ANIDOCS_EXPECT_SHELL__) {
         markReady()
@@ -65,7 +76,7 @@ export default function AnidocsAppLoader() {
       window.clearTimeout(tNonApp)
       window.clearTimeout(tMax)
     }
-  }, [])
+  }, [pathname])
 
   return null
 }
