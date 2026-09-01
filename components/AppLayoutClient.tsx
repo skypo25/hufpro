@@ -113,6 +113,12 @@ export default function AppLayoutClient({
     }
   }, [useVerzeichnisIntern])
 
+  /** Splash darf nicht auf den Mobile-Chunk warten (z. B. nach Stripe-Redirect auf /billing). */
+  useEffect(() => {
+    if (shell === 'unknown') return
+    signalAnidocsShellReady()
+  }, [shell])
+
   if (shell === 'unknown') {
     return null
   }

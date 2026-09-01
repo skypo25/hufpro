@@ -26,7 +26,8 @@ export function signalAnidocsShellReady() {
 export function hideAnidocsBootSplash() {
   if (typeof document === 'undefined') return
   const el = document.getElementById('anidocs-boot-splash')
-  if (!el) return
+  if (!el || el.dataset.dismissed === '1') return
+  el.dataset.dismissed = '1'
   el.classList.add('anidocs-boot-splash--hide')
   window.setTimeout(() => {
     el.remove()
