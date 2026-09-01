@@ -283,14 +283,6 @@ export default async function DirectoryMeinProfilPage({
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">
-          Dashboard
-        </Link>
-        <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Mein Profil</span>
-      </div>
-
       <div>
         <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">
           Mein Profil

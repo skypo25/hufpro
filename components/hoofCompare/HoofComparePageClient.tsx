@@ -142,22 +142,6 @@ export default function HoofComparePageClient({
   return (
     <>
       <div id="hoof-compare-root" className="mx-auto max-w-[1280px] w-full space-y-6 pb-16">
-        <div className="flex flex-wrap items-center gap-2 text-[12px] text-[#9CA3AF]">
-        <Link href="/dashboard" className="text-[#6B7280] hover:text-[#1B1F23]">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/animals" className="text-[#6B7280] hover:text-[#1B1F23]">
-          Tiere
-        </Link>
-        <span>›</span>
-        <Link href={basePath} className="text-[#6B7280] hover:text-[#1B1F23]">
-          {horseName}
-        </Link>
-        <span>›</span>
-        <span className="text-[#6B7280]">Fotovergleich</span>
-      </div>
-
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary-light text-[#154226]">

@@ -194,34 +194,7 @@ export default function TherapyRecordForm({
         )}
       </div>
 
-      <div className="mb-1 flex flex-wrap items-center gap-2 text-[13px] text-[#6B7280]">
-        {isEdit ? (
-          <>
-            <Link href={`/animals/${horse.id}`} className="text-primary hover:underline">
-              {horse.name}
-            </Link>
-            <span>›</span>
-            <Link
-              href={`/animals/${horse.id}/records/${editRecordId}`}
-              className="text-primary hover:underline"
-            >
-              {formatGermanDate(recordDate)}
-            </Link>
-            <span>›</span>
-            <span>Therapie dokumentieren</span>
-          </>
-        ) : (
-          <>
-            <Link href={`/animals/${horse.id}`} className="text-primary hover:underline">
-              {horse.name}
-            </Link>
-            <span>›</span>
-            <span>Neue Therapiedokumentation</span>
-          </>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-[#E5E2DC] bg-white p-5 shadow-sm">
+      <div className="content-card content-card--lg p-5">
         <h1 className="text-lg font-semibold text-[#1B1F23]">
           Therapiedokumentation · {horse.name}
         </h1>
@@ -243,7 +216,7 @@ export default function TherapyRecordForm({
         </div>
       )}
 
-      <div className="rounded-2xl border border-[#E5E2DC] bg-white p-5 shadow-sm">
+      <div className="content-card content-card--lg p-5">
         <label className="mb-2 block text-[13px] font-medium text-[#374151]" htmlFor="therapy-record-date">
           Datum
         </label>
@@ -257,7 +230,7 @@ export default function TherapyRecordForm({
         />
       </div>
 
-      <div className="rounded-2xl border border-[#E5E2DC] bg-white p-5 shadow-sm">
+      <div className="content-card content-card--lg p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[15px] font-semibold text-[#1B1F23]">Hauptnotiz</h2>
           <span className="text-[12px] text-[#9CA3AF]">Befund, Behandlung, Verlauf</span>
@@ -297,7 +270,7 @@ export default function TherapyRecordForm({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#E5E2DC] bg-white p-5 shadow-sm">
+      <div className="content-card content-card--lg p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[15px] font-semibold text-[#1B1F23]">Empfehlungen</h2>
           <span className="text-[12px] text-[#9CA3AF]">optional</span>

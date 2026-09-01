@@ -139,7 +139,7 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
   if (!params) {
     return (
       <AppPage>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="content-card content-card--lg p-6">
           <p className="text-sm text-slate-500">Lade Seite ...</p>
         </div>
       </AppPage>
@@ -155,7 +155,7 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
         </p>
       </div>
 
-      <div className="max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="max-w-xl content-card content-card--lg p-6">
         <div className="grid gap-4">
           <input
             type="text"

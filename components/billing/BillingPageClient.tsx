@@ -496,7 +496,7 @@ export default function BillingPageClient({
 
       {/* STATUS CARD — bei Zahlungsverzug keine große Warnkarte (Hinweis bleibt über Plan/Zahlungsbereich) */}
       {ui.key !== 'past_due' ? (
-        <div className="content-card border border-[#E5E2DC] px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div className="content-card px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
           <div
             className={[
               'h-[52px] w-[52px] rounded-[14px] flex items-center justify-center text-[22px] shrink-0',
@@ -554,7 +554,7 @@ export default function BillingPageClient({
       ) : null}
 
       {/* PLAN CARD */}
-      <div className="content-card border border-[#E5E2DC] overflow-hidden">
+      <div className="content-card overflow-hidden">
         <div className="border-b border-[#F0EEEA] px-6 py-5">
           <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-primary">
             {billingState.plan.label}
@@ -644,7 +644,7 @@ export default function BillingPageClient({
       </div>
 
       {/* PAYMENT SECTION */}
-      <div id="billing-payment" className="content-card border border-[#E5E2DC] overflow-hidden">
+      <div id="billing-payment" className="content-card overflow-hidden">
         <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
           <i className="bi bi-credit-card-fill text-primary" aria-hidden />
           <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Zahlungsmethode</div>
@@ -663,7 +663,7 @@ export default function BillingPageClient({
               {paymentLoading ? (
                 <div className="text-[13px] text-[#9CA3AF] py-2">Zahlungsmethode wird geladen…</div>
               ) : paymentMethod ? (
-                <div className="content-card bg-[#FAFAF8] border border-[#F0EEEA] px-5 py-4 rounded-[12px]">
+                <div className="content-card bg-[#FAFAF8] px-5 py-4">
                   <div className="text-[12px] font-semibold text-[#6B7280]">Hinterlegte Zahlungsmethode</div>
                   <div className="mt-3">
                     <PaymentMethodPreview pm={paymentMethod} />
@@ -686,7 +686,7 @@ export default function BillingPageClient({
               {paymentLoading ? (
                 <div className="text-[13px] text-[#9CA3AF]">Wird geladen…</div>
               ) : (paymentMethod && !editingPaymentMethod && !subscribing) ? (
-                <div className="content-card bg-[#FAFAF8] border border-[#F0EEEA] px-5 py-4 rounded-[12px]">
+                <div className="content-card bg-[#FAFAF8] px-5 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[12px] font-semibold text-[#6B7280]">Hinterlegte Zahlungsmethode</div>
                     <button
@@ -773,7 +773,7 @@ export default function BillingPageClient({
       </div>
 
       {/* INVOICES SECTION */}
-      <div className="content-card border border-[#E5E2DC] overflow-hidden">
+      <div className="content-card overflow-hidden">
         <div className="flex items-center gap-2 border-b border-[#E5E2DC] px-6 py-4">
           <i className="bi bi-receipt text-primary" aria-hidden />
           <div className="dashboard-serif text-[15px] font-medium text-[#1B1F23] flex-1">Rechnungen</div>
@@ -861,7 +861,7 @@ export default function BillingPageClient({
             text: 'Ihre Daten gehören Ihnen. Bei Kündigung können Sie sie weiterhin exportieren.',
           },
         ].map((t) => (
-          <div key={t.title} className="content-card border border-[#E5E2DC] px-4 py-3 flex items-start gap-3">
+          <div key={t.title} className="content-card px-4 py-3 flex items-start gap-3">
             <div className="h-9 w-9 rounded-[10px] bg-[#FAFAF8] flex items-center justify-center text-[#9CA3AF] text-[18px] shrink-0">
               <i className={`bi ${t.icon}`} aria-hidden />
             </div>

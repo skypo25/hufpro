@@ -111,18 +111,6 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
-          Dashboard
-        </Link>
-        <span aria-hidden>›</span>
-        <Link href="/invoices" className="text-[var(--accent)] hover:underline">
-          Rechnungen
-        </Link>
-        <span aria-hidden>›</span>
-        <span>Neue Rechnung erstellen</span>
-      </div>
-
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
           Neue Rechnung erstellen

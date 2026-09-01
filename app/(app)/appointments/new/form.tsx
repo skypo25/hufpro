@@ -137,7 +137,7 @@ export default function NewAppointmentForm({
   }
 
   return (
-    <div className="rounded-[20px] border border-[#E5E2DC] bg-white p-8 shadow-sm">
+    <div className="content-card p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="mb-3 block text-[14px] font-medium text-[#334155]">

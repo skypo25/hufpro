@@ -32,7 +32,7 @@ function SecAccordion({
 }) {
   const [open, setOpen] = useState(!!initialOpen)
   return (
-    <div className="mb-2.5 overflow-hidden rounded-[14px] border border-[#E5E2DC] bg-white shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+    <div className="mb-2.5 content-card content-card--lg">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

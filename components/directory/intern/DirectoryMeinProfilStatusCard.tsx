@@ -111,7 +111,7 @@ export function DirectoryMeinProfilStatusCard({
 }) {
   if (!hasProfile) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white shadow-sm">
+      <div className="content-card content-card--lg">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F3F4F6] px-5 py-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2 text-[15px] font-bold text-[#1B1F23]">
             <i className="bi bi-shield-fill-check shrink-0 text-[16px] text-[#9CA3AF]" aria-hidden />
@@ -177,7 +177,7 @@ export function DirectoryMeinProfilStatusCard({
     )
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white shadow-sm">
+    <div className="content-card content-card--lg">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F3F4F6] px-5 py-4 md:px-6">
         <div className="flex min-w-0 items-center gap-2 text-[15px] font-bold text-[#1B1F23]">
           <i className="bi bi-shield-fill-check shrink-0 text-[16px] text-[#9CA3AF]" aria-hidden />

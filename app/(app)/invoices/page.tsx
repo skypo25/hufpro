@@ -137,12 +137,6 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">Dashboard</Link>
-        <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Rechnungen</span>
-      </div>
-
       <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Rechnungen</h1>

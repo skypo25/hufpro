@@ -174,7 +174,7 @@ function FormSection({
   children: React.ReactNode
 }) {
   return (
-    <div className="mb-6 overflow-hidden rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
+    <div className="content-card mb-6">
       <div className="flex items-center gap-2.5 border-b border-[#E5E2DC] px-6 py-4">
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm ${iconBg}`}>{icon}</span>
         <h3 className="font-serif text-base font-medium text-[#1B1F23]">{title}</h3>

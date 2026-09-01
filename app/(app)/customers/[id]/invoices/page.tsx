@@ -100,16 +100,6 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">Dashboard</Link>
-        <span>›</span>
-        <Link href="/customers" className="text-primary hover:underline">Kunden</Link>
-        <span>›</span>
-        <Link href={`/customers/${customerId}`} className="text-primary hover:underline">{customerName}</Link>
-        <span>›</span>
-        <span className="text-[#6B7280]">Rechnungen</span>
-      </div>
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Rechnungen</h1>
@@ -136,21 +126,21 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
+        <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Rechnungen gesamt</div>
           <div className="font-serif text-[26px] !font-extrabold text-[#1B1F23]">{(invoices ?? []).length}</div>
         </div>
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
+        <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Bezahlt</div>
           <div className="font-serif text-[26px] !font-extrabold text-primary">{formatCurrency(totalPaidCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status === 'paid').length} Rechnungen</div>
         </div>
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
+        <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Offen</div>
           <div className="font-serif text-[26px] !font-extrabold text-[#F59E0B]">{formatCurrency(openCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status !== 'paid' && i.status !== 'cancelled').length} Rechnungen</div>
         </div>
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
+        <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Überfällig</div>
           <div className="font-serif text-[26px] !font-extrabold text-[#EF4444]">{formatCurrency(overdueCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{overdueInvoices.length} Rechnung(en)</div>
@@ -170,7 +160,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-[#E5E2DC] bg-white shadow-sm">
+      <div className="content-card">
         <div className="grid grid-cols-[48px_130px_1fr_110px_100px_80px] gap-3 border-b-2 border-[#E5E2DC] bg-black/[0.02] px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280] md:grid-cols-[48px_130px_1fr_140px_110px_100px_80px]">
           <div />
           <div>Rechnung</div>

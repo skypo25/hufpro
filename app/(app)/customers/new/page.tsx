@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import CustomerForm from '@/components/customers/CustomerForm'
@@ -18,18 +17,6 @@ export default async function NewCustomerPage() {
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/customers" className="text-[var(--accent)] hover:underline">
-          Kunden
-        </Link>
-        <span>›</span>
-        <span>Neuen Kunden anlegen</span>
-      </div>
-
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
           Neuen Kunden anlegen

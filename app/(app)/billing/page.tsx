@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -45,14 +44,6 @@ export default async function BillingPage() {
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">
-          Dashboard
-        </Link>
-        <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Billing</span>
-      </div>
-
       <div>
         <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">
           Billing
@@ -64,7 +55,7 @@ export default async function BillingPage() {
 
       <Suspense
         fallback={
-          <div className="content-card border border-[#eff5f5] px-6 py-10 text-center text-[14px] text-[#6B7280]">
+          <div className="content-card px-6 py-10 text-center text-[14px] text-[#6B7280]">
             Billing wird geladen…
           </div>
         }

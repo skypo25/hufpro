@@ -64,7 +64,7 @@ export default function CustomersCardsAnimated({
           <Link
             key={row.customer.id}
             href={`/customers/${row.customer.id}`}
-            className="content-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 hover:-translate-y-[2px] hover:border-primary hover:shadow-md"
+            className="content-card transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 content-card--hover hover:-translate-y-[2px] hover:border-primary"
             style={{ transitionDelay: `${index * 60}ms` }}
           >
             <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-5">

@@ -310,18 +310,6 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="link-accent">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/animals" className="link-accent">
-          {animalsNavLabel(term)}
-        </Link>
-        <span>›</span>
-        <span className="text-[#6B7280]">{horse.name || singularLabel}</span>
-      </div>
-
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-5">
           <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[var(--accent-light)] text-[var(--accent-dark)]">

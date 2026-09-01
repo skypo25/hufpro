@@ -172,7 +172,7 @@ export default function SearchPageContent({
       />
 
       <form onSubmit={handleSubmit} className="w-full">
-        <div className="flex items-center gap-2 rounded-xl border border-[#E5E2DC] bg-white px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/30">
+        <div className="content-card flex items-center gap-2 px-4 py-3 focus-within:ring-2 focus-within:ring-primary/30">
           <svg className="h-[18px] w-[18px] shrink-0 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -261,7 +261,7 @@ export default function SearchPageContent({
                   <Link
                     key={c.id}
                     href={`/customers/${c.id}`}
-                      className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-primary/50 hover:shadow-sm"
+                      className="content-card content-card--hover block p-4 transition hover:-translate-y-px"
                   >
                     <div className="font-medium text-[#1B1F23]">
                       {c.name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Ohne Namen'}
@@ -294,7 +294,7 @@ export default function SearchPageContent({
                     <Link
                       key={h.id}
                       href={`/animals/${h.id}`}
-                      className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-primary/50 hover:shadow-sm"
+                      className="content-card content-card--hover block p-4 transition hover:-translate-y-px"
                     >
                       <div className="font-medium text-[#1B1F23]">
                         {h.name || 'Ohne Namen'}
@@ -325,7 +325,7 @@ export default function SearchPageContent({
                     <Link
                       key={a.id}
                       href={`/appointments/${a.id}`}
-                      className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-primary/50 hover:shadow-sm"
+                      className="content-card content-card--hover block p-4 transition hover:-translate-y-px"
                     >
                       <div className="font-medium text-[#1B1F23]">
                         {a.appointment_date
@@ -368,7 +368,7 @@ export default function SearchPageContent({
                     <Link
                       key={r.id}
                       href={`/animals/${r.horse_id}/records/${r.id}`}
-                      className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-primary/50 hover:shadow-sm"
+                      className="content-card content-card--hover block p-4 transition hover:-translate-y-px"
                     >
                       <div className="font-medium text-[#1B1F23]">
                         {r.record_date ? formatGermanDate(r.record_date) : 'Ohne Datum'}
@@ -406,7 +406,7 @@ export default function SearchPageContent({
                     <Link
                       key={inv.id}
                       href={`/customers/${inv.customer_id}/invoices`}
-                      className="block rounded-xl border border-[#E5E2DC] bg-white p-4 transition hover:border-primary/50 hover:shadow-sm"
+                      className="content-card content-card--hover block p-4 transition hover:-translate-y-px"
                     >
                       <div className="font-medium text-[#1B1F23]">
                         {inv.invoice_number}

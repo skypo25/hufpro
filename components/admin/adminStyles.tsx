@@ -1,8 +1,7 @@
 /**
  * Gemeinsame Tailwind-Klassen für den internen Admin-Bereich (AniDocs-Look).
  */
-export const adminCardClass =
-  'rounded-xl border border-[#E5E2DC] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]'
+export const adminCardClass = 'content-card'
 
 export const adminPageTitleClass = 'font-[family-name:var(--font-outfit)] text-[22px] font-semibold text-[#1B1F23]'
 

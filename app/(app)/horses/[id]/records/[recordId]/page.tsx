@@ -290,7 +290,7 @@ function SectionCard({ title, titleRight, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E5E2DC] bg-white shadow-sm">
+    <div className="content-card content-card--lg">
       <div className="flex items-center justify-between border-b border-[#E5E2DC] px-5 py-4">
         <h2 className="text-[15px] font-semibold text-[#1B1F23]">{title}</h2>
         {titleRight}
@@ -434,17 +434,6 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
 
   return (
     <AppPage>
-      {/* Breadcrumb */}
-      <div className="mb-5 flex items-center gap-2 text-[12px] text-[#9CA3AF]">
-        <Link href="/dashboard" className="hover:text-primary">Dashboard</Link>
-        <span aria-hidden>›</span>
-        <Link href="/animals" className="hover:text-primary">Tiere</Link>
-        <span aria-hidden>›</span>
-        <Link href={`/animals/${horseId}`} className="hover:text-primary">{horse.name || 'Pferd'}</Link>
-        <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Dokumentation {formatGermanDate(record.record_date)}</span>
-      </div>
-
       {/* Horse header */}
       <div className="mb-5 flex items-center gap-4">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-primary-light text-[#154226]">
@@ -605,7 +594,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
         <div className="space-y-4">
 
           {/* Aktionen */}
-          <div className="overflow-hidden rounded-2xl border border-[#E5E2DC] bg-white shadow-sm">
+          <div className="content-card content-card--lg">
             <div className="border-b border-[#E5E2DC] px-5 py-4">
               <h3 className="text-[14px] font-semibold text-[#1B1F23]">Aktionen</h3>
             </div>
@@ -639,7 +628,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
           </div>
 
           {/* Termin-Details */}
-          <div className="overflow-hidden rounded-2xl border border-[#E5E2DC] bg-white shadow-sm">
+          <div className="content-card content-card--lg">
             <div className="border-b border-[#E5E2DC] px-5 py-4">
               <h3 className="text-[14px] font-semibold text-[#1B1F23]">Termin-Details</h3>
             </div>
@@ -673,7 +662,7 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
           </div>
 
           {/* Dokument-ID */}
-          <div className="overflow-hidden rounded-2xl border border-[#E5E2DC] bg-white shadow-sm">
+          <div className="content-card content-card--lg">
             <div className="px-5 py-4 space-y-1.5">
               <p className="text-[13px] font-semibold text-[#1B1F23]">Dokument-ID</p>
               <p className="text-[13px] font-mono text-[#6B7280]">{docNumber}</p>

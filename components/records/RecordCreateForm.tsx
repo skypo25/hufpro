@@ -926,31 +926,6 @@ export default function RecordCreateForm({
           <input type="hidden" name="checklist_json" value={JSON.stringify(checklist)} />
           <input type="hidden" name="hoofs_json" value={JSON.stringify(hoofArray)} />
         </div>
-        <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
-          {isEdit ? (
-            <>
-              <a href={`/animals/${horse.id}`} className="text-primary hover:underline">
-                {horse.name}
-              </a>
-              <span>›</span>
-              <a href={`/animals/${horse.id}/records/${editRecordId}`} className="text-primary hover:underline">
-                {formatGermanDate(recordDate)}
-              </a>
-              <span>›</span>
-              <span>Dokumentation bearbeiten</span>
-            </>
-          ) : (
-            <>
-              <span className="text-primary">Termine</span>
-              <span>›</span>
-              <span className="text-primary">
-                {formatGermanDate(defaultRecordDate)} · {horse.customerName}
-              </span>
-              <span>›</span>
-              <span>Dokumentation erstellen</span>
-            </>
-          )}
-        </div>
 
         <section className="content-card content-card--lg">
           <div className="flex flex-wrap items-center gap-5 px-6 py-5">

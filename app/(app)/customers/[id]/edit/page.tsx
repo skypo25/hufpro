@@ -96,24 +96,6 @@ export default async function EditCustomerPage({
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/customers" className="text-primary hover:underline">
-          Kunden
-        </Link>
-        <span>›</span>
-        <Link href={`/customers/${id}`} className="text-primary hover:underline">
-          {customer.first_name || customer.last_name
-            ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
-            : 'Kundendetail'}
-        </Link>
-        <span>›</span>
-        <span>Kunde bearbeiten</span>
-      </div>
-
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
           Kunde bearbeiten

@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
@@ -59,14 +58,6 @@ export default async function SettingsPage() {
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
-          Dashboard
-        </Link>
-        <span aria-hidden>›</span>
-        <span className="text-[#6B7280]">Einstellungen</span>
-      </div>
-
       <div>
         <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">
           Einstellungen

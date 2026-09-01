@@ -52,6 +52,8 @@
   --color-danger: var(--danger);
 
   --radius-app: var(--radius);
+  --shadow-card: var(--shadow);
+  --shadow-card-md: var(--shadow-md);
 
   --font-sans: var(--font-dm-sans), "DM Sans", Arial, Helvetica, sans-serif;
   --font-serif: var(--font-outfit), "Outfit", sans-serif;
@@ -427,17 +429,24 @@ button.success-button {
 
 .content-card {
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--card);
   box-shadow: var(--shadow);
 }
 
 /* Cards: Große Karte (14px Radius, z. B. Dokumentation) */
 .content-card--lg {
-  overflow: hidden;
   border-radius: 14px;
   background: var(--card);
   box-shadow: var(--shadow);
+}
+
+/* Hover für klickbare Karten (Dashboard-Schnellaktionen, Suche) */
+.content-card--hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.content-card--hover:hover {
+  box-shadow: var(--shadow-md);
 }
 
 /* Card mit Akzent-Border links (z. B. Merke, Behandlungsstatus) */
@@ -3709,7 +3718,7 @@ button.success-button {
 /* HorseForm / AnimalForm in der PWA: volle Breite, leichte Kartenoptik */
 .mobile-app .mobile-form-embed-root .content-card {
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
 }
 /* Textfelder 16px (iOS-Zoom); Dropdowns wie Desktop `.select` (13.5px) */
 .mobile-app .mobile-form-embed-root .input,

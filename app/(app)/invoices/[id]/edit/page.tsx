@@ -111,22 +111,6 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
-          Dashboard
-        </Link>
-        <span aria-hidden>›</span>
-        <Link href="/invoices" className="text-[var(--accent)] hover:underline">
-          Rechnungen
-        </Link>
-        <span aria-hidden>›</span>
-        <Link href={`/invoices/${invoiceId}`} className="text-[var(--accent)] hover:underline">
-          {inv.invoice_number}
-        </Link>
-        <span aria-hidden>›</span>
-        <span>Bearbeiten</span>
-      </div>
-
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
           Rechnung bearbeiten

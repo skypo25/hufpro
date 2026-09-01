@@ -379,7 +379,7 @@ export default async function DashboardPage() {
             <Link
               key={item.title}
               href={item.href}
-              className="content-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-primary hover:shadow-md"
+              className="content-card content-card--hover p-[18px] text-center transition hover:-translate-y-[1px] hover:border-primary"
             >
               <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-primary-light text-primary-dark">
                 <FontAwesomeIcon

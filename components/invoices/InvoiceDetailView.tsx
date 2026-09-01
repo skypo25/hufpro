@@ -153,7 +153,7 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
       </div>
 
       {sendMsg && (
-        <div className="mb-5 w-full max-w-[820px] rounded-lg border border-[#E5E2DC] bg-white px-4 py-3 text-[13px] text-[#1B1F23] shadow-sm print:hidden">
+        <div className="content-card mb-5 w-full max-w-[820px] px-4 py-3 text-[13px] text-[#1B1F23] print:hidden">
           {sendMsg}
         </div>
       )}

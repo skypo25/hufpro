@@ -60,16 +60,6 @@ function formatDay(dateString: string | null) {
   return new Intl.DateTimeFormat('de-DE', { day: 'numeric' }).format(date)
 }
 
-function getWeekNumber(date: Date) {
-  const target = new Date(date.valueOf())
-  const dayNr = (date.getDay() + 6) % 7
-  target.setDate(target.getDate() - dayNr + 3)
-  const firstThursday = new Date(target.getFullYear(), 0, 4)
-  const firstDayNr = (firstThursday.getDay() + 6) % 7
-  firstThursday.setDate(firstThursday.getDate() - firstDayNr + 3)
-  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / 604800000)
-}
-
 function getNavUrl(address: string) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address.trim())}`
 }
@@ -181,9 +171,6 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   const stableAddress = stallHorse ? buildStallMultilineFromHorse(stallHorse) : ''
   const locationLabel = stallDisplayLabel(stallHorse ?? {}, customer.city) || customer.city || ''
 
-  const weekNum = aptDate ? getWeekNumber(new Date(aptDate)) : null
-  const breadcrumbKw = weekNum ? `KW ${weekNum}` : 'Termine'
-
   const intervalLabel =
     customer.interval_weeks != null
       ? `${customer.interval_weeks} Wochen`
@@ -210,18 +197,6 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
 
   return (
     <AppPage>
-      <nav className="apt-detail-breadcrumb">
-        <Link href="/dashboard">Dashboard</Link>
-        <span> › </span>
-        <Link href="/calendar">Termine</Link>
-        <span> › </span>
-        <Link href="/calendar">{breadcrumbKw}</Link>
-        <span>
-          {' '}
-          › {aptDate ? formatLongGermanDate(aptDate) : ''} · {customerName}
-        </span>
-      </nav>
-
       <div className="apt-detail-header">
         <div className="apt-detail-ph-cal">
           <span className="apt-detail-ph-day">{aptDate ? formatDay(aptDate) : '–'}</span>

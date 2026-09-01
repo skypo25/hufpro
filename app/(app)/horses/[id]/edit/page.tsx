@@ -104,22 +104,6 @@ export default async function EditHorsePage({
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/animals" className="text-[var(--accent)] hover:underline">
-          {animalsNavLabel(term)}
-        </Link>
-        <span>›</span>
-        <Link href={`/animals/${horse.id}`} className="text-[var(--accent)] hover:underline">
-          {horse.name || singularLabel}
-        </Link>
-        <span>›</span>
-        <span>{singularLabel} bearbeiten</span>
-      </div>
-
       <div>
         <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
           {singularLabel} bearbeiten

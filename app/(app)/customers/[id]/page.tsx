@@ -366,18 +366,6 @@ export default async function CustomerDetailPage({
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/customers" className="text-primary hover:underline">
-          Kunden
-        </Link>
-        <span>›</span>
-        <span>{customer.name || getCustomerLabel(customer.salutation)}</span>
-      </div>
-
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-center gap-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-[24px] font-bold text-white">

@@ -69,22 +69,6 @@ export default async function ErstanamnesePage({ params }: Props) {
 
   return (
     <AppPage>
-      <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-primary hover:underline">
-          Dashboard
-        </Link>
-        <span>›</span>
-        <Link href="/animals" className="text-primary hover:underline">
-          {animalsNavLabel(term)}
-        </Link>
-        <span>›</span>
-        <Link href={backHref} className="text-primary hover:underline">
-          {horse.name || singular}
-        </Link>
-        <span>›</span>
-        <span className="text-[#6B7280]">Erstanamnese</span>
-      </div>
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
