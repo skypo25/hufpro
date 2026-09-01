@@ -203,7 +203,7 @@ export default function SearchPageContent({
               onClick={() => handleFilterClick(f.key)}
               className={`transition ${
                 isActive
-                  ? 'primary-button shadow-sm'
+                  ? 'primary-button'
                   : 'secondary-button hover:border-[var(--accent)]/50'
               }`}
             >

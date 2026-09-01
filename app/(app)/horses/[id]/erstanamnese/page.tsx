@@ -81,14 +81,14 @@ export default async function ErstanamnesePage({ params }: Props) {
         <div className="flex flex-wrap gap-2">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-[18px] py-[10px] text-[13px] font-medium text-[#1B1F23] shadow-sm hover:border-[#9CA3AF]"
+            className="secondary-button"
           >
             <i className="bi bi-arrow-left text-[15px]" aria-hidden />
             {backToAkteLabel}
           </Link>
           <Link
             href={editHref}
-            className="primary-button shadow-sm"
+            className="primary-button"
           >
             <i className="bi bi-pencil-square text-[15px]" aria-hidden />
             Erstanamnese bearbeiten

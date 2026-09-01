@@ -351,9 +351,9 @@ export default async function CustomersPage({
         actions={
           <Link
             href="/customers/new"
-            className="primary-button shadow-sm"
+            className="primary-button"
           >
-            <i className="bi bi-person-fill-add text-[15px]" />
+            <i className="bi bi-person-fill-add text-[13px]" />
             Kunde anlegen
           </Link>
         }

@@ -390,7 +390,7 @@ export default async function HorsesPage({
           <div className="flex gap-2.5">
             <Link
               href="#"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23] shadow-sm hover:border-[#9CA3AF]"
+              className="secondary-button"
             >
               <i className="bi bi-download text-[13px]" aria-hidden />
               Export
@@ -398,7 +398,7 @@ export default async function HorsesPage({
 
             <Link
               href="/animals/new"
-              className="primary-button primary-button--sm shadow-sm"
+              className="primary-button"
             >
               <i className="bi bi-plus-lg text-[13px]" aria-hidden />
               {newAnimalButtonLabel(term)}

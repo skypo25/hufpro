@@ -160,14 +160,12 @@ const TABS = [
 
 function FormSection({
   icon,
-  iconBg,
   title,
   badge,
   badgeClass,
   children,
 }: {
-  icon: string
-  iconBg: string
+  icon: React.ReactNode
   title: string
   badge?: string
   badgeClass?: string
@@ -176,7 +174,9 @@ function FormSection({
   return (
     <div className="content-card mb-6">
       <div className="flex items-center gap-2.5 border-b border-[#E5E2DC] px-6 py-4">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm ${iconBg}`}>{icon}</span>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
+          {icon}
+        </span>
         <h3 className="font-serif text-base font-medium text-[#1B1F23]">{title}</h3>
         {badge && (
           <span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeClass ?? 'bg-black/5 text-[#9CA3AF]'}`}>
@@ -474,7 +474,7 @@ export default function SettingsForm({
 
       {activeTab === 'betrieb' && (
         <>
-          <FormSection icon="👤" iconBg="bg-[var(--accent-light)] text-[var(--accent)]" title="Persönliche Daten" badge="Pflichtfelder" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
+          <FormSection icon={<i className="bi bi-person-fill-check" aria-hidden />} title="Persönliche Daten" badge="Pflichtfelder" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
             <FormRow className="md:grid-cols-3">
               <FormGroup label="Anrede">
                 <select className="select" value={s.salutation ?? ''} onChange={(e) => update('salutation', e.target.value)}>
@@ -514,7 +514,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="🏢" iconBg="bg-[#DBEAFE] text-[#2563EB]" title="Betriebsdaten" badge="Für Rechnungen erforderlich" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
+          <FormSection icon={<i className="bi bi-building-fill" aria-hidden />} title="Betriebsdaten" badge="Für Rechnungen erforderlich" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
             <FormRow>
               <FormGroup label="Firmenname / Betriebsname" hint="Wird als Absender auf Rechnungen angezeigt. Leer lassen = dein Name wird verwendet.">
                 <input type="text" className={inputClass()} placeholder="z. B. Hufpflege Musterfrau" value={s.companyName ?? ''} onChange={(e) => update('companyName', e.target.value)} />
@@ -554,7 +554,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="🧭" iconBg="bg-[#E0E7FF] text-[#4F46E5]" title="Navigation">
+          <FormSection icon={<i className="bi bi-compass-fill" aria-hidden />} title="Navigation">
             <FormRow>
               <FormGroup label="Bevorzugte Navigations-App" hint="Wenn nichts gewählt wird, wird Google Maps verwendet.">
                 <select className="select" value={s.preferredNavApp ?? ''} onChange={(e) => update('preferredNavApp', e.target.value as SettingsData['preferredNavApp'])}>
@@ -567,7 +567,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="📊" iconBg="bg-[#FEF3C7] text-[#D97706]" title="Steuerliche Angaben" badge="Wichtig für korrekte Rechnungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon={<i className="bi bi-receipt-cutoff-fill" aria-hidden />} title="Steuerliche Angaben" badge="Wichtig für korrekte Rechnungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
               <span className="shrink-0 text-lg">ℹ️</span>
               <p><strong>Hinweis:</strong> Diese Angaben sind entscheidend dafür, wie deine Rechnungen aussehen. Als Kleinunternehmer nach §19 UStG darfst du keine Umsatzsteuer ausweisen. AniDocs erledigt das automatisch für dich.</p>
@@ -617,7 +617,7 @@ export default function SettingsForm({
             </div>
           </FormSection>
 
-          <FormSection icon="🏦" iconBg="bg-[#DCFCE7] text-[#166534]" title="Bankverbindung" badge="Für Rechnungen" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
+          <FormSection icon={<i className="bi bi-bank2" aria-hidden />} title="Bankverbindung" badge="Für Rechnungen" badgeClass="bg-[#FEE2E2] text-[#991B1B]">
             <FormRow>
               <FormGroup label="Kontoinhaber" required>
                 <input type="text" className={inputClass()} value={s.accountHolder ?? ''} onChange={(e) => update('accountHolder', e.target.value)} />
@@ -649,7 +649,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="🎨" iconBg="bg-[#EDE9FE] text-[#7C3AED]" title="Logo & Erscheinungsbild" badge="Optional" badgeClass="bg-black/5 text-[#9CA3AF]">
+          <FormSection icon={<i className="bi bi-palette-fill" aria-hidden />} title="Logo & Erscheinungsbild" badge="Optional" badgeClass="bg-black/5 text-[#9CA3AF]">
             <input
               ref={logoInputRef}
               type="file"
@@ -698,7 +698,7 @@ export default function SettingsForm({
             </div>
           </FormSection>
 
-          <FormSection icon="👤" iconBg="bg-[#E0E7FF] text-[#3730A3]" title="Kundennummer">
+          <FormSection icon={<i className="bi bi-person-vcard-fill" aria-hidden />} title="Kundennummer">
             <FormRow>
               <FormGroup label="Präfix" hint="z. B. K- oder KU-">
                 <input type="text" className={inputClass()} placeholder="z. B. K-" value={s.customerNumberPrefix ?? 'K-'} onChange={(e) => update('customerNumberPrefix', e.target.value)} />
@@ -709,7 +709,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="📄" iconBg="bg-[#FEF3C7] text-[#D97706]" title="Rechnungs-Voreinstellungen">
+          <FormSection icon={<i className="bi bi-file-earmark-text-fill" aria-hidden />} title="Rechnungs-Voreinstellungen">
             <FormRow>
               <FormGroup label="Rechnungsnummer-Präfix" hint="z. B. HUF-2026-0001">
                 <input type="text" className={inputClass()} placeholder="z. B. HUF-, RE-" value={s.invoicePrefix ?? ''} onChange={(e) => update('invoicePrefix', e.target.value)} />
@@ -745,7 +745,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="✂️" iconBg="bg-[var(--accent-light)] text-[var(--accent)]" title="Leistungen & Preise" badge="Für Schnell-Abrechnung" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon={<i className="bi bi-tags-fill" aria-hidden />} title="Leistungen & Preise" badge="Für Schnell-Abrechnung" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-3 text-[13px] text-[#1E40AF]">
               <span>ℹ️</span>
               <p>Definiere hier deine Standardleistungen mit Preisen. Diese erscheinen bei der Abrechnung als Schnellauswahl.</p>
@@ -791,7 +791,7 @@ export default function SettingsForm({
             </button>
           </FormSection>
 
-          <FormSection icon="👁" iconBg="bg-[#F3F4F6] text-[#6B7280]" title="Rechnungsvorschau" badge="So sehen deine Rechnungen aus" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon={<i className="bi bi-eye-fill" aria-hidden />} title="Rechnungsvorschau" badge="So sehen deine Rechnungen aus" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="rounded-xl border border-[#E5E2DC] bg-black/[0.01] p-6 text-[13px] leading-relaxed">
               {invoicePreviewReady ? (
                 <>
@@ -866,7 +866,7 @@ export default function SettingsForm({
       )}
       {activeTab === 'benachrichtigungen' && (
         <>
-          <FormSection icon="🔔" iconBg="bg-[#ECFDF5] text-[#059669]" title="Termin-Erinnerungen (E-Mail)" badge="Automatisch an Kund:innen" badgeClass="bg-[#D1FAE5] text-[#065F46]">
+          <FormSection icon={<i className="bi bi-bell-fill" aria-hidden />} title="Termin-Erinnerungen (E-Mail)" badge="Automatisch an Kund:innen" badgeClass="bg-[#D1FAE5] text-[#065F46]">
             <p className="mb-4 text-[13px] leading-relaxed text-[#6B7280]">
               Steuert den Versand der Erinnerungen per Cron (SMTP muss konfiguriert sein). Pro Termin kann die Vorlaufzeit weiterhin im Terminformular angepasst werden.
             </p>
@@ -926,7 +926,7 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon="📧" iconBg="bg-[#DBEAFE] text-[#2563EB]" title="E-Mail-Versand (SMTP)" badge="Für Rechnungsversand & Benachrichtigungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon={<i className="bi bi-envelope-at-fill" aria-hidden />} title="E-Mail-Versand (SMTP)" badge="Für Rechnungsversand & Benachrichtigungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
               <span className="shrink-0 text-lg">ℹ️</span>
               <p>
@@ -1011,7 +1011,7 @@ export default function SettingsForm({
       )}
       {activeTab === 'konto' && (
         <>
-          <FormSection icon="🔒" iconBg="bg-[#ECFDF5] text-[#059669]" title="Konto & Sicherheit" badge="Sicherheitsbereich" badgeClass="bg-[#D1FAE5] text-[#065F46]">
+          <FormSection icon={<i className="bi bi-shield-lock-fill" aria-hidden />} title="Konto & Sicherheit" badge="Sicherheitsbereich" badgeClass="bg-[#D1FAE5] text-[#065F46]">
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <h4 className="text-[14px] font-semibold text-[#1B1F23]">Passwort ändern</h4>

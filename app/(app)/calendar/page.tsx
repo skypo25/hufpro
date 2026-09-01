@@ -455,18 +455,18 @@ export default function CalendarPage() {
         <div className="flex gap-2.5">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-[18px] py-[10px] text-[14px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
+            className="secondary-button"
           >
-            <i className="bi bi-download text-[14px]" />
+            <i className="bi bi-download text-[13px]" />
             Exportieren
           </button>
 
           <button
             type="button"
             onClick={() => router.push('/appointments/new')}
-            className="primary-button shadow-sm"
+            className="primary-button"
           >
-            <i className="bi bi-plus-lg text-[14px]" />
+            <i className="bi bi-plus-lg text-[13px]" />
             Neuer Termin
           </button>
         </div>

@@ -365,7 +365,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/appointments/new"
-            className="primary-button shadow-sm"
+            className="primary-button"
           >
             <i className="bi bi-plus-lg text-[15px]" />
             Neuer Termin

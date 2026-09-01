@@ -349,7 +349,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
         <div className="flex flex-wrap gap-2.5">
           <Link
             href={`/animals/${horse.id}/edit`}
-            className="secondary-button shadow-sm"
+            className="secondary-button"
           >
             <i className="bi bi-pencil-square text-[15px]" />
             Bearbeiten
@@ -357,7 +357,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
           <Link
             href={`/animals/${horse.id}/records/new`}
-            className="primary-button shadow-sm"
+            className="primary-button"
           >
             <i className="bi bi-plus-square-fill text-[15px]" />
             Dokumentation
@@ -623,7 +623,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 </p>
                 <Link
                   href={`/animals/${horse.id}/erstanamnese`}
-                  className="primary-button shadow-sm"
+                  className="primary-button"
                 >
                   <i className="bi bi-clipboard2-pulse text-[15px]" />
                   Erstanamnese öffnen
