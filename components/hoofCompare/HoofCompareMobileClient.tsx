@@ -329,7 +329,7 @@ export default function HoofCompareMobileClient({
           onClick={() => setUiMode('side')}
           className={[
             'min-h-[48px] flex-1 py-3 text-center text-[12px] font-semibold transition',
-            uiMode === 'side' ? 'border-b-2 border-[#52b788] text-[#1B1F23]' : 'text-[#9CA3AF]',
+            uiMode === 'side' ? 'border-b-2 border-primary text-[#1B1F23]' : 'text-[#9CA3AF]',
           ].join(' ')}
         >
           Nebeneinander
@@ -339,7 +339,7 @@ export default function HoofCompareMobileClient({
           onClick={() => setUiMode('slider')}
           className={[
             'min-h-[48px] flex-1 py-3 text-center text-[12px] font-semibold transition',
-            uiMode === 'slider' ? 'border-b-2 border-[#52b788] text-[#1B1F23]' : 'text-[#9CA3AF]',
+            uiMode === 'slider' ? 'border-b-2 border-primary text-[#1B1F23]' : 'text-[#9CA3AF]',
           ].join(' ')}
         >
           Überblenden
@@ -355,7 +355,7 @@ export default function HoofCompareMobileClient({
             </div>
             <div className="border-b border-[#F0EEEA] px-2.5 py-2">
               <select
-                className="h-11 w-full cursor-pointer rounded-md border border-[#E5E2DC] bg-white py-1.5 pl-2 pr-7 text-[10px] font-medium text-[#1B1F23] focus:border-[#52b788] focus:outline-none"
+                className="h-11 w-full cursor-pointer rounded-md border border-[#E5E2DC] bg-white py-1.5 pl-2 pr-7 text-[10px] font-medium text-[#1B1F23] focus:border-primary focus:outline-none"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%239CA3AF' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
                   backgroundRepeat: 'no-repeat',
@@ -403,13 +403,13 @@ export default function HoofCompareMobileClient({
           </section>
 
           <section>
-            <div className="flex items-center justify-center gap-1.5 border-b border-[#F0EEEA] bg-[rgba(82,183,136,0.06)] py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-[#52b788]">
+            <div className="flex items-center justify-center gap-1.5 border-b border-[#F0EEEA] bg-primary/6 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-primary">
               <i className="bi bi-arrow-right-circle-fill text-[12px]" aria-hidden />
               Nachher
             </div>
             <div className="border-b border-[#F0EEEA] px-2.5 py-2">
               <select
-                className="h-11 w-full cursor-pointer rounded-md border border-[#E5E2DC] bg-white py-1.5 pl-2 pr-7 text-[10px] font-medium text-[#1B1F23] focus:border-[#52b788] focus:outline-none"
+                className="h-11 w-full cursor-pointer rounded-md border border-[#E5E2DC] bg-white py-1.5 pl-2 pr-7 text-[10px] font-medium text-[#1B1F23] focus:border-primary focus:outline-none"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%239CA3AF' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
                   backgroundRepeat: 'no-repeat',
@@ -530,7 +530,7 @@ export default function HoofCompareMobileClient({
               <i className="bi bi-arrow-left-circle-fill" aria-hidden />
               {formatGermanDate(left.recordDate)}
             </span>
-            <span className="flex items-center gap-1 text-[#52b788]">
+            <span className="flex items-center gap-1 text-primary">
               {formatGermanDate(right.recordDate)}
               <i className="bi bi-arrow-right-circle-fill" aria-hidden />
             </span>
@@ -553,7 +553,7 @@ export default function HoofCompareMobileClient({
       {timeline.length > 0 && (
         <section className="border-t border-[#E5E2DC] bg-white py-3.5">
           <div className="mb-2.5 flex items-center gap-1.5 px-4 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#9CA3AF]">
-            <i className="bi bi-clock-history text-[13px] text-[#52b788]" aria-hidden />
+            <i className="bi bi-clock-history text-[13px] text-primary" aria-hidden />
             Foto-Timeline · {slotLabel}
           </div>
           <div className="flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none [-webkit-overflow-scrolling:touch]">
@@ -579,7 +579,7 @@ export default function HoofCompareMobileClient({
                     className={[
                       'relative mb-1 aspect-[9/16] w-full overflow-hidden rounded-md border-2 bg-[#fafaf8]',
                       isLeft ? 'border-[#3B82F6] shadow-[0_0_0_2px_rgba(59,130,246,0.15)]' : '',
-                      isRight ? 'border-[#52b788] shadow-[0_0_0_2px_rgba(82,183,136,0.15)]' : '',
+                      isRight ? 'border-primary ring-2 ring-primary/15' : '',
                       !isLeft && !isRight ? 'border-transparent' : '',
                     ].join(' ')}
                   >
@@ -599,7 +599,7 @@ export default function HoofCompareMobileClient({
                   {(isLeft || isRight) && (
                     <div className="mt-1 flex justify-center">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${isLeft ? 'bg-[#3B82F6]' : 'bg-[#52b788]'}`}
+                        className={`h-1.5 w-1.5 rounded-full ${isLeft ? 'bg-[#3B82F6]' : 'bg-primary'}`}
                         aria-hidden
                       />
                     </div>
@@ -632,7 +632,7 @@ export default function HoofCompareMobileClient({
           type="button"
           disabled={exporting || (!left.signedUrl && !right.signedUrl)}
           onClick={() => void handleExportPng()}
-          className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[10px] border border-[#52b788] bg-[#52b788] text-[12px] font-semibold text-white active:scale-[0.98] disabled:opacity-40"
+          className="primary-button min-h-[48px] flex-1 rounded-[10px] text-[12px] font-semibold active:scale-[0.98] disabled:opacity-40"
         >
           <i className={`bi ${exporting ? 'bi-hourglass-split' : 'bi-download'} text-[15px]`} aria-hidden />
           {exporting ? '…' : 'PNG'}
@@ -640,7 +640,7 @@ export default function HoofCompareMobileClient({
       </div>
 
       <p className="px-4 pb-4 text-center text-[10px] text-[#9CA3AF]">
-        <Link href={`${basePath}/records/compare?${new URLSearchParams({ left: left.recordId, right: right.recordId, hoof, view }).toString()}`} className="text-[#52b788] underline">
+        <Link href={`${basePath}/records/compare?${new URLSearchParams({ left: left.recordId, right: right.recordId, hoof, view }).toString()}`} className="text-primary underline">
           Desktop-Ansicht
         </Link>
       </p>

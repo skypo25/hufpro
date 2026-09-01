@@ -190,7 +190,7 @@ export default function HoofCompareFullscreen({
             'pointer-events-none absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] backdrop-blur-md',
             variant === 'left'
               ? 'border border-[rgba(59,130,246,0.2)] bg-[rgba(59,130,246,0.15)] text-[#3B82F6]'
-              : 'border border-[rgba(82,183,136,0.2)] bg-[rgba(82,183,136,0.15)] text-[#52b788]',
+              : 'border border-[rgba(82,183,136,0.2)] bg-[rgba(82,183,136,0.15)] text-primary',
           ].join(' ')}
         >
           {variant === 'left' ? (
@@ -265,7 +265,7 @@ export default function HoofCompareFullscreen({
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(82,183,136,0.12)] text-[#52b788]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(82,183,136,0.12)] text-primary">
               <HorseIcon className="h-[18px] w-5" />
             </div>
             <div className="min-w-0">
@@ -362,7 +362,7 @@ export default function HoofCompareFullscreen({
             type="button"
             onClick={onSwap}
             title="Seiten tauschen"
-            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[rgba(20,22,24,0.85)] text-[11px] font-extrabold text-[#9CA3AF] backdrop-blur-md transition hover:border-[rgba(82,183,136,0.3)] hover:bg-[rgba(82,183,136,0.2)] hover:text-[#52b788]"
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[rgba(20,22,24,0.85)] text-[11px] font-extrabold text-[#9CA3AF] backdrop-blur-md transition hover:border-[rgba(82,183,136,0.3)] hover:bg-[rgba(82,183,136,0.2)] hover:text-primary"
           >
             <i className="bi bi-arrow-left-right text-[14px]" aria-hidden />
           </button>

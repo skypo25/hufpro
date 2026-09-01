@@ -59,7 +59,7 @@ export default function MobileHoofCompare({ horseId }: { horseId: string }) {
         <p className="text-[14px] leading-relaxed text-[#6B7280]">
           Für einen Vergleich werden mindestens zwei Dokumentationen benötigt.
         </p>
-        <Link href={`/animals/${horseId}`} className="inline-flex text-[14px] font-medium text-[#52b788]">
+        <Link href={`/animals/${horseId}`} className="inline-flex text-[14px] font-medium text-primary">
           Zurück zum Tier
         </Link>
       </main>

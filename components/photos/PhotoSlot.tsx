@@ -106,7 +106,7 @@ export default function PhotoSlot({
           tabIndex={0}
           onClick={openCamera}
           onKeyDown={(e) => e.key === 'Enter' && openCamera()}
-          className={`flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] px-3 py-4 transition hover:border-[#52b788] hover:bg-[rgba(21,66,38,0.03)] ${aspectClass}`}
+          className={`flex cursor-pointer flex-col items-center justify-center rounded-[12px] border-2 border-dashed border-[#E5E2DC] bg-[rgba(0,0,0,0.01)] px-3 py-4 transition hover:border-primary hover:bg-primary/5 ${aspectClass}`}
         >
           <input
             ref={inputRef}

@@ -20,7 +20,7 @@ export function MainWithMargin({
   return (
     <div className={`min-h-screen transition-[margin-left] duration-200 ease-out ${mlClass}`}>
       <main className="min-h-screen p-6 md:p-8 xl:p-10">
-        <div className="mx-0 w-full max-w-[1280px] min-w-0 space-y-4">
+        <div className="mx-auto w-full max-w-[1280px] min-w-0 space-y-7">
           {!isAdmin ? <BillingSystemBanner /> : null}
           {!isAdmin && readOnlyBanner ? <ReadOnlyGraceBanner graceEndsAtIso={readOnlyBanner.graceEndsAtIso} /> : null}
           {children}

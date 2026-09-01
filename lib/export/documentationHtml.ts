@@ -48,8 +48,10 @@ export function htmlFragmentFromContent(s: string | null | undefined): string {
   return `<p>${escapeHtml(t).replace(/\n/g, '<br>\n')}</p>`
 }
 
+import { BRAND_COLORS } from '@/lib/branding'
+
 const C = {
-  brand: '#52b788',
+  brand: BRAND_COLORS.accent,
   text: '#1C1C1C',
   textSecondary: '#555555',
   textLight: '#888888',

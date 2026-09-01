@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from '@/lib/branding'
+
 /**
  * Branding-Optionen für PDF-Ausgabe.
  * Später auf DB/User-Settings umstellbar (Logo-Upload, Farben).
@@ -11,8 +13,8 @@ export type PdfBranding = {
 
 export const DEFAULT_PDF_BRANDING: PdfBranding = {
   logoUrl: null,
-  primaryColor: "#006d6d",
-  secondaryColor: "#1B1F23",
+  primaryColor: BRAND_COLORS.accent,
+  secondaryColor: BRAND_COLORS.foreground,
 }
 
 /** Liefert aktuell die Defaults; später: aus User-Settings oder DB lesen. */

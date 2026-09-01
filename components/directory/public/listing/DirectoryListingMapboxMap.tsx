@@ -11,7 +11,9 @@ export type { DirectoryListingMapPoint } from '@/components/directory/public/lis
 const RADIUS_SOURCE = 'dlp-service-radius'
 const RADIUS_FILL = 'dlp-service-radius-fill'
 const RADIUS_LINE = 'dlp-service-radius-line'
-const ACCENT = '#006d6d'
+import { BRAND_COLORS } from '@/lib/branding'
+
+const ACCENT = BRAND_COLORS.accent
 
 type Props = {
   points: DirectoryListingMapPoint[]

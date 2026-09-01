@@ -121,7 +121,7 @@ export default function BillingSystemBanner() {
         href="/billing"
         aria-label={`${banner.title}. ${banner.cta}`}
         className={`block px-4 py-3 text-[13px] no-underline transition-opacity hover:opacity-95 ${
-          banner.tone === 'warning' ? 'app-info-callout' : `huf-card border ${s.wrap}`
+          banner.tone === 'warning' ? 'app-info-callout' : `content-card border ${s.wrap}`
         }`}
       >
         <div className="flex items-start gap-3">

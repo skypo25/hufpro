@@ -46,7 +46,7 @@ export default function MobileBilling() {
   if (error) {
     return (
       <div className="px-4 py-4">
-        <div className="huf-card p-4 text-[14px] text-red-700">{error}</div>
+        <div className="content-card p-4 text-[14px] text-red-700">{error}</div>
       </div>
     )
   }

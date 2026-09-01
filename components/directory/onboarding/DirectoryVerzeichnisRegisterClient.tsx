@@ -147,7 +147,7 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
       <div className="mx-auto max-w-[480px] px-4 py-10 md:py-14">
         <aside className="dir-vz-reg-card" aria-labelledby="dir-vz-reg-title">
           <div className="dir-vz-reg-card__head">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#52b788]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
               Verzeichnis · {isPremium ? 'Premium' : 'Gratis'}
             </p>
             <h1
@@ -284,15 +284,15 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
                       type="checkbox"
                       checked={agb}
                       onChange={(e) => setAgb(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#52b788]"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                     />
                     <span>
                       Ich akzeptiere die{' '}
-                      <a href="/agb" target="_blank" rel="noreferrer" className="font-medium text-[#52b788]">
+                      <a href="/agb" target="_blank" rel="noreferrer" className="font-medium text-primary">
                         AGB
                       </a>{' '}
                       und{' '}
-                      <a href="/datenschutz" target="_blank" rel="noreferrer" className="font-medium text-[#52b788]">
+                      <a href="/datenschutz" target="_blank" rel="noreferrer" className="font-medium text-primary">
                         Datenschutzerklärung
                       </a>
                       .
@@ -309,7 +309,7 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
 
                 <p className="mt-5 text-center text-[13px] text-[#6b7280]">
                   Bereits ein Konto?{' '}
-                  <Link href={loginHref} className="font-semibold text-[#52b788] no-underline">
+                  <Link href={loginHref} className="font-semibold text-primary no-underline">
                     Zum Einloggen
                   </Link>
                 </p>
@@ -319,7 +319,7 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
         </aside>
 
         <p className="mt-8 text-center text-[13px] text-[#9ca3af]">
-          <Link href="/behandler/paket-waehlen" className="font-medium text-[#52b788] no-underline">
+          <Link href="/behandler/paket-waehlen" className="font-medium text-primary no-underline">
             ← Zur Paketwahl
           </Link>
         </p>

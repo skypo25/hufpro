@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import WeekCalendar from '@/components/appointments/calendar/WeekCalendar'
+import AppPage from '@/components/layout/AppPage'
 import AppointmentAnimalsInline, {
   CALENDAR_OVERVIEW_ICON_CLASS,
 } from '@/components/appointments/AppointmentAnimalsInline'
@@ -440,7 +441,7 @@ export default function CalendarPage() {
     viewMode === 'week' ? `KW ${weekNumber} · ${weekLabel}` : viewMode === 'month' ? monthLabel : 'Chronologische Übersicht'
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23]">
@@ -463,7 +464,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={() => router.push('/appointments/new')}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-[18px] py-[10px] text-[14px] font-medium text-white transition hover:bg-[#015555]"
+            className="primary-button shadow-sm"
           >
             <i className="bi bi-plus-lg text-[14px]" />
             Neuer Termin
@@ -484,7 +485,7 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={handlePrevious}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#006d6d] hover:text-[#006d6d]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-primary hover:text-primary"
               >
                 <i className="bi bi-chevron-left text-[14px]" />
               </button>
@@ -496,7 +497,7 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-[#006d6d] hover:text-[#006d6d]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E2DC] bg-white text-[#1B1F23] transition hover:border-primary hover:text-primary"
               >
                 <i className="bi bi-chevron-right text-[14px]" />
               </button>
@@ -506,7 +507,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={goToToday}
-            className="rounded-md border border-[#006d6d] bg-transparent px-3 py-1.5 text-[14px] font-semibold text-[#006d6d] transition hover:bg-[#006d6d] hover:text-white"
+            className="secondary-button secondary-button--accent font-semibold"
           >
             Heute
           </button>
@@ -518,10 +519,10 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setActiveFilter('all')}
               className={[
-                'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
+                'transition',
                 activeFilter === 'all'
-                  ? 'huf-btn-dark border-[#006d6d] bg-[#006d6d] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#006d6d] hover:text-[#006d6d]',
+                  ? 'primary-button primary-button--pill'
+                  : 'secondary-button secondary-button--pill',
               ].join(' ')}
             >
               Alle ({getStatusFilterCount(appointments, 'all')})
@@ -531,10 +532,10 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setActiveFilter('confirmed')}
               className={[
-                'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
+                'transition',
                 activeFilter === 'confirmed'
-                  ? 'huf-btn-dark border-[#006d6d] bg-[#006d6d] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#006d6d] hover:text-[#006d6d]',
+                  ? 'primary-button primary-button--pill'
+                  : 'secondary-button secondary-button--pill',
               ].join(' ')}
             >
               Bestätigt ({getStatusFilterCount(appointments, 'confirmed')})
@@ -544,10 +545,10 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setActiveFilter('open')}
               className={[
-                'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
+                'transition',
                 activeFilter === 'open'
-                  ? 'huf-btn-dark border-[#006d6d] bg-[#006d6d] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#006d6d] hover:text-[#006d6d]',
+                  ? 'primary-button primary-button--pill'
+                  : 'secondary-button secondary-button--pill',
               ].join(' ')}
             >
               Offen ({getStatusFilterCount(appointments, 'open')})
@@ -557,10 +558,10 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setActiveFilter('firstvisit')}
               className={[
-                'rounded-full border px-4 py-1.5 text-[14px] font-medium transition',
+                'transition',
                 activeFilter === 'firstvisit'
-                  ? 'huf-btn-dark border-[#006d6d] bg-[#006d6d] text-white'
-                  : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#006d6d] hover:text-[#006d6d]',
+                  ? 'primary-button primary-button--pill'
+                  : 'secondary-button secondary-button--pill',
               ].join(' ')}
             >
               Ersttermin ({getStatusFilterCount(appointments, 'firstvisit')})
@@ -574,7 +575,7 @@ export default function CalendarPage() {
               className={[
                 'border-r border-[#E5E2DC] px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'week'
-                  ? 'huf-btn-dark bg-[#006d6d] text-white'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -586,7 +587,7 @@ export default function CalendarPage() {
               className={[
                 'border-r border-[#E5E2DC] px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'month'
-                  ? 'huf-btn-dark bg-[#006d6d] text-white'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -598,7 +599,7 @@ export default function CalendarPage() {
               className={[
                 'px-4 py-2 text-[14px] font-medium transition',
                 viewMode === 'list'
-                  ? 'huf-btn-dark bg-[#006d6d] text-white'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'bg-white text-[#6B7280] hover:bg-[#f4f5f4]',
               ].join(' ')}
             >
@@ -608,7 +609,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="huf-card p-3">
+      <div className="content-card p-3">
         {loading ? (
           <p className="p-4 text-sm text-[#6B7280]">Lade Termine ...</p>
         ) : viewMode === 'week' ? (
@@ -642,7 +643,7 @@ export default function CalendarPage() {
                       className={[
                         'min-h-[80px] border-b border-r border-[#E5E2DC] p-1.5 last:border-r-0',
                         !isCurrentMonth && 'bg-[#f9f9f8] text-[#9CA3AF]',
-                        isToday && 'bg-[#edf5f5]',
+                        isToday && 'bg-primary-light',
                       ].join(' ')}
                     >
                       <div className="mb-1 text-right text-[12px] font-medium text-[#6B7280]">
@@ -691,7 +692,7 @@ export default function CalendarPage() {
                           key={a.id}
                           type="button"
                           onClick={() => handleAppointmentClick(a.id, a.customerId)}
-                          className="flex w-full items-center gap-4 rounded-lg border border-[#E5E2DC] px-4 py-3 text-left transition hover:border-[#006d6d] hover:bg-[#edf5f5]"
+                          className="flex w-full items-center gap-4 rounded-lg border border-[#E5E2DC] px-4 py-3 text-left transition hover:border-primary hover:bg-primary-light"
                         >
                           <span className="min-w-[52px] text-[13px] font-semibold tabular-nums text-[#1B1F23]">
                             {new Intl.DateTimeFormat('de-DE', {
@@ -722,6 +723,6 @@ export default function CalendarPage() {
           </div>
         )}
       </div>
-    </main>
+    </AppPage>
   )
 }

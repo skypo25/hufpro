@@ -41,7 +41,7 @@ export default function ErstterminBodyPhotosCard(props: ErstterminBodyPhotosCard
 
   return (
     <>
-      <section className="huf-card huf-card--lg">
+      <section className="content-card content-card--lg">
         <div className="border-b border-[#E5E2DC] px-5 py-4">
           <h4 className="dashboard-serif text-[15px] font-medium text-[#1B1F23]">
             Ganzkörperbilder (Ersttermin)
@@ -57,7 +57,7 @@ export default function ErstterminBodyPhotosCard(props: ErstterminBodyPhotosCard
                 key={photo.url}
                 type="button"
                 onClick={() => setEnlargeUrl(photo.url)}
-                className="relative block w-full overflow-hidden rounded-xl border border-[#E5E2DC] bg-[#E5E2DC] text-left transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#006d6d] focus:ring-offset-2"
+                className="relative block w-full overflow-hidden rounded-xl border border-[#E5E2DC] bg-[#E5E2DC] text-left transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 <img
                   src={photo.url}

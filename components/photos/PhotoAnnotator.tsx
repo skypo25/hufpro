@@ -296,8 +296,8 @@ export default function PhotoAnnotator({
                 }}
                 className={`rounded-[20px] border-[1.5px] p-2 transition ${
                   drawMode === mode
-                    ? 'border-[#006d6d] bg-[#edf5f5] text-[#015555]'
-                    : 'border-white/40 bg-white/90 text-[#1B1F23] hover:border-[#006d6d] hover:bg-[#edf5f5]'
+                    ? 'border-primary bg-primary-light text-primary-dark'
+                    : 'border-white/40 bg-white/90 text-[#1B1F23] hover:border-primary hover:bg-primary-light'
                 }`}
               >
                 {icon}
@@ -311,7 +311,7 @@ export default function PhotoAnnotator({
                 if (annotations.items.length === 0) return
                 onChange({ ...annotations, items: annotations.items.slice(0, -1) })
               }}
-              className="rounded-[20px] border-[1.5px] border-white/40 bg-white/90 p-2 text-[#1B1F23] transition hover:border-[#006d6d] hover:bg-[#edf5f5]"
+              className="rounded-[20px] border-[1.5px] border-white/40 bg-white/90 p-2 text-[#1B1F23] transition hover:border-primary hover:bg-primary-light"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a4 4 0 014 4v2M3 10l4-4m-4 4l4 4" />

@@ -18,7 +18,7 @@ function KpiCard(props: {
 }) {
   const valColor =
     props.accent === 'green'
-      ? 'text-[#52b788]'
+      ? 'text-primary'
       : props.accent === 'blue'
         ? 'text-[#3B82F6]'
         : props.accent === 'orange'
@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className={`min-h-0 lg:col-span-2 ${adminCardClass}`}>
               <div className={adminSectionHeaderClass}>
-                <i className="bi bi-pie-chart-fill text-[15px] text-[#52b788]" aria-hidden />
+                <i className="bi bi-pie-chart-fill text-[15px] text-primary" aria-hidden />
                 <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
                   Berufsgruppen (Settings)
                 </h2>
@@ -120,7 +120,7 @@ export default async function AdminDashboardPage() {
                       <span className="min-w-[100px] text-[11px] text-[#6B7280]">{label}</span>
                       <div className="h-2 flex-1 overflow-hidden rounded bg-[#F0EEEA]">
                         <div
-                          className="h-full rounded bg-[#52b788]"
+                          className="h-full rounded bg-primary"
                           style={{ width: `${Math.min(100, Math.round((count / maxProf) * 100))}%` }}
                         />
                       </div>
@@ -133,7 +133,7 @@ export default async function AdminDashboardPage() {
 
             <div className={adminCardClass}>
               <div className={adminSectionHeaderClass}>
-                <i className="bi bi-database-fill text-[15px] text-[#52b788]" aria-hidden />
+                <i className="bi bi-database-fill text-[15px] text-primary" aria-hidden />
                 <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
                   Nutzungsdaten
                 </h2>
@@ -158,18 +158,18 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className={adminCardClass}>
               <div className={adminSectionHeaderClass}>
-                <i className="bi bi-person-plus-fill text-[15px] text-[#52b788]" aria-hidden />
+                <i className="bi bi-person-plus-fill text-[15px] text-primary" aria-hidden />
                 <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
                   Neue Registrierungen
                 </h2>
-                <Link href="/admin/users" className="ml-auto text-[11px] font-semibold text-[#52b788] hover:underline">
+                <Link href="/admin/users" className="ml-auto text-[11px] font-semibold text-primary hover:underline">
                   Alle
                 </Link>
               </div>
               <div className="divide-y divide-[#F0EEEA] px-5 py-2">
                 {data.recentRegistrations.map((r) => (
                   <div key={r.id} className="flex items-start gap-3 py-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(82,183,136,.08)] text-[12px] text-[#52b788]">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(82,183,136,.08)] text-[12px] text-primary">
                       <i className="bi bi-person-fill" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">

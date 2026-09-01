@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppPage from '@/components/layout/AppPage'
 import {
   formatCustomerNumber,
   formatGermanDate,
@@ -208,7 +209,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   const isPastAppointment = aptDate && new Date(aptDate) < new Date()
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <nav className="apt-detail-breadcrumb">
         <Link href="/dashboard">Dashboard</Link>
         <span> › </span>
@@ -643,6 +644,6 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }

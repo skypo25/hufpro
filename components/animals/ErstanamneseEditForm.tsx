@@ -81,7 +81,7 @@ export default function ErstanamneseEditForm({ horseId, initialClinical, backHre
         <strong>Interne Notizen</strong> bleiben unverändert — du findest sie in der Tierbearbeitung.
       </div>
 
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Allgemeine Anamnese</h2>
         </div>
@@ -90,7 +90,7 @@ export default function ErstanamneseEditForm({ horseId, initialClinical, backHre
         </div>
       </section>
 
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">
             Bewegungsapparat / Funktion
@@ -101,7 +101,7 @@ export default function ErstanamneseEditForm({ horseId, initialClinical, backHre
         </div>
       </section>
 
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">
             Vorgeschichte / strukturelle Auffälligkeiten
@@ -129,7 +129,7 @@ export default function ErstanamneseEditForm({ horseId, initialClinical, backHre
           type="button"
           disabled={saving}
           onClick={() => void handleSave()}
-          className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[#015555] disabled:opacity-50"
+          className="primary-button primary-button--lg disabled:opacity-50"
         >
           <i className="bi bi-check-lg" /> {saving ? 'Speichere…' : 'Erstanamnese speichern'}
         </button>

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFileInvoice, faPlus } from '@fortawesome/free-solid-svg-icons'
 import CustomerInvoiceTableRows, { type InvoiceRowData } from '@/components/invoices/CustomerInvoiceTableRows'
+import AppPage from '@/components/layout/AppPage'
 
 type CustomerInvoicesPageProps = {
   params: Promise<{ id: string }>
@@ -49,9 +50,9 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
 
   if (!customer) {
     return (
-      <main className="mx-auto max-w-[1280px] w-full space-y-7">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">Kunde nicht gefunden.</div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -98,13 +99,13 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
   const overdueCents = overdueInvoices.reduce((s, i) => s + (itemsByInvoice.get(i.id)?.totalCents ?? 0), 0)
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#006d6d] hover:underline">Dashboard</Link>
+        <Link href="/dashboard" className="text-primary hover:underline">Dashboard</Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#006d6d] hover:underline">Kunden</Link>
+        <Link href="/customers" className="text-primary hover:underline">Kunden</Link>
         <span>›</span>
-        <Link href={`/customers/${customerId}`} className="text-[#006d6d] hover:underline">{customerName}</Link>
+        <Link href={`/customers/${customerId}`} className="text-primary hover:underline">{customerName}</Link>
         <span>›</span>
         <span className="text-[#6B7280]">Rechnungen</span>
       </div>
@@ -117,7 +118,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         <div className="flex gap-2">
           <Link
             href={`/invoices/new?customerId=${customerId}`}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#015555]"
+            className="primary-button"
           >
             <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
             Neue Rechnung
@@ -130,7 +131,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         <Link href={`/customers/${customerId}`} className="border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-[#6B7280] hover:text-[#1B1F23]">Übersicht</Link>
         <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Termine</span>
         <span className="px-5 py-3 text-[14px] font-medium text-[#6B7280]">Dokumentation</span>
-        <span className="border-b-2 border-[#006d6d] px-5 py-3 text-[14px] font-medium text-[#006d6d]">Rechnungen</span>
+        <span className="border-b-2 border-primary px-5 py-3 text-[14px] font-medium text-primary">Rechnungen</span>
       </div>
 
       {/* Stats */}
@@ -141,7 +142,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Bezahlt</div>
-          <div className="font-serif text-[26px] !font-extrabold text-[#006d6d]">{formatCurrency(totalPaidCents)}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-primary">{formatCurrency(totalPaidCents)}</div>
           <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status === 'paid').length} Rechnungen</div>
         </div>
         <div className="rounded-xl border border-[#E5E2DC] bg-white p-4 shadow-sm">
@@ -180,7 +181,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
         </div>
         {(invoices ?? []).length === 0 ? (
           <div className="px-6 py-16 text-center text-[14px] text-[#6B7280]">
-            Noch keine Rechnungen für diesen Kunden. <Link href={`/invoices/new?customerId=${customerId}`} className="text-[#006d6d] hover:underline">Neue Rechnung anlegen</Link>
+            Noch keine Rechnungen für diesen Kunden. <Link href={`/invoices/new?customerId=${customerId}`} className="text-primary hover:underline">Neue Rechnung anlegen</Link>
           </div>
         ) : (
           <CustomerInvoiceTableRows
@@ -209,6 +210,6 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
           />
         )}
       </div>
-    </main>
+    </AppPage>
   )
 }

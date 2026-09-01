@@ -6,6 +6,7 @@ import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import type { BillingAccountRow } from '@/lib/billing/types'
 import BillingPageClient from '@/components/billing/BillingPageClient'
+import AppPage from '@/components/layout/AppPage'
 
 export default async function BillingPage() {
   const supabase = await createSupabaseServerClient()
@@ -43,9 +44,9 @@ export default async function BillingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#006d6d] hover:underline">
+        <Link href="/dashboard" className="text-primary hover:underline">
           Dashboard
         </Link>
         <span aria-hidden>›</span>
@@ -63,7 +64,7 @@ export default async function BillingPage() {
 
       <Suspense
         fallback={
-          <div className="huf-card border border-[#eff5f5] px-6 py-10 text-center text-[14px] text-[#6B7280]">
+          <div className="content-card border border-[#eff5f5] px-6 py-10 text-center text-[14px] text-[#6B7280]">
             Billing wird geladen…
           </div>
         }
@@ -75,7 +76,6 @@ export default async function BillingPage() {
           stripePublishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || null}
         />
       </Suspense>
-    </div>
+    </AppPage>
   )
 }
-

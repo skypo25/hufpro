@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DirectoryOwnerAnalyticsDailyRow } from '@/lib/directory/stats/fetchDirectoryOwnerStatsSeries.server'
+import { BRAND_COLORS } from '@/lib/branding'
 
 type Point = { dateIso: string; count: number }
 
@@ -12,7 +13,7 @@ export type DirectoryStatisticsInitial = {
   analyticsDaily: DirectoryOwnerAnalyticsDailyRow[]
 }
 
-const ACCENT = '#006d6d'
+const ACCENT = BRAND_COLORS.accent
 const GRAY = '#E5E7EB'
 const GRAY2 = '#D1D5DB'
 const BLUE = '#3B82F6'

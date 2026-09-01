@@ -5,6 +5,7 @@ import { createRecord, updateRecord } from '@/app/(app)/horses/[id]/records/acti
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { deriveAppProfile } from '@/lib/appProfile'
 import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
+import AppPage from '@/components/layout/AppPage'
 import {
   loadRecordDetailFromDocumentation,
   type RecordDetailHoofPhoto,
@@ -165,11 +166,11 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
 
     if (recordError || !recordBase) {
       return (
-        <main className="max-w-[1200px]">
+        <AppPage>
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
             <h1 className="text-xl font-semibold text-red-700">Dokumentation nicht gefunden</h1>
           </div>
-        </main>
+        </AppPage>
       )
     }
 
@@ -262,7 +263,7 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
       notes: record.notes ?? null,
     }
     return (
-      <div className="mx-auto w-full max-w-[1200px]">
+      <AppPage>
         <TherapyRecordForm
           horse={therapyHorse}
           defaultRecordDate={defaultRecordDate}
@@ -276,7 +277,7 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
           updateAction={updateRecord}
           preservedExtendedFields={preservedExtendedFields}
         />
-      </div>
+      </AppPage>
     )
   }
 
@@ -319,7 +320,7 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px]">
+    <AppPage>
       <RecordCreateForm
         horse={horse}
         defaultRecordDate={defaultRecordDate}
@@ -345,6 +346,6 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         existingPhotos={existingPhotos}
         existingPhotoUrls={existingPhotoUrls}
       />
-    </div>
+    </AppPage>
   )
 }

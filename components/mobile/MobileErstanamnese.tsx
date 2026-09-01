@@ -166,7 +166,7 @@ export default function MobileErstanamnese({ horseId }: { horseId: string }) {
           </div>
         )}
 
-        <div className="space-y-4 [&_.huf-card]:shadow-[0_1px_3px_rgba(0,0,0,.06)]">
+        <div className="space-y-4 [&_.content-card]:shadow-[0_1px_3px_rgba(0,0,0,.06)]">
           <ErstanamneseReadOnly clinical={clinical} />
         </div>
       </div>

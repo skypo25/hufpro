@@ -63,7 +63,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="huf-card">
+    <section className="content-card">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-[18px]">
         <h3 className="dashboard-serif flex items-center gap-3 text-[16px] font-medium text-[#1B1F23]">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
@@ -804,7 +804,7 @@ export default function CustomerForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-60"
+            className="primary-button primary-button--lg disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

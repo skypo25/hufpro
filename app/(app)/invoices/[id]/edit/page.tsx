@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import NewInvoiceForm from '@/components/invoices/NewInvoiceForm'
+import AppPage from '@/components/layout/AppPage'
 
 type EditInvoicePageProps = {
   params: Promise<{ id: string }>
@@ -109,7 +110,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -160,6 +161,6 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
           initialLineItems: lineItems,
         }}
       />
-    </main>
+    </AppPage>
   )
 }

@@ -6,6 +6,7 @@ import { deriveAppProfile, animalsNavLabel, animalSingularLabel } from '@/lib/ap
 import AnimalForm, { type AnimalFormInitialData, type AnimalType } from '@/components/animals/AnimalForm'
 import { profilePhotoPathFromIntake, resolveClinicalForForm } from '@/lib/animals/clinicalIntakeTypes'
 import { deleteHorseAndRedirect } from '../actions'
+import AppPage from '@/components/layout/AppPage'
 
 type EditHorsePageProps = {
   params: Promise<{
@@ -77,11 +78,11 @@ export default async function EditHorsePage({
 
   if (horseError || !horse) {
     return (
-      <main className="mx-auto max-w-[920px] space-y-7">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {singularLabel} konnte nicht geladen werden.
         </div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -93,16 +94,16 @@ export default async function EditHorsePage({
 
   if (customersError) {
     return (
-      <main className="mx-auto max-w-[920px] space-y-7">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Kunden konnten nicht geladen werden: {customersError.message}
         </div>
-      </main>
+      </AppPage>
     )
   }
 
   return (
-    <main className="mx-auto max-w-[920px] space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -209,6 +210,6 @@ export default async function EditHorsePage({
           }}
         />
       )}
-    </main>
+    </AppPage>
   )
 }

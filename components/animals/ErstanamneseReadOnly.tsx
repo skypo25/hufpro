@@ -44,7 +44,7 @@ export function ErstanamneseReadOnly({ clinical }: { clinical: ClinicalFirstCont
 
   return (
     <div className="space-y-8">
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Allgemeine Anamnese</h2>
         </div>
@@ -72,7 +72,7 @@ export function ErstanamneseReadOnly({ clinical }: { clinical: ClinicalFirstCont
         </div>
       </section>
 
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">
             Bewegungsapparat / Funktion
@@ -102,7 +102,7 @@ export function ErstanamneseReadOnly({ clinical }: { clinical: ClinicalFirstCont
         </div>
       </section>
 
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">
             Vorgeschichte / strukturelle Auffälligkeiten

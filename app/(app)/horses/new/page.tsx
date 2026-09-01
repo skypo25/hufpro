@@ -5,6 +5,7 @@ import HorseForm from '@/components/horses/HorseForm'
 import { emptyHorseFormData } from '@/components/horses/horseFormDefaults'
 import AnimalForm from '@/components/animals/AnimalForm'
 import { deriveAppProfile, animalsNavLabel, newAnimalButtonLabel } from '@/lib/appProfile'
+import AppPage from '@/components/layout/AppPage'
 
 type NewHorsePageProps = {
   searchParams: Promise<{
@@ -42,19 +43,19 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
 
   if (error) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-700">Fehler</h1>
           <p className="text-red-600">
             Kunden konnten nicht geladen werden: {error.message}
           </p>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -88,6 +89,6 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
           }}
         />
       )}
-    </main>
+    </AppPage>
   )
 }

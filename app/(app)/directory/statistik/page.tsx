@@ -4,6 +4,7 @@ import { fetchDirectoryOwnerStatsSeries } from '@/lib/directory/stats/fetchDirec
 import { DirectoryStatisticsPageClient } from '@/components/directory/intern/DirectoryStatisticsPageClient'
 
 import '@/components/directory/intern/directory-statistics-page.css'
+import AppPage from '@/components/layout/AppPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export default async function DirectoryStatistikPage() {
   if (!stats) redirect('/directory/mein-profil')
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] space-y-7">
+    <AppPage>
       <DirectoryStatisticsPageClient
         initial={{
           profileViewsTotal: stats.totals.profileViewsTotal,
@@ -35,7 +36,6 @@ export default async function DirectoryStatistikPage() {
           analyticsDaily: stats.analyticsDaily,
         }}
       />
-    </div>
+    </AppPage>
   )
 }
-

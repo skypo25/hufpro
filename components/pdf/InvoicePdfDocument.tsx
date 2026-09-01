@@ -1,6 +1,7 @@
 import React from "react"
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer"
 import type { InvoicePdfData } from "@/lib/pdf/invoiceTypes"
+import { BRAND_COLORS } from "@/lib/branding"
 
 const styles = StyleSheet.create({
   page: {
@@ -14,7 +15,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 5,
-    backgroundColor: "#006d6d",
+    backgroundColor: BRAND_COLORS.accent,
   },
   header: {
     marginTop: 8,
@@ -32,7 +33,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 12,
-    backgroundColor: "#edf5f5",
+    backgroundColor: BRAND_COLORS.accentLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontFamily: "Helvetica-Bold",
     fontSize: 16,
-    color: "#015555",
+    color: BRAND_COLORS.accentDark,
   },
   companyName: {
     fontSize: 14,
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 700,
-    color: "#006d6d",
+    color: BRAND_COLORS.accent,
   },
   invNr: {
     fontSize: 10,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
   tdLeistung: { flex: 1, fontWeight: 700, color: "#1B1F23", fontSize: 11 },
   tdAnzahl: { width: 50, textAlign: "center", color: "#374151", fontSize: 11 },
   tdEinzel: { width: 75, textAlign: "right", fontSize: 11 },
-  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: "#006d6d", fontSize: 11 },
+  tdBetrag: { width: 75, textAlign: "right", fontWeight: 700, color: BRAND_COLORS.accent, fontSize: 11 },
   summaryWrap: {
     alignItems: "flex-end",
     marginBottom: 16,
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   summaryTotalAmount: {
-    color: "#006d6d",
+    color: BRAND_COLORS.accent,
     fontSize: 14,
   },
   taxNotice: {
@@ -184,19 +185,19 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: "#006d6d",
+    borderColor: BRAND_COLORS.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   taxNoticeIconText: {
     fontSize: 10,
     fontWeight: 700,
-    color: "#006d6d",
+    color: BRAND_COLORS.accent,
   },
   taxNoticeText: {
     flex: 1,
     fontSize: 10,
-    color: "#015555",
+    color: BRAND_COLORS.accentDark,
     lineHeight: 1.4,
   },
   paymentBox: {
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
   footerAniDocs: {
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
-    color: "#006d6d",
+    color: BRAND_COLORS.accent,
   },
 })
 

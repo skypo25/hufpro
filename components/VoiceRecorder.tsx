@@ -115,7 +115,7 @@ export default function VoiceRecorder({
             setProcessError(null)
             reset()
           }}
-          className="voice-recorder-reset text-[13px] font-medium text-[#52b788] underline"
+          className="voice-recorder-reset text-[13px] font-medium text-primary underline"
         >
           Erneut versuchen
         </button>

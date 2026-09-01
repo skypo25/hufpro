@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { BRAND_COLORS } from '@/lib/branding'
 
 const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
@@ -34,11 +35,11 @@ export default function RevenueChart({ monthlyCents, totalCents }: RevenueChartP
         {monthlyCents.map((cents, i) => (
           <div
             key={i}
-            className="w-7 rounded-t-md bg-[#edf5f5] transition-[height] duration-700 ease-out"
+            className="w-7 rounded-t-md bg-primary-light transition-[height] duration-700 ease-out"
             style={{
               height: animated ? `${barHeightPercent(cents)}%` : '0%',
               minHeight: 4,
-              backgroundColor: i === new Date().getMonth() ? '#006d6d' : undefined,
+              backgroundColor: i === new Date().getMonth() ? BRAND_COLORS.accent : undefined,
               transitionDelay: `${i * 50}ms`,
             }}
             title={formatEuro(cents)}

@@ -7,8 +7,10 @@ import {
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 
+import { BRAND_COLORS } from '@/lib/branding'
+
 /** Farbe für Tierarten-Icons (Kundenkarte, Listen) */
-export const animalTypeIconColor = '#015555'
+export const animalTypeIconColor = BRAND_COLORS.accentDark
 
 /** Font-Awesome-Icon passend zu `horses.animal_type` (leer/unbekannt = Pferd). */
 export function faIconForAnimalType(animalType: string | null | undefined): IconDefinition {
@@ -20,9 +22,9 @@ export function faIconForAnimalType(animalType: string | null | undefined): Icon
   return faHorse
 }
 
-/** Pill-Badge für Tierart (helles Mint, dunkelgrün) — Liste & mobil */
+/** Pill-Badge für Tierart — Liste & mobil */
 export const animalTypeBadgeClassName =
-  'inline-flex max-w-full items-center justify-center rounded-full bg-[#edf5f5] px-3 py-1 text-[12px] font-semibold leading-tight text-[#015555]'
+  'inline-flex max-w-full items-center justify-center rounded-full bg-primary-light px-3 py-1 text-[12px] font-semibold leading-tight text-primary-dark'
 
 /** Anzeige für `horses.neutered` (yes/no/unknown oder Legacy-Text) */
 export function formatNeuteredLabel(raw: string | null | undefined): string {

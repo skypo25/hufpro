@@ -7,9 +7,9 @@
    ============================================================ */
 
 :root {
-  --form-accent: var(--accent, #006d6d);
-  --form-accent-soft: var(--accent-light, #edf5f5);
-  --form-accent-dark: var(--accent-dark, #015555);
+  --form-accent: var(--accent);
+  --form-accent-soft: var(--accent-light);
+  --form-accent-dark: var(--accent-dark);
 
   --form-border: var(--border, #dde9e9);
   --form-surface: var(--card, #ffffff);

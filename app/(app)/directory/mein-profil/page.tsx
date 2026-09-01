@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { DirectoryProfileCreateWizard } from "@/components/directory/onboarding/DirectoryProfileCreateWizard";
+import AppPage from '@/components/layout/AppPage'
 import {
   fetchPublicAnimalTypes,
   fetchPublicMethods,
@@ -281,9 +282,9 @@ export default async function DirectoryMeinProfilPage({
   const topSourcesLabel = activeTopSources.map(labelTopSource).join(", ");
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="text-primary hover:underline">
           Dashboard
         </Link>
         <span aria-hidden>›</span>
@@ -347,6 +348,6 @@ export default async function DirectoryMeinProfilPage({
         />
         </div>
       </div>
-    </div>
+    </AppPage>
   );
 }

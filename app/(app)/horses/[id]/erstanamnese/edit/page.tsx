@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppPage from '@/components/layout/AppPage'
 import {
   animalsNavLabel,
   animalSingularLabel,
@@ -46,21 +47,21 @@ export default async function ErstanamneseEditPage({ params }: Props) {
   const viewHref = `/animals/${horse.id}/erstanamnese`
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="text-primary hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/animals" className="text-[#52b788] hover:underline">
+        <Link href="/animals" className="text-primary hover:underline">
           {animalsNavLabel(term)}
         </Link>
         <span>›</span>
-        <Link href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
+        <Link href={`/animals/${horse.id}`} className="text-primary hover:underline">
           {horse.name || singular}
         </Link>
         <span>›</span>
-        <Link href={viewHref} className="text-[#52b788] hover:underline">
+        <Link href={viewHref} className="text-primary hover:underline">
           Erstanamnese
         </Link>
         <span>›</span>
@@ -77,6 +78,6 @@ export default async function ErstanamneseEditPage({ params }: Props) {
       </div>
 
       <ErstanamneseEditForm horseId={horse.id} initialClinical={clinical} backHref={viewHref} />
-    </main>
+    </AppPage>
   )
 }

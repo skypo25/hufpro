@@ -8,6 +8,7 @@ import { deriveAppProfile } from '@/lib/appProfile'
 import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
+import AppPage from '@/components/layout/AppPage'
 
 type NewRecordPageProps = {
   params: Promise<{
@@ -228,7 +229,7 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
   if (profile.docType === 'therapy') {
     const therapyAiType = professionToTherapyAiType(profile.profession)
     return (
-      <div className="mx-auto w-full max-w-[1200px]">
+      <AppPage>
         <TherapyRecordForm
           horse={therapyHorse}
           defaultRecordDate={defaultRecordDate}
@@ -236,12 +237,12 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
           therapyAiType={therapyAiType}
           saveAction={createRecord}
         />
-      </div>
+      </AppPage>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1200px]">
+    <AppPage>
       <RecordCreateForm
         horse={horse}
         defaultRecordDate={defaultRecordDate}
@@ -252,6 +253,6 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
         erstterminBodyPhotos={erstterminBodyPhotos}
         erstterminRecordDate={erstterminRecordDate}
       />
-    </div>
+    </AppPage>
   )
 }

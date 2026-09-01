@@ -1230,7 +1230,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
           <div className="mrf-error">{error}</div>
         )}
         {offlineSavedMsg && (
-          <div className="rounded-lg border border-[#52b788]/50 bg-[#edf7f2] px-4 py-3 text-[13px] text-[#166534]">
+          <div className="rounded-lg border border-primary/50 bg-[#edf7f2] px-4 py-3 text-[13px] text-[#166534]">
             {offlineSavedMsg}
           </div>
         )}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
 import AppointmentForm from '@/components/appointments/AppointmentForm'
+import AppPage from '@/components/layout/AppPage'
 import type {
   AppointmentCustomer,
   AppointmentDayItem,
@@ -127,14 +128,14 @@ export default async function EditAppointmentPage({
 
   if (appointmentError || !appointment) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-700">Fehler</h1>
           <p className="text-red-600">
             Termin konnte nicht geladen werden.
           </p>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -268,7 +269,7 @@ export default async function EditAppointmentPage({
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -298,6 +299,6 @@ export default async function EditAppointmentPage({
         dayItems={dayItems}
         emailRemindersEnabled={emailRemindersEnabled}
       />
-    </main>
+    </AppPage>
   )
 }

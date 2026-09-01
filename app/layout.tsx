@@ -70,7 +70,7 @@ html,body{background:#f5f9f9;color:#1c1c1c;margin:0;min-height:100%}
 }
 #anidocs-boot-splash .anidocs-boot-logo svg{width:100%;height:100%;display:block}
 #anidocs-boot-splash .anidocs-boot-box{
-  fill:#006d6d;transform-origin:center;
+  fill:var(--accent,#006d6d);transform-origin:center;
   animation:anidocs-boot-breathe 1.6s ease-in-out infinite;
 }
 #anidocs-boot-splash .anidocs-boot-letter{

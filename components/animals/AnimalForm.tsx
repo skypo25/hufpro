@@ -123,7 +123,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="huf-card">
+    <section className="content-card">
       <div className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-[18px]">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
           {icon}
@@ -161,7 +161,7 @@ function CollapsibleSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="huf-card">
+    <section className="content-card">
       <button
         type="button"
         className="flex w-full items-center gap-3 border-b border-[var(--border)] px-6 py-[18px] text-left transition hover:bg-[rgba(0,0,0,0.02)]"
@@ -783,7 +783,7 @@ export default function AnimalForm({
         type="button"
         onClick={() => setAnimalType(t)}
         className={[
-          'flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 text-center transition',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 text-center transition',
           selected
             ? 'border-[var(--accent)] bg-[var(--accent-light)] ring-4 ring-[color-mix(in_oklab,var(--accent)_18%,transparent)]'
             : 'border-[var(--border)] bg-white hover:border-[#9CA3AF]',
@@ -1232,7 +1232,7 @@ export default function AnimalForm({
             type="button"
             disabled={saving}
             onClick={() => void handleSave()}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[15px] font-medium !text-white transition-colors hover:bg-[var(--accent-dark)] hover:!text-white disabled:opacity-50"
+            className="primary-button primary-button--lg disabled:opacity-50"
           >
             <i className="bi bi-check-lg" />{' '}
             {saving ? 'Speichere…' : mode === 'edit' ? 'Änderungen speichern' : 'Tier speichern'}

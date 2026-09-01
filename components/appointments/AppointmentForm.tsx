@@ -336,7 +336,7 @@ export default function AppointmentForm({
       className="grid max-w-[1280px] grid-cols-1 gap-7 xl:grid-cols-[1fr_360px]"
     >
       <div className="min-w-0 space-y-6">
-        <div className="huf-card">
+        <div className="content-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
               <i className="bi bi-person-fill-check" />
@@ -355,7 +355,7 @@ export default function AppointmentForm({
           </div>
         </div>
 
-        <div className="huf-card">
+        <div className="content-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
               <FontAwesomeIcon icon={faHorse} className="text-[14px]" />
@@ -382,7 +382,7 @@ export default function AppointmentForm({
           </div>
         </div>
 
-        <div className="huf-card">
+        <div className="content-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
               <i className="bi bi-calendar2-heart-fill" />
@@ -397,7 +397,7 @@ export default function AppointmentForm({
           </div>
         </div>
 
-        <div className="huf-card">
+        <div className="content-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
               <i className="bi bi-clock-fill" />
@@ -467,7 +467,7 @@ export default function AppointmentForm({
           </div>
         </div>
 
-        <div className="huf-card">
+        <div className="content-card">
           <div className={APT_CARD_HEAD}>
             <div className={APT_ICON_WRAP}>
               <i className="bi bi-chat-quote-fill" />
@@ -545,7 +545,7 @@ export default function AppointmentForm({
             <button
               type="submit"
               disabled={loading}
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium text-white hover:bg-[var(--accent-dark)] disabled:opacity-60"
+              className="primary-button primary-button--lg disabled:opacity-60"
             >
               <i className="bi bi-check-lg text-[15px]" />
               {loading

@@ -294,7 +294,7 @@ function DirectoryVerzeichnisInternSidebar({ paketLabel }: { paketLabel: 'gratis
         <div className={isCollapsed ? 'flex flex-col items-center gap-2' : 'rounded-lg px-3 py-2'}>
           <div className={isCollapsed ? 'flex flex-col items-center' : 'mb-3 flex items-center gap-3'}>
             <div
-              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#006d6d] text-[11px] font-bold text-white"
+              className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white"
               title={userDisplay?.name ?? undefined}
               aria-label={userDisplay?.name ? `Profil: ${userDisplay.name}` : 'Profil wird geladen'}
             >

@@ -38,9 +38,9 @@ function SecAccordion({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-4 py-3.5 text-left active:bg-black/[0.01]"
       >
-        <i className={`bi ${icon} text-[15px] text-[#52b788] shrink-0`} aria-hidden />
+        <i className={`bi ${icon} text-[15px] text-primary shrink-0`} aria-hidden />
         <h3 className="flex-1 font-[Outfit] text-[14px] font-medium text-[#1B1F23]">{title}</h3>
-        {hint && <span className="text-[10px] font-semibold text-[#52b788]">{hint}</span>}
+        {hint && <span className="text-[10px] font-semibold text-primary">{hint}</span>}
         <svg
           className={`h-[18px] w-[18px] shrink-0 text-[#9CA3AF] transition-transform ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24"
@@ -64,7 +64,7 @@ function SecAccordion({
 // ─── Form layout matching MobileCustomerEdit ──────────────────────────────────
 
 const fieldBaseClass =
-  'w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[#111] outline-none placeholder:text-[#9CA3AF] focus:border-[#52b788] focus:ring-2 focus:ring-[#52b788]/10 font-[inherit]'
+  'w-full rounded-[10px] border-[1.5px] border-[#cdcdd0] bg-[#fafafa] px-3 py-2.5 text-[#111] outline-none placeholder:text-[#9CA3AF] focus:border-primary focus:ring-2 focus:ring-primary/10 font-[inherit]'
 const inputClass = `${fieldBaseClass} text-[15px]`
 const selectClass = `${fieldBaseClass} text-[var(--form-control-font-size,13.5px)]`
 
@@ -406,7 +406,7 @@ export default function MobileSettings() {
                 <button
                   type="button"
                   onClick={() => update('kleinunternehmer', !s.kleinunternehmer)}
-                  className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.kleinunternehmer ? 'bg-[#52b788]' : 'bg-[#D1D5DB]'}`}
+                  className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.kleinunternehmer ? 'bg-primary' : 'bg-[#D1D5DB]'}`}
                   style={{ padding: 2 }}
                 >
                   <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${s.kleinunternehmer ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -462,7 +462,7 @@ export default function MobileSettings() {
                     <button
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
-                      className="text-[11px] font-semibold text-[#52b788]"
+                      className="text-[11px] font-semibold text-primary"
                     >
                       Datei auswählen
                     </button>
@@ -566,7 +566,7 @@ export default function MobileSettings() {
               ))}
               <button
                 type="button"
-                className="mt-2 flex w-full items-center justify-center gap-1.5 py-2.5 text-[12px] font-semibold text-[#52b788]"
+                className="mt-2 flex w-full items-center justify-center gap-1.5 py-2.5 text-[12px] font-semibold text-primary"
                 onClick={() => update('services', [...(s.services ?? []), { label: '', price: '' }])}
               >
                 <i className="bi bi-plus-circle-fill" /> Weitere Leistung hinzufügen
@@ -576,7 +576,7 @@ export default function MobileSettings() {
             <SecAccordion icon="bi-file-earmark-pdf-fill" title="Rechnungsvorschau" hint="So sehen deine Rechnungen aus">
               <div className="rounded-lg border border-[#E5E2DC] bg-[#FAFAF8] p-4 text-[10px] text-[#6B7280] leading-relaxed">
                 <div className="mb-2.5 flex justify-between">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#52b788] text-white text-[12px] font-bold">H</div>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-white text-[12px] font-bold">H</div>
                   <div className="text-right text-[8px]">
                     {s.companyName || `${s.firstName} ${s.lastName}`.trim() || 'Betrieb'}<br />
                     {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />
@@ -590,7 +590,7 @@ export default function MobileSettings() {
                   <span>Barhufbearbeitung (1 Pferd, 4 Hufe)</span>
                   <span>65,00 €</span>
                 </div>
-                <div className="flex justify-between border-t border-[#E5E2DC] py-1.5 font-bold text-[11px] text-[#52b788]">
+                <div className="flex justify-between border-t border-[#E5E2DC] py-1.5 font-bold text-[11px] text-primary">
                   <span>Gesamtbetrag</span>
                   <span>65,00 €</span>
                 </div>
@@ -612,7 +612,7 @@ export default function MobileSettings() {
               className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2.5"
               style={{ background: 'rgba(82,183,136,.06)', border: '1px solid rgba(82,183,136,.15)' }}
             >
-              <i className="bi bi-envelope-fill shrink-0 text-[20px] text-[#52b788]" aria-hidden />
+              <i className="bi bi-envelope-fill shrink-0 text-[20px] text-primary" aria-hidden />
               <div className="flex flex-1 flex-col">
                 <span className="text-[12px] font-semibold">E-Mail-Erinnerungen</span>
                 <span className="text-[10px] text-[#9CA3AF]">Terminerinnerungen per E-Mail an Kunden senden</span>
@@ -620,7 +620,7 @@ export default function MobileSettings() {
               <button
                 type="button"
                 onClick={() => update('emailReminders', !s.emailReminders)}
-                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.emailReminders !== false ? 'bg-[#52b788]' : 'bg-[#D1D5DB]'}`}
+                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.emailReminders !== false ? 'bg-primary' : 'bg-[#D1D5DB]'}`}
                 style={{ padding: 2 }}
               >
                 <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${s.emailReminders !== false ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -653,7 +653,7 @@ export default function MobileSettings() {
               className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2.5"
               style={{ background: 'rgba(82,183,136,.06)', border: '1px solid rgba(82,183,136,.15)' }}
             >
-              <i className="bi bi-phone-fill shrink-0 text-[20px] text-[#52b788]" aria-hidden />
+              <i className="bi bi-phone-fill shrink-0 text-[20px] text-primary" aria-hidden />
               <div className="flex flex-1 flex-col">
                 <span className="text-[12px] font-semibold">Push-Benachrichtigungen</span>
                 <span className="text-[10px] text-[#9CA3AF]">Erinnerungen an anstehende Termine</span>
@@ -661,7 +661,7 @@ export default function MobileSettings() {
               <button
                 type="button"
                 onClick={() => update('pushNotifications', !s.pushNotifications)}
-                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.pushNotifications !== false ? 'bg-[#52b788]' : 'bg-[#D1D5DB]'}`}
+                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.pushNotifications !== false ? 'bg-primary' : 'bg-[#D1D5DB]'}`}
                 style={{ padding: 2 }}
               >
                 <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${s.pushNotifications !== false ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -671,7 +671,7 @@ export default function MobileSettings() {
               className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2.5"
               style={{ background: 'rgba(82,183,136,.06)', border: '1px solid rgba(82,183,136,.15)' }}
             >
-              <i className="bi bi-calendar-event-fill shrink-0 text-[20px] text-[#52b788]" aria-hidden />
+              <i className="bi bi-calendar-event-fill shrink-0 text-[20px] text-primary" aria-hidden />
               <div className="flex flex-1 flex-col">
                 <span className="text-[12px] font-semibold">Termin-Zusammenfassung</span>
                 <span className="text-[10px] text-[#9CA3AF]">Tägliche Übersicht morgens per E-Mail</span>
@@ -679,7 +679,7 @@ export default function MobileSettings() {
               <button
                 type="button"
                 onClick={() => update('dailySummary', !s.dailySummary)}
-                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.dailySummary ? 'bg-[#52b788]' : 'bg-[#D1D5DB]'}`}
+                className={`h-6 w-11 shrink-0 rounded-full transition-colors ${s.dailySummary ? 'bg-primary' : 'bg-[#D1D5DB]'}`}
                 style={{ padding: 2 }}
               >
                 <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${s.dailySummary ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -747,7 +747,7 @@ export default function MobileSettings() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="rounded-lg bg-[#52b788] px-5 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-[#0f301b] disabled:opacity-60"
+              className="primary-button font-semibold disabled:opacity-60"
             >
               {saving ? 'Speichert…' : 'Speichern'}
             </button>

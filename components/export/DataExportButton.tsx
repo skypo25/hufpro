@@ -93,7 +93,7 @@ export default function DataExportButton({
           aria-labelledby="export-dialog-title"
           aria-busy={busy}
         >
-          <div className="huf-card w-full max-w-md border border-[#E5E2DC] bg-white p-6 shadow-lg">
+          <div className="content-card w-full max-w-md border border-[#E5E2DC] bg-white p-6 shadow-lg">
             <h2 id="export-dialog-title" className="font-serif text-lg font-medium text-[#1B1F23]">
               {headline}
             </h2>

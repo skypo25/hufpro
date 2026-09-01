@@ -158,7 +158,7 @@ export default function WeekCalendar({
   const gridHeight = hours.length * hourHeight
 
   return (
-    <div className="huf-card">
+    <div className="content-card">
       <div className="grid grid-cols-[70px_repeat(7,minmax(0,1fr))]">
         <div className="border-b-2 border-[#E5E2DC] bg-white" />
 
@@ -170,13 +170,13 @@ export default function WeekCalendar({
               key={index}
               className={[
                 'border-b-2 border-[#E5E2DC] px-2 py-[14px] text-center',
-                isToday ? 'bg-[#edf5f5]' : 'bg-[rgba(0,0,0,0.015)]',
+                isToday ? 'bg-primary-light' : 'bg-[rgba(0,0,0,0.015)]',
               ].join(' ')}
             >
               <div
                 className={[
                   'text-[11px] font-semibold uppercase tracking-[0.08em]',
-                  isToday ? 'text-[#015555]' : 'text-[#6B7280]',
+                  isToday ? 'text-primary-dark' : 'text-[#6B7280]',
                 ].join(' ')}
               >
                 {dayNames[index]}
@@ -184,7 +184,7 @@ export default function WeekCalendar({
               <div
                 className={[
                   'mt-0.5 font-serif text-[20px] font-medium',
-                  isToday ? 'text-[#006d6d]' : 'text-[#1B1F23]',
+                  isToday ? 'text-primary' : 'text-[#1B1F23]',
                 ].join(' ')}
               >
                 {dayDate.getDate()}

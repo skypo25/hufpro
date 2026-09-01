@@ -7,6 +7,7 @@ import { AUTH_RETURN_SESSION_KEY, safeInternalPath, safeNextPath } from '@/lib/a
 import { translateAuthError } from '@/lib/auth/translateAuthError'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
+import { BRAND_COLORS } from '@/lib/branding'
 
 function RegisterContent() {
   const router = useRouter()
@@ -144,13 +145,13 @@ function RegisterContent() {
         }}>
           <input
             type="checkbox" checked={agb} onChange={e => setAgb(e.target.checked)}
-            style={{ width: 18, height: 18, marginTop: 1, accentColor: '#006d6d', cursor: 'pointer', flexShrink: 0 }}
+            style={{ width: 18, height: 18, marginTop: 1, accentColor: BRAND_COLORS.accent, cursor: 'pointer', flexShrink: 0 }}
           />
           <span>
             Ich akzeptiere die{' '}
-            <a href="/agb" target="_blank" style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}>AGB</a>
+            <a href="/agb" target="_blank" className="link-accent font-medium">AGB</a>
             {' '}und{' '}
-            <a href="/datenschutz" target="_blank" style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}>Datenschutzerklärung</a>
+            <a href="/datenschutz" target="_blank" className="link-accent font-medium">Datenschutzerklärung</a>
           </span>
         </label>
 
@@ -209,7 +210,7 @@ function RegisterContent() {
         Bereits ein Konto?{' '}
         <Link
           href={`/login?next=${encodeURIComponent(postAuthPath)}`}
-          style={{ color: '#006d6d', textDecoration: 'none', fontWeight: 500 }}
+          className="link-accent font-medium"
         >
           Anmelden
         </Link>

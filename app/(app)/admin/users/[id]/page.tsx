@@ -7,6 +7,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
 import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, toggleAdminUserFlag } from './actions'
+import { BRAND_COLORS } from '@/lib/branding'
+import AppPage from '@/components/layout/AppPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +33,7 @@ function getInitials(name: string) {
 }
 
 function avatarColorFromId(id: string) {
-  const hues = ['#52b788', '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
+  const hues = [BRAND_COLORS.accent, '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 7)) % 997
   return hues[h % hues.length]
@@ -40,7 +42,7 @@ function avatarColorFromId(id: string) {
 function badgeClass(kind: 'green' | 'blue' | 'orange' | 'red' | 'gray') {
   switch (kind) {
     case 'green':
-      return 'bg-[rgba(82,183,136,.08)] text-[#52b788]'
+      return 'bg-[rgba(82,183,136,.08)] text-primary'
     case 'blue':
       return 'bg-[rgba(59,130,246,.08)] text-[#3B82F6]'
     case 'orange':
@@ -128,7 +130,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
   const avatarBg = avatarColorFromId(user.id)
   const activity = formatAdminLastActivity(user.last_sign_in_at ?? null, new Date())
   const dotClass =
-    activity.dot === 'online' ? 'bg-[#52b788]' : activity.dot === 'recent' ? 'bg-[#3B82F6]' : 'bg-[#E5E2DC]'
+    activity.dot === 'online' ? 'bg-primary' : activity.dot === 'recent' ? 'bg-[#3B82F6]' : 'bg-[#E5E2DC]'
 
   const trialEnd = billing?.trial_ends_at ? new Date(billing.trial_ends_at) : null
   const trialHasEnd = !!trialEnd && !Number.isNaN(trialEnd.getTime())
@@ -147,7 +149,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
   const noteUpdatedAt = adminMeta?.updated_at ? formatGermanDateTime(adminMeta.updated_at) : null
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] space-y-7 pb-12">
+    <AppPage className="pb-12">
       <PageHeader
         title="Nutzerprofil"
         description="Admin · interne Detailansicht"
@@ -155,7 +157,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
 
       {sp.saved ? (
         sp.saved === 'trial_end_db' ? (
-          <section className="huf-card border border-amber-200 bg-amber-50 px-[22px] py-4 text-[14px] text-amber-950">
+          <section className="content-card border border-amber-200 bg-amber-50 px-[22px] py-4 text-[14px] text-amber-950">
             <strong className="font-semibold">Nur Datenbank.</strong>{' '}
             Der Trial wurde in AniDocs beendet, aber es wurde <strong className="font-semibold">keine Stripe-Subscription</strong>{' '}
             gefunden (kein Kunde oder keine aktive Subscription in Stripe). Prüfe im Nutzer-Bereich die Stripe Customer ID und im
@@ -163,7 +165,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             {sp.msg ? <div className="mt-2 text-[12px] text-amber-900/90">Code: {sp.msg}</div> : null}
           </section>
         ) : (
-          <section className="huf-card border border-[rgba(82,183,136,.25)] bg-[rgba(82,183,136,.06)] px-[22px] py-4 text-[14px] text-[#154227]">
+          <section className="content-card border border-primary/25 bg-primary/6 px-[22px] py-4 text-[14px] text-[#154227]">
             <strong className="font-semibold">Gespeichert.</strong>{' '}
             {sp.saved === 'flag'
               ? 'Feature-Flag aktualisiert.'
@@ -182,7 +184,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
         )
       ) : null}
       {sp.err ? (
-        <section className="huf-card border border-red-200 bg-red-50 px-[22px] py-4 text-[14px] text-red-900">
+        <section className="content-card border border-red-200 bg-red-50 px-[22px] py-4 text-[14px] text-red-900">
           <strong className="font-semibold">Fehler.</strong>{' '}
           {sp.err === 'flag'
             ? 'Feature-Flag konnte nicht gespeichert werden.'
@@ -201,14 +203,14 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
 
       <Link
         href="/admin/users"
-        className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+        className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
       >
         <i className="bi bi-arrow-left" aria-hidden />
         Zurück zur Nutzerliste
       </Link>
 
       {/* HERO */}
-      <section className="huf-card">
+      <section className="content-card">
         <div className="flex flex-col gap-4 px-[22px] py-[18px] md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div
@@ -261,7 +263,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             {user.email ? (
               <a
                 href={`mailto:${user.email}`}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
               >
                 <i className="bi bi-envelope-fill" aria-hidden />
                 E-Mail
@@ -377,7 +379,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             title="Billing & Stripe"
             right={
               stripeCustomerUrl ? (
-                <a href={stripeCustomerUrl} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-[#52b788] hover:underline">
+                <a href={stripeCustomerUrl} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-primary hover:underline">
                   Stripe Dashboard →
                 </a>
               ) : (
@@ -393,7 +395,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               value={
                 billing?.stripe_customer_id ? (
                   stripeCustomerUrl ? (
-                    <a className="font-mono text-[12px] text-[#52b788] hover:underline" href={stripeCustomerUrl} target="_blank" rel="noreferrer">
+                    <a className="font-mono text-[12px] text-primary hover:underline" href={stripeCustomerUrl} target="_blank" rel="noreferrer">
                       {billing.stripe_customer_id}
                     </a>
                   ) : (
@@ -408,7 +410,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               label="Subscription ID"
               value={
                 billing?.stripe_subscription_id && stripeSubUrl ? (
-                  <a className="font-mono text-[12px] text-[#52b788] hover:underline" href={stripeSubUrl} target="_blank" rel="noreferrer">
+                  <a className="font-mono text-[12px] text-primary hover:underline" href={stripeSubUrl} target="_blank" rel="noreferrer">
                     {billing.stripe_subscription_id}
                   </a>
                 ) : (
@@ -436,7 +438,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               label="E-Mail"
               value={
                 user.email ? (
-                  <a className="text-[#52b788] hover:underline" href={`mailto:${user.email}`}>
+                  <a className="text-primary hover:underline" href={`mailto:${user.email}`}>
                     {user.email}
                   </a>
                 ) : (
@@ -483,7 +485,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               {user.email ? (
                 <a
                   href={`mailto:${user.email}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
                 >
                   <i className="bi bi-envelope-fill" aria-hidden />
                   E-Mail senden
@@ -502,7 +504,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   href={stripeCustomerUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
                 >
                   <i className="bi bi-box-arrow-up-right" aria-hidden />
                   Stripe
@@ -534,7 +536,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               <textarea
                 name="admin_note"
                 defaultValue={note}
-                className="min-h-[120px] w-full resize-y rounded-lg border border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-4 py-3 text-[14px] text-[#1B1F23] outline-none focus:border-[#52b788] focus:bg-white"
+                className="min-h-[120px] w-full resize-y rounded-lg border border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-4 py-3 text-[14px] text-[#1B1F23] outline-none focus:border-primary focus:bg-white"
                 placeholder="Interne Notizen zu diesem Nutzer…"
               />
               <div className="mt-2 text-[12px] text-[#9CA3AF]">
@@ -542,7 +544,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               </div>
               <button
                 type="submit"
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#52b788] px-4 py-2.5 text-[14px] font-medium text-white hover:bg-[#0f301b]"
+                className="primary-button primary-button--full mt-3"
               >
                 <i className="bi bi-check-lg" aria-hidden />
                 Notiz speichern
@@ -556,7 +558,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             <LogItem time={billing?.last_stripe_event_at ? formatGermanDateTime(billing.last_stripe_event_at) : '—'} kind="BILLING" tone="pink" msg="Letztes Stripe-Event" />
           </SectionCard>
 
-          <section className="huf-card border border-[rgba(220,38,38,.15)] bg-[rgba(220,38,38,.012)] px-[22px] py-[18px]">
+          <section className="content-card border border-[rgba(220,38,38,.15)] bg-[rgba(220,38,38,.012)] px-[22px] py-[18px]">
             <div className="flex items-center gap-2 text-[14px] font-semibold text-[#DC2626]">
               <i className="bi bi-exclamation-triangle-fill" aria-hidden />
               Kritische Aktionen
@@ -606,7 +608,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                 <input type="hidden" name="mode" value="unban" />
                 <button
                   type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
                 >
                   <i className="bi bi-person-check" aria-hidden />
                   Account aktivieren
@@ -640,14 +642,14 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
           </section>
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }
 
 function StorageBar(props: { label: string; valueLabel: string; pct: number; tone: 'green' | 'blue' | 'purple' | 'orange' }) {
   const fill =
     props.tone === 'green'
-      ? 'bg-[#52b788]'
+      ? 'bg-primary'
       : props.tone === 'blue'
         ? 'bg-[#3B82F6]'
         : props.tone === 'purple'
@@ -678,7 +680,7 @@ function FlagRow(props: { userId: string; flag: string; title: string; desc: str
           type="submit"
           className={[
             'h-[22px] w-[44px] rounded-full border border-[#E5E2DC] transition',
-            props.on ? 'bg-[#52b788]' : 'bg-[#D1D5DB]',
+            props.on ? 'bg-primary' : 'bg-[#D1D5DB]',
           ].join(' ')}
           title={props.on ? 'Deaktivieren' : 'Aktivieren'}
           aria-label={`${props.title} ${props.on ? 'deaktivieren' : 'aktivieren'}`}
@@ -700,7 +702,7 @@ function LogItem(props: { time: string; kind: string; msg: string; tone: 'blue' 
     props.tone === 'blue'
       ? 'bg-[rgba(59,130,246,.08)] text-[#3B82F6]'
       : props.tone === 'green'
-        ? 'bg-[rgba(82,183,136,.08)] text-[#52b788]'
+        ? 'bg-[rgba(82,183,136,.08)] text-primary'
         : props.tone === 'purple'
           ? 'bg-[rgba(139,92,246,.08)] text-[#8B5CF6]'
           : props.tone === 'orange'

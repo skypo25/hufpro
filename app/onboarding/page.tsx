@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import AuthShell from '@/components/auth/AuthShell'
+import { BRAND_COLORS } from '@/lib/branding'
 import { DirectoryCategoryCardIcon } from '@/components/directory/public/listing/DirectoryCategoryCardIcon'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -385,8 +386,8 @@ function OptionRow({
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         width: '100%', padding: '13px 14px', cursor: 'pointer',
-        border: `1.5px solid ${selected ? '#52b788' : '#e5e2dc'}`,
-        borderRadius: 14, background: selected ? '#edf7f2' : '#fff',
+        border: `1.5px solid ${selected ? BRAND_COLORS.accent : '#e5e2dc'}`,
+        borderRadius: 14, background: selected ? BRAND_COLORS.accentLight : '#fff',
         textAlign: 'left', fontFamily: 'inherit',
         transition: 'border-color 0.15s, background 0.15s',
       }}
@@ -416,12 +417,12 @@ function OptionRow({
       <span style={{
         width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
         boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: selected ? '2px solid #52b788' : '2px solid #d1d5db',
+        border: selected ? `2px solid ${BRAND_COLORS.accent}` : '2px solid #d1d5db',
         background: '#fff',
       }}>
         {selected && (
           <span style={{
-            width: 12, height: 12, borderRadius: '50%', background: '#52b788', display: 'block',
+            width: 12, height: 12, borderRadius: '50%', background: BRAND_COLORS.accent, display: 'block',
           }} />
         )}
       </span>
@@ -444,7 +445,7 @@ function PrimaryBtn({
       onClick={onClick}
       style={{
         width: '100%', padding: '14px 16px', border: 'none', borderRadius: 12,
-        background: disabled ? '#c8c4bc' : green ? '#52b788' : '#111',
+        background: disabled ? '#c8c4bc' : green ? BRAND_COLORS.accent : '#111',
         color: '#fff', fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
@@ -461,7 +462,7 @@ function BackLink({ children, onClick }: { children: React.ReactNode; onClick: (
       onClick={onClick}
       style={{
         display: 'block', width: '100%', textAlign: 'center',
-        padding: '13px 0', color: '#52b788', fontSize: 14, fontWeight: 500,
+        padding: '13px 0', color: BRAND_COLORS.accent, fontSize: 14, fontWeight: 500,
         background: 'none', border: 'none', cursor: 'pointer',
         fontFamily: 'inherit', marginTop: 4,
       }}

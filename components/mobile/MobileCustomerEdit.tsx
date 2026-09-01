@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase-client'
 import { deleteDocumentationRecordsForLegacyHoofIds } from '@/lib/documentation/mirrorDocumentationPhotos'
 import { formatCustomerNumber } from '@/lib/format'
 import { removeAnimalProfilePhotoFromStorageSafe } from '@/lib/animals/animalProfilePhotoUpload'
+import { BRAND_COLORS } from '@/lib/branding'
 import AddressAutocomplete, { type AddressSuggestion } from '@/components/customers/AddressAutocomplete'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -312,7 +313,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
           </button>
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
-          <strong style={{ color: '#52b788', fontWeight: 600 }}>{customerNumLabel}</strong>
+          <strong style={{ color: BRAND_COLORS.accent, fontWeight: 600 }}>{customerNumLabel}</strong>
           {displayName && ` · ${displayName}`}
           {' · '}Änderungen werden direkt auf den bestehenden Kundendatensatz gespeichert
         </div>
@@ -475,11 +476,11 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
                     onClick={() => toggleDay(day)}
                     style={{
                       width: 38, height: 38, borderRadius: 8,
-                      border: `1.5px solid ${active ? '#52b788' : '#cdcdd0'}`,
+                      border: `1.5px solid ${active ? BRAND_COLORS.accent : '#cdcdd0'}`,
                       background: active ? 'rgba(82,183,136,.08)' : '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      color: active ? '#52b788' : '#6B7280',
+                      color: active ? BRAND_COLORS.accent : '#6B7280',
                       fontFamily: 'inherit',
                     }}
                   >
@@ -608,7 +609,7 @@ export default function MobileCustomerEdit({ customerId }: { customerId: string 
           style={{
             flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             padding: 12, borderRadius: 10, border: 'none',
-            background: saving || deleting ? '#a0cfb8' : '#52b788', color: '#fff',
+            background: saving || deleting ? BRAND_COLORS.accentLight : BRAND_COLORS.accent, color: '#fff',
             fontSize: 14, fontWeight: 700, cursor: saving || deleting ? 'not-allowed' : 'pointer',
             fontFamily: 'inherit',
           }}
@@ -651,7 +652,7 @@ function Sec({ icon, title, hint, children }: {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '14px 16px', borderBottom: '1px solid #f2f2f3',
       }}>
-        <i className={icon} style={{ fontSize: 16, color: '#52b788' }} />
+        <i className={icon} style={{ fontSize: 16, color: BRAND_COLORS.accent }} />
         <h3 style={{ flex: 1, fontSize: 14, fontFamily: 'var(--font-outfit,"Outfit",sans-serif)', fontWeight: 600, color: '#111', margin: 0 }}>
           {title}
         </h3>

@@ -385,7 +385,7 @@ export default function NewInvoiceForm({
       {/* Left column */}
       <div className="space-y-5">
         {/* 1. Rechnungsempfänger */}
-        <section className="huf-card">
+        <section className="content-card">
           <div className={CARD_HEADER}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-light)] text-[var(--accent)]">
               <FontAwesomeIcon icon={faUser} className="h-4 w-4" />
@@ -453,7 +453,7 @@ export default function NewInvoiceForm({
         </section>
 
         {/* 2. Rechnungsdaten */}
-        <section className="huf-card">
+        <section className="content-card">
           <div className={CARD_HEADER}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-light)] text-[var(--accent)]">
               <i className="bi bi-receipt text-[16px]" aria-hidden />
@@ -500,7 +500,7 @@ export default function NewInvoiceForm({
         </section>
 
         {/* 3. Positionen */}
-        <section className="huf-card">
+        <section className="content-card">
           <div className={CARD_HEADER}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-light)] text-[var(--accent)]">
               <i className="bi bi-scissors text-[16px]" aria-hidden />
@@ -709,7 +709,7 @@ export default function NewInvoiceForm({
         </section>
 
         {/* 4. Texte & Notizen */}
-        <section className="huf-card">
+        <section className="content-card">
           <div className={CARD_HEADER}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[color-mix(in_oklab,var(--border)_55%,var(--card))] text-[var(--text-secondary)]">
               <i className="bi bi-chat-left-text text-[16px]" aria-hidden />
@@ -753,7 +753,7 @@ export default function NewInvoiceForm({
       {/* Right sidebar */}
       <div className="space-y-5">
         {/* Vorschau */}
-        <div className="huf-card huf-card--accent-left">
+        <div className="content-card content-card--accent-left">
           <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
             <h4 className={CARD_TITLE}>Vorschau</h4>
           </div>
@@ -804,7 +804,7 @@ export default function NewInvoiceForm({
         </div>
 
         {/* Zusammenfassung */}
-        <div className="huf-card">
+        <div className="content-card">
           <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
             <h4 className={CARD_TITLE}>Zusammenfassung</h4>
           </div>
@@ -840,7 +840,7 @@ export default function NewInvoiceForm({
 
         {/* Kundenhistorie */}
         {customerStats && selectedCustomer && (
-          <div className="huf-card">
+          <div className="content-card">
             <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
               <h4 className={CARD_TITLE}>Kundenhistorie</h4>
             </div>
@@ -893,7 +893,7 @@ export default function NewInvoiceForm({
             type="button"
             onClick={isEdit ? handleSaveAsSent : handleSaveDraft}
             disabled={saving || !selectedCustomer}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent-dark)] px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:opacity-95 disabled:opacity-50"
+            className="primary-button disabled:opacity-50"
           >
             <FontAwesomeIcon icon={faCheck} className="h-4 w-4" /> {isEdit ? 'Speichern & als versendet markieren' : 'Rechnung erstellen'}
           </button>
@@ -902,7 +902,7 @@ export default function NewInvoiceForm({
               type="button"
               onClick={handleCreateAndSend}
               disabled={saving || !selectedCustomer}
-              className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-50"
+              className="primary-button primary-button--lg disabled:opacity-50"
             >
               <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /> Erstellen & senden
             </button>

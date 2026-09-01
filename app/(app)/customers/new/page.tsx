@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import CustomerForm from '@/components/customers/CustomerForm'
 import { emptyCustomerFormData } from '@/components/customers/customerFormDefaults'
+import AppPage from '@/components/layout/AppPage'
 
 export default async function NewCustomerPage() {
   const supabase = await createSupabaseServerClient()
@@ -16,7 +17,7 @@ export default async function NewCustomerPage() {
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -39,6 +40,6 @@ export default async function NewCustomerPage() {
       </div>
 
      <CustomerForm mode="create" initialData={emptyCustomerFormData} />
-    </main>
+    </AppPage>
   )
 }

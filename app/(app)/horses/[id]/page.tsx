@@ -5,6 +5,7 @@ import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListFo
 import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
 import { deriveAppProfile, animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
+import AppPage from '@/components/layout/AppPage'
 import {
   formatAnimalTypeLabel,
   formatNeuteredLabel,
@@ -142,7 +143,7 @@ function InfoItem({
       <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
         {label}
       </div>
-      <div className={accent ? 'text-[14px] font-medium text-[#006d6d]' : 'text-[14px] font-medium text-[#1B1F23]'}>
+      <div className={accent ? 'text-[14px] font-medium text-[var(--accent)]' : 'text-[14px] font-medium text-[#1B1F23]'}>
         {value || '-'}
       </div>
     </div>
@@ -205,11 +206,11 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   if (!horse) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-700">{singularLabel} nicht gefunden</h1>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -308,13 +309,13 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="link-accent">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/animals" className="text-[#52b788] hover:underline">
+        <Link href="/animals" className="link-accent">
           {animalsNavLabel(term)}
         </Link>
         <span>›</span>
@@ -323,7 +324,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[#edf3ef] text-[#154226]">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-[var(--accent-light)] text-[var(--accent-dark)]">
             <FontAwesomeIcon icon={headerIcon} className="h-7 w-7" />
           </div>
 
@@ -346,7 +347,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
               {owner?.name && (
                 <span className="inline-flex items-center gap-1.5">
                   <i className="bi bi-person text-[14px]" />
-                  <Link href={`/customers/${owner.id}`} className="text-[#52b788] hover:underline">
+                  <Link href={`/customers/${owner.id}`} className="link-accent">
                     {owner.name}
                   </Link>
                 </span>
@@ -360,7 +361,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
         <div className="flex flex-wrap gap-2.5">
           <Link
             href={`/animals/${horse.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-[18px] py-[10px] text-[13px] font-medium text-[#1B1F23] shadow-sm hover:border-[#9CA3AF]"
+            className="secondary-button shadow-sm"
           >
             <i className="bi bi-pencil-square text-[15px]" />
             Bearbeiten
@@ -368,7 +369,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
           <Link
             href={`/animals/${horse.id}/records/new`}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+            className="primary-button shadow-sm"
           >
             <i className="bi bi-plus-square-fill text-[15px]" />
             Dokumentation
@@ -378,7 +379,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="border-b-2 border-[#E5E2DC]">
         <div className="flex flex-wrap gap-0">
-          <span className="border-b-2 border-[#52b788] px-5 py-3 text-[14px] font-medium text-[#52b788]">
+          <span className="border-b-2 border-[var(--accent)] px-5 py-3 text-[14px] font-medium text-[var(--accent)]">
             Übersicht
           </span>
           <Link
@@ -392,12 +393,12 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div>
-          <section className="huf-card mb-6">
+          <section className="content-card mb-6">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                 Stammdaten
               </h2>
-              <Link href={`/animals/${horse.id}/edit`} className="text-[13px] font-medium text-[#52b788] hover:underline">
+              <Link href={`/animals/${horse.id}/edit`} className="text-[13px] font-medium text-[var(--accent)] hover:underline">
                 Bearbeiten
               </Link>
             </div>
@@ -463,7 +464,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
             </div>
           </section>
 
-          <section id="dokumentationen" className="huf-card mb-6">
+          <section id="dokumentationen" className="content-card mb-6">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                 Dokumentationen
@@ -473,7 +474,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                   <span className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/animals/${horse.id}/records/compare`}
-                      className="text-[13px] font-medium text-[#52b788] hover:underline"
+                      className="text-[13px] font-medium text-[var(--accent)] hover:underline"
                     >
                       Fotovergleich
                     </Link>
@@ -482,20 +483,20 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                     </span>
                     <Link
                       href={`/animals/${horse.id}/records/compare/mobile`}
-                      className="text-[13px] font-medium text-[#52b788] hover:underline"
+                      className="text-[13px] font-medium text-[var(--accent)] hover:underline"
                     >
                       App
                     </Link>
                   </span>
                 )}
-                <Link href={`/animals/${horse.id}/records/new`} className="text-[13px] font-medium text-[#52b788] hover:underline">
+                <Link href={`/animals/${horse.id}/records/new`} className="text-[13px] font-medium text-[var(--accent)] hover:underline">
                   Neue Dokumentation →
                 </Link>
               </div>
             </div>
 
-            <div className="huf-table-wrap">
-              <table className="huf-table">
+            <div className="data-table-wrap">
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Datum und Uhrzeit</th>
@@ -537,7 +538,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                         <div className="flex justify-end">
                           <Link
                             href={`/animals/${horse.id}/records/${record.id}`}
-                            className="group inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#edf3ef] text-[#52b788] transition-colors hover:bg-[#52b788]"
+                            className="group inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[var(--accent)] transition-colors hover:bg-[var(--accent)]"
                             aria-label="Dokumentation öffnen"
                           >
                             <i className="bi bi-file-earmark-richtext-fill text-[18px] group-hover:text-white" />
@@ -562,7 +563,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
         <div>
           {profilePhotoSignedUrl && (
-            <section className="huf-card mb-6 overflow-hidden">
+            <section className="content-card mb-6 overflow-hidden">
               <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Tierfoto
@@ -579,7 +580,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
             </section>
           )}
 
-          <section className="huf-card huf-card--accent-left mb-6">
+          <section className="content-card content-card--accent-left mb-6">
             <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                 Behandlungsstatus
@@ -601,14 +602,14 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                   <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
                     Nächster Termin
                   </div>
-                  <div className="dashboard-serif text-[18px] font-medium text-[#52b788]">
+                  <div className="dashboard-serif text-[18px] font-medium text-[var(--accent)]">
                     {formatGermanDate(nextAppointment)}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-[#edf3ef] px-[14px] py-3 text-[13px] leading-[1.5]">
-                <strong className="text-[#0f301b]">Bearbeitungsintervall:</strong>{' '}
+              <div className="rounded-lg bg-[var(--accent-light)] px-[14px] py-3 text-[13px] leading-[1.5]">
+                <strong className="text-[var(--accent-dark)]">Bearbeitungsintervall:</strong>{' '}
                 <span className="text-[#1B1F23]">{horse.care_interval || 'nicht hinterlegt'}</span>
                 <br />
                 <span className="text-[#6B7280]">
@@ -621,7 +622,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           </section>
 
           {!profile.isHufbearbeiter && (
-            <section className="huf-card mb-6">
+            <section className="content-card mb-6">
               <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Erstanamnese
@@ -634,7 +635,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 </p>
                 <Link
                   href={`/animals/${horse.id}/erstanamnese`}
-                  className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#52b788] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#0f301b]"
+                  className="primary-button shadow-sm"
                 >
                   <i className="bi bi-clipboard2-pulse text-[15px]" />
                   Erstanamnese öffnen
@@ -644,7 +645,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           )}
 
           {wholeBodyPhotos.length > 0 && (
-            <section className="huf-card mb-6">
+            <section className="content-card mb-6">
               <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Ganzkörperfotos
@@ -664,7 +665,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           )}
 
           {(horse.special_notes || horse.notes) && (
-            <section className="huf-card mb-6">
+            <section className="content-card mb-6">
               <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h2 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Besonderheiten
@@ -698,6 +699,6 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
           )}
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }

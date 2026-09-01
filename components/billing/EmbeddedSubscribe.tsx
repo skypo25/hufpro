@@ -131,7 +131,7 @@ function InnerForm({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#B91C1C]">
+        <div className="content-card border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#B91C1C]">
           {error}
         </div>
       )}
@@ -161,7 +161,7 @@ function InnerForm({
 
       <button
         type="button"
-        className="h-[44px] w-full rounded-[12px] bg-[#1B1F23] px-5 text-[14px] font-medium text-white hover:bg-black disabled:opacity-60"
+        className="neutral-button primary-button--full font-medium disabled:opacity-60"
         onClick={submit}
         disabled={!stripe || !elements || busy}
       >
@@ -283,7 +283,7 @@ export default function EmbeddedSubscribe({
     if (error) {
       return (
         <div className="space-y-3">
-          <div className="huf-card border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#B91C1C]">
+          <div className="content-card border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[14px] text-[#B91C1C]">
             {error}
           </div>
           <button

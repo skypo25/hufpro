@@ -211,7 +211,7 @@ function LoginContent() {
         Noch kein Konto?{' '}
         <Link
           href={intendedNext ? `/register?next=${encodeURIComponent(intendedNext)}` : '/register'}
-          style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}
+          className="link-accent font-medium"
         >
           Kostenlos registrieren
         </Link>

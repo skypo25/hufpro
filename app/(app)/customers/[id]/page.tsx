@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppPage from '@/components/layout/AppPage'
 import AppointmentAnimalsInline, {
   CUSTOMER_DETAIL_ANIMAL_ICON_CLASS,
 } from '@/components/appointments/AppointmentAnimalsInline'
@@ -163,7 +164,7 @@ function getStatusClass(status?: string | null) {
     return 'bg-[#FEF3C7] text-[#92400E]'
   }
 
-  return 'bg-[#edf5f5] text-[#015555]'
+  return 'bg-primary-light text-primary-dark'
 }
 
 const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -196,12 +197,12 @@ export default async function CustomerDetailPage({
 
   if (customerError || !customer) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-700">Fehler</h1>
           <p className="text-red-600">Kunde konnte nicht geladen werden.</p>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -364,13 +365,13 @@ export default async function CustomerDetailPage({
     : null
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#006d6d] hover:underline">
+        <Link href="/dashboard" className="text-primary hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#006d6d] hover:underline">
+        <Link href="/customers" className="text-primary hover:underline">
           Kunden
         </Link>
         <span>›</span>
@@ -379,7 +380,7 @@ export default async function CustomerDetailPage({
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#006d6d] font-serif text-[24px] font-bold text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary font-serif text-[24px] font-bold text-white">
             {getInitials(customer.name)}
           </div>
 
@@ -389,7 +390,7 @@ export default async function CustomerDetailPage({
             </h1>
 
             <div className="mt-2 flex flex-wrap gap-4 text-[13px] text-[#6B7280]">
-              <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#006d6d]">
+              <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-primary">
                 {formatCustomerNumber(customer.customer_number)}
               </span>
               {headerLocationLabel ? (
@@ -436,7 +437,7 @@ export default async function CustomerDetailPage({
       <div className="flex gap-0 border-b-2 border-[#E5E2DC]">
         <Link
           href={`/customers/${customer.id}`}
-          className="border-b-2 border-[#006d6d] px-5 py-3 text-[14px] font-medium text-[#006d6d]"
+          className="border-b-2 border-primary px-5 py-3 text-[14px] font-medium text-primary"
         >
           Übersicht
         </Link>
@@ -456,14 +457,14 @@ export default async function CustomerDetailPage({
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-7">
-          <div className="huf-card">
+          <div className="content-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
                 Kontaktdaten
               </h3>
               <Link
                 href={`/customers/${customer.id}/edit`}
-                className="text-[13px] font-medium text-[#006d6d] hover:underline"
+                className="text-[13px] font-medium text-primary hover:underline"
               >
                 Bearbeiten
               </Link>
@@ -494,7 +495,7 @@ export default async function CustomerDetailPage({
                 </div>
                 <div className="text-[14px] font-medium text-[#1B1F23]">
                   {customer.phone ? (
-                    <a href={`tel:${customer.phone}`} className="text-[#006d6d] hover:underline">
+                    <a href={`tel:${customer.phone}`} className="text-primary hover:underline">
                       {customer.phone}
                     </a>
                   ) : (
@@ -511,7 +512,7 @@ export default async function CustomerDetailPage({
                   {customer.email ? (
                     <a
                       href={`mailto:${customer.email}`}
-                      className="text-[#006d6d] hover:underline"
+                      className="text-primary hover:underline"
                     >
                       {customer.email}
                     </a>
@@ -550,14 +551,14 @@ export default async function CustomerDetailPage({
             </div>
           </div>
 
-          <div className="huf-card">
+          <div className="content-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
                 {animalsPlural} ({horses.length})
               </h3>
               <Link
                 href={`/animals/new?customerId=${customer.id}`}
-                className="text-[13px] font-medium text-[#006d6d] hover:underline"
+                className="text-[13px] font-medium text-primary hover:underline"
               >
                 + {animalSingular} hinzufügen
               </Link>
@@ -587,10 +588,10 @@ export default async function CustomerDetailPage({
                       href={`/animals/${horse.id}`}
                       className="flex items-center gap-4 border-b border-[#E5E2DC] px-[22px] py-4 transition hover:bg-[rgba(1,85,85,0.03)] last:border-b-0"
                     >
-                      <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-[#edf5f5] text-[#015555]">
+                      <div className="flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary-dark">
                         <FontAwesomeIcon
                           icon={faIconForAnimalType(horse.animal_type)}
-                          className="h-[8px] w-[8px] shrink-0 text-[#015555]"
+                          className="h-[8px] w-[8px] shrink-0 text-primary-dark"
                           style={{ width: 8, height: 8, maxWidth: 8, maxHeight: 8, fontSize: 8 }}
                           aria-hidden
                         />
@@ -612,7 +613,7 @@ export default async function CustomerDetailPage({
 
                       <div className="text-right">
                         <div className="text-[11px] text-[#9CA3AF]">Nächster Termin</div>
-                        <div className="text-[13px] font-medium text-[#006d6d]">
+                        <div className="text-[13px] font-medium text-primary">
                           {nextDate ? formatGermanDate(nextDate) : '-'}
                         </div>
                       </div>
@@ -623,14 +624,14 @@ export default async function CustomerDetailPage({
             </div>
           </div>
 
-          <div className="huf-card">
+          <div className="content-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
                 Vergangene Termine
               </h3>
               <Link
                 href={`/calendar?customerId=${customer.id}`}
-                className="text-[13px] font-medium text-[#006d6d] hover:underline"
+                className="text-[13px] font-medium text-primary hover:underline"
               >
                 Alle anzeigen
               </Link>
@@ -701,7 +702,7 @@ export default async function CustomerDetailPage({
         </div>
 
         <div className="space-y-7">
-          <div className="huf-card huf-card--accent-left">
+          <div className="content-card content-card--accent-left">
             <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">
                 Nächster Termin
@@ -711,7 +712,7 @@ export default async function CustomerDetailPage({
             <div className="p-[22px]">
               {nextAppointment ? (
                 <>
-                  <div className="mb-1 font-serif text-[22px] font-medium text-[#006d6d]">
+                  <div className="mb-1 font-serif text-[22px] font-medium text-primary">
                     {formatLongGermanDate(nextAppointment.appointment_date)}
                   </div>
 
@@ -767,10 +768,10 @@ export default async function CustomerDetailPage({
             </div>
           </div>
 
-          <div className="huf-card">
+          <div className="content-card">
             <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Notizen</h3>
-              <span className="text-[13px] font-medium text-[#006d6d]">+ Notiz</span>
+              <span className="text-[13px] font-medium text-primary">+ Notiz</span>
             </div>
 
             <div className="p-[22px] text-[13px] leading-7 text-[#6B7280] whitespace-pre-line space-y-3">
@@ -789,7 +790,7 @@ export default async function CustomerDetailPage({
             </div>
           </div>
 
-          <div className="huf-card">
+          <div className="content-card">
             <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
               <h3 className="dashboard-serif text-[16px] text-[#1B1F23]">Umsatz {revenueYear}</h3>
             </div>
@@ -814,6 +815,6 @@ export default async function CustomerDetailPage({
           </div>
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }

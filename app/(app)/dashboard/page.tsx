@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationTotalForUser } from '@/lib/documentation/countDocumentationTotalForUser'
+import AppPage from '@/components/layout/AppPage'
 import {
   dashboardAnimalsBetreutLabel,
   deriveAppProfile,
@@ -348,7 +349,7 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h1 className="dashboard-serif text-[28px] font-medium tracking-[-0.02em] text-[#1B1F23] md:text-[32px]">
@@ -364,7 +365,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/appointments/new"
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[#006d6d] px-[18px] py-[10px] text-[14px] font-medium text-white shadow-sm hover:bg-[#015555]"
+            className="primary-button shadow-sm"
           >
             <i className="bi bi-plus-lg text-[15px]" />
             Neuer Termin
@@ -378,9 +379,9 @@ export default async function DashboardPage() {
             <Link
               key={item.title}
               href={item.href}
-              className="huf-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-[#006d6d] hover:shadow-md"
+              className="content-card p-[18px] text-center transition hover:-translate-y-[1px] hover:border-primary hover:shadow-md"
             >
-              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#edf5f5] text-[#015555]">
+              <div className="mx-auto mb-[10px] flex h-10 w-10 items-center justify-center rounded-[10px] bg-primary-light text-primary-dark">
                 <FontAwesomeIcon
                   icon={item.icon}
                   className="!h-[18px] !w-[18px] shrink-0"
@@ -398,12 +399,12 @@ export default async function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-7">
           <DashboardAnimatedSection delay={0}>
-            <section className="huf-card">
+            <section className="content-card">
               <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Heutige Termine
                 </h3>
-                <Link href="/calendar" className="text-[13px] font-medium text-[#006d6d] hover:underline">
+                <Link href="/calendar" className="text-[13px] font-medium text-primary hover:underline">
                   Alle Termine →
                 </Link>
               </div>
@@ -452,12 +453,12 @@ export default async function DashboardPage() {
           </DashboardAnimatedSection>
 
           <DashboardAnimatedSection delay={80}>
-            <section className="huf-card">
+            <section className="content-card">
               <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Umsatz 2026
                 </h3>
-                <Link href="/invoices" className="text-[13px] font-medium text-[#006d6d] hover:underline">
+                <Link href="/invoices" className="text-[13px] font-medium text-primary hover:underline">
                   Details →
                 </Link>
               </div>
@@ -469,12 +470,12 @@ export default async function DashboardPage() {
 
         <div className="space-y-7">
           <DashboardAnimatedSection delay={0}>
-            <section className="huf-card">
+            <section className="content-card">
               <div className="flex items-center justify-between border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Nächste Termine
                 </h3>
-                <Link href="/calendar" className="text-[13px] font-medium text-[#006d6d] hover:underline">
+                <Link href="/calendar" className="text-[13px] font-medium text-primary hover:underline">
                   Kalender →
                 </Link>
               </div>
@@ -492,7 +493,7 @@ export default async function DashboardPage() {
                   return (
                     <div key={appointment.id} className="flex gap-[14px] border-b border-[#E5E2DC] px-[22px] py-[14px]">
                       <div className="min-w-[44px] text-center">
-                        <div className="dashboard-serif text-[22px] font-medium leading-none text-[#006d6d]">
+                        <div className="dashboard-serif text-[22px] font-medium leading-none text-primary">
                           {parts[0] || ''}
                         </div>
                         <div className="text-[10px] uppercase tracking-[0.08em] text-[#6B7280]">
@@ -527,7 +528,7 @@ export default async function DashboardPage() {
           </DashboardAnimatedSection>
 
           <DashboardAnimatedSection delay={80}>
-            <section className="huf-card">
+            <section className="content-card">
               <div className="border-b border-[#E5E2DC] px-[22px] py-[18px]">
                 <h3 className="dashboard-serif text-[16px] font-medium tracking-[-0.01em] text-[#1B1F23]">
                   Letzte Aktivitäten
@@ -536,7 +537,7 @@ export default async function DashboardPage() {
 
               <div className="px-[22px] py-3">
                 {[
-                  { dot: 'bg-[#006d6d]', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
+                  { dot: 'bg-primary', text: 'Neue Termine, Kunden und Pferde erscheinen hier als Nächstes.' },
                   { dot: 'bg-[#34A853]', text: 'Die Box ist vorbereitet und kann später mit echten Aktivitäten befüllt werden.' },
                   { dot: 'bg-[#6366F1]', text: 'Dashboard-Stil wurde an dein Wunschlayout angepasst.' },
                 ].map((item, index) => (
@@ -552,6 +553,6 @@ export default async function DashboardPage() {
           </DashboardAnimatedSection>
         </div>
       </div>
-    </div>
+    </AppPage>
   )
 }

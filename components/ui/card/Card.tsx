@@ -8,7 +8,7 @@ interface CardProps {
 export default function Card({ children, className = '' }: CardProps) {
   return (
     <div
-      className={['huf-card', className].join(' ')}
+      className={['content-card', className].join(' ')}
     >
       {children}
     </div>

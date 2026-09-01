@@ -4,6 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { fetchSystemSmtp } from '@/lib/systemSmtp'
 import { sendMail } from '@/lib/email'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
+import { BRAND_COLORS } from '@/lib/branding'
 
 function getAppUrl() {
   const raw = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
@@ -203,7 +204,7 @@ export async function POST(req: Request) {
                   <td width="40" valign="middle" style="padding-right:12px;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="background-color:#52b788;border-radius:10px;width:36px;height:36px;text-align:center;vertical-align:middle;font-size:16px;font-weight:700;color:#1b1f23;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                        <td style="background-color:${BRAND_COLORS.accent};border-radius:10px;width:36px;height:36px;text-align:center;vertical-align:middle;font-size:16px;font-weight:700;color:#1b1f23;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                           a
                         </td>
                       </tr>
@@ -219,7 +220,7 @@ export async function POST(req: Request) {
 
           <!-- ========== ACCENT LINE ========== -->
           <tr>
-            <td style="background-color:#52b788;height:3px;font-size:0;line-height:0;">&nbsp;</td>
+            <td style="background-color:${BRAND_COLORS.accent};height:3px;font-size:0;line-height:0;">&nbsp;</td>
           </tr>
 
           <!-- ========== BODY ========== -->
@@ -246,9 +247,9 @@ export async function POST(req: Request) {
                   <td align="center">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="border-radius:10px;background-color:#52b788;">
+                        <td style="border-radius:10px;background-color:${BRAND_COLORS.accent};">
                           <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${link}" style="height:50px;v-text-anchor:middle;width:320px;" arcsize="20%" strokecolor="#52b788" fillcolor="#52b788">
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${link}" style="height:50px;v-text-anchor:middle;width:320px;" arcsize="20%" strokecolor="${BRAND_COLORS.accent}" fillcolor="${BRAND_COLORS.accent}">
                           <w:anchorlock/>
                           <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Neues Passwort vergeben</center>
                           </v:roundrect>
@@ -307,7 +308,7 @@ export async function POST(req: Request) {
                       <tr>
                         <td style="font-size:11px;line-height:1.55;color:#9CA3AF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                           <strong style="color:#6B7280;">Button funktioniert nicht?</strong> Kopieren Sie diesen Link in Ihren Browser:<br />
-                          <a href="${link}" style="color:#52b788;text-decoration:none;word-break:break-all;font-size:11px;">${link}</a>
+                          <a href="${link}" style="color:${BRAND_COLORS.accent};text-decoration:none;word-break:break-all;font-size:11px;">${link}</a>
                         </td>
                       </tr>
                     </table>
@@ -327,7 +328,7 @@ export async function POST(req: Request) {
                   <td style="padding-bottom:16px;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="background-color:#52b788;border-radius:7px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:13px;font-weight:700;color:#1b1f23;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                        <td style="background-color:${BRAND_COLORS.accent};border-radius:7px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:13px;font-weight:700;color:#1b1f23;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                           a
                         </td>
                         <td style="padding-left:10px;font-size:14px;font-weight:700;color:#ffffff;letter-spacing:-0.01em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">

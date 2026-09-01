@@ -873,7 +873,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8 text-center" style={{ minHeight: '60dvh' }}>
         <p className="text-[15px] font-semibold text-[#1B1F23]">Dokumentation nicht gefunden</p>
-        <button type="button" onClick={() => router.back()} className="text-[13px] text-[#006d6d] underline">Zurück</button>
+        <button type="button" onClick={() => router.back()} className="text-[13px] text-primary underline">Zurück</button>
       </div>
     )
   }
@@ -1020,8 +1020,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
               <button
                 type="button"
                 onClick={() => load()}
-                className="mrd-refresh-photos"
-                style={{ marginLeft: 'auto', fontSize: 12, color: '#52b788', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+                className="mrd-refresh-photos ml-auto text-[12px] text-primary underline"
               >
                 Fotos aktualisieren
               </button>

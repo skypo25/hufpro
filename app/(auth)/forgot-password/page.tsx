@@ -127,7 +127,7 @@ export default function ForgotPasswordPage() {
 
       <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '16px 0 0' }}>
         Zurück zum{' '}
-        <Link href="/login" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
+        <Link href="/login" className="link-accent font-medium">
           Login
         </Link>
       </p>

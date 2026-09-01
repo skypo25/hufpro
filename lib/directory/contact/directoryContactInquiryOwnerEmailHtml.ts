@@ -3,6 +3,8 @@
  * Alle Nutzerdaten werden für HTML escaped; mailto:/tel: mit encodeURIComponent.
  */
 
+import { BRAND_COLORS } from '@/lib/branding'
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -93,7 +95,7 @@ export function buildDirectoryContactOwnerEmailHtml(args: {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                 <tr>
                   <td align="center" style="font-size:13px;color:#9CA3AF;padding-top:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                    oder direkt anrufen: <a href="${cPhoneHref}" style="color:#52b788;font-weight:600;text-decoration:none;">${cPhone}</a>
+                    oder direkt anrufen: <a href="${cPhoneHref}" style="color:${BRAND_COLORS.accent};font-weight:600;text-decoration:none;">${cPhone}</a>
                   </td>
                 </tr>
               </table>
@@ -155,7 +157,7 @@ export function buildDirectoryContactOwnerEmailHtml(args: {
                   <td width="40" valign="middle" style="padding-right:12px;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="background-color:#52b788;border-radius:10px;width:36px;height:36px;text-align:center;vertical-align:middle;font-size:16px;font-weight:700;color:#1c2023;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                        <td style="background-color:${BRAND_COLORS.accent};border-radius:10px;width:36px;height:36px;text-align:center;vertical-align:middle;font-size:16px;font-weight:700;color:#1c2023;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                           a
                         </td>
                       </tr>
@@ -170,7 +172,7 @@ export function buildDirectoryContactOwnerEmailHtml(args: {
           </tr>
 
           <tr>
-            <td style="background-color:#52b788;height:3px;font-size:0;line-height:0;">&nbsp;</td>
+            <td style="background-color:${BRAND_COLORS.accent};height:3px;font-size:0;line-height:0;">&nbsp;</td>
           </tr>
 
           <tr>
@@ -226,7 +228,7 @@ export function buildDirectoryContactOwnerEmailHtml(args: {
                       </tr>
                       <tr>
                         <td style="font-size:15px;color:#1A1A1A;padding-bottom:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-                          <a href="mailto:${cEmailHref}" style="color:#52b788;text-decoration:none;font-weight:600;">${cEmail}</a>
+                          <a href="mailto:${cEmailHref}" style="color:${BRAND_COLORS.accent};text-decoration:none;font-weight:600;">${cEmail}</a>
                         </td>
                       </tr>
                     </table>
@@ -251,7 +253,7 @@ ${phoneBlock}
                   <td align="center">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="background-color:#52b788;border-radius:10px;text-align:center;">
+                        <td style="background-color:${BRAND_COLORS.accent};border-radius:10px;text-align:center;">
                           <a href="mailto:${cEmailHref}" style="display:inline-block;padding:14px 36px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                             Per E-Mail antworten
                           </a>
@@ -286,7 +288,7 @@ ${callHintRow}
                         <td width="32" valign="top" style="padding-right:12px;padding-top:2px;">
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                             <tr>
-                              <td style="background-color:rgba(82,183,136,0.1);border-radius:6px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:14px;color:#52b788;">
+                              <td style="background-color:${BRAND_COLORS.accentLight};border-radius:6px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:14px;color:${BRAND_COLORS.accent};">
                                 &#128161;
                               </td>
                             </tr>
@@ -311,7 +313,7 @@ ${callHintRow}
                   <td style="padding-bottom:16px;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                       <tr>
-                        <td style="background-color:#52b788;border-radius:7px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:13px;font-weight:700;color:#1c2023;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+                        <td style="background-color:${BRAND_COLORS.accent};border-radius:7px;width:28px;height:28px;text-align:center;vertical-align:middle;font-size:13px;font-weight:700;color:#1c2023;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
                           a
                         </td>
                         <td style="padding-left:10px;font-size:14px;font-weight:700;color:#ffffff;letter-spacing:-0.01em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">

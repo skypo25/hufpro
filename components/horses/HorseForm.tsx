@@ -71,7 +71,7 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="huf-card">
+    <section className="content-card">
       <div className="flex items-center gap-3 border-b border-[var(--border)] px-6 py-[18px]">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
           {icon}
@@ -1045,7 +1045,7 @@ export default function HorseForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('record')}
-            className="huf-button huf-button--outline disabled:opacity-60"
+            className="secondary-button secondary-button--lg disabled:opacity-60"
           >
             {mode === 'create'
               ? 'Speichern und Dokumentation anlegen'
@@ -1056,7 +1056,7 @@ export default function HorseForm({
             type="button"
             disabled={loading}
             onClick={() => void handleSubmit('save')}
-            className="huf-btn-dark inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-8 py-3 text-[15px] font-medium !text-white transition-colors hover:bg-[var(--accent-dark)] hover:!text-white disabled:opacity-60"
+            className="primary-button primary-button--lg disabled:opacity-60"
           >
             <i className="bi bi-check-lg text-[16px]" />
             {loading

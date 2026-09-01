@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import Image from 'next/image'
+import { BRAND_COLORS } from '@/lib/branding'
 
 type AuthShellProps = {
   children: ReactNode
@@ -50,7 +51,7 @@ export default function AuthShell({ children, step, totalSteps }: AuthShellProps
                   width: 32,
                   height: 4,
                   borderRadius: 2,
-                  background: i < step - 1 ? '#52b788' : i === step - 1 ? '#111' : '#d8d4cc',
+                  background: i < step - 1 ? BRAND_COLORS.accent : i === step - 1 ? '#111' : '#d8d4cc',
                   transition: 'background 0.25s',
                 }}
               />

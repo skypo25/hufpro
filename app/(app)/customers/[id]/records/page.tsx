@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { loadRecordListForCustomerView } from '@/lib/documentation/loadRecordListForCustomerView'
+import AppPage from '@/components/layout/AppPage'
 
 type CustomerRecordsPageProps = {
   params: Promise<{
@@ -51,13 +52,13 @@ export default async function CustomerRecordsPage({
 
   if (!customer) {
     return (
-      <main className="mx-auto max-w-[1280px] w-full space-y-7">
+      <AppPage>
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-semibold text-red-700">
             Kunde nicht gefunden
           </h1>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
@@ -80,7 +81,7 @@ export default async function CustomerRecordsPage({
   )
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
@@ -99,9 +100,9 @@ export default async function CustomerRecordsPage({
         </Link>
       </div>
 
-      <div className="huf-card">
-        <div className="huf-table-wrap">
-          <table className="huf-table">
+      <div className="content-card">
+        <div className="data-table-wrap">
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Datum</th>
@@ -135,7 +136,7 @@ export default async function CustomerRecordsPage({
                     <div className="flex justify-end">
                       <Link
                         href={`/animals/${record.horse_id}/records/${record.id}`}
-                        className="huf-btn-dark inline-flex items-center justify-center rounded-lg bg-[#1B1F23] px-3 py-2 text-sm font-medium text-white hover:bg-[#2A2F35]"
+                        className="neutral-button"
                       >
                         Öffnen
                       </Link>
@@ -158,6 +159,6 @@ export default async function CustomerRecordsPage({
           </table>
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }

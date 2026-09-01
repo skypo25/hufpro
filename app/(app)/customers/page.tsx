@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppPage from '@/components/layout/AppPage'
 import {
   formatGermanDate,
   formatShortGermanDate,
@@ -194,13 +195,13 @@ export default async function CustomersPage({
 
   if (error) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <EmptyState
           title="Fehler"
           description={`Kunden konnten nicht geladen werden: ${error.message}`}
           className="border-red-200 bg-red-50"
         />
-      </main>
+      </AppPage>
     )
   }
 
@@ -343,14 +344,14 @@ export default async function CustomersPage({
       : '0,0'
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <PageHeader
         title="Kunden"
         description={`${customerCount} Kunden · ${horseCount} Tiere in Betreuung`}
         actions={
           <Link
             href="/customers/new"
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[#006d6d] px-[18px] py-[10px] text-[13px] font-medium text-white shadow-sm hover:bg-[#015555]"
+            className="primary-button shadow-sm"
           >
             <i className="bi bi-person-fill-add text-[15px]" />
             Kunde anlegen
@@ -390,7 +391,7 @@ export default async function CustomersPage({
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#006d6d]"
+              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
             >
               Suchen
             </button>
@@ -436,7 +437,7 @@ export default async function CustomersPage({
               className={[
                 'px-4 py-2.5 text-[14px] font-medium',
                 currentView === 'list'
-                  ? 'huf-btn-dark bg-[#006d6d] text-white'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'bg-white text-[#6B7280]',
               ].join(' ')}
             >
@@ -454,7 +455,7 @@ export default async function CustomersPage({
               className={[
                 'border-l border-[#E5E2DC] px-4 py-2.5 text-[14px] font-medium',
                 currentView === 'cards'
-                  ? 'huf-btn-dark bg-[#006d6d] text-white'
+                  ? 'bg-[var(--accent)] text-white'
                   : 'bg-white text-[#6B7280]',
               ].join(' ')}
             >
@@ -465,7 +466,7 @@ export default async function CustomersPage({
       </div>
 
       {currentView === 'list' ? (
-        <div className="huf-card">
+        <div className="content-card">
           <div className="grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden">
             <div></div>
             <div>Kunde</div>
@@ -490,7 +491,7 @@ export default async function CustomersPage({
                     aria-label={`Kunde ${row.customer.name || ''} öffnen`}
                   />
                   <div
-                    className="pointer-events-none flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#006d6d] text-[12px] font-semibold text-white"
+                    className="pointer-events-none flex h-[34px] w-[34px] items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-white"
                   >
                     {getInitials(row.customer.name)}
                   </div>
@@ -522,7 +523,7 @@ export default async function CustomersPage({
                   <div className="pointer-events-none">
                     {row.nextAppointment ? (
                       <>
-                        <div className="text-[13px] font-medium text-[#006d6d]">
+                        <div className="text-[13px] font-medium text-primary">
                           {formatGermanDate(row.nextAppointment)}
                         </div>
                         <div className="text-[11px] text-[#9CA3AF]">
@@ -539,7 +540,7 @@ export default async function CustomersPage({
                   <div className="relative z-20 flex justify-end">
                     <Link
                       href={`/appointments/new?customerId=${row.customer.id}`}
-                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#006d6d] hover:text-[#006d6d]"
+                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-primary hover:text-primary"
                       title="Termin anlegen"
                     >
                       <i className="bi bi-calendar-plus text-[14px]" />
@@ -608,7 +609,7 @@ export default async function CustomersPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[14px]',
                   safePage === 1
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-primary hover:text-primary',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-left" />
@@ -629,8 +630,8 @@ export default async function CustomersPage({
                     className={[
                       'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-[14px] font-medium',
                       pageNumber === safePage
-                        ? 'huf-btn-dark border-[#006d6d] bg-[#006d6d] text-white'
-                        : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
+                        ? 'primary-button'
+                        : 'secondary-button hover:border-[var(--accent)] hover:text-[var(--accent)]',
                     ].join(' ')}
                   >
                     {pageNumber}
@@ -650,7 +651,7 @@ export default async function CustomersPage({
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg border text-[14px]',
                   safePage === totalPages
                     ? 'pointer-events-none border-[#E5E2DC] bg-white text-[#9CA3AF] opacity-50'
-                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-[#006d6d] hover:text-[#006d6d]',
+                    : 'border-[#E5E2DC] bg-white text-[#1B1F23] hover:border-primary hover:text-primary',
                 ].join(' ')}
               >
                 <i className="bi bi-chevron-right" />
@@ -663,6 +664,6 @@ export default async function CustomersPage({
           Zeige {totalRows} von {customerCount} Kunden
         </div>
       )}
-    </main>
+    </AppPage>
   )
 }

@@ -29,7 +29,7 @@ function ToggleRow({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-9 shrink-0 cursor-pointer accent-[#52b788]"
+        className="h-5 w-9 shrink-0 cursor-pointer accent-primary"
       />
     </label>
   )
@@ -75,7 +75,7 @@ export default function PhotoGridDebugSheet({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2 py-1 text-[13px] font-semibold text-[#52b788]"
+            className="rounded-lg px-2 py-1 text-[13px] font-semibold text-primary"
           >
             Fertig
           </button>

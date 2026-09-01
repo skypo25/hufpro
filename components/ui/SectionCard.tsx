@@ -20,7 +20,7 @@ export default function SectionCard({
   return (
     <section
       className={[
-        'huf-card',
+        'content-card',
         className,
       ].join(' ')}
     >

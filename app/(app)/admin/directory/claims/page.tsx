@@ -53,7 +53,7 @@ export default async function AdminDirectoryClaimsPage({ searchParams }: PagePro
   const filterLinkClass = (active: boolean) =>
     [
       'rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition',
-      active ? 'border-[#52b788] bg-[rgba(82,183,136,.1)] text-[#1B1F23]' : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#9CA3AF]',
+      active ? 'border-primary bg-[rgba(82,183,136,.1)] text-[#1B1F23]' : 'border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#9CA3AF]',
     ].join(' ')
 
   return (
@@ -149,7 +149,7 @@ export default async function AdminDirectoryClaimsPage({ searchParams }: PagePro
                   <td className="px-4 py-3 align-top">
                     <AdminNextLink
                       href={`/admin/directory/claims/${r.id}`}
-                      className="inline-flex rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1B1F23] hover:border-[#52b788]"
+                      className="inline-flex rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#1B1F23] hover:border-primary"
                     >
                       Details
                     </AdminNextLink>

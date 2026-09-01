@@ -34,7 +34,7 @@ export default async function HorseHoofComparePage({ params, searchParams }: Pag
         </p>
         <Link
           href={`/animals/${result.horseId}`}
-          className="inline-flex items-center gap-2 text-[14px] font-medium text-[#52b788] hover:underline"
+          className="inline-flex items-center gap-2 text-[14px] font-medium text-primary hover:underline"
         >
           Zurück zum Tier
         </Link>

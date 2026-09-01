@@ -21,13 +21,13 @@ export default function OfflinePage() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="rounded-xl bg-[#52b788] px-6 py-3 text-[15px] font-semibold text-white transition hover:bg-[#3d9a6d]"
+        className="primary-button primary-button--lg font-semibold"
       >
         Erneut versuchen
       </button>
       <Link
         href="/dashboard"
-        className="mt-4 text-[14px] text-[#52b788] hover:underline"
+        className="mt-4 text-[14px] text-primary hover:underline"
       >
         Zum Dashboard
       </Link>

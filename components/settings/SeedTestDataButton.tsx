@@ -58,7 +58,7 @@ export default function SeedTestDataButton() {
           type="button"
           onClick={handleSeed}
           disabled={loading}
-          className="huf-btn-dark rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-60"
+          className="primary-button disabled:opacity-60"
         >
           {loading ? 'Wird angelegt…' : 'Testdaten laden'}
         </button>

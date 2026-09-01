@@ -244,7 +244,7 @@ function SingleChoiceChips({
               'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-medium transition',
               active
                 ? selectedClass
-                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
+                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-primary hover:text-primary',
             ].join(' ')}
           >
             {option}
@@ -278,7 +278,7 @@ function TogglePhraseRow({
               'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-medium transition',
               active
                 ? CHIP_COLOR_CLASSES.green
-                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
+                : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-primary hover:text-primary',
             ].join(' ')}
           >
             {phrase.label}
@@ -307,7 +307,7 @@ function HoofCard({
     <div className="rounded-[14px] border-2 border-[#E5E2DC] p-4 transition hover:border-[rgba(21,66,38,0.4)]">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="shrink-0 rounded-md bg-[#edf3ef] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#52b788]">
+          <span className="shrink-0 rounded-md bg-primary-light px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-primary">
             {badge.trim()}
           </span>
           <span className="truncate text-[13px] font-bold uppercase tracking-[0.06em] text-[#1B1F23]">
@@ -374,7 +374,7 @@ function HoofCard({
                       'rounded-lg border-[1.5px] px-2.5 py-1.5 !text-[13px] font-semibold transition',
                       active
                         ? activeClass
-                        : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#52b788]',
+                        : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-primary',
                     ].join(' ')}
                   >
                     {option}
@@ -410,7 +410,7 @@ function ProgressSidebar({
 }) {
   return (
     <div className="space-y-5">
-      <section className="huf-card huf-card--lg">
+      <section className="content-card content-card--lg">
         <div className="border-b border-[#E5E2DC] px-5 py-4">
           <h4 className="dashboard-serif text-[15px] font-medium text-[#1B1F23]">Fortschritt</h4>
         </div>
@@ -447,7 +447,7 @@ function ProgressSidebar({
                 <div
                   className={[
                     'absolute left-[15px] top-[38px] bottom-[-2px] w-[2px]',
-                    step.done ? 'bg-[#52b788]' : 'bg-[#E5E2DC]',
+                    step.done ? 'bg-primary' : 'bg-[#E5E2DC]',
                   ].join(' ')}
                 />
               )}
@@ -456,9 +456,9 @@ function ProgressSidebar({
                 className={[
                   'z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-[12px] font-semibold',
                   step.done
-                    ? 'border-[#52b788] bg-[#52b788] text-white'
+                    ? 'border-primary bg-primary text-white'
                     : step.current
-                      ? 'border-[#52b788] bg-[#edf3ef] text-[#52b788]'
+                      ? 'border-primary bg-primary-light text-primary'
                       : 'border-[#E5E2DC] bg-[#F9FAFB] text-[#6B7280]',
                 ].join(' ')}
               >
@@ -470,9 +470,9 @@ function ProgressSidebar({
                   className={[
                     'text-[13px] font-medium',
                     step.done
-                      ? 'text-[#52b788]'
+                      ? 'text-primary'
                       : step.current
-                        ? 'text-[#52b788]'
+                        ? 'text-primary'
                         : 'text-[#1B1F23]',
                   ].join(' ')}
                 >
@@ -492,7 +492,7 @@ function ProgressSidebar({
         />
       )}
 
-      <section className="huf-card huf-card--lg">
+      <section className="content-card content-card--lg">
         <div className="border-b border-[#E5E2DC] px-5 py-4">
           <h4 className="dashboard-serif text-[15px] font-medium text-[#1B1F23]">
             Letzter Befund{lastRecord?.date ? ` · ${formatGermanDate(lastRecord.date)}` : ''}
@@ -509,7 +509,7 @@ function ProgressSidebar({
       </section>
 
       {memo && (
-        <section className="huf-card huf-card--lg huf-card--accent-left-warning">
+        <section className="content-card content-card--lg content-card--accent-left-warning">
           <div className="border-b border-[#E5E2DC] px-5 py-4">
             <h4 className="dashboard-serif text-[15px] font-medium text-[#1B1F23]">📌 Merke für dieses Pferd</h4>
           </div>
@@ -876,7 +876,7 @@ export default function RecordCreateForm({
 
   if (!horse) {
     return (
-      <div className="huf-card huf-card--lg p-6 text-[14px] text-[#6B7280]">
+      <div className="content-card content-card--lg p-6 text-[14px] text-[#6B7280]">
         Pferd konnte nicht geladen werden. Bitte gehe zurück und versuche es erneut.
       </div>
     )
@@ -897,7 +897,7 @@ export default function RecordCreateForm({
           <div
             className={`rounded-xl px-4 py-3 text-sm ${
               message.startsWith('✓')
-                ? 'border border-[#52b788]/50 bg-[#edf7f2] text-[#166534]'
+                ? 'border border-primary/50 bg-[#edf7f2] text-[#166534]'
                 : 'border border-red-200 bg-red-50 text-red-700'
             }`}
           >
@@ -929,11 +929,11 @@ export default function RecordCreateForm({
         <div className="mb-5 flex items-center gap-2 text-[13px] text-[#6B7280]">
           {isEdit ? (
             <>
-              <a href={`/animals/${horse.id}`} className="text-[#52b788] hover:underline">
+              <a href={`/animals/${horse.id}`} className="text-primary hover:underline">
                 {horse.name}
               </a>
               <span>›</span>
-              <a href={`/animals/${horse.id}/records/${editRecordId}`} className="text-[#52b788] hover:underline">
+              <a href={`/animals/${horse.id}/records/${editRecordId}`} className="text-primary hover:underline">
                 {formatGermanDate(recordDate)}
               </a>
               <span>›</span>
@@ -941,9 +941,9 @@ export default function RecordCreateForm({
             </>
           ) : (
             <>
-              <span className="text-[#52b788]">Termine</span>
+              <span className="text-primary">Termine</span>
               <span>›</span>
-              <span className="text-[#52b788]">
+              <span className="text-primary">
                 {formatGermanDate(defaultRecordDate)} · {horse.customerName}
               </span>
               <span>›</span>
@@ -952,10 +952,10 @@ export default function RecordCreateForm({
           )}
         </div>
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <div className="flex flex-wrap items-center gap-5 px-6 py-5">
             <div className="flex min-w-0 flex-1 items-center gap-3.5">
-              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] bg-[#edf3ef] text-[#154226]">
+              <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[14px] bg-primary-light text-[#154226]">
                 <svg width="28" height="28" viewBox="0 0 576 512" fill="currentColor" className="shrink-0" aria-hidden>
                   <path d="M448 238.1l0-78.1 16 0 9.8 19.6c12.5 25.1 42.2 36.4 68.3 26 20.5-8.2 33.9-28 33.9-50.1L576 80c0-19.1-8.4-36.3-21.7-48l5.7 0c8.8 0 16-7.2 16-16S568.8 0 560 0L448 0C377.3 0 320 57.3 320 128l-171.2 0C118.1 128 91.2 144.3 76.3 168.8 33.2 174.5 0 211.4 0 256l0 56c0 13.3 10.7 24 24 24s24-10.7 24-24l0-56c0-13.4 6.6-25.2 16.7-32.5 1.6 13 6.3 25.4 13.6 36.4l28.2 42.4c8.3 12.4 6.4 28.7-1.2 41.6-16.5 28-20.6 62.2-10 93.9l17.5 52.4c4.4 13.1 16.6 21.9 30.4 21.9l33.7 0c21.8 0 37.3-21.4 30.4-42.1l-20.8-62.5c-2.1-6.4-.5-13.4 4.3-18.2l12.7-12.7c13.2-13.2 20.6-31.1 20.6-49.7 0-2.3-.1-4.6-.3-6.9l84 24c4.1 1.2 8.2 2.1 12.3 2.8L320 480c0 17.7 14.3 32 32 32l32 0c17.7 0 32-14.3 32-32l0-164.3c19.2-19.2 31.5-45.7 32-75.7l0 0 0-1.9zM496 64a16 16 0 1 1 0 32 16 16 0 1 1 0-32z" />
                 </svg>
@@ -980,7 +980,7 @@ export default function RecordCreateForm({
                     type="date"
                     value={recordDate}
                     onChange={(e) => setRecordDate(e.target.value)}
-                    className="mt-1 rounded-lg border border-[#E5E2DC] px-3 py-2 text-[14px] font-semibold text-[#1B1F23] focus:border-[#52b788] focus:outline-none focus:ring-2 focus:ring-[#52b788]/20"
+                    className="mt-1 rounded-lg border border-[#E5E2DC] px-3 py-2 text-[14px] font-semibold text-[#1B1F23] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                 ) : (
                   <div className="mt-1 text-[14px] font-semibold text-[#1B1F23]">
@@ -995,7 +995,7 @@ export default function RecordCreateForm({
                 <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#9CA3AF]">
                   Terminart
                 </div>
-                <div className="mt-1 text-[14px] font-semibold text-[#52b788]">
+                <div className="mt-1 text-[14px] font-semibold text-primary">
                   {defaultRecordType}
                 </div>
               </div>
@@ -1014,12 +1014,12 @@ export default function RecordCreateForm({
           </div>
         </section>
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <SectionHeader
             icon={<i className="bi bi-eye-fill text-[14px]" aria-hidden />}
             title="Allgemeiner Eindruck"
             hint="~30 Sek. pro Pferd"
-            iconClassName="bg-[#edf3ef] text-[#166534]"
+            iconClassName="bg-primary-light text-[#166534]"
           />
 
           <div className="px-[22px] py-5">
@@ -1077,19 +1077,19 @@ export default function RecordCreateForm({
           </div>
         </section>
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <SectionHeader
             icon={<i className="bi bi-search text-[14px]" aria-hidden />}
             title="Hufbefund pro Huf"
             hint="Nur Abweichungen ändern"
-            iconClassName="bg-[#edf3ef] text-[#52b788]"
+            iconClassName="bg-primary-light text-primary"
           />
 
           <div className="space-y-5 px-[22px] py-5">
             <button
               type="button"
               onClick={setAllHoofsUnauffaellig}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#52b788] bg-[#edf3ef] px-4 py-3 text-[14px] font-semibold text-[#52b788] transition hover:bg-[#d1e7d8]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary-light px-4 py-3 text-[14px] font-semibold text-primary transition hover:bg-[#d1e7d8]"
             >
               <i className="bi bi-check text-[18px]" aria-hidden />
               Alle Hufe unauffällig
@@ -1161,12 +1161,12 @@ export default function RecordCreateForm({
           </div>
         </section>
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <SectionHeader
             icon={<i className="bi bi-camera-fill text-[14px]" aria-hidden />}
             title={isEdit ? 'Fotos' : 'Fotos aufnehmen'}
             hint={isEdit ? 'Bestehende anzeigen oder neue hochladen' : 'Tippe einen Slot an zum Hochladen'}
-            iconClassName="bg-[#edf3ef] text-[#52b788]"
+            iconClassName="bg-primary-light text-primary"
           />
 
           <div className="space-y-5 px-[22px] py-5">
@@ -1186,12 +1186,12 @@ export default function RecordCreateForm({
           </div>
         </section>
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <SectionHeader
             icon={<i className="bi bi-file-earmark-richtext-fill text-[14px]" aria-hidden />}
             title="Maßnahmen & Beobachtungen"
             hint="Text eingeben oder Diktat"
-            iconClassName="bg-[#edf3ef] text-[#52b788]"
+            iconClassName="bg-primary-light text-primary"
           />
 
           <div className="space-y-4 px-[22px] py-5">
@@ -1233,7 +1233,7 @@ export default function RecordCreateForm({
         </section>
 
         {isEdit && (
-          <section className="huf-card huf-card--lg">
+          <section className="content-card content-card--lg">
             <SectionHeader
               icon="📝"
               title="Interne Notiz"
@@ -1245,14 +1245,14 @@ export default function RecordCreateForm({
                 value={notesText}
                 onChange={(e) => setNotesText(e.target.value)}
                 rows={3}
-                className="huf-input huf-input--multiline w-full leading-6"
+                className="input textarea w-full leading-6"
                 placeholder="Interne Notizen (nur für Sie sichtbar) …"
               />
             </div>
           </section>
         )}
 
-        <section className="huf-card huf-card--lg">
+        <section className="content-card content-card--lg">
           <SectionHeader
             icon="✅"
             title="Checkliste"
@@ -1273,7 +1273,7 @@ export default function RecordCreateForm({
                     'flex items-center gap-2.5 rounded-[10px] border-[1.5px] px-3.5 py-3 text-left transition',
                     active
                       ? 'border-[#34A853] bg-[rgba(52,168,83,0.04)]'
-                      : 'border-[#E5E2DC] bg-white hover:border-[#52b788]',
+                      : 'border-[#E5E2DC] bg-white hover:border-primary',
                   ].join(' ')}
                 >
                   <div
@@ -1297,7 +1297,7 @@ export default function RecordCreateForm({
           <div className="flex gap-3">
             <a
               href={isEdit ? `/animals/${horse.id}/records/${editRecordId}` : `/animals/${horse.id}`}
-              className="huf-button huf-button--ghost text-[14px] text-[#6B7280] hover:text-[#1B1F23]"
+              className="ghost-button"
             >
               ← Abbrechen
             </a>
@@ -1308,7 +1308,7 @@ export default function RecordCreateForm({
               <button
                 type="submit"
                 disabled={submitting}
-                className="huf-button huf-button--primary"
+                className="primary-button primary-button--lg"
               >
                 {submitting ? 'Speichern …' : 'Änderungen speichern'}
               </button>
@@ -1318,14 +1318,14 @@ export default function RecordCreateForm({
                   type="submit"
                   name="intent"
                   value="draft"
-                  className="huf-button huf-button--outline"
+                  className="secondary-button secondary-button--lg"
                   disabled={submitting}
                 >
                   {submitting ? 'Speichern …' : 'Als Entwurf speichern'}
                 </button>
 
                 <span
-                  className="huf-button huf-button--outline cursor-default text-[#9CA3AF]"
+                  className="secondary-button secondary-button--lg cursor-default text-[#9CA3AF]"
                   title="Nach dem Speichern können Sie die Dokumentation als PDF auf der Dokumentationsseite herunterladen."
                 >
                   PDF nach Speichern
@@ -1336,7 +1336,7 @@ export default function RecordCreateForm({
                   name="intent"
                   value="complete"
                   disabled={submitting}
-                  className="huf-button huf-button--primary bg-[#34A853] border-[#34A853] hover:bg-[#2E9148] hover:border-[#2E9148]"
+                  className="primary-button primary-button--lg success-button"
                 >
                   <i className="bi bi-check text-[18px]" aria-hidden /> Dokumentation abschließen
                 </button>

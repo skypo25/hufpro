@@ -25,7 +25,7 @@ function formatDateTimeDe(iso: string): string {
 export default function ReadOnlyGraceBanner({ graceEndsAtIso }: { graceEndsAtIso: string }) {
   return (
     <div
-      className="huf-card flex flex-col gap-2 border border-[#BFDBFE] bg-[#EFF6FF] px-[18px] py-3 text-[13px] text-[#1E3A5F] sm:flex-row sm:items-center sm:justify-between"
+      className="content-card flex flex-col gap-2 border border-[#BFDBFE] bg-[#EFF6FF] px-[18px] py-3 text-[13px] text-[#1E3A5F] sm:flex-row sm:items-center sm:justify-between"
       role="status"
     >
       <div className="flex items-start gap-2">

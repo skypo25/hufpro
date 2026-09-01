@@ -1127,7 +1127,7 @@ export default function SettingsForm({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="huf-btn-dark inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[var(--accent-dark)] disabled:opacity-60"
+            className="primary-button primary-button--lg disabled:opacity-60"
           >
             {saving ? 'Speichern …' : '✓ Speichern'}
           </button>

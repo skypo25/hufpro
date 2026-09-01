@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
       )}
 
       <p style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', margin: '16px 0 0' }}>
-        <Link href="/forgot-password" style={{ color: '#52b788', textDecoration: 'none', fontWeight: 500 }}>
+        <Link href="/forgot-password" className="link-accent font-medium">
           Neuen Reset-Link anfordern
         </Link>
       </p>

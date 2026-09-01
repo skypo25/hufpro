@@ -124,13 +124,13 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
           style={{ borderBottom: '1px solid #F0EEEA' }}
         >
           <div
-            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[#52b788] text-sm font-bold text-white"
+            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white"
           >
             {user?.initials ?? '?'}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-bold text-[#1A1A1A]">{user?.name ?? 'Laden…'}</div>
-            <div className="text-[11px] font-semibold text-[#52b788]">Pro · Testphase aktiv</div>
+            <div className="text-[11px] font-semibold text-primary">Pro · Testphase aktiv</div>
           </div>
           <i className="bi bi-chevron-right shrink-0 text-[18px] text-[#9CA3AF]" aria-hidden />
         </button>
@@ -146,7 +146,7 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
             >
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[16px] ${
-                  item.color === 'green' ? 'bg-[rgba(82,183,136,0.08)] text-[#52b788]' :
+                  item.color === 'green' ? 'bg-[rgba(82,183,136,0.08)] text-primary' :
                   item.color === 'blue' ? 'bg-[rgba(59,130,246,0.08)] text-[#3B82F6]' :
                   item.color === 'purple' ? 'bg-[rgba(139,92,246,0.08)] text-[#8B5CF6]' :
                   item.color === 'orange' ? 'bg-[rgba(249,115,22,0.08)] text-[#F97316]' :

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { mirrorDocumentationPhotoAfterHoofInsert } from '@/lib/documentation/mirrorDocumentationPhotos'
+import AppPage from '@/components/layout/AppPage'
 
 type UploadPhotoPageProps = {
   params: Promise<{
@@ -137,16 +138,16 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
 
   if (!params) {
     return (
-      <main className="space-y-4">
+      <AppPage>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm text-slate-500">Lade Seite ...</p>
         </div>
-      </main>
+      </AppPage>
     )
   }
 
   return (
-    <main className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Foto hinzufügen</h1>
         <p className="text-sm text-slate-500">
@@ -197,6 +198,6 @@ export default function UploadPhotoPage(props: UploadPhotoPageProps) {
           </div>
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }

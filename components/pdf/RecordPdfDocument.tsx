@@ -10,6 +10,7 @@ import {
 import type { Styles } from "@react-pdf/renderer"
 type Style = Styles[string]
 import type { RecordPdfData, RecordPdfHoof } from "@/lib/pdf/types"
+import { BRAND_COLORS } from "@/lib/branding"
 import {
   SLOT_SOLAR,
   SLOT_LATERAL,
@@ -18,7 +19,7 @@ import {
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  brand: "#52b788",       // nur für Border-Linie + Logo-Box-Hintergrund
+  brand: BRAND_COLORS.accent,
   text: "#1C1C1C",        // alle Texte (Headlines, Labels, Werte)
   textSecondary: "#555555",
   textLight: "#888888",

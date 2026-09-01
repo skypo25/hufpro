@@ -222,7 +222,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
           <div className="mobile-greeting">Pferd</div>
         </header>
         <div className="mobile-content">
-          <div className="huf-card p-4 text-[14px] text-red-700">
+          <div className="content-card p-4 text-[14px] text-red-700">
             {error || 'Pferd nicht gefunden.'}
           </div>
         </div>
@@ -512,7 +512,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                 <button
                   type="button"
                   onClick={() => setTab('docs')}
-                  className="text-[13px] font-medium text-[#006d6d]"
+                  className="text-[13px] font-medium text-primary"
                 >
                   Alle anzeigen →
                 </button>

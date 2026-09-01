@@ -116,7 +116,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           {kpis.map((k) => {
             const valColor =
               k.color === 'green'
-                ? 'text-[#52b788]'
+                ? 'text-primary'
                 : k.color === 'blue'
                   ? 'text-[#3B82F6]'
                   : k.color === 'orange'
@@ -127,7 +127,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                         ? 'text-[#9CA3AF]'
                         : 'text-[#1B1F23]'
             return (
-              <section key={k.key} className="huf-card p-[18px]">
+              <section key={k.key} className="content-card p-[18px]">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280]">
                   {k.label}
                 </div>
@@ -157,7 +157,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-[#52b788]"
+              className="inline-flex items-center justify-center rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
             >
               Suchen
             </button>
@@ -185,7 +185,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                             : 0
               const dotClass =
                 f.dot === 'accent'
-                  ? 'text-[#52b788]'
+                  ? 'text-primary'
                   : f.dot === 'blue'
                     ? 'text-[#3B82F6]'
                     : f.dot === 'orange'
@@ -202,8 +202,8 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   className={[
                     'inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-[13px] font-medium transition',
                     active
-                      ? 'border-[#52b788] bg-[rgba(82,183,136,.08)] text-[#1B1F23]'
-                      : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#52b788]',
+                      ? 'border-primary bg-[rgba(82,183,136,.08)] text-[#1B1F23]'
+                      : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-primary',
                   ].join(' ')}
                 >
                   {f.dot ? <i className={`bi bi-circle-fill text-[6px] ${dotClass}`} aria-hidden /> : null}
@@ -226,7 +226,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         </span>
       </div>
 
-      <div className="huf-card">
+      <div className="content-card">
         <div className="grid grid-cols-[minmax(0,1.35fr)_150px_120px_220px_140px_140px_200px_68px] items-center gap-3 border-b-2 border-[#E5E2DC] bg-[rgba(0,0,0,0.02)] px-[22px] py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6B7280] max-[1100px]:grid-cols-[minmax(0,1.35fr)_150px_220px_140px_200px_68px] max-[1100px]:[&>*:nth-child(3)]:hidden max-[1100px]:[&>*:nth-child(6)]:hidden max-[900px]:grid-cols-[minmax(0,1fr)_220px_200px_68px] max-[900px]:[&>*:nth-child(2)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden max-[900px]:[&>*:nth-child(6)]:hidden">
           <div>Nutzer</div>
           <div>Beruf</div>
@@ -265,7 +265,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
               const dotClass =
                 activity.dot === 'online'
-                  ? 'bg-[#52b788]'
+                  ? 'bg-primary'
                   : activity.dot === 'recent'
                     ? 'bg-[#3B82F6]'
                     : 'bg-[#E5E2DC]'
@@ -273,7 +273,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               return (
                 <div
                   key={r.id}
-                  className={`relative grid grid-cols-[minmax(0,1.35fr)_150px_120px_220px_140px_140px_200px_68px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1.35fr)_150px_220px_140px_200px_68px] max-[1100px]:[&>*:nth-child(3)]:hidden max-[1100px]:[&>*:nth-child(6)]:hidden max-[900px]:grid-cols-[minmax(0,1fr)_220px_200px_68px] max-[900px]:[&>*:nth-child(2)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden max-[900px]:[&>*:nth-child(6)]:hidden ${rowTint}`}
+                  className={`relative grid grid-cols-[minmax(0,1.35fr)_150px_120px_220px_140px_140px_200px_68px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-primary/5 last:border-b-0 max-[1100px]:grid-cols-[minmax(0,1.35fr)_150px_220px_140px_200px_68px] max-[1100px]:[&>*:nth-child(3)]:hidden max-[1100px]:[&>*:nth-child(6)]:hidden max-[900px]:grid-cols-[minmax(0,1fr)_220px_200px_68px] max-[900px]:[&>*:nth-child(2)]:hidden max-[900px]:[&>*:nth-child(5)]:hidden max-[900px]:[&>*:nth-child(6)]:hidden ${rowTint}`}
                 >
                   <AdminNextLink
                     href={`/admin/users/${r.id}`}
@@ -346,7 +346,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                         <div className="text-[11px] text-[#6B7280]">Tiere</div>
                       </div>
                       <div className="text-center">
-                        <div className={`text-[14px] font-semibold ${r.docCount >= 40 ? 'text-[#52b788]' : 'text-[#1B1F23]'}`}>{r.docCount}</div>
+                        <div className={`text-[14px] font-semibold ${r.docCount >= 40 ? 'text-primary' : 'text-[#1B1F23]'}`}>{r.docCount}</div>
                         <div className="text-[11px] text-[#6B7280]">Dokus</div>
                       </div>
                       <div className="text-center">
@@ -359,7 +359,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   <div className="relative z-20 flex justify-end gap-1">
                     <AdminNextLink
                       href={`/admin/users/${r.id}`}
-                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
+                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-primary hover:text-primary"
                       title="Details"
                     >
                       <i className="bi bi-eye-fill text-[14px]" aria-hidden />
@@ -370,7 +370,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                         target="_blank"
                         rel="noreferrer"
                         className={[
-                          'pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]',
+                          'pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-primary hover:text-primary',
                           r.billingBucket === 'past_due' || r.billingBucket === 'unpaid'
                             ? 'border-[rgba(220,38,38,.2)] text-[#DC2626] hover:border-[#DC2626] hover:text-[#DC2626]'
                             : '',
@@ -382,7 +382,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                     ) : null}
                     <a
                       href={`mailto:${encodeURIComponent(r.email)}`}
-                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-[#52b788] hover:text-[#52b788]"
+                      className="pointer-events-auto inline-flex h-[30px] w-[30px] items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] hover:border-primary hover:text-primary"
                       title="E-Mail"
                     >
                       <i className="bi bi-envelope-fill text-[14px]" aria-hidden />
@@ -480,7 +480,7 @@ function PaginationLink(props: {
       aria-label={props['aria-label']}
       className={[
         'flex h-8 min-w-[32px] items-center justify-center rounded-md border border-[#E5E2DC] bg-white px-2 text-[12px] font-semibold transition',
-        props.active ? 'border-[#52b788] bg-[#52b788] text-white' : 'text-[#6B7280] hover:border-[#9CA3AF]',
+        props.active ? 'border-primary bg-primary text-white' : 'text-[#6B7280] hover:border-[#9CA3AF]',
       ].join(' ')}
     >
       {props.children}

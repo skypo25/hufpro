@@ -96,7 +96,7 @@ export default function InvoiceListRowWithMenu({
   }
 
   return (
-    <div className="relative grid grid-cols-[140px_220px_1fr_120px_44px_52px] items-center gap-6 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(21,66,38,0.03)] last:border-b-0 max-[700px]:grid-cols-[130px_1fr_120px_44px_52px] max-[700px]:[&>*:nth-child(2)]:hidden">
+    <div className="relative grid grid-cols-[140px_220px_1fr_120px_44px_52px] items-center gap-6 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-primary/5 last:border-b-0 max-[700px]:grid-cols-[130px_1fr_120px_44px_52px] max-[700px]:[&>*:nth-child(2)]:hidden">
       <Link
         href={status === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`}
         className="absolute inset-0 z-0"
@@ -138,7 +138,7 @@ export default function InvoiceListRowWithMenu({
           type="button"
           onClick={handleResend}
           disabled={sendingMail || status === 'cancelled'}
-          className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
+          className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-primary hover:text-primary disabled:opacity-50"
           title={status === 'cancelled' ? 'Stornierte Rechnung' : (sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden')}
           aria-label={sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
         >
@@ -156,7 +156,7 @@ export default function InvoiceListRowWithMenu({
               setOpen((v) => !v)
             }}
             disabled={pending}
-            className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-[#52b788] hover:text-[#52b788] disabled:opacity-50"
+            className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-primary hover:text-primary disabled:opacity-50"
             title="Status ändern"
             aria-expanded={open}
             aria-haspopup="true"

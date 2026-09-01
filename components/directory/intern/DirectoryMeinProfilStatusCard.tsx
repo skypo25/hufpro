@@ -32,7 +32,7 @@ const LISTING_BADGE: Record<
   },
   published: {
     label: 'Veröffentlicht',
-    badge: 'bg-[rgba(0,109,109,0.06)] text-[#015555]',
+    badge: 'bg-[rgba(0,109,109,0.06)] text-primary-dark',
     dot: 'bg-emerald-500',
     info: () => <>Dein Profil ist im Verzeichnis sichtbar, sobald es in der öffentlichen Datenbank gelistet ist (Land DE/AT/CH).</>,
   },
@@ -74,7 +74,7 @@ const VERIFICATION_BADGE: Record<
   },
   verified: {
     label: 'Verifiziert',
-    badge: 'bg-[rgba(0,109,109,0.06)] text-[#015555]',
+    badge: 'bg-[rgba(0,109,109,0.06)] text-primary-dark',
     dot: 'bg-emerald-500',
     info: () => <>Dein Profil wurde erfolgreich geprüft.</>,
   },
@@ -119,7 +119,7 @@ export function DirectoryMeinProfilStatusCard({
           </div>
           <a
             href="#dir-profile-wizard"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280] transition-colors hover:border-[#006d6d] hover:text-[#006d6d]"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280] transition-colors hover:border-primary hover:text-primary"
           >
             <i className="bi bi-pencil-fill text-[11px]" aria-hidden />
             Profil anlegen
@@ -189,7 +189,7 @@ export function DirectoryMeinProfilStatusCard({
               href={`/behandler/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#1B1F23] px-3.5 py-2 text-[12px] font-semibold !text-white transition-colors hover:bg-slate-800 hover:!text-white"
+              className="neutral-button font-semibold"
             >
               Öffentliche Ansicht
               <i className="bi bi-box-arrow-up-right text-[11px] !text-white opacity-100" aria-hidden />
@@ -197,7 +197,7 @@ export function DirectoryMeinProfilStatusCard({
           ) : null}
           <a
             href="#dir-profile-wizard"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280] transition-colors hover:border-[#006d6d] hover:text-[#006d6d]"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6B7280] transition-colors hover:border-primary hover:text-primary"
           >
             <i className="bi bi-pencil-fill text-[11px]" aria-hidden />
             Profil bearbeiten

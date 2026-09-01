@@ -160,7 +160,7 @@ export default function HoofComparePageClient({
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[#154226]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary-light text-[#154226]">
             <HorseIcon className="h-6 w-[27px]" />
           </div>
           <div>
@@ -197,7 +197,7 @@ export default function HoofComparePageClient({
       </div>
 
       {/* Huf & Ansicht — nur normale Seite; im Vollbild-Modal bewusst weggelassen */}
-      <section className="huf-card">
+      <section className="content-card">
         <div className="border-b border-[#E5E2DC] px-6 py-[18px]">
           <h2 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Huf &amp; Ansicht</h2>
         </div>
@@ -211,7 +211,7 @@ export default function HoofComparePageClient({
               className={[
                 'min-w-[52px] flex-1 rounded-lg border-[1.5px] px-3 py-1.5 text-center text-[11px] font-semibold transition',
                 hoof === k
-                  ? 'border-[#52b788] bg-[rgba(82,183,136,0.06)] text-[#52b788]'
+                  ? 'border-primary bg-primary/6 text-primary'
                   : 'border-[#E5E2DC] bg-white text-[#6B7280] hover:border-[#9CA3AF]',
               ].join(' ')}
             >
@@ -226,7 +226,7 @@ export default function HoofComparePageClient({
             className={[
               'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-semibold transition',
               view === 'solar'
-                ? 'border-[#52b788] bg-[rgba(82,183,136,0.06)] text-[#52b788]'
+                ? 'border-primary bg-primary/6 text-primary'
                 : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#9CA3AF]',
             ].join(' ')}
           >
@@ -239,7 +239,7 @@ export default function HoofComparePageClient({
             className={[
               'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[10px] font-semibold transition',
               view === 'lateral'
-                ? 'border-[#52b788] bg-[rgba(82,183,136,0.06)] text-[#52b788]'
+                ? 'border-primary bg-primary/6 text-primary'
                 : 'border-[#E5E2DC] bg-white text-[#9CA3AF] hover:border-[#9CA3AF]',
             ].join(' ')}
           >
@@ -275,7 +275,7 @@ export default function HoofComparePageClient({
             type="button"
             title="Seiten tauschen"
             onClick={swap}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E2DC] bg-white text-[16px] text-[#9CA3AF] transition hover:border-[#52b788] hover:bg-[rgba(82,183,136,0.06)] hover:text-[#52b788]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E2DC] bg-white text-[16px] text-[#9CA3AF] transition hover:border-primary hover:bg-primary/6 hover:text-primary"
           >
             <i className="bi bi-arrow-left-right" aria-hidden />
           </button>
@@ -298,7 +298,7 @@ export default function HoofComparePageClient({
         />
       </div>
 
-      <section className="huf-card flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <section className="content-card flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1 text-[13px] text-[#6B7280]">
           {daysBetween != null && (
             <p>
@@ -334,9 +334,9 @@ export default function HoofComparePageClient({
       </section>
 
       {timeline.length > 0 && (
-        <section className="huf-card overflow-hidden">
+        <section className="content-card overflow-hidden">
           <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-6 py-[18px]">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf3ef] text-[#154226]">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-light text-[#154226]">
               <i className="bi bi-clock-history text-[15px]" aria-hidden />
             </span>
             <h2 className="dashboard-serif flex-1 text-[16px] font-medium text-[#1B1F23]">
@@ -367,7 +367,7 @@ export default function HoofComparePageClient({
                     className={[
                       'relative mb-1.5 aspect-[9/16] w-full overflow-hidden rounded-lg border-2 bg-[#fafaf8]',
                       isLeft ? 'border-[#3B82F6] shadow-[0_0_0_2px_rgba(59,130,246,0.15)]' : '',
-                      isRight ? 'border-[#52b788] shadow-[0_0_0_2px_rgba(82,183,136,0.15)]' : '',
+                      isRight ? 'border-primary ring-2 ring-primary/15' : '',
                       !isLeft && !isRight ? 'border-transparent' : '',
                     ].join(' ')}
                   >
@@ -387,7 +387,7 @@ export default function HoofComparePageClient({
                   {(isLeft || isRight) && (
                     <div className="mt-1 flex justify-center">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${isLeft ? 'bg-[#3B82F6]' : 'bg-[#52b788]'}`}
+                        className={`h-1.5 w-1.5 rounded-full ${isLeft ? 'bg-[#3B82F6]' : 'bg-primary'}`}
                         aria-hidden
                       />
                     </div>
@@ -465,12 +465,12 @@ function SidePanel({
   }
 
   return (
-    <div className="huf-card overflow-hidden">
+    <div className="content-card overflow-hidden">
       <div className="flex items-center gap-2.5 border-b border-[#E5E2DC] px-6 py-[18px]">
         <span
           className={[
             'shrink-0 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em]',
-            variant === 'left' ? 'bg-[rgba(59,130,246,0.06)] text-[#3B82F6]' : 'bg-[rgba(82,183,136,0.06)] text-[#52b788]',
+            variant === 'left' ? 'bg-[rgba(59,130,246,0.06)] text-[#3B82F6]' : 'bg-primary/6 text-primary',
           ].join(' ')}
         >
           {variant === 'left' ? 'Vorher' : 'Nachher'}
@@ -481,7 +481,7 @@ function SidePanel({
       <div className="flex items-center gap-2.5 border-b border-[#F0EEEA] px-6 py-3.5">
         <i className="bi bi-file-earmark-text-fill shrink-0 text-[16px] text-[#9CA3AF]" aria-hidden />
         <select
-          className="min-w-0 flex-1 cursor-pointer appearance-none rounded-lg border-[1.5px] border-[#E5E2DC] bg-white py-2 pl-3 pr-9 text-[13px] font-medium text-[#1B1F23] focus:border-[#52b788] focus:outline-none"
+          className="min-w-0 flex-1 cursor-pointer appearance-none rounded-lg border-[1.5px] border-[#E5E2DC] bg-white py-2 pl-3 pr-9 text-[13px] font-medium text-[#1B1F23] focus:border-primary focus:outline-none"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239CA3AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat',

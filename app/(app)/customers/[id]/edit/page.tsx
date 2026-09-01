@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import CustomerForm from '@/components/customers/CustomerForm'
 import { formatCustomerNumber } from '@/lib/format'
+import AppPage from '@/components/layout/AppPage'
 
 type EditCustomerPageProps = {
   params: Promise<{
@@ -85,26 +86,26 @@ export default async function EditCustomerPage({
 
   if (error || !customer) {
     return (
-      <main className="mx-auto max-w-[920px] space-y-7">
+      <AppPage>
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Kunde konnte nicht geladen werden.
         </div>
-      </main>
+      </AppPage>
     )
   }
 
   return (
-    <main className="mx-auto max-w-[920px] space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
-        <Link href="/dashboard" className="text-[#52b788] hover:underline">
+        <Link href="/dashboard" className="text-primary hover:underline">
           Dashboard
         </Link>
         <span>›</span>
-        <Link href="/customers" className="text-[#52b788] hover:underline">
+        <Link href="/customers" className="text-primary hover:underline">
           Kunden
         </Link>
         <span>›</span>
-        <Link href={`/customers/${id}`} className="text-[#52b788] hover:underline">
+        <Link href={`/customers/${id}`} className="text-primary hover:underline">
           {customer.first_name || customer.last_name
             ? `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
             : 'Kundendetail'}
@@ -120,7 +121,7 @@ export default async function EditCustomerPage({
         <p className="mt-1 text-[14px] text-[#6B7280]">
           {customer.customer_number != null ? (
             <>
-              <span className="font-medium tabular-nums text-[#52b788]">{formatCustomerNumber(customer.customer_number)}</span>
+              <span className="font-medium tabular-nums text-primary">{formatCustomerNumber(customer.customer_number)}</span>
               {' · '}
             </>
           ) : null}
@@ -158,6 +159,6 @@ export default async function EditCustomerPage({
           source: customer.source || '',
         }}
       />
-    </main>
+    </AppPage>
   )
 }

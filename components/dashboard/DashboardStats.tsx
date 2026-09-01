@@ -40,7 +40,7 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       {stats.map((stat, index) => (
         <div
           key={stat.label}
-          className="dashboard-stat-card huf-card relative overflow-hidden px-[22px] py-5 transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.dashboard-stats-visible]:opacity-100 group-[.dashboard-stats-visible]:translate-y-0"
+          className="dashboard-stat-card content-card relative overflow-hidden px-[22px] py-5 transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.dashboard-stats-visible]:opacity-100 group-[.dashboard-stats-visible]:translate-y-0"
           style={{ transitionDelay: `${index * 80}ms` }}
         >
           <div

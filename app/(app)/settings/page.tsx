@@ -7,6 +7,7 @@ import type { BillingAccountRow } from '@/lib/billing/types'
 import SettingsForm from '@/components/settings/SettingsForm'
 import SeedTestDataButton from '@/components/settings/SeedTestDataButton'
 import { AppProfileProvider } from '@/context/AppProfileContext'
+import AppPage from '@/components/layout/AppPage'
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient()
@@ -57,7 +58,7 @@ export default async function SettingsPage() {
   }))
 
   return (
-    <div className="mx-auto max-w-[1280px] w-full space-y-7">
+    <AppPage>
       <div className="flex items-center gap-2 text-[13px] text-[#6B7280]">
         <Link href="/dashboard" className="text-[var(--accent)] hover:underline">
           Dashboard
@@ -87,6 +88,6 @@ export default async function SettingsPage() {
           <SeedTestDataButton />
         </AppProfileProvider>
       </div>
-    </div>
+    </AppPage>
   )
 }

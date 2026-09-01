@@ -63,7 +63,7 @@ export default function AppointmentSidebar({
 
   return (
     <div className="space-y-6">
-      <div className="huf-card">
+      <div className="content-card">
         <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
           <h4 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Tagesübersicht</h4>
         </div>
@@ -100,7 +100,7 @@ export default function AppointmentSidebar({
         </div>
       </div>
 
-      <div className="huf-card">
+      <div className="content-card">
         <div className="border-b border-[var(--border)] px-[22px] py-[18px]">
           <h4 className="dashboard-serif text-[16px] font-medium text-[#1B1F23]">Zusammenfassung</h4>
         </div>

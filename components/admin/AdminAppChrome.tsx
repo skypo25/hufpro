@@ -42,14 +42,14 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <span className="flex items-center gap-2 font-[family-name:var(--font-outfit)] text-[15px] font-semibold tracking-tight text-[#1B1F23]">
             <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#52b788] text-[13px] font-bold text-[#1b1f23]"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-[13px] font-bold text-[#1b1f23]"
               aria-hidden
             >
               a
             </span>
             Admin
           </span>
-          <Link href="/dashboard" className="shrink-0 text-[13px] font-medium text-[#52b788] hover:underline">
+          <Link href="/dashboard" className="shrink-0 text-[13px] font-medium text-primary hover:underline">
             Zur App
           </Link>
         </div>
