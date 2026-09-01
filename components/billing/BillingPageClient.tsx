@@ -374,10 +374,9 @@ export default function BillingPageClient({
       setError(result.error)
       return
     }
-    const w = window.open(result.url, '_blank', 'noopener,noreferrer')
-    if (!w) {
-      window.location.href = result.url
-    }
+    // Mit noopener/noreferrer ist der Rückgabewert oft null, obwohl das Fenster geöffnet wurde —
+    // kein location.href-Fallback, sonst öffnet sich Stripe doppelt (Tab + neues Fenster).
+    window.open(result.url, '_blank', 'noopener,noreferrer')
   }
 
   const setDefaultPaymentMethod = async (paymentMethodId: string) => {
