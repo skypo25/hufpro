@@ -59,6 +59,11 @@ export type InvoicePdfData = {
   seller: InvoicePdfSeller
   buyer: InvoicePdfBuyer
   items: InvoicePdfItem[]
+  /** Summe der Positionen (Netto) */
+  netCents: number
+  taxCents: number
+  taxRatePercent: number
+  /** Zahlbetrag: Netto + USt. */
   totalCents: number
   currency: string
 }

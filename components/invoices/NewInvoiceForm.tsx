@@ -4,9 +4,12 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronRight, faCheck, faFilePdf, faPaperPlane, faPlus, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faChevronRight, faCheck, faFilePdf, faPaperPlane, faPlus, faUser, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { createInvoice } from '@/app/(app)/invoices/new/actions'
 import { updateInvoice } from '@/app/(app)/invoices/[id]/edit/actions'
+import { useAppProfile } from '@/context/AppProfileContext'
+import { invoiceVatTotals } from '@/lib/invoices/vat'
+import { animalSingularLabel } from '@/lib/appProfile'
 
 function priceStringToCents(s: string): number {
   const cleaned = String(s).replace(/[^\d,.-]/g, '').replace(',', '.')
@@ -63,6 +66,64 @@ const CARD_HEADER =
   'flex items-center gap-2.5 border-b border-[var(--border)] px-[22px] py-[18px]'
 const CARD_TITLE = 'dashboard-serif text-[16px] font-medium text-[#1B1F23]'
 
+function LineItemAmountInput({
+  row,
+  editingAmount,
+  setEditingAmount,
+  updateLineItem,
+  className,
+}: {
+  row: LineItem
+  editingAmount: { rowId: string; text: string } | null
+  setEditingAmount: (v: { rowId: string; text: string } | null) => void
+  updateLineItem: (id: string, upd: Partial<LineItem>) => void
+  className?: string
+}) {
+  const commit = (text: string) => {
+    const cents = priceStringToCents(text)
+    const q = Math.max(1, row.quantity)
+    updateLineItem(row.id, {
+      amountCents: cents,
+      unitPriceCents: q > 0 ? Math.round(cents / q) : 0,
+    })
+    setEditingAmount(null)
+  }
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={
+        editingAmount?.rowId === row.id
+          ? editingAmount.text
+          : row.amountCents === 0
+            ? ''
+            : (row.amountCents / 100).toFixed(2).replace('.', ',')
+      }
+      onFocus={() =>
+        setEditingAmount({
+          rowId: row.id,
+          text: row.amountCents === 0 ? '' : (row.amountCents / 100).toFixed(2).replace('.', ','),
+        })
+      }
+      onChange={(e) => setEditingAmount({ rowId: row.id, text: e.target.value })}
+      onBlur={() => {
+        const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
+        commit(text)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
+          commit(text)
+          ;(e.target as HTMLInputElement).blur()
+        }
+      }}
+      placeholder="0,00"
+      className={className}
+    />
+  )
+}
+
 export default function NewInvoiceForm({
   customers,
   initialCustomer,
@@ -76,6 +137,9 @@ export default function NewInvoiceForm({
   sellerName,
   sellerAddress,
   editMode,
+  compact = false,
+  kleinunternehmer = true,
+  taxRatePercent = 0,
 }: {
   customers: Customer[]
   initialCustomer: (Customer & { name: string }) | null
@@ -97,8 +161,14 @@ export default function NewInvoiceForm({
     initialPaymentDueDays: number
     initialLineItems: LineItem[]
   }
+  /** PWA: Rechnungsdaten standardmäßig zugeklappt */
+  compact?: boolean
+  kleinunternehmer?: boolean
+  taxRatePercent?: number
 }) {
   const router = useRouter()
+  const { profile } = useAppProfile()
+  const animalLabel = animalSingularLabel(profile.terminology)
   const isEdit = !!editMode
   const [selectedCustomer, setSelectedCustomer] = useState<(Customer & { name: string }) | null>(initialCustomer)
   const [horses, setHorses] = useState<Horse[]>(initialHorses)
@@ -132,6 +202,9 @@ export default function NewInvoiceForm({
   const [error, setError] = useState<string | null>(null)
   /** Beim Bearbeiten des Betragsfelds: Zeile + aktueller Text (damit Eingabe nicht sofort zu "6,00" wird) */
   const [editingAmount, setEditingAmount] = useState<{ rowId: string; text: string } | null>(null)
+  const [noteOpenIds, setNoteOpenIds] = useState<Record<string, boolean>>({})
+  const [invoiceDataOpen, setInvoiceDataOpen] = useState(!compact)
+  const [textsOpen, setTextsOpen] = useState(!compact)
 
   const paymentDueDate = (() => {
     const d = new Date(invoiceDate)
@@ -139,7 +212,8 @@ export default function NewInvoiceForm({
     return d.toISOString().slice(0, 10)
   })()
 
-  const totalCents = lineItems.reduce((s, i) => s + i.amountCents, 0)
+  const netCents = lineItems.reduce((s, i) => s + i.amountCents, 0)
+  const vat = invoiceVatTotals(netCents, kleinunternehmer ? 0 : taxRatePercent)
 
   const onCustomerChange = useCallback(
     (customerId: string) => {
@@ -192,19 +266,42 @@ export default function NewInvoiceForm({
     setLineItems((prev) => prev.filter((r) => r.id !== id))
   }, [])
 
-  const setLineItemFromService = useCallback(
-    (index: number, service: Service) => {
-      const cents = priceStringToCents(service.price)
-      const row = lineItems[index]
-      if (!row) return
-      updateLineItem(row.id, {
-        description: service.label,
-        unitPriceCents: cents,
-        quantity: 1,
-        amountCents: cents,
-      })
+  const applyService = useCallback((service: Service) => {
+    const cents = priceStringToCents(service.price)
+    const patch = {
+      description: service.label,
+      optionalSuffix: '',
+      unitPriceCents: cents,
+      quantity: 1,
+      amountCents: cents,
+    }
+    setLineItems((prev) => {
+      const empty = [...prev].reverse().find((i) => !i.description.trim() && i.amountCents === 0)
+      if (empty) {
+        return prev.map((row) => (row.id === empty.id ? { ...row, ...patch } : row))
+      }
+      return [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          horseId: '',
+          ...patch,
+        },
+      ]
+    })
+  }, [])
+
+  const onServiceSelect = useCallback(
+    (rowId: string, opt: string) => {
+      const svc = services.find((s) => s.label === opt)
+      if (svc) {
+        const cents = priceStringToCents(svc.price)
+        updateLineItem(rowId, { description: svc.label, unitPriceCents: cents, amountCents: cents })
+      } else {
+        updateLineItem(rowId, { description: '', optionalSuffix: '' })
+      }
     },
-    [lineItems, updateLineItem]
+    [services, updateLineItem]
   )
 
   const handleSaveDraft = async () => {
@@ -454,16 +551,38 @@ export default function NewInvoiceForm({
 
         {/* 2. Rechnungsdaten */}
         <section className="content-card">
-          <div className={CARD_HEADER}>
+          <button
+            type="button"
+            className={`${CARD_HEADER} w-full text-left transition hover:bg-[rgba(0,0,0,0.02)]`}
+            onClick={() => setInvoiceDataOpen((o) => !o)}
+            aria-expanded={invoiceDataOpen}
+          >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--accent-light)] text-[var(--accent)]">
               <i className="bi bi-receipt text-[16px]" aria-hidden />
             </span>
-            <h3 className={CARD_TITLE}>Rechnungsdaten</h3>
-            <span className="ml-auto flex items-center gap-1 text-[11px] font-medium text-[var(--accent)]">
-              <FontAwesomeIcon icon={faCheck} className="h-3 w-3" /> Automatisch ausgefüllt
+            <span className="min-w-0 flex-1">
+              <h3 className={CARD_TITLE}>Rechnungsdaten</h3>
+              {!invoiceDataOpen ? (
+                <p className="mt-0.5 truncate text-[12px] text-[#6B7280]">
+                  {invoiceNumber}
+                  {' · '}
+                  {formatDate(invoiceDate)}
+                  {' · '}
+                  {paymentDueDays === 0 ? 'Sofort fällig' : `${paymentDueDays} Tage`}
+                </p>
+              ) : (
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[var(--accent)]">
+                  <FontAwesomeIcon icon={faCheck} className="h-3 w-3" /> Automatisch ausgefüllt
+                </p>
+              )}
             </span>
-          </div>
-          <div className="grid gap-5 px-[22px] py-[22px] md:grid-cols-3">
+            <FontAwesomeIcon
+              icon={faChevronDown}
+              className={`h-3.5 w-3.5 shrink-0 text-[#6B7280] transition-transform duration-200 ${invoiceDataOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {invoiceDataOpen ? (
+          <div className="grid gap-5 px-4 py-4 md:grid-cols-3 md:px-[22px] md:py-[22px]">
             <div className="form-group">
               <label className="form-label">Rechnungsnummer</label>
               <input
@@ -497,6 +616,7 @@ export default function NewInvoiceForm({
               </select>
             </div>
           </div>
+          ) : null}
         </section>
 
         {/* 3. Positionen */}
@@ -507,7 +627,7 @@ export default function NewInvoiceForm({
             </span>
             <h3 className={CARD_TITLE}>Rechnungspositionen</h3>
           </div>
-          <div className="px-[22px] py-[22px]">
+          <div className="px-4 py-4 md:px-[22px] md:py-[22px]">
             <p className="mb-3 text-[12px] font-medium text-[var(--text-secondary)]">
               Schnellauswahl aus deinem Leistungskatalog:
             </p>
@@ -516,7 +636,7 @@ export default function NewInvoiceForm({
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setLineItemFromService(0, svc)}
+                  onClick={() => applyService(svc)}
                   className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3.5 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
                 >
                   {svc.label} · {svc.price}
@@ -524,11 +644,133 @@ export default function NewInvoiceForm({
               ))}
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+            {/* PWA: Karten statt Tabelle */}
+            <div className="space-y-3 md:hidden">
+              {lineItems.map((row, index) => {
+                const isFreeInput = !services.some((s) => s.label === row.description)
+                const noteOpen = Boolean(noteOpenIds[row.id] || row.optionalSuffix)
+                return (
+                  <div
+                    key={row.id}
+                    className="rounded-[14px] border border-[var(--border)] bg-[color-mix(in_oklab,var(--foreground)_3%,var(--card))] p-3.5"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
+                        Position {index + 1}
+                      </span>
+                      {lineItems.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => removeLineItem(row.id)}
+                          className="text-[12px] font-medium text-[#9CA3AF]"
+                        >
+                          Entfernen
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="form-group mb-3">
+                      <label className="form-label">Leistung</label>
+                      <select
+                        value={isFreeInput ? '__free__' : row.description}
+                        onChange={(e) => onServiceSelect(row.id, e.target.value)}
+                        className="select"
+                      >
+                        <option value="__free__">Freier Text</option>
+                        {services.map((s) => (
+                          <option key={s.label} value={s.label}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                      {isFreeInput ? (
+                        <input
+                          type="text"
+                          placeholder="Leistung eingeben"
+                          value={row.description}
+                          onChange={(e) => updateLineItem(row.id, { description: e.target.value })}
+                          className="input mt-2"
+                        />
+                      ) : null}
+                    </div>
+
+                    {noteOpen ? (
+                      <div className="form-group mb-3">
+                        <label className="form-label">Beschreibung</label>
+                        <input
+                          type="text"
+                          placeholder="Optional, z. B. Besonderheiten"
+                          value={row.optionalSuffix}
+                          onChange={(e) => updateLineItem(row.id, { optionalSuffix: e.target.value })}
+                          className="input"
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setNoteOpenIds((prev) => ({ ...prev, [row.id]: true }))}
+                        className="mb-3 flex items-center gap-1.5 text-[13px] font-medium text-primary"
+                      >
+                        <FontAwesomeIcon icon={faPlus} className="h-3 w-3" /> Beschreibung
+                      </button>
+                    )}
+
+                    <div className="mb-3 grid grid-cols-2 gap-2.5">
+                      <div className="form-group mb-0">
+                        <label className="form-label">Menge</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={row.quantity}
+                          onChange={(e) => updateLineItem(row.id, { quantity: Number(e.target.value) || 1 })}
+                          className="input font-semibold"
+                        />
+                      </div>
+                      <div className="form-group mb-0">
+                        <label className="form-label">{animalLabel}</label>
+                        <select
+                          value={row.horseId}
+                          onChange={(e) => updateLineItem(row.id, { horseId: e.target.value })}
+                          className="select"
+                        >
+                          <option value="">—</option>
+                          {horses.map((h) => (
+                            <option key={h.id} value={h.id}>
+                              {h.name || '–'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label className="form-label">Betrag</label>
+                      <LineItemAmountInput
+                        row={row}
+                        editingAmount={editingAmount}
+                        setEditingAmount={setEditingAmount}
+                        updateLineItem={updateLineItem}
+                        className="input w-full font-serif text-[20px] font-semibold text-[var(--accent)] tabular-nums"
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+
+              <button
+                type="button"
+                onClick={addLineItem}
+                className="flex w-full items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[var(--border)] py-3.5 text-[14px] font-semibold text-[var(--accent)]"
+              >
+                <FontAwesomeIcon icon={faPlus} className="h-4 w-4" /> Position hinzufügen
+              </button>
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] md:block">
               <div className="min-w-[520px]">
               <div className="grid grid-cols-[1fr_120px_70px_100px_44px] gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--border)_22%,var(--card))] px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
                 <div>Leistung</div>
-                <div>Pferd</div>
+                <div>{animalLabel}</div>
                 <div className="text-center">Anz.</div>
                 <div className="text-right">Betrag</div>
                 <div />
@@ -543,16 +785,7 @@ export default function NewInvoiceForm({
                   <div className="space-y-2">
                     <select
                       value={isFreeInput ? '__free__' : row.description}
-                      onChange={(e) => {
-                        const opt = e.target.value
-                        const svc = services.find((s) => s.label === opt)
-                        if (svc) {
-                          const cents = priceStringToCents(svc.price)
-                          updateLineItem(row.id, { description: svc.label, unitPriceCents: cents, amountCents: cents })
-                        } else {
-                          updateLineItem(row.id, { description: '', optionalSuffix: '' })
-                        }
-                      }}
+                      onChange={(e) => onServiceSelect(row.id, e.target.value)}
                       className="select"
                     >
                       <option value="__free__">Freier Text</option>
@@ -613,52 +846,11 @@ export default function NewInvoiceForm({
                     />
                   </div>
                   <div className="flex items-start justify-end">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={
-                        editingAmount?.rowId === row.id
-                          ? editingAmount.text
-                          : row.amountCents === 0
-                            ? ''
-                            : (row.amountCents / 100).toFixed(2).replace('.', ',')
-                      }
-                      onFocus={() =>
-                        setEditingAmount({
-                          rowId: row.id,
-                          text: row.amountCents === 0 ? '' : (row.amountCents / 100).toFixed(2).replace('.', ','),
-                        })
-                      }
-                      onChange={(e) =>
-                        setEditingAmount((prev) =>
-                          prev?.rowId === row.id ? { rowId: row.id, text: e.target.value } : prev
-                        )
-                      }
-                      onBlur={() => {
-                        const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
-                        const cents = priceStringToCents(text)
-                        const q = Math.max(1, row.quantity)
-                        updateLineItem(row.id, {
-                          amountCents: cents,
-                          unitPriceCents: q > 0 ? Math.round(cents / q) : 0,
-                        })
-                        setEditingAmount(null)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          const text = editingAmount?.rowId === row.id ? editingAmount.text : ''
-                          const cents = priceStringToCents(text)
-                          const q = Math.max(1, row.quantity)
-                          updateLineItem(row.id, {
-                            amountCents: cents,
-                            unitPriceCents: q > 0 ? Math.round(cents / q) : 0,
-                          })
-                          setEditingAmount(null)
-                          ;(e.target as HTMLInputElement).blur()
-                        }
-                      }}
-                      placeholder="0,00"
+                    <LineItemAmountInput
+                      row={row}
+                      editingAmount={editingAmount}
+                      setEditingAmount={setEditingAmount}
+                      updateLineItem={updateLineItem}
                       className="input w-full text-right font-serif text-[17px] font-semibold text-[var(--accent)] tabular-nums"
                     />
                   </div>
@@ -687,38 +879,68 @@ export default function NewInvoiceForm({
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end">
-              <div className="w-[300px]">
-                <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
+            <div className="mt-5 md:mt-4 md:flex md:justify-end">
+              <div className="w-full space-y-1 md:w-[300px]">
+                <div className="flex justify-between py-1.5 text-[14px] text-[#6B7280]">
                   <span>Zwischensumme</span>
-                  <span>{formatCurrency(totalCents)}</span>
+                  <span className="tabular-nums">{formatCurrency(vat.netCents)}</span>
                 </div>
-                <div className="flex justify-between py-2 text-[14px] italic text-[#6B7280]">
-                  <span>Umsatzsteuer</span>
-                  <span>entfällt (§19 UStG)</span>
+                <div className="flex justify-between py-1.5 text-[14px] text-[#6B7280]">
+                  <span>{kleinunternehmer ? 'Umsatzsteuer' : `Umsatzsteuer ${vat.taxRatePercent} %`}</span>
+                  <span className="tabular-nums">
+                    {kleinunternehmer ? 'entfällt (§ 19 UStG)' : formatCurrency(vat.taxCents)}
+                  </span>
                 </div>
-                <div className="flex justify-between border-t-2 border-[#1B1F23] py-3 text-[18px] font-bold">
+                <div className="flex justify-between border-t-2 border-[#1B1F23] py-3 text-[16px] font-bold">
                   <span>Gesamtbetrag</span>
-                  <span className="font-serif text-[24px] text-[var(--accent)] tabular-nums">{formatCurrency(totalCents)}</span>
+                  <span className="font-serif text-[22px] text-[var(--accent)] tabular-nums md:text-[24px]">
+                    {formatCurrency(vat.grossCents)}
+                  </span>
                 </div>
               </div>
             </div>
+            {kleinunternehmer ? (
             <div className="mt-3 flex items-center gap-2 rounded-lg border border-[color-mix(in_oklab,var(--accent)_22%,var(--border))] bg-[var(--accent-light)] p-3 text-[12px] text-[var(--accent-dark)]">
               <span className="shrink-0">ℹ️</span>
               Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
             </div>
+            ) : (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-[color-mix(in_oklab,var(--accent)_22%,var(--border))] bg-[var(--accent-light)] p-3 text-[12px] text-[var(--accent-dark)]">
+              <span className="shrink-0">ℹ️</span>
+              Positionen sind Nettopreise. {vat.taxRatePercent} % MwSt. werden auf den Gesamtbetrag aufgeschlagen.
+            </div>
+            )}
           </div>
         </section>
 
         {/* 4. Texte & Notizen */}
         <section className="content-card">
-          <div className={CARD_HEADER}>
+          <button
+            type="button"
+            className={`${CARD_HEADER} w-full text-left transition hover:bg-[rgba(0,0,0,0.02)]`}
+            onClick={() => setTextsOpen((o) => !o)}
+            aria-expanded={textsOpen}
+          >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[color-mix(in_oklab,var(--border)_55%,var(--card))] text-[var(--text-secondary)]">
               <i className="bi bi-chat-left-text text-[16px]" aria-hidden />
             </span>
-            <h3 className={CARD_TITLE}>Texte & Notizen</h3>
-          </div>
-          <div className="space-y-5 px-[22px] py-[22px]">
+            <span className="min-w-0 flex-1">
+              <h3 className={CARD_TITLE}>Texte & Notizen</h3>
+              {!textsOpen ? (
+                <p className="mt-0.5 truncate text-[12px] text-[#6B7280]">
+                  {personalNote.trim()
+                    ? 'Einleitung, Schluss, persönliche Notiz'
+                    : 'Vorlagen aus den Einstellungen'}
+                </p>
+              ) : null}
+            </span>
+            <FontAwesomeIcon
+              icon={faChevronDown}
+              className={`h-3.5 w-3.5 shrink-0 text-[#6B7280] transition-transform duration-200 ${textsOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {textsOpen ? (
+          <div className="space-y-5 px-4 py-4 md:px-[22px] md:py-[22px]">
             <div className="form-group">
               <label className="form-label">Einleitungstext</label>
               <textarea
@@ -749,6 +971,7 @@ export default function NewInvoiceForm({
               />
             </div>
           </div>
+          ) : null}
         </section>
       </div>
 
@@ -795,11 +1018,17 @@ export default function NewInvoiceForm({
                 </div>
                 <div className="mt-2 flex justify-between border-t-2 border-[#1B1F23] py-2 font-bold text-[13px]">
                   <span>Gesamt</span>
-                  <span className="font-serif text-[16px] text-[var(--accent)] tabular-nums">{formatCurrency(totalCents)}</span>
+                  <span className="font-serif text-[16px] text-[var(--accent)] tabular-nums">{formatCurrency(vat.grossCents)}</span>
                 </div>
+                {kleinunternehmer ? (
                 <div className="mt-2 rounded bg-[var(--accent-light)] px-2 py-1 text-center text-[9px] text-[var(--accent-dark)]">
                   Gemäß §19 UStG wird keine Umsatzsteuer berechnet.
                 </div>
+                ) : (
+                <div className="mt-2 rounded bg-[var(--accent-light)] px-2 py-1 text-center text-[9px] text-[var(--accent-dark)]">
+                  zzgl. {vat.taxRatePercent} % MwSt. ({formatCurrency(vat.taxCents)})
+                </div>
+                )}
               </div>
             </div>
           </div>
@@ -835,7 +1064,7 @@ export default function NewInvoiceForm({
             </div>
             <div className="flex justify-between border-t-2 border-[#1B1F23] pt-4 mt-2 text-[15px] font-bold">
               <span className="text-[#1B1F23]">Gesamtbetrag</span>
-              <span className="font-serif text-[24px] text-[var(--accent)] tabular-nums">{formatCurrency(totalCents)}</span>
+              <span className="font-serif text-[24px] text-[var(--accent)] tabular-nums">{formatCurrency(vat.grossCents)}</span>
             </div>
           </div>
         </div>

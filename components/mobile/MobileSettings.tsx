@@ -53,9 +53,9 @@ function SecAccordion({
       </button>
       <div
         className="overflow-hidden transition-[max-height] duration-300 ease-out"
-        style={{ maxHeight: open ? 3000 : 0 }}
+        style={{ maxHeight: open ? 'none' : 0, overflow: open ? 'visible' : 'hidden' }}
       >
-        <div className="border-t border-[#E5E2DC] px-4 pb-4 pt-0">{children}</div>
+        <div className="border-t border-[#E5E2DC] px-4 pb-6 pt-5">{children}</div>
       </div>
     </div>
   )
@@ -239,7 +239,7 @@ export default function MobileSettings() {
   const safeBottom = 'env(safe-area-inset-bottom, 0px)'
 
   return (
-    <div className="ms-root" style={{ background: '#f6f5f3', minHeight: '100dvh' }}>
+    <div className="ms-root" style={{ background: '#f6f5f3', minHeight: '100%' }}>
       {/* Status Bar */}
       <div style={{ height: 'calc(8px + env(safe-area-inset-top, 0px))', background: '#1c2023' }} />
 
@@ -283,7 +283,8 @@ export default function MobileSettings() {
       <div
         style={{
           padding: '14px 16px',
-          paddingBottom: `calc(64px + ${safeBottom} + 20px)`,
+          /* Scrollbereich sitzt schon über der Tab-Leiste; Abstand nur für Abbrechen/Speichern */
+          paddingBottom: 24,
         }}
       >
         {error && (
@@ -418,9 +419,22 @@ export default function MobileSettings() {
                   <span>Kleinunternehmerregelung aktiv. Keine MwSt. auf Rechnungen.</span>
                 </div>
               )}
+              {s.kleinunternehmer ? (
               <FGroup label="Hinweistext auf Rechnungen" hint="Mit §19 UStG">
                 <input className={inputClass} value={s.kleinunternehmerText ?? ''} onChange={(e) => update('kleinunternehmerText', e.target.value)} />
               </FGroup>
+              ) : (
+              <FGroup label="Mehrwertsteuersatz" hint="Wird auf Nettopreise aufgeschlagen">
+                <select
+                  className={selectClass}
+                  value={s.defaultTaxRate ?? '19% (Regelsteuersatz)'}
+                  onChange={(e) => update('defaultTaxRate', e.target.value)}
+                >
+                  <option value="19% (Regelsteuersatz)">19 % Regelsteuersatz</option>
+                  <option value="7% (ermäßigt)">7 % ermäßigt</option>
+                </select>
+              </FGroup>
+              )}
             </SecAccordion>
 
             <SecAccordion icon="bi-image-fill" title="Logo & Erscheinungsbild" hint="Optional">
@@ -725,6 +739,9 @@ export default function MobileSettings() {
             </div>
           </SecAccordion>
         )}
+
+        {/* Platz, damit der letzte Kasten nicht unter Abbrechen/Speichern liegt */}
+        <div style={{ height: 128 }} aria-hidden />
 
         {/* Save Bar */}
         <div

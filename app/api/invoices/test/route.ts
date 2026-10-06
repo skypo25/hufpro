@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
+import { vatFromSettings } from "@/lib/invoices/vat"
 
 /** "65,00 €" oder "65.00" -> 6500 */
 function priceStringToCents(s: string): number {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
     .maybeSingle<{ settings: Record<string, unknown> | null }>()
 
   const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const { taxRatePercent } = vatFromSettings(s)
   const prefix = (s.invoicePrefix as string) ?? "HUF-"
   const introText = (s.invoiceTextTop as string) ?? null
   const footerText = (s.invoiceTextBottom as string) ?? null
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
     quantity: 1,
     unit_price_cents: unitPriceCents,
     amount_cents: amountCents,
-    tax_rate_percent: 0,
+    tax_rate_percent: taxRatePercent,
   })
 
   if (itemErr) {

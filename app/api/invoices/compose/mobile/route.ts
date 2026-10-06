@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { vatFromSettings } from '@/lib/invoices/vat'
 
 type Customer = {
   id: string
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
     .maybeSingle<{ settings: Record<string, unknown> | null }>()
 
   const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const vat = vatFromSettings(s)
   const services = (s.services as { label: string; price: string }[]) ?? [
     { label: 'Barhufbearbeitung (1 Pferd, 4 Hufe)', price: '65,00 €' },
   ]
@@ -137,6 +139,8 @@ export async function GET(request: Request) {
       defaultFooterText: (inv.footer_text as string) ?? '',
       sellerName,
       sellerAddress,
+      kleinunternehmer: vat.kleinunternehmer,
+      taxRatePercent: vat.taxRatePercent,
       editMode: {
         invoiceId,
         customerId: inv.customer_id,
@@ -208,5 +212,7 @@ export async function GET(request: Request) {
     defaultFooterText: footerText,
     sellerName,
     sellerAddress,
+    kleinunternehmer: vat.kleinunternehmer,
+    taxRatePercent: vat.taxRatePercent,
   })
 }

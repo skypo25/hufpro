@@ -614,6 +614,24 @@ export default function SettingsForm({
                   </FormGroup>
                 </div>
               )}
+              {!s.kleinunternehmer && (
+                <div className="mt-4 border-t border-[#E5E2DC] pt-4">
+                  <div className="mb-3 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-3 text-[13px] text-[#1E40AF]">
+                    <span>ℹ️</span>
+                    <p><strong>MwSt. aktiv.</strong> Die Beträge auf der Rechnung sind Netto, zuzüglich Umsatzsteuer.</p>
+                  </div>
+                  <FormGroup label="Mehrwertsteuersatz">
+                    <select
+                      className="select"
+                      value={s.defaultTaxRate ?? '19% (Regelsteuersatz)'}
+                      onChange={(e) => update('defaultTaxRate', e.target.value)}
+                    >
+                      <option value="19% (Regelsteuersatz)">19 % Regelsteuersatz</option>
+                      <option value="7% (ermäßigt)">7 % ermäßigt</option>
+                    </select>
+                  </FormGroup>
+                </div>
+              )}
             </div>
             <div className="mt-4 flex gap-3 rounded-lg border border-[#FDE68A] bg-[#FEF9EE] p-4 text-[13px] text-[#92400E]">
               <span className="shrink-0">⚠️</span>

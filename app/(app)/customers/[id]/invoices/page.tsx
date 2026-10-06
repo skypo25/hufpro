@@ -103,7 +103,7 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-tight text-[#1B1F23]">Rechnungen</h1>
-          <p className="mt-1 text-[14px] text-[#6B7280]">Alle Rechnungen für {customerName} · Kleinunternehmer §19 UStG</p>
+          <p className="mt-1 text-[14px] text-[#6B7280]">Alle Rechnungen für {customerName}</p>
         </div>
         <div className="flex gap-2">
           <Link

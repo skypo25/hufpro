@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import NewInvoiceForm from '@/components/invoices/NewInvoiceForm'
 import AppPage from '@/components/layout/AppPage'
+import { vatFromSettings } from '@/lib/invoices/vat'
 
 type NewInvoicePageProps = {
   searchParams: Promise<{ customerId?: string }>
@@ -27,6 +28,7 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
     .maybeSingle<{ settings: Record<string, unknown> | null }>()
 
   const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const vat = vatFromSettings(s)
   const prefix = ((s.invoicePrefix as string) ?? 'HUF-').replace(/\s/g, '')
   const nextRaw = (s.nextInvoiceNumber as string) ?? '2026-0001'
   const match = nextRaw.match(/^(\d{4})-(\d+)$/)
@@ -130,6 +132,8 @@ export default async function NewInvoicePage({ searchParams }: NewInvoicePagePro
         defaultFooterText={footerText}
         sellerName={sellerName}
         sellerAddress={sellerAddress}
+        kleinunternehmer={vat.kleinunternehmer}
+        taxRatePercent={vat.taxRatePercent}
       />
     </AppPage>
   )

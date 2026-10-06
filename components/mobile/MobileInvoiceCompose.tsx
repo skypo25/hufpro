@@ -75,7 +75,7 @@ export default function MobileInvoiceCompose({ invoiceId }: { invoiceId?: string
         </div>
       </header>
       <div className="mobile-content mobile-form-embed-root">
-        <NewInvoiceForm {...payload} />
+        <NewInvoiceForm {...payload} compact />
       </div>
     </div>
   )

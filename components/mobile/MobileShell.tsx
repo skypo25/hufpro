@@ -48,6 +48,7 @@ export default function MobileShell({
   const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|animals\/new|animals\/[^/]+\/edit|animals\/[^/]+\/erstanamnese(\/edit)?|invoices\/new|invoices\/[^/]+\/edit)$/.test(
     pathname ?? ''
   )
+  const showFab = showTabBar && !pathname?.startsWith('/settings')
   const isMoreActive =
     Boolean(pathname?.startsWith('/settings')) || Boolean(pathname?.startsWith('/invoices'))
 
@@ -86,7 +87,7 @@ export default function MobileShell({
       </div>
 
       {/* FAB nur auf Nicht-Formular-Seiten zeigen */}
-      {showTabBar && <MobileFab />}
+      {showFab && <MobileFab />}
 
       {/* More-Sheet (Overlay + Menü) */}
       <MobileMoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />

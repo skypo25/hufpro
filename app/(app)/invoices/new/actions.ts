@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { revalidateDashboardMobileForUser } from '@/lib/cache/tags'
+import { vatFromSettings } from '@/lib/invoices/vat'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 function priceStringToCents(s: string): number {
@@ -42,6 +43,13 @@ export async function createInvoice(
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle<{ settings: Record<string, unknown> | null }>()
+  const { taxRatePercent } = vatFromSettings(settingsRow?.settings as Record<string, unknown> | null)
 
   const { data: customer } = await supabase
     .from('customers')
@@ -114,7 +122,7 @@ export async function createInvoice(
       quantity: it.quantity,
       unit_price_cents: it.unitPriceCents,
       amount_cents: it.amountCents,
-      tax_rate_percent: 0,
+      tax_rate_percent: taxRatePercent,
     })
     if (itemErr) {
       await supabase.from('invoices').delete().eq('id', inv.id)

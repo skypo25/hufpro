@@ -286,7 +286,7 @@ type InvoicePdfDocumentProps = {
 }
 
 export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
-  const { seller, buyer, items, totalCents } = data
+  const { seller, buyer, items, netCents, taxCents, taxRatePercent, totalCents } = data
   const kleinunternehmer = seller.kleinunternehmer
   const kleinunternehmerText = resolveKleinunternehmerHinweis(
     seller.kleinunternehmer,
@@ -390,12 +390,17 @@ export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
           <View style={styles.summaryBox}>
             <View style={[styles.summaryRow, styles.summaryRowSub]}>
               <Text>Zwischensumme</Text>
-              <Text>{formatCurrency(totalCents)}</Text>
+              <Text>{formatCurrency(netCents)}</Text>
             </View>
-            {kleinunternehmer && (
+            {kleinunternehmer ? (
               <View style={[styles.summaryRow, styles.summaryRowSub]}>
                 <Text>Umsatzsteuer</Text>
                 <Text>entfällt (§19 UStG)</Text>
+              </View>
+            ) : (
+              <View style={[styles.summaryRow, styles.summaryRowSub]}>
+                <Text>{`Umsatzsteuer ${taxRatePercent} %`}</Text>
+                <Text>{formatCurrency(taxCents)}</Text>
               </View>
             )}
             <View style={styles.summaryDivider}>

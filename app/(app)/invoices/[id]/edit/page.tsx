@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import NewInvoiceForm from '@/components/invoices/NewInvoiceForm'
 import AppPage from '@/components/layout/AppPage'
+import { vatFromSettings } from '@/lib/invoices/vat'
 
 type EditInvoicePageProps = {
   params: Promise<{ id: string }>
@@ -65,6 +66,7 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
     .maybeSingle<{ settings: Record<string, unknown> | null }>()
 
   const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const vat = vatFromSettings(s)
   const services = (s.services as { label: string; price: string }[]) ?? [
     { label: 'Barhufbearbeitung (1 Pferd, 4 Hufe)', price: '65,00 €' },
   ]
@@ -135,6 +137,8 @@ export default async function EditInvoicePage({ params }: EditInvoicePageProps) 
         defaultFooterText={(inv.footer_text as string) ?? ''}
         sellerName={sellerName}
         sellerAddress={sellerAddress}
+        kleinunternehmer={vat.kleinunternehmer}
+        taxRatePercent={vat.taxRatePercent}
         editMode={{
           invoiceId,
           customerId,

@@ -55,8 +55,8 @@ export async function embedZugferdIntoPdf(
       city: buyer.city ?? undefined,
     },
     taxTotal: {
-      taxAmount: 0,
-      taxPercentage: 0,
+      taxAmount: moneyCentsToNumber(data.taxCents ?? 0),
+      taxPercentage: data.taxRatePercent ?? 0,
     },
     paymentDetails: {
       bankDetails: {

@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { InvoicePdfData, InvoicePdfSeller, InvoicePdfBuyer, InvoicePdfItem } from "./invoiceTypes"
 import { resolveKleinunternehmerHinweis } from "@/lib/invoices/kleinunternehmer"
+import { effectiveLineTaxRate, taxCentsOnNet, vatFromSettings } from "@/lib/invoices/vat"
 
 type SettingsRow = { settings: Record<string, unknown> | null }
 type InvoiceRow = {
@@ -180,7 +181,17 @@ export async function fetchInvoicePdfData(
     taxRatePercent: Number(r.tax_rate_percent) || 0,
   }))
 
-  const totalCents = items.reduce((sum, i) => sum + i.amountCents, 0)
+  const vat = vatFromSettings((settingsRow?.settings ?? null) as Record<string, unknown> | null)
+  const netCents = items.reduce((sum, i) => sum + i.amountCents, 0)
+  const taxCents = vat.kleinunternehmer
+    ? 0
+    : items.reduce(
+        (sum, i) =>
+          sum + taxCentsOnNet(i.amountCents, effectiveLineTaxRate(i.taxRatePercent, false, vat.taxRatePercent)),
+        0
+      )
+  const totalCents = netCents + taxCents
+  const taxRatePercent = vat.kleinunternehmer ? 0 : vat.taxRatePercent
   const currency = (settingsRow?.settings as Record<string, unknown>)?.currency ?? "EUR (€)"
 
   return {
@@ -197,6 +208,9 @@ export async function fetchInvoicePdfData(
     seller,
     buyer,
     items,
+    netCents,
+    taxCents,
+    taxRatePercent,
     totalCents,
     currency: typeof currency === "string" ? currency : "EUR (€)",
   }

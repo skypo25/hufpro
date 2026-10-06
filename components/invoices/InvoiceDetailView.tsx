@@ -56,7 +56,7 @@ type InvoiceDetailViewProps = {
 }
 
 export default function InvoiceDetailView({ data, backHref, invoiceId, status }: InvoiceDetailViewProps) {
-  const { seller, buyer, items, totalCents } = data
+  const { seller, buyer, items, netCents, taxCents, taxRatePercent, totalCents } = data
   const sellerName = seller.companyName?.trim() || seller.name
   const sellerAddress = formatAddress([seller.street, [seller.zip, seller.city].filter(Boolean).join(' '), seller.country])
   const buyerAddress = formatAddress([buyer.street, [buyer.zip, buyer.city].filter(Boolean).join(' '), buyer.country])
@@ -318,12 +318,17 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
             <div className="w-[300px]">
               <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
                 <span>Zwischensumme</span>
-                <span>{formatCurrency(totalCents)}</span>
+                <span>{formatCurrency(netCents)}</span>
               </div>
-              {seller.kleinunternehmer && (
+              {seller.kleinunternehmer ? (
                 <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
                   <span>Umsatzsteuer</span>
                   <span>entfällt (§ 19 UStG)</span>
+                </div>
+              ) : (
+                <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
+                  <span>Umsatzsteuer {taxRatePercent} %</span>
+                  <span>{formatCurrency(taxCents)}</span>
                 </div>
               )}
               <div className="mt-2 flex justify-between border-t-2 border-[#1B1F23] pt-4 text-[18px] font-bold">
