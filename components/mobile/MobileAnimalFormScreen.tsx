@@ -46,6 +46,8 @@ type HorseRow = {
   coat_color?: string | null
   chip_id?: string | null
   intake?: Record<string, unknown> | null
+  photo_whole_left_path?: string | null
+  photo_whole_right_path?: string | null
 }
 
 function mapHorseToAnimalFormInitial(horse: HorseRow): AnimalFormInitialData {
@@ -99,7 +101,10 @@ function mapHorseToAnimalFormInitial(horse: HorseRow): AnimalFormInitialData {
   }
 }
 
-function mapHorseToHorseFormInitial(horse: HorseRow): HorseFormInitialData {
+function mapHorseToHorseFormInitial(
+  horse: HorseRow,
+  profilePhotoUrls: HorseFormInitialData['profilePhotoUrls']
+): HorseFormInitialData {
   return {
     id: horse.id,
     customerId: horse.customer_id || '',
@@ -123,6 +128,11 @@ function mapHorseToHorseFormInitial(horse: HorseRow): HorseFormInitialData {
     stablePhone: horse.stable_phone || '',
     stableDirections: horse.stable_directions || '',
     stableDriveTime: horse.stable_drive_time ?? null,
+    profilePhotoPaths: {
+      whole_left: horse.photo_whole_left_path ?? null,
+      whole_right: horse.photo_whole_right_path ?? null,
+    },
+    profilePhotoUrls,
   }
 }
 
@@ -139,6 +149,7 @@ export default function MobileAnimalFormScreen({ mode, horseId }: Props) {
 
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [horse, setHorse] = useState<HorseRow | null>(null)
+  const [profilePhotoUrls, setProfilePhotoUrls] = useState<HorseFormInitialData['profilePhotoUrls']>({})
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -187,7 +198,21 @@ export default function MobileAnimalFormScreen({ mode, horseId }: Props) {
           setLoading(false)
           return
         }
-        setHorse(h as HorseRow)
+        const row = h as HorseRow
+        const urls: HorseFormInitialData['profilePhotoUrls'] = {}
+        for (const [slot, path] of [
+          ['whole_left', row.photo_whole_left_path],
+          ['whole_right', row.photo_whole_right_path],
+        ] as const) {
+          if (!path) continue
+          const { data: signed } = await supabase.storage
+            .from('hoof-photos')
+            .createSignedUrl(path, 60 * 60)
+          if (signed?.signedUrl) urls[slot] = signed.signedUrl
+        }
+        if (cancelled) return
+        setHorse(row)
+        setProfilePhotoUrls(urls)
       } else {
         setHorse(null)
       }
@@ -300,7 +325,7 @@ export default function MobileAnimalFormScreen({ mode, horseId }: Props) {
           <HorseForm
             mode="edit"
             customers={customers}
-            initialData={mapHorseToHorseFormInitial(horse)}
+              initialData={mapHorseToHorseFormInitial(horse!, profilePhotoUrls)}
           />
         )}
       </div>

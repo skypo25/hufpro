@@ -5,6 +5,8 @@ import HorseForm from '@/components/horses/HorseForm'
 import { deriveAppProfile, animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
 import AnimalForm, { type AnimalFormInitialData, type AnimalType } from '@/components/animals/AnimalForm'
 import { profilePhotoPathFromIntake, resolveClinicalForForm } from '@/lib/animals/clinicalIntakeTypes'
+import { signHorseProfileWholeBodyPhotos } from '@/lib/photos/horseProfilePhotos'
+import { SLOT_WHOLE_BODY } from '@/lib/photos/photoTypes'
 import { deleteHorseAndRedirect } from '../actions'
 import AppPage from '@/components/layout/AppPage'
 
@@ -102,6 +104,21 @@ export default async function EditHorsePage({
     )
   }
 
+  const horseRecord = horse as HorseRow & {
+    photo_whole_left_path?: string | null
+    photo_whole_right_path?: string | null
+  }
+  const signedProfile = await signHorseProfileWholeBodyPhotos(supabase, horseRecord)
+  const profilePhotoUrls: Partial<Record<(typeof SLOT_WHOLE_BODY)[number], string>> = {}
+  const profilePhotoPaths: Partial<Record<(typeof SLOT_WHOLE_BODY)[number], string | null>> = {
+    whole_left: horseRecord.photo_whole_left_path ?? null,
+    whole_right: horseRecord.photo_whole_right_path ?? null,
+  }
+  for (const item of signedProfile) {
+    if (item.id.endsWith('whole_left')) profilePhotoUrls.whole_left = item.imageUrl
+    if (item.id.endsWith('whole_right')) profilePhotoUrls.whole_right = item.imageUrl
+  }
+
   return (
     <AppPage>
       <div>
@@ -191,6 +208,8 @@ export default async function EditHorsePage({
             stablePhone: horse.stable_phone || '',
             stableDirections: horse.stable_directions || '',
             stableDriveTime: horse.stable_drive_time ?? null,
+            profilePhotoPaths,
+            profilePhotoUrls,
           }}
         />
       )}

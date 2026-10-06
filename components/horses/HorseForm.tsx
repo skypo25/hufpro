@@ -11,6 +11,14 @@ import DeleteHorseForm from '@/app/(app)/horses/[id]/DeleteHorseForm'
 import { HorseIcon } from '@/components/icons/HorseIcon'
 import { localDateTimeToUtcIso } from '@/lib/datetime/localDateTime'
 import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
+import { processWholeBodyImage } from '@/components/photos/imageProcessing'
+import PhotoSlot from '@/components/photos/PhotoSlot'
+import type { StagedPhoto } from '@/components/photos/usePhotoUpload'
+import { SLOT_LABELS, SLOT_WHOLE_BODY, type SlotWholeBody } from '@/lib/photos/photoTypes'
+import {
+  clearHorseProfilePhoto,
+  uploadHorseProfilePhoto,
+} from '@/lib/photos/uploadHorseProfilePhoto'
 
 type HorseFormMode = 'create' | 'edit'
 
@@ -45,6 +53,8 @@ export type HorseFormInitialData = {
   stableDirections: string
   /** Nur Bearbeiten: gespeicherter Entfernungstext zum Standort */
   stableDriveTime?: string | null
+  profilePhotoPaths?: Partial<Record<'whole_left' | 'whole_right', string | null>>
+  profilePhotoUrls?: Partial<Record<'whole_left' | 'whole_right', string>>
 }
 
 type HorseFormProps = {
@@ -315,6 +325,15 @@ export default function HorseForm({
   const [planFirstAppointment, setPlanFirstAppointment] = useState(false)
   const [firstAppointmentDate, setFirstAppointmentDate] = useState('')
   const [firstAppointmentTime, setFirstAppointmentTime] = useState('09:00')
+  const [profileStaged, setProfileStaged] = useState<Partial<Record<SlotWholeBody, StagedPhoto>>>({})
+  const [profileUrls, setProfileUrls] = useState<Partial<Record<SlotWholeBody, string>>>(
+    () => initialData.profilePhotoUrls ?? {}
+  )
+  const [profilePaths, setProfilePaths] = useState<Partial<Record<SlotWholeBody, string | null>>>(
+    () => initialData.profilePhotoPaths ?? {}
+  )
+  const [profileUploading, setProfileUploading] = useState<SlotWholeBody | null>(null)
+  const [savedHorseId, setSavedHorseId] = useState<string | null>(initialData.id ?? null)
 
   const selectedCustomer = useMemo(
     () => customers.find((customer) => customer.id === customerId) || null,
@@ -487,6 +506,14 @@ export default function HorseForm({
       return
     }
 
+    async function persistProfilePhotos(horseId: string) {
+      for (const slot of SLOT_WHOLE_BODY) {
+        const staged = profileStaged[slot]
+        if (!staged) continue
+        await uploadHorseProfilePhoto({ horseId, slot, blob: staged.blob })
+      }
+    }
+
     const payload = {
       user_id: user.id,
       customer_id: customerId,
@@ -528,68 +555,92 @@ export default function HorseForm({
     }
 
     if (mode === 'create') {
-      const { data, error } = await supabase
-        .from('horses')
-        .insert([payload])
-        .select('id')
-        .single()
-
-      if (error || !data) {
-        setMessage(`Fehler beim Speichern des Pferdes: ${error?.message || 'Unbekannter Fehler'}`)
-        setLoading(false)
-        return
-      }
-
-      if (planFirstAppointment && firstAppointmentDate) {
-        const iso = localDateTimeToUtcIso(
-          firstAppointmentDate,
-          (firstAppointmentTime || '09:00').trim() || '09:00'
-        )
-
-        const { data: appointmentData, error: appointmentError } = await supabase
-          .from('appointments')
-          .insert([
-            {
-              user_id: user.id,
-              customer_id: customerId,
-              appointment_date: iso,
-              type: 'Ersttermin',
-              status: 'Bestätigt',
-              notes: 'Automatisch beim Anlegen des Pferdes erstellt.',
-            },
-          ])
+      let horseId = savedHorseId
+      if (!horseId) {
+        const { data, error } = await supabase
+          .from('horses')
+          .insert([payload])
           .select('id')
           .single()
 
-        if (!appointmentError && appointmentData?.id) {
-          await supabase.from('appointment_horses').insert([
-            {
-              user_id: user.id,
-              appointment_id: appointmentData.id,
-              horse_id: data.id,
-            },
-          ])
-          try {
-            await fetch('/api/email/appointment-confirmed', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ appointmentId: appointmentData.id }),
-            })
-          } catch {
-            // E-Mail optional; Pferd und Termin sind gespeichert
+        if (error || !data) {
+          setMessage(`Fehler beim Speichern des Pferdes: ${error?.message || 'Unbekannter Fehler'}`)
+          setLoading(false)
+          return
+        }
+
+        horseId = data.id
+        setSavedHorseId(horseId)
+
+        if (planFirstAppointment && firstAppointmentDate) {
+          const iso = localDateTimeToUtcIso(
+            firstAppointmentDate,
+            (firstAppointmentTime || '09:00').trim() || '09:00'
+          )
+
+          const { data: appointmentData, error: appointmentError } = await supabase
+            .from('appointments')
+            .insert([
+              {
+                user_id: user.id,
+                customer_id: customerId,
+                appointment_date: iso,
+                type: 'Ersttermin',
+                status: 'Bestätigt',
+                notes: 'Automatisch beim Anlegen des Pferdes erstellt.',
+              },
+            ])
+            .select('id')
+            .single()
+
+          if (!appointmentError && appointmentData?.id) {
+            await supabase.from('appointment_horses').insert([
+              {
+                user_id: user.id,
+                appointment_id: appointmentData.id,
+                horse_id: horseId,
+              },
+            ])
+            try {
+              await fetch('/api/email/appointment-confirmed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId: appointmentData.id }),
+              })
+            } catch {
+              // E-Mail optional; Pferd und Termin sind gespeichert
+            }
           }
         }
+      }
+
+      if (!horseId) {
+        setLoading(false)
+        setMessage('Pferd konnte nicht gespeichert werden.')
+        return
+      }
+
+      try {
+        await persistProfilePhotos(horseId)
+      } catch (e) {
+        setLoading(false)
+        setMessage(
+          e instanceof Error
+            ? `Pferd gespeichert, Foto-Upload fehlgeschlagen: ${e.message}`
+            : 'Pferd gespeichert, Foto-Upload fehlgeschlagen.'
+        )
+        return
       }
 
       setLoading(false)
 
       if (intent === 'record') {
-        router.push(`/animals/${data.id}/records/new`)
+        router.push(`/animals/${horseId}/records/new`)
         router.refresh()
         return
       }
 
-      router.push(`/animals/${data.id}`)
+      router.push(`/animals/${horseId}`)
       router.refresh()
       return
     }
@@ -607,8 +658,20 @@ export default function HorseForm({
       .eq('user_id', user.id)
 
     if (error) {
-      setMessage(`Fehler beim Aktualisieren des Pferdes: ${error.message}`)
+      setMessage(`Fehler beim Speichern: ${error.message}`)
       setLoading(false)
+      return
+    }
+
+    try {
+      await persistProfilePhotos(initialData.id)
+    } catch (e) {
+      setLoading(false)
+      setMessage(
+        e instanceof Error
+          ? `Daten gespeichert, Foto-Upload fehlgeschlagen: ${e.message}`
+          : 'Daten gespeichert, Foto-Upload fehlgeschlagen.'
+      )
       return
     }
 
@@ -622,6 +685,32 @@ export default function HorseForm({
 
     router.push(`/animals/${initialData.id}`)
     router.refresh()
+  }
+
+  async function handleProfileFile(slot: SlotWholeBody, file: File) {
+    setProfileUploading(slot)
+    setMessage('')
+    try {
+      const result = await processWholeBodyImage(file)
+      const previewUrl = URL.createObjectURL(result.blob)
+      setProfileStaged((prev) => {
+        if (prev[slot]?.previewUrl) URL.revokeObjectURL(prev[slot]!.previewUrl)
+        return {
+          ...prev,
+          [slot]: {
+            slot,
+            blob: result.blob,
+            width: result.width,
+            height: result.height,
+            previewUrl,
+          },
+        }
+      })
+    } catch {
+      setMessage('Foto konnte nicht verarbeitet werden. Bitte ein anderes Bild wählen.')
+    } finally {
+      setProfileUploading(null)
+    }
   }
 
   return (
@@ -761,6 +850,77 @@ export default function HorseForm({
               </span>
             </label>
           </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Vollprofil-Fotos"
+        icon={<i className="bi bi-camera-fill" />}
+        opt="Vor Ort · optional"
+      >
+        <p className="text-[13px] leading-relaxed text-[#6B7280]">
+          Zwei Seitenansichten des ganzen Pferdes (links und rechts). Gerät im Querformat halten.
+          Die Fotos erscheinen in der Pferdeakte.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {SLOT_WHOLE_BODY.map((slot) => {
+            const path = profilePaths[slot]
+            const existing = path
+              ? { id: path, file_path: path, photo_type: slot }
+              : null
+            return (
+              <PhotoSlot
+                key={slot}
+                slot={slot}
+                slotLabel={SLOT_LABELS[slot] ?? slot}
+                recordId={null}
+                horseId={initialData.id ?? ''}
+                existingPhoto={existing}
+                imageUrl={profileUrls[slot] ?? null}
+                stagedPhoto={profileStaged[slot]}
+                isWholeBody
+                allowAnnotation={false}
+                onFileSelect={(file) => void handleProfileFile(slot, file)}
+                onStagedRemove={
+                  profileStaged[slot]
+                    ? () => {
+                        const prev = profileStaged[slot]
+                        if (prev?.previewUrl) URL.revokeObjectURL(prev.previewUrl)
+                        setProfileStaged((s) => {
+                          const next = { ...s }
+                          delete next[slot]
+                          return next
+                        })
+                      }
+                    : undefined
+                }
+                onRemoveExisting={
+                  existing && initialData.id
+                    ? () => {
+                        void (async () => {
+                          try {
+                            await clearHorseProfilePhoto({
+                              horseId: initialData.id!,
+                              slot,
+                              filePath: path,
+                            })
+                            setProfilePaths((p) => ({ ...p, [slot]: null }))
+                            setProfileUrls((u) => {
+                              const next = { ...u }
+                              delete next[slot]
+                              return next
+                            })
+                          } catch (e) {
+                            setMessage(e instanceof Error ? e.message : 'Foto konnte nicht entfernt werden.')
+                          }
+                        })()
+                      }
+                    : undefined
+                }
+                uploading={profileUploading === slot}
+              />
+            )
+          })}
         </div>
       </Section>
 

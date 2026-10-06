@@ -14,6 +14,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { profilePhotoPathFromIntake } from '@/lib/animals/clinicalIntakeTypes'
+import { mergeWholeBodyPhotosForHorseDisplay } from '@/lib/photos/horseProfilePhotos'
 
 type HorsePageProps = {
   params: Promise<{ id: string }>
@@ -52,6 +53,8 @@ type Horse = {
   customer_id: string | null
   customers: CustomerRelation
   intake?: unknown
+  photo_whole_left_path?: string | null
+  photo_whole_right_path?: string | null
 }
 
 type HoofRecord = {
@@ -193,6 +196,8 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
       special_notes,
       notes,
       intake,
+      photo_whole_left_path,
+      photo_whole_right_path,
       customer_id,
       customers (
         id,
@@ -294,10 +299,9 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
     wholeBodyPhotos = withUrls.filter(
       (x): x is { id: string; imageUrl: string; label: string } => x != null
     )
-    wholeBodyPhotos.sort(
-      (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
-    )
   }
+  wholeBodyPhotos = await mergeWholeBodyPhotosForHorseDisplay(supabase, horse, wholeBodyPhotos)
+  const wholeBodyFromProfile = !!(horse.photo_whole_left_path || horse.photo_whole_right_path)
 
   const profilePhotoPath = profilePhotoPathFromIntake(horse.intake)
   let profilePhotoSignedUrl: string | null = null
@@ -643,9 +647,11 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 <WholeBodyPhotoSwitcher
                   items={wholeBodyPhotos}
                   dateLabel={
-                    latestRecordId && recordRows[0]?.record.record_date
-                      ? formatGermanDate(recordRows[0].record.record_date)
-                      : undefined
+                    wholeBodyFromProfile
+                      ? undefined
+                      : latestRecordId && recordRows[0]?.record.record_date
+                        ? formatGermanDate(recordRows[0].record.record_date)
+                        : undefined
                   }
                 />
               </div>

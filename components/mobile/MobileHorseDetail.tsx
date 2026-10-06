@@ -352,7 +352,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
                 </div>
                 <div className="section-body">
                   <p className="mb-3 text-[12px] leading-relaxed text-[#6B7280]">
-                    Referenzfotos der jüngsten Dokumentation (links/rechts) — antippen zum Vergrößern.
+                    Vollprofil links und rechts — antippen zum Vergrößern.
                   </p>
                   <WholeBodyPhotoSwitcher
                     items={wholeBodyPhotos}

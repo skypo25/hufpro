@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { deriveAppProfile } from '@/lib/appProfile'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
+import { mergeWholeBodyPhotosForHorseDisplay } from '@/lib/photos/horseProfilePhotos'
 
 type CustomerRelation =
   | {
@@ -34,6 +35,8 @@ type Horse = {
   care_interval: string | null
   customer_id: string | null
   customers: CustomerRelation
+  photo_whole_left_path?: string | null
+  photo_whole_right_path?: string | null
 }
 
 type DokuRow = {
@@ -103,6 +106,8 @@ export async function GET(
       housing,
       hoof_status,
       care_interval,
+      photo_whole_left_path,
+      photo_whole_right_path,
       customer_id,
       customers (
         id,
@@ -200,6 +205,10 @@ export async function GET(
       wholeBodyPhotos.sort(
         (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
       )
+    }
+    wholeBodyPhotos = await mergeWholeBodyPhotosForHorseDisplay(supabase, horse, wholeBodyPhotos)
+    if (horse.photo_whole_left_path || horse.photo_whole_right_path) {
+      wholeBodyRecordDate = null
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Dokumentationsliste konnte nicht geladen werden.'
