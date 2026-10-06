@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
 import MobileRecordForm from '@/components/mobile/MobileRecordForm'
 import MobileTherapyRecordForm from '@/components/mobile/MobileTherapyRecordForm'
@@ -16,6 +17,8 @@ type Props = {
  */
 export default function MobileRecordEntry({ horseId, recordId, mode = 'create' }: Props) {
   const { profile } = useAppProfile()
+  const searchParams = useSearchParams()
+  const appointmentId = searchParams.get('appointmentId')
 
   if (profile.docType === 'therapy') {
     return (
@@ -23,10 +26,18 @@ export default function MobileRecordEntry({ horseId, recordId, mode = 'create' }
         horseId={horseId}
         recordId={recordId}
         mode={mode}
+        appointmentId={appointmentId}
         therapyAiType={professionToTherapyAiType(profile.profession)}
       />
     )
   }
 
-  return <MobileRecordForm horseId={horseId} recordId={recordId} mode={mode} />
+  return (
+    <MobileRecordForm
+      horseId={horseId}
+      recordId={recordId}
+      mode={mode}
+      appointmentId={appointmentId}
+    />
+  )
 }

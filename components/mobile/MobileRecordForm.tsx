@@ -29,6 +29,10 @@ import {
   getPreviousVisitRecordDateFromMergedList,
   getLatestVisitRecordDateFromMergedList,
 } from '@/lib/documentation/loadRecordListForHorseView'
+import {
+  findDocumentationForAppointment,
+  loadAppointmentDocContext,
+} from '@/lib/documentation/appointmentLink'
 import MinimalRichEditor from '@/components/records/MinimalRichEditor'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import ImproveTextButton from '@/components/ImproveTextButton'
@@ -423,9 +427,10 @@ type Props = {
   horseId: string
   recordId?: string
   mode?: Mode
+  appointmentId?: string | null
 }
 
-export default function MobileRecordForm({ horseId, recordId, mode = 'create' }: Props) {
+export default function MobileRecordForm({ horseId, recordId, mode = 'create', appointmentId = null }: Props) {
   const router = useRouter()
   const isEdit = mode === 'edit'
   const isOnline = useOnlineStatus()
@@ -468,6 +473,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
   const [photoOpen, setPhotoOpen] = useState(false)
   /** Nur Neuanlage ohne frühere Dokumentation — Ganzkörperfotos wie Desktop */
   const [isErsttermin, setIsErsttermin] = useState(false)
+  const [recordType, setRecordType] = useState('Regeltermin')
   const actionRowRef = useRef<HTMLDivElement>(null)
   const draftRestoredRef = useRef(false)
 
@@ -550,6 +556,25 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
+      if (!isEdit && appointmentId) {
+        const existing = await findDocumentationForAppointment(
+          supabase,
+          user.id,
+          appointmentId,
+          horseId
+        )
+        if (existing) {
+          router.replace(`/animals/${existing.animalId}/records/${existing.recordId}`)
+          return
+        }
+        const ctx = await loadAppointmentDocContext(supabase, user.id, horseId, appointmentId)
+        if (ctx) {
+          setRecordDate(ctx.recordDate)
+          setRecordType(ctx.recordType)
+          setIsErsttermin(/^erst/i.test(ctx.recordType))
+        }
+      }
+
       const { data: h } = await supabase
         .from('horses')
         .select('id, name, breed, sex, birth_year, stable_name, customers(name)')
@@ -560,8 +585,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
 
       try {
         const list = await loadRecordListForHorseView(supabase, user.id, horseId)
-        if (!isEdit) {
+        if (!isEdit && !appointmentId) {
           setIsErsttermin(list.recordRows.length === 0)
+          setRecordType(list.recordRows.length === 0 ? 'Ersttermin' : 'Regeltermin')
         }
         if (isEdit && recordId) {
           setPrevRecordDate(getPreviousVisitRecordDateFromMergedList(list.recordRows, recordId))
@@ -582,8 +608,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         const prevRow = isEdit ? prev?.[1] : prev?.[0]
         if (prevRow?.record_date) setPrevRecordDate(prevRow.record_date)
         else setPrevRecordDate(null)
-        if (!isEdit) {
+        if (!isEdit && !appointmentId) {
           setIsErsttermin(!(prev && prev.length > 0))
+          setRecordType(!(prev && prev.length > 0) ? 'Ersttermin' : 'Regeltermin')
         }
       }
 
@@ -702,7 +729,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       }
     }
     load()
-  }, [horseId, recordId, isEdit, router])
+  }, [horseId, recordId, isEdit, appointmentId, router])
 
   // ── Computed hoof status ──
   const overallStatus = useMemo(() => {
@@ -790,7 +817,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         await persistImmediate(snapshot as unknown as Record<string, unknown>)
         setError('')
         setSyncError(null)
-        setOfflineSavedMsg('✓ Entwurf lokal gespeichert. Wird synchronisiert, sobald du wieder online bist.')
+        setOfflineSavedMsg('✓ Entwurf auf diesem Gerät gespeichert. Bitte später online öffnen und Speichern tippen.')
         setTimeout(() => setOfflineSavedMsg(''), 4000)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Entwurf konnte nicht lokal gespeichert werden.')
@@ -811,6 +838,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
       fd.set('handling_behavior', handlingBehavior)
       fd.set('horn_quality', hornQuality)
       fd.set('hoofs_json', JSON.stringify(hoofsJson))
+      fd.set('record_type', recordType || (isErsttermin ? 'Ersttermin' : 'Regeltermin'))
+      if (appointmentId) fd.set('appointment_id', appointmentId)
       if (internalNotes) fd.set('notes', internalNotes)
 
       let targetRecordId: string
@@ -945,7 +974,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
         <div className="mrf-ctx-item">
           <div className="mrf-ctx-label">Terminart</div>
           <div className="mrf-ctx-value mrf-ctx-accent">
-            {!isEdit && isErsttermin ? 'Ersttermin' : 'Regeltermin'}
+            {!isEdit ? recordType : 'Regeltermin'}
           </div>
         </div>
         <div className="mrf-ctx-item">
@@ -1099,7 +1128,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create' }:
                 <div className="mrf-s-body">
                   {!isOnline && (
                     <div className="mb-3 rounded-lg border border-[#FCD34D]/60 bg-[#FEF9C3]/50 px-3 py-2 text-[12px] text-[#92400E]">
-                      📷 Offline: Fotos werden lokal gespeichert und beim nächsten Sync hochgeladen.
+                      📷 Offline: Fotos werden auf diesem Gerät gespeichert. Später online öffnen und speichern.
                     </div>
                   )}
                   <div className="photo-label">Sohlenansicht (Solar)</div>

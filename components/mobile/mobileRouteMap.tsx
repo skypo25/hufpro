@@ -70,7 +70,11 @@ function useMobileContent(): ReactNode {
 
   const newRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/new$/)
   if (newRecordMatch?.[1]) {
-    return <MobileRecordEntry horseId={newRecordMatch[1]} mode="create" />
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <MobileRecordEntry horseId={newRecordMatch[1]} mode="create" />
+      </Suspense>
+    )
   }
 
   const editRecordMatch = pathname?.match(/^\/animals\/([^/?#]+)\/records\/([^/?#]+)\/edit$/)

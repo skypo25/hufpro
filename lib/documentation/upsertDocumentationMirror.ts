@@ -32,6 +32,7 @@ function rowFromUnknown(row: Record<string, unknown>): HoofRecordMirrorInput | n
     created_at: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),
     updated_at: typeof row.updated_at === 'string' ? row.updated_at : new Date().toISOString(),
     doc_number: (row.doc_number as string | null | undefined) ?? null,
+    appointment_id: (row.appointment_id as string | null | undefined) ?? null,
   }
 }
 
@@ -54,12 +55,23 @@ export async function upsertDocumentationMirrorFromHoofRow(
 
   const { data: existing, error: selectError } = await supabase
     .from('documentation_records')
-    .select('id')
+    .select('id, metadata')
     .filter('metadata->>legacy_hoof_record_id', 'eq', hoofRow.id)
-    .maybeSingle()
+    .maybeSingle<{ id: string; metadata: Record<string, unknown> | null }>()
 
   if (selectError) {
     return { ok: false, error: selectError.message }
+  }
+
+  const existingAppointmentId =
+    existing?.metadata && typeof existing.metadata === 'object'
+      ? (existing.metadata.appointment_id as string | undefined)
+      : undefined
+  const metadata = {
+    ...payload.metadata,
+    ...(payload.metadata.appointment_id || existingAppointmentId
+      ? { appointment_id: payload.metadata.appointment_id || existingAppointmentId }
+      : {}),
   }
 
   const dbRow = {
@@ -77,7 +89,7 @@ export async function upsertDocumentationMirrorFromHoofRow(
     doc_number: payload.doc_number,
     hoof_payload: payload.hoof_payload,
     therapy_payload: payload.therapy_payload,
-    metadata: payload.metadata,
+    metadata,
     updated_at: payload.updated_at,
   }
 

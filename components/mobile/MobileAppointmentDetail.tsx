@@ -65,6 +65,8 @@ type ApiData = {
   horses: Horse[]
   lastAppointmentDate: string | null
   preferredNavApp?: 'apple' | 'google' | 'waze'
+  documentationUrl?: string | null
+  documentationLabel?: string | null
 }
 
 function getNavUrl(app: 'apple' | 'google' | 'waze', address: string): string {
@@ -153,7 +155,7 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
     )
   }
 
-  const { appointment, customer, horses, lastAppointmentDate, preferredNavApp = 'google' } = data
+  const { appointment, customer, horses, lastAppointmentDate, preferredNavApp = 'google', documentationUrl, documentationLabel } = data
   const isPastAppointment =
     appointment.appointmentDate && new Date(appointment.appointmentDate) < new Date()
   const isConfirmed =
@@ -161,9 +163,10 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
     appointment.status.toLowerCase().includes('bestätigt') ||
     appointment.status.toLowerCase().includes('confirmed')
   const firstHorse = horses[0]
-  const docUrl = firstHorse
-    ? `/animals/${firstHorse.id}/records/new?appointmentId=${effectiveId}`
-    : null
+  const docUrl =
+    documentationUrl ||
+    (firstHorse ? `/animals/${firstHorse.id}/records/new?appointmentId=${effectiveId}` : null)
+  const docButtonLabel = documentationLabel || 'Dokumentation'
 
   const hasCustomerAddress = !!(customer.customerAddressForNav?.trim())
   const hasStableAddress = !!(customer.stableAddressForNavOnly?.trim())
@@ -228,7 +231,7 @@ export default function MobileAppointmentDetail({ appointmentId }: { appointment
           {docUrl && (
             <Link href={docUrl} className="mad-qa-btn primary">
               <i className="bi bi-file-earmark-plus-fill" />
-              <span>Dokumentation</span>
+              <span>{docButtonLabel}</span>
             </Link>
           )}
           {hasAnyAddress &&

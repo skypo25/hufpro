@@ -7,6 +7,7 @@ import {
   revalidateHoofCompareForHorse,
 } from '@/lib/cache/tags'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { isUuid } from '@/lib/documentation/appointmentLink'
 import { upsertDocumentationMirrorFromHoofRow } from '@/lib/documentation/upsertDocumentationMirror'
 import { deleteDocumentationPhotosMirroringHoofRows } from '@/lib/documentation/mirrorDocumentationPhotos'
 
@@ -40,6 +41,10 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
   const checklist_jsonRaw = formData.get('checklist_json') as string | null
   const hoofs_json = hoofs_jsonRaw ? (() => { try { return JSON.parse(hoofs_jsonRaw) } catch { return null } })() : null
   const checklist_json = checklist_jsonRaw ? (() => { try { return JSON.parse(checklist_jsonRaw) } catch { return null } })() : null
+  const record_typeRaw = String(formData.get('record_type') || '').trim()
+  const record_type = record_typeRaw || null
+  const appointmentIdRaw = String(formData.get('appointment_id') || '').trim()
+  const appointment_id = isUuid(appointmentIdRaw) ? appointmentIdRaw : null
 
   if (!horseId) {
     return { error: 'Pferd fehlt. Bitte die Seite neu laden und erneut versuchen.' }
@@ -58,6 +63,7 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
     horn_quality,
     hoofs_json,
     checklist_json,
+    record_type,
   }
 
   const basePayload = {
@@ -77,7 +83,7 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
 
   if (result.error) {
     const isSchemaError =
-      /hoofs_json|checklist_json|general_condition|gait|handling_behavior|horn_quality|schema cache|column.*does not exist/i.test(
+      /hoofs_json|checklist_json|general_condition|gait|handling_behavior|horn_quality|record_type|schema cache|column.*does not exist/i.test(
         result.error.message
       )
     if (isSchemaError) {
@@ -123,7 +129,11 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
   }
 
   const settingsJson = await fetchUserSettingsJson(supabase, user.id)
-  const mirror = await upsertDocumentationMirrorFromHoofRow(supabase, hoofForMirror, settingsJson)
+  const mirror = await upsertDocumentationMirrorFromHoofRow(
+    supabase,
+    { ...hoofForMirror, appointment_id },
+    settingsJson
+  )
   if (!mirror.ok) {
     const { error: delErr } = await supabase.from('hoof_records').delete().eq('id', data.id).eq('user_id', user.id)
     if (delErr) {
@@ -136,6 +146,7 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
 
   revalidatePath(`/animals/${horseId}`)
   revalidatePath(`/animals/${horseId}/records/${data.id}`)
+  if (appointment_id) revalidatePath(`/appointments/${appointment_id}`)
   revalidateDashboardMobileForUser(user.id)
   revalidateHoofCompareForHorse(user.id, horseId)
   return { recordId: data.id }

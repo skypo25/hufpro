@@ -8,11 +8,18 @@ import { deriveAppProfile } from '@/lib/appProfile'
 import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
+import {
+  findDocumentationForAppointment,
+  loadAppointmentDocContext,
+} from '@/lib/documentation/appointmentLink'
 import AppPage from '@/components/layout/AppPage'
 
 type NewRecordPageProps = {
   params: Promise<{
     id: string
+  }>
+  searchParams: Promise<{
+    appointmentId?: string
   }>
 }
 
@@ -54,8 +61,9 @@ function isWholeBodySlot(photoType: string | null | undefined): boolean {
   return photoType === 'whole_left' || photoType === 'whole_right'
 }
 
-export default async function NewHoofRecordPage({ params }: NewRecordPageProps) {
+export default async function NewHoofRecordPage({ params, searchParams }: NewRecordPageProps) {
   const { id } = await params
+  const { appointmentId: appointmentIdParam } = await searchParams
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -216,6 +224,27 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
   }
 
   const defaultRecordDate = getTodayISODate()
+  let recordDate = defaultRecordDate
+  let recordType = defaultRecordType === 'ersttermin' ? 'Ersttermin' : defaultRecordType
+  let appointmentId: string | null = null
+
+  if (appointmentIdParam) {
+    const existing = await findDocumentationForAppointment(
+      supabase,
+      user.id,
+      appointmentIdParam,
+      id
+    )
+    if (existing) {
+      redirect(`/animals/${existing.animalId}/records/${existing.recordId}`)
+    }
+    const ctx = await loadAppointmentDocContext(supabase, user.id, id, appointmentIdParam)
+    if (ctx) {
+      appointmentId = ctx.appointmentId
+      recordDate = ctx.recordDate
+      recordType = ctx.recordType
+    }
+  }
 
   const therapyHorse = horse
     ? {
@@ -236,7 +265,9 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
       <AppPage>
         <TherapyRecordForm
           horse={therapyHorse}
-          defaultRecordDate={defaultRecordDate}
+          defaultRecordDate={recordDate}
+          defaultRecordType={recordType}
+          appointmentId={appointmentId}
           lastRecord={lastRecord}
           therapyAiType={therapyAiType}
           saveAction={createRecord}
@@ -249,8 +280,9 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
     <AppPage>
       <RecordCreateForm
         horse={horse}
-        defaultRecordDate={defaultRecordDate}
-        defaultRecordType={defaultRecordType}
+        defaultRecordDate={recordDate}
+        defaultRecordType={recordType}
+        appointmentId={appointmentId}
         lastRecord={lastRecord}
         textBlocks={[]}
         saveAction={createRecord}

@@ -56,8 +56,8 @@ export default function OfflineStatusBanner({
         <span className="shrink-0 text-base">📡</span>
         <span>
           {hasLocalDraft
-            ? 'Offline – Entwurf wird lokal gespeichert und beim nächsten Sync hochgeladen.'
-            : 'Offline – Änderungen werden lokal gespeichert.'}
+            ? 'Offline – Entwurf wird auf diesem Gerät gespeichert. Später online öffnen und speichern.'
+            : 'Offline – Änderungen werden auf diesem Gerät gespeichert.'}
         </span>
       </div>
     )

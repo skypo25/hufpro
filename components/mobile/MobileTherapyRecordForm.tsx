@@ -11,6 +11,10 @@ import { processVoiceCommand, applyVoiceCommand } from '@/lib/voiceCommands'
 import type { TherapyType } from '@/lib/aiFormatter'
 import type { PreservedHoofRecordFields } from '@/components/records/TherapyRecordForm'
 import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
+import {
+  findDocumentationForAppointment,
+  loadAppointmentDocContext,
+} from '@/lib/documentation/appointmentLink'
 
 function stripHtml(html: string): string {
   return html
@@ -48,6 +52,7 @@ type Props = {
   recordId?: string
   mode?: 'create' | 'edit'
   therapyAiType: TherapyType
+  appointmentId?: string | null
 }
 
 export default function MobileTherapyRecordForm({
@@ -55,6 +60,7 @@ export default function MobileTherapyRecordForm({
   recordId,
   mode = 'create',
   therapyAiType,
+  appointmentId = null,
 }: Props) {
   const router = useRouter()
   const isEdit = mode === 'edit'
@@ -67,6 +73,7 @@ export default function MobileTherapyRecordForm({
   const [preserved, setPreserved] = useState<PreservedHoofRecordFields | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [recordType, setRecordType] = useState('Regeltermin')
 
   useEffect(() => {
     async function load() {
@@ -76,6 +83,24 @@ export default function MobileTherapyRecordForm({
       if (!user) {
         router.push('/login')
         return
+      }
+
+      if (!isEdit && appointmentId) {
+        const existing = await findDocumentationForAppointment(
+          supabase,
+          user.id,
+          appointmentId,
+          horseId
+        )
+        if (existing) {
+          router.replace(`/animals/${existing.animalId}/records/${existing.recordId}`)
+          return
+        }
+        const ctx = await loadAppointmentDocContext(supabase, user.id, horseId, appointmentId)
+        if (ctx) {
+          setRecordDate(ctx.recordDate)
+          setRecordType(ctx.recordType)
+        }
       }
 
       const { data: h } = await supabase
@@ -146,7 +171,7 @@ export default function MobileTherapyRecordForm({
       }
     }
     load()
-  }, [horseId, recordId, isEdit, router])
+  }, [horseId, recordId, isEdit, appointmentId, router])
 
   const handleSubmit = useCallback(async () => {
     setSubmitting(true)
@@ -156,6 +181,8 @@ export default function MobileTherapyRecordForm({
       fd.set('record_date', recordDate)
       fd.set('summary_notes', summaryText)
       fd.set('recommendation_notes', recommendationText)
+      fd.set('record_type', recordType)
+      if (appointmentId) fd.set('appointment_id', appointmentId)
 
       if (preserved) {
         fd.set('general_condition', preserved.general_condition ?? '')
@@ -203,6 +230,8 @@ export default function MobileTherapyRecordForm({
     preserved,
     isEdit,
     recordId,
+    appointmentId,
+    recordType,
     router,
   ])
 

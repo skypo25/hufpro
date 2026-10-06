@@ -195,6 +195,8 @@ export type TherapyRecordFormProps = {
   horse: TherapyHorseContext | null
   defaultRecordDate: string
   lastRecord?: LastRecord
+  defaultRecordType?: string
+  appointmentId?: string | null
   therapyAiType: TherapyType
   saveAction: (formData: FormData) => Promise<{ recordId: string } | { error: string } | void>
   mode?: 'create' | 'edit'
@@ -210,6 +212,8 @@ export type TherapyRecordFormProps = {
 export default function TherapyRecordForm({
   horse,
   defaultRecordDate,
+  defaultRecordType = 'Therapietermin',
+  appointmentId = null,
   lastRecord,
   therapyAiType,
   saveAction,
@@ -294,6 +298,8 @@ export default function TherapyRecordForm({
             </>
           )}
           {isEdit && <input type="hidden" name="record_date" value={recordDate} />}
+          <input type="hidden" name="record_type" value={defaultRecordType} />
+          {appointmentId ? <input type="hidden" name="appointment_id" value={appointmentId} /> : null}
           <input type="hidden" name="summary_notes" value={summaryText} />
           <input type="hidden" name="recommendation_notes" value={recommendationText} />
           {preserve && (
@@ -380,7 +386,7 @@ export default function TherapyRecordForm({
                 <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#9CA3AF]">
                   Terminart
                 </div>
-                <div className="mt-1 text-[14px] font-semibold text-primary">Therapietermin</div>
+                <div className="mt-1 text-[14px] font-semibold text-primary">{defaultRecordType}</div>
               </div>
 
               <div className="hidden h-10 w-px bg-[#E5E2DC] md:block" />

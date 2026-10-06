@@ -60,6 +60,7 @@ type RecordCreateFormProps = {
   horse?: HorseContext | null
   defaultRecordDate: string
   defaultRecordType: string
+  appointmentId?: string | null
   lastRecord?: LastRecord
   textBlocks?: TextBlock[]
   saveAction: (formData: FormData) => Promise<{ recordId: string } | { error: string } | void>
@@ -527,6 +528,7 @@ export default function RecordCreateForm({
   horse,
   defaultRecordDate,
   defaultRecordType,
+  appointmentId = null,
   lastRecord,
   textBlocks = [],
   saveAction,
@@ -723,7 +725,7 @@ export default function RecordCreateForm({
       try {
         const snapshot = await serializeRecordForm(buildFormSnapshot())
         await persistImmediate(snapshot as unknown as Record<string, unknown>)
-        setMessage('✓ Entwurf lokal gespeichert. Wird synchronisiert, sobald du wieder online bist.')
+        setMessage('✓ Entwurf auf diesem Gerät gespeichert. Bitte später online öffnen und Speichern tippen.')
         setTimeout(() => setMessage(''), 4000)
       } catch (err) {
         setMessage(err instanceof Error ? err.message : 'Entwurf konnte nicht lokal gespeichert werden.')
@@ -909,6 +911,7 @@ export default function RecordCreateForm({
       <div className="space-y-5 xl:col-start-1 xl:row-start-2 min-w-0">
         <div className="hidden" aria-hidden>
           <input type="hidden" name="record_type" value={defaultRecordType} />
+          {appointmentId ? <input type="hidden" name="appointment_id" value={appointmentId} /> : null}
           {isEdit ? (
             <input type="hidden" name="record_date" value={recordDate} />
           ) : (
@@ -1152,7 +1155,7 @@ export default function RecordCreateForm({
               imageUrls={filteredExistingPhotoUrls}
               stagedPhotos={stagedPhotos}
               annotationsBySlot={annotationsBySlot}
-              isErsttermin={!isEdit && defaultRecordType === 'ersttermin'}
+              isErsttermin={!isEdit && /^erst/i.test(defaultRecordType)}
               onStagedAdd={handleStagedPhotoAdd}
               onStagedRemove={handleStagedPhotoRemove}
               onAnnotationsChange={handleAnnotationsChange}

@@ -27,6 +27,7 @@ export type HoofRecordMirrorInput = {
   created_at: string
   updated_at: string
   doc_number?: string | null
+  appointment_id?: string | null
 }
 
 /** Wie Backfill: leer → hufbearbeiter */
@@ -88,23 +89,25 @@ export function buildHoofPayload(row: HoofRecordMirrorInput): Record<string, unk
   }
 }
 
-/** Identisch zum Backfill-Literal für therapy */
-export function buildTherapyPayloadMinimal(): Record<string, unknown> {
+export function buildTherapyPayload(row: HoofRecordMirrorInput): Record<string, unknown> {
   return {
     schema_version: 1,
-    focus: { regions: [], notes: null },
+    focus: { regions: [], notes: row.hoof_condition },
     modalities: [],
+    recommendations_html: row.treatment,
     extensions: {},
   }
 }
 
 export function buildDocumentationMetadata(row: HoofRecordMirrorInput): Record<string, unknown> {
-  return {
+  const meta: Record<string, unknown> = {
     legacy_hoof_record_id: row.id,
     legacy_record_type: row.record_type,
     backfill_version: 1,
     backfill_source: 'hoof_records',
   }
+  if (row.appointment_id) meta.appointment_id = row.appointment_id
+  return meta
 }
 
 export type DocumentationRowPayload = {
@@ -136,7 +139,7 @@ export function buildDocumentationRowPayload(
   const sessionType = deriveSessionType(row.record_type)
 
   const hoofPayload = kind === 'hoof' ? buildHoofPayload(row) : null
-  const therapyPayload = kind === 'therapy' ? buildTherapyPayloadMinimal() : null
+  const therapyPayload = kind === 'therapy' ? buildTherapyPayload(row) : null
 
   return {
     user_id: row.user_id,

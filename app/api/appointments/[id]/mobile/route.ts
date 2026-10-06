@@ -14,6 +14,7 @@ import {
   pickPrimaryStallHorse,
   stallDisplayLabel,
 } from '@/lib/nav/horseStableAddress'
+import { findDocumentationForAppointment } from '@/lib/documentation/appointmentLink'
 
 export async function GET(
   _request: Request,
@@ -266,6 +267,19 @@ export async function GET(
       ? `K-${String(customer.customer_number).padStart(4, '0')}`
       : null
 
+  const linkedDoc = await findDocumentationForAppointment(
+    supabase,
+    user.id,
+    id,
+    horses[0]?.id
+  )
+  const documentationUrl = linkedDoc
+    ? `/animals/${linkedDoc.animalId}/records/${linkedDoc.recordId}`
+    : horses[0]
+      ? `/animals/${horses[0].id}/records/new?appointmentId=${id}`
+      : null
+  const documentationLabel = linkedDoc ? 'Dokumentation öffnen' : 'Dokumentation starten'
+
   return NextResponse.json({
     appointment: appointmentPayload,
     customer: {
@@ -296,5 +310,7 @@ export async function GET(
     preferredNavApp,
     horses: horsesPayload,
     lastAppointmentDate,
+    documentationUrl,
+    documentationLabel,
   })
 }

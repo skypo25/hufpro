@@ -28,6 +28,7 @@ import {
 } from '@/lib/nav/horseStableAddress'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faIconForAnimalType } from '@/lib/animalTypeDisplay'
+import { findDocumentationForAppointment } from '@/lib/documentation/appointmentLink'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -130,6 +131,20 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
       .in('id', horseIds)
     horses = horseData || []
   }
+
+  const linkedDoc = await findDocumentationForAppointment(
+    supabase,
+    user.id,
+    id,
+    horses[0]?.id
+  )
+  const documentationHref = linkedDoc
+    ? `/animals/${linkedDoc.animalId}/records/${linkedDoc.recordId}`
+    : horses[0]
+      ? `/animals/${horses[0].id}/records/new?appointmentId=${id}`
+      : null
+  const documentationLabel = linkedDoc ? 'Dokumentation öffnen' : 'Dokumentation starten'
+  const documentationIcon = linkedDoc ? 'bi-file-earmark-text-fill' : 'bi-file-earmark-plus-fill'
 
   const { data: pastApts } = await supabase
     .from('appointments')
@@ -246,12 +261,12 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
               Bearbeiten
             </Link>
           )}
-          {horses[0] && (
+          {documentationHref && (
             <Link
-              href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
+              href={documentationHref}
               className="primary-button"
             >
-              <i className="bi bi-file-earmark-plus-fill text-[14px]" />
+              <i className={`bi ${documentationIcon} text-[14px]`} />
               Dokumentation
             </Link>
           )}
@@ -461,13 +476,13 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
         <div className="space-y-7">
           <SectionCard title={<SectionTitle icon="bi-lightning-fill">Aktionen</SectionTitle>}>
             <div className="flex flex-col gap-2 p-[18px]">
-              {horses[0] && (
+              {documentationHref && (
                 <Link
-                  href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
+                  href={documentationHref}
                   className="primary-button w-full justify-start"
                 >
-                  <i className="bi bi-file-earmark-plus-fill" />
-                  Dokumentation starten
+                  <i className={`bi ${documentationIcon}`} />
+                  {documentationLabel}
                 </Link>
               )}
               {stallNav && (
