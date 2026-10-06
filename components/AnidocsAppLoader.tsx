@@ -6,17 +6,12 @@ import {
   ANIDOCS_SHELL_READY_EVENT,
   hideAnidocsBootSplash,
   isNonAppShellPath,
+  stripAnidocsBootSplashIfDismissed,
 } from '@/lib/mobile/shellReady'
 
 const MIN_VISIBLE_MS = 320
 const NON_APP_FALLBACK_MS = 500
 const MAX_WAIT_MS = 8000
-
-declare global {
-  interface Window {
-    __ANIDOCS_EXPECT_SHELL__?: boolean
-  }
-}
 
 /**
  * Steuert den statischen Boot-Splash aus `app/layout.tsx` (#anidocs-boot-splash).
@@ -32,7 +27,23 @@ export default function AnidocsAppLoader() {
     return () => window.clearTimeout(t)
   }, [])
 
+  /**
+   * router.refresh() rendert das Root-Layout neu und setzt den Boot-Splash wieder ein.
+   * Der Loader-Effect (pathname) läuft dann nicht erneut — ohne Watcher bleibt das Logo.
+   */
   useEffect(() => {
+    stripAnidocsBootSplashIfDismissed()
+    const obs = new MutationObserver(() => stripAnidocsBootSplashIfDismissed())
+    obs.observe(document.body, { childList: true, subtree: true })
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (window.__ANIDOCS_BOOT_DISMISSED__) {
+      stripAnidocsBootSplashIfDismissed()
+      return
+    }
+
     if (isNonAppShellPath(pathname)) {
       hideAnidocsBootSplash()
       return

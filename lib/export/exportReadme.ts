@@ -1,7 +1,7 @@
 export const CUSTOMER_EXPORT_README = `AniDocs – Datenexport
 ========================
 
-Dieses ZIP enthält Ihre Daten in einer für Sie lesbaren Form sowie einen separaten
+Dieses ZIP enthält deine Daten in einer für dich lesbaren Form sowie einen separaten
 technischen Bereich für Support, Import oder Migration.
 
 Ordnerübersicht
@@ -11,7 +11,7 @@ Ordnerübersicht
   Diese Datei und ggf. weitere Hinweise.
 
 02_Kunden
-  Kunden.csv – Stammdaten Ihrer Kund:innen (lesbare Spalten, deutsche Überschriften).
+  Kunden.csv – Stammdaten deiner Kund:innen (lesbare Spalten, deutsche Überschriften).
 
 03_Tiere
   Tiere.csv – Tierstammdaten mit Bezug zum Kunden.
@@ -35,12 +35,12 @@ Ordnerübersicht
 99_Technischer_Rohdatenexport
   Rohdaten (JSON/CSV) mit technischen Feldnamen und internen IDs – nur für technische
   Zwecke gedacht, nicht für die normale Nutzung. Die Hauptdateien in den Ordnern 02–07
-  sind für Sie aufbereitet.
+  sind für dich aufbereitet.
 
 Hinweise
 --------
 - CSV-Dateien sind UTF-8 (mit BOM) und mit Semikolon getrennt – für Excel unter Windows geeignet.
 - Leere Felder sind bewusst leer (kein „null“-Text).
-- Rechtliche Aufbewahrung (z. B. GoBD) liegt in Ihrer Verantwortung.
+- Rechtliche Aufbewahrung (z. B. GoBD) liegt in deiner Verantwortung.
 
 `

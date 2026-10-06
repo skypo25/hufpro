@@ -44,6 +44,9 @@ const MobileHoofCompare = dynamic(() => import('@/components/hoofCompare/MobileH
   ),
 })
 const MobileBilling = dyn(() => import('./MobileBilling'))
+const MobileInvoices = dyn(() => import('./MobileInvoices'))
+const MobileInvoiceCompose = dyn(() => import('./MobileInvoiceCompose'))
+const MobileInvoiceDetail = dyn(() => import('./MobileInvoiceDetail'))
 
 const compareFallback = (
   <div className="flex min-h-[40dvh] flex-col items-center justify-center gap-2 px-6 text-[14px] text-[#6B7280]">
@@ -126,6 +129,15 @@ function useMobileContent(): ReactNode {
     return <MobileCustomerEdit customerId={editCustomerMatch[1]} />
   }
 
+  const customerInvoicesMatch = pathname?.match(/^\/customers\/([^/?#]+)\/invoices\/?$/)
+  if (customerInvoicesMatch?.[1]) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <MobileInvoices customerId={customerInvoicesMatch[1]} />
+      </Suspense>
+    )
+  }
+
   const customerIdMatch = pathname?.match(/^\/customers\/([^/?#]+)/)
   if (customerIdMatch?.[1]) {
     return <MobileCustomerDetail customerId={customerIdMatch[1]} />
@@ -150,7 +162,35 @@ function useMobileContent(): ReactNode {
   if (pathname === '/customers') return <MobileCustomers />
   if (pathname === '/animals') return <MobileHorses />
 
-  if (pathname === '/invoices') return <MobilePlaceholder />
+  if (pathname === '/invoices/new') {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <MobileInvoiceCompose />
+      </Suspense>
+    )
+  }
+
+  const invoiceEditMatch = pathname?.match(/^\/invoices\/([^/?#]+)\/edit\/?$/)
+  if (invoiceEditMatch?.[1]) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <MobileInvoiceCompose invoiceId={invoiceEditMatch[1]} />
+      </Suspense>
+    )
+  }
+
+  const invoiceDetailMatch = pathname?.match(/^\/invoices\/([^/?#]+)\/?$/)
+  if (invoiceDetailMatch?.[1] && invoiceDetailMatch[1] !== 'new') {
+    return <MobileInvoiceDetail invoiceId={invoiceDetailMatch[1]} />
+  }
+
+  if (pathname === '/invoices') {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <MobileInvoices />
+      </Suspense>
+    )
+  }
   if (pathname === '/billing') return <MobileBilling />
   if (pathname === '/settings') return <MobileSettings />
   if (pathname === '/suche') return <MobileSearch />

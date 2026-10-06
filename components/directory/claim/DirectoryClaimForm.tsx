@@ -62,7 +62,7 @@ export function DirectoryClaimForm({ slug }: { slug: string }) {
           required
           rows={5}
           className="w-full max-w-lg rounded-[var(--dir-radius-sm)] border border-[var(--dir-border)] px-3 py-2 text-sm"
-          placeholder="Kurz begründen, warum dieses Profil zu Ihnen gehört …"
+          placeholder="Kurz begründen, warum dieses Profil zu dir gehört …"
         />
       </div>
       <div>

@@ -1223,7 +1223,7 @@ export default function RecordCreateForm({
                 onChange={(e) => setNotesText(e.target.value)}
                 rows={3}
                 className="input textarea w-full leading-6"
-                placeholder="Interne Notizen (nur für Sie sichtbar) …"
+                placeholder="Interne Notizen (nur für dich sichtbar) …"
               />
             </div>
           </section>
@@ -1303,7 +1303,7 @@ export default function RecordCreateForm({
 
                 <span
                   className="secondary-button secondary-button--lg cursor-default text-[#9CA3AF]"
-                  title="Nach dem Speichern können Sie die Dokumentation als PDF auf der Dokumentationsseite herunterladen."
+                  title="Nach dem Speichern kannst du die Dokumentation als PDF auf der Dokumentationsseite herunterladen."
                 >
                   PDF nach Speichern
                 </span>

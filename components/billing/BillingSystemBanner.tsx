@@ -89,7 +89,7 @@ export default function BillingSystemBanner() {
       return {
         tone: 'warning' as const,
         title: 'Zahlung ausstehend',
-        text: 'Es gab ein Problem mit einer Abbuchung. Bitte aktualisieren Sie Ihre Zahlungsmethode, um eine Unterbrechung zu vermeiden.',
+        text: 'Es gab ein Problem mit einer Abbuchung. Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung zu vermeiden.',
         cta: 'Jetzt prüfen',
       }
     }
@@ -97,7 +97,7 @@ export default function BillingSystemBanner() {
       return {
         tone: 'danger' as const,
         title: 'Zahlung fehlgeschlagen',
-        text: 'Ihre Zahlung konnte nicht verarbeitet werden. Bitte hinterlegen Sie eine gültige Zahlungsmethode.',
+        text: 'Deine Zahlung konnte nicht verarbeitet werden. Bitte hinterlege eine gültige Zahlungsmethode.',
         cta: 'Zu Billing',
       }
     }
@@ -105,7 +105,7 @@ export default function BillingSystemBanner() {
       return {
         tone: 'danger' as const,
         title: 'Testphase abgelaufen',
-        text: 'Ihr Testzeitraum ist abgelaufen. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
+        text: 'Dein Testzeitraum ist abgelaufen. Schließe jetzt dein Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
         cta: 'Abo abschließen',
       }
     }

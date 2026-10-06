@@ -122,7 +122,7 @@ export default function DataExportDownloadsPanel({ className }: DataExportDownlo
     return (
       <div>
         <p className="text-[12px] text-[#6B7280]">
-          Noch keine Exporte. Starten Sie einen Export mit dem Button oben — Sie erhalten eine E-Mail, sobald die ZIP
+          Noch keine Exporte. Starte einen Export mit dem Button oben — du erhältst eine E-Mail, sobald die ZIP
           bereitsteht.
         </p>
         <p className="mt-3 text-[11px] leading-relaxed text-[#9CA3AF]">

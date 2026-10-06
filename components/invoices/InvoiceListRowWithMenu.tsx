@@ -51,12 +51,19 @@ export default function InvoiceListRowWithMenu({
   const [sendingMail, setSendingMail] = useState(false)
   const [mailMsg, setMailMsg] = useState<string | null>(null)
   const [testTo, setTestTo] = useState('')
+  const [rowStatus, setRowStatus] = useState(status)
+  const [rowSentAt, setRowSentAt] = useState(sentAt)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const sendPanelRef = useRef<HTMLDivElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
   const [sendPos, setSendPos] = useState<{ top: number; right: number } | null>(null)
+
+  useEffect(() => {
+    setRowStatus(status)
+    setRowSentAt(sentAt)
+  }, [status, sentAt])
 
   useEffect(() => {
     if (!open) return
@@ -125,7 +132,10 @@ export default function InvoiceListRowWithMenu({
     setPending(true)
     const result = await updateInvoiceStatus(id, newStatus)
     setPending(false)
-    if (!('error' in result)) router.refresh()
+    if (!('error' in result)) {
+      setRowStatus(newStatus)
+      router.refresh()
+    }
   }
 
   const sendInvoiceEmail = async (opts?: { test?: boolean; to?: string }) => {
@@ -152,7 +162,10 @@ export default function InvoiceListRowWithMenu({
             : 'E-Mail versendet.'
       )
       setSendOpen(false)
-      if (!opts?.test) router.refresh()
+      if (!opts?.test) {
+        setRowStatus((prev) => (prev === 'cancelled' || prev === 'paid' ? prev : 'sent'))
+        setRowSentAt(new Date().toISOString())
+      }
     } catch (err) {
       setMailMsg(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen')
     } finally {
@@ -164,7 +177,7 @@ export default function InvoiceListRowWithMenu({
   return (
     <div className="relative grid grid-cols-[140px_220px_1fr_120px_44px_52px] items-center gap-6 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-primary/5 last:border-b-0 max-[700px]:grid-cols-[130px_1fr_120px_44px_52px] max-[700px]:[&>*:nth-child(2)]:hidden">
       <Link
-        href={status === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`}
+        href={rowStatus === 'draft' ? `/invoices/${id}/edit` : `/invoices/${id}`}
         className="absolute inset-0 z-0"
         aria-label={`Rechnung ${invoiceNumber} öffnen`}
       />
@@ -173,9 +186,9 @@ export default function InvoiceListRowWithMenu({
         <div className="text-[13px] text-[#6B7280] tabular-nums">
           {formatDateShort(invoiceDate)}
         </div>
-        {sentAt ? (
+        {rowSentAt ? (
           <div className="mt-0.5 truncate text-[11px] font-medium text-[#6B7280]">
-            Gesendet: {formatDateShort(sentAt)}
+            Gesendet: {formatDateShort(rowSentAt)}
           </div>
         ) : null}
       </div>
@@ -194,8 +207,8 @@ export default function InvoiceListRowWithMenu({
       </div>
 
       <div className="pointer-events-none z-10 flex justify-end pr-3">
-        <span className={`rounded-full px-2.5 py-1 text-center text-[11px] font-medium ${statusClass(status)}`}>
-          {statusLabel(status)}
+        <span className={`rounded-full px-2.5 py-1 text-center text-[11px] font-medium ${statusClass(rowStatus)}`}>
+          {statusLabel(rowStatus)}
         </span>
       </div>
 
@@ -209,10 +222,10 @@ export default function InvoiceListRowWithMenu({
             setOpen(false)
             setSendOpen((v) => !v)
           }}
-          disabled={sendingMail || status === 'cancelled'}
+          disabled={sendingMail || rowStatus === 'cancelled'}
           className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-primary hover:text-primary disabled:opacity-50"
-          title={status === 'cancelled' ? 'Stornierte Rechnung' : (sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden')}
-          aria-label={sentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
+          title={rowStatus === 'cancelled' ? 'Stornierte Rechnung' : (rowSentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden')}
+          aria-label={rowSentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
           aria-expanded={sendOpen}
         >
           <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
@@ -235,7 +248,7 @@ export default function InvoiceListRowWithMenu({
                 disabled={sendingMail}
                 className="mb-3 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-[13px] font-medium text-white hover:bg-primary-dark disabled:opacity-50"
               >
-                {sendingMail ? 'Sende…' : sentAt ? 'Erneut an Kunden senden' : 'An Kunden senden'}
+                {sendingMail ? 'Sende…' : rowSentAt ? 'Erneut an Kunden senden' : 'An Kunden senden'}
               </button>
               <label className="mb-1.5 block text-[11px] font-medium text-[#6B7280]">Test an</label>
               <input
@@ -290,7 +303,7 @@ export default function InvoiceListRowWithMenu({
                 <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
                   Status ändern
                 </p>
-                {status !== 'draft' && (
+                {rowStatus !== 'draft' && (
                   <>
                     <button
                       type="button"
@@ -298,7 +311,7 @@ export default function InvoiceListRowWithMenu({
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#1B1F23] hover:bg-[#FAF9F7]"
                     >
                       <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5 text-[#34A853]" /> Als bezahlt markieren
-                      {status === 'paid' && (
+                      {rowStatus === 'paid' && (
                         <span className="ml-auto text-[11px] text-[#9CA3AF]">Aktuell</span>
                       )}
                     </button>
@@ -308,13 +321,13 @@ export default function InvoiceListRowWithMenu({
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#1B1F23] hover:bg-[#FAF9F7]"
                     >
                       <FontAwesomeIcon icon={faClock} className="h-3.5 w-3.5 text-[#F59E0B]" /> Als offen markieren
-                      {status === 'sent' && (
+                      {rowStatus === 'sent' && (
                         <span className="ml-auto text-[11px] text-[#9CA3AF]">Aktuell</span>
                       )}
                     </button>
                   </>
                 )}
-                {status === 'draft' && (
+                {rowStatus === 'draft' && (
                   <p className="px-3 py-2 text-[12px] text-[#6B7280]">
                     Entwurf: Zuerst speichern &amp; versenden.
                   </p>
@@ -325,7 +338,7 @@ export default function InvoiceListRowWithMenu({
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#1B1F23] hover:bg-[#FAF9F7]"
                 >
                   <FontAwesomeIcon icon={faBan} className="h-3.5 w-3.5 text-[#9CA3AF]" /> Stornieren
-                  {status === 'cancelled' && (
+                  {rowStatus === 'cancelled' && (
                     <span className="ml-auto text-[11px] text-[#9CA3AF]">Aktuell</span>
                   )}
                 </button>

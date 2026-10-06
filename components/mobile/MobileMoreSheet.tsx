@@ -7,6 +7,7 @@ import { canUseMobilePhotoDebugPanel } from '@/lib/mobile/mobilePhotoDebugAccess
 import PhotoGridDebugSheet from '@/components/mobile/PhotoGridDebugSheet'
 
 const MENU_ITEMS = [
+  { href: '/invoices', title: 'Rechnungen', sub: 'Übersicht, schreiben, versenden', icon: 'bi-receipt', color: 'green' },
   { href: '/settings', title: 'Mein Betrieb', sub: 'Betriebsdaten, Rechnungen, Preise', icon: 'bi-building-fill', color: 'green' },
   { href: '/settings', title: 'Benachrichtigungen', sub: 'Erinnerungen, Push, E-Mail', icon: 'bi-bell-fill', color: 'blue' },
   { href: '/settings', title: 'Vorlagen & Textbausteine', sub: 'Rechnungstexte, Dokumentation', icon: 'bi-file-text-fill', color: 'purple' },

@@ -184,7 +184,7 @@ export default function BillingPageClient({
         icon: 'bi-box-arrow-down',
         iconTone: 'muted' as const,
         detail:
-          `Ihr Zugriff ist nur noch lesend. Sie können Ihre Daten bis zum ${formatDateDe(until)} als ZIP-Archiv exportieren (CSV und JSON).`,
+          `Dein Zugriff ist nur noch lesend. Du kannst deine Daten bis zum ${formatDateDe(until)} als ZIP-Archiv exportieren (CSV und JSON).`,
         showProgress: false,
         showNoCharge: false,
       }
@@ -198,7 +198,7 @@ export default function BillingPageClient({
         icon: 'bi-exclamation-triangle-fill',
         iconTone: 'warn' as const,
         detail:
-          'Die letzte Abbuchung ist fehlgeschlagen. Bitte aktualisieren Sie Ihre Zahlungsmethode, um eine Unterbrechung zu vermeiden.',
+          'Die letzte Abbuchung ist fehlgeschlagen. Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung zu vermeiden.',
         showProgress: false,
         showNoCharge: false,
       }
@@ -224,9 +224,9 @@ export default function BillingPageClient({
         badgeText: 'Testphase',
         icon: 'bi-clock-fill',
         iconTone: 'blue' as const,
-        detail: `Ihr Abo läuft in der kostenlosen Testphase bei Stripe${
+        detail: `Dein Abo läuft in der kostenlosen Testphase bei Stripe${
           billingState.trial.endsAt ? ` (bis zum ${formatDateDe(billingState.trial.endsAt)})` : ''
-        }. Rechnungen und Zahlungsdaten verwalten Sie im Stripe-Kundenportal.`,
+        }. Rechnungen und Zahlungsdaten verwaltest du im Stripe-Kundenportal.`,
         showProgress: false,
         showNoCharge: false,
       }
@@ -240,8 +240,8 @@ export default function BillingPageClient({
         icon: 'bi-calendar-x',
         iconTone: 'warn' as const,
         detail:
-          `Ihr Abo ist noch aktiv, wurde aber gekündigt. Der volle Zugang endet am ${formatDateDe(end)} — bis dahin können Sie AniDocs wie gewohnt nutzen. ` +
-          `Rechnungen und Zahlungsdaten verwalten Sie im Stripe-Portal.`,
+          `Dein Abo ist noch aktiv, wurde aber gekündigt. Der volle Zugang endet am ${formatDateDe(end)} — bis dahin kannst du AniDocs wie gewohnt nutzen. ` +
+          `Rechnungen und Zahlungsdaten verwaltest du im Stripe-Portal.`,
         showProgress: false,
         showNoCharge: false,
       }
@@ -254,7 +254,7 @@ export default function BillingPageClient({
         icon: 'bi-check-circle-fill',
         iconTone: 'accent' as const,
         detail:
-          'Ihr AniDocs Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
+          'Dein AniDocs Abo ist aktiv. Rechnungen und Zahlungsdaten kannst du jederzeit sicher über unser Zahlungsportal verwalten.',
         showProgress: false,
         showNoCharge: false,
       }
@@ -267,7 +267,7 @@ export default function BillingPageClient({
         icon: 'bi-clock-fill',
         iconTone: 'blue' as const,
         detail:
-          `Ihre 14‑tägige Testphase läuft noch bis zum ` +
+          `Deine 14‑tägige Testphase läuft noch bis zum ` +
           `${formatDateDe(billingState.trial.endsAt)}. ` +
           `Alle Funktionen sind freigeschaltet.`,
         showProgress: true,
@@ -282,8 +282,8 @@ export default function BillingPageClient({
         icon: 'bi-exclamation-circle-fill',
         iconTone: 'danger' as const,
         detail:
-          `Ihre Testphase ist am ${formatDateDe(billingState.trial.endsAt)} abgelaufen. ` +
-          `Schließen Sie jetzt Ihr Abo ab, um AniDocs weiter vollständig zu nutzen.`,
+          `Deine Testphase ist am ${formatDateDe(billingState.trial.endsAt)} abgelaufen. ` +
+          `Schließe jetzt dein Abo ab, um AniDocs weiter vollständig zu nutzen.`,
         showProgress: false,
         showNoCharge: false,
       }
@@ -295,7 +295,7 @@ export default function BillingPageClient({
       icon: 'bi-credit-card',
       iconTone: 'muted' as const,
       detail:
-        'Schließen Sie Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen. Ihre Rechnungen und Zahlungsdaten verwalten Sie sicher über Stripe.',
+        'Schließe dein Abo ab, um AniDocs weiterhin vollständig zu nutzen. Deine Rechnungen und Zahlungsdaten verwaltest du sicher über Stripe.',
       showProgress: false,
       showNoCharge: false,
     }
@@ -305,25 +305,25 @@ export default function BillingPageClient({
     if (billingCheckFailed) {
       return {
         tone: 'warning' as const,
-        text: 'Ihr Zahlungs- und Zugriffsstatus konnte vorübergehend nicht geprüft werden. Bitte laden Sie die Seite neu oder versuchen Sie es in Kürze erneut.',
+        text: 'Dein Zahlungs- und Zugriffsstatus konnte vorübergehend nicht geprüft werden. Bitte lade die Seite neu oder versuche es in Kürze erneut.',
       }
     }
     if (success) {
       return {
         tone: 'success' as const,
-        text: 'Vielen Dank! Ihr Checkout wurde abgeschlossen. Falls die Anzeige noch nicht aktualisiert ist, versuchen Sie es bitte in ein paar Sekunden erneut.',
+        text: 'Vielen Dank! Dein Checkout wurde abgeschlossen. Falls die Anzeige noch nicht aktualisiert ist, versuche es bitte in ein paar Sekunden erneut.',
       }
     }
     if (canceled) {
       return {
         tone: 'neutral' as const,
-        text: 'Der Checkout wurde abgebrochen. Sie können jederzeit erneut abschließen.',
+        text: 'Der Checkout wurde abgebrochen. Du kannst jederzeit erneut abschließen.',
       }
     }
     if (blocked) {
       return {
         tone: 'danger' as const,
-        text: 'Für diesen Bereich ist ein aktives Abo erforderlich. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
+        text: 'Für diesen Bereich ist ein aktives Abo erforderlich. Schließe jetzt dein Abo ab, um AniDocs weiterhin vollständig zu nutzen.',
       }
     }
 
@@ -336,7 +336,7 @@ export default function BillingPageClient({
     if (billingState.subscription.status === 'trialing') {
       return {
         tone: 'neutral' as const,
-        text: 'Ihr Abo befindet sich in der kostenlosen Testphase bei Stripe (siehe auch Stripe-Dashboard).',
+        text: 'Dein Abo befindet sich in der kostenlosen Testphase bei Stripe (siehe auch Stripe-Dashboard).',
       }
     }
     if (
@@ -345,13 +345,13 @@ export default function BillingPageClient({
     ) {
       return {
         tone: 'warning' as const,
-        text: `Kündigung vorgemerkt: Ihr Abo läuft am ${formatDateDe(billingState.subscription.cancelAt)} aus. Bis dahin bleiben alle Funktionen aktiv.`,
+        text: `Kündigung vorgemerkt: Dein Abo läuft am ${formatDateDe(billingState.subscription.cancelAt)} aus. Bis dahin bleiben alle Funktionen aktiv.`,
       }
     }
     if (billingState.subscription.status === 'active') {
       return {
         tone: 'success' as const,
-        text: 'Ihr Abo ist aktiv. Rechnungen und Zahlungsdaten können Sie jederzeit sicher über unser Zahlungsportal verwalten.',
+        text: 'Dein Abo ist aktiv. Rechnungen und Zahlungsdaten kannst du jederzeit sicher über unser Zahlungsportal verwalten.',
       }
     }
     if (billingState.trial.isActive && billingState.subscription.status === 'none') {
@@ -359,7 +359,7 @@ export default function BillingPageClient({
       const daysLabel = typeof days === 'number' ? `${days} Tag${days === 1 ? '' : 'e'}` : 'einige Tage'
       return {
         tone: 'neutral' as const,
-        text: `Ihr Testzeitraum läuft noch (${daysLabel} verbleibend).`,
+        text: `Dein Testzeitraum läuft noch (${daysLabel} verbleibend).`,
       }
     }
     return null
@@ -477,15 +477,15 @@ export default function BillingPageClient({
         <SectionCard title="Datenexport" bodyClassName="px-[22px] py-5">
           <div id="datenexport-downloads" className="scroll-mt-24">
             <p className="text-[13px] leading-relaxed text-[#6B7280]">
-              ZIP mit Stammdaten, Dokumentationen und Bildern. Der Export läuft auf dem Server — Sie erhalten eine E-Mail,
-              wenn die Datei fertig ist. Den Download finden Sie unten unter „Ihre Exporte“ oder in den Einstellungen.
+              ZIP mit Stammdaten, Dokumentationen und Bildern. Der Export läuft auf dem Server — du erhältst eine E-Mail,
+              wenn die Datei fertig ist. Den Download findest du unten unter „Deine Exporte“ oder in den Einstellungen.
             </p>
             <DataExportButton className="neutral-button mt-4 font-semibold disabled:opacity-60">
               <i className="bi bi-download" aria-hidden />
               ZIP exportieren
             </DataExportButton>
             <div className="mt-6 border-t border-[#E5E2DC] pt-5">
-              <h3 className="text-[14px] font-semibold text-[#1B1F23]">Ihre Exporte</h3>
+              <h3 className="text-[14px] font-semibold text-[#1B1F23]">Deine Exporte</h3>
               <div className="mt-3">
                 <DataExportDownloadsPanel />
               </div>
@@ -538,7 +538,7 @@ export default function BillingPageClient({
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/15 bg-primary/6 px-3 py-2 text-[12px] text-primary-dark">
                 <i className="bi bi-shield-check mt-[1px]" aria-hidden />
                 <div>
-                  Während der Testphase erfolgt keine Abbuchung. Sie können jederzeit kündigen.
+                  Während der Testphase erfolgt keine Abbuchung. Du kannst jederzeit kündigen.
                 </div>
               </div>
             )}
@@ -669,14 +669,14 @@ export default function BillingPageClient({
                     <PaymentMethodPreview pm={paymentMethod} />
                   </div>
                   <p className="mt-3 text-[11px] text-[#9CA3AF]">
-                    Änderungen nehmen Sie über „Im Portal verwalten“ vor — Kartendaten liegen bei Stripe, nicht auf AniDocs.
+                    Änderungen nimmst du über „Im Portal verwalten“ vor — Kartendaten liegen bei Stripe, nicht auf AniDocs.
                   </p>
                 </div>
               ) : (
                 <div className="text-center text-[13px] text-[#9CA3AF] py-4">
                   <i className="bi bi-credit-card text-[26px] opacity-20 block mb-2" aria-hidden />
                   {subscriptionStatus === 'past_due'
-                    ? 'Bitte aktualisieren Sie Ihre Zahlungsmethode im Zahlungsportal.'
+                    ? 'Bitte aktualisiere deine Zahlungsmethode im Zahlungsportal.'
                     : 'Keine Zahlungsmethode per API gefunden — bitte im Stripe-Kundenportal prüfen oder hinterlegen.'}
                 </div>
               )}
@@ -706,7 +706,7 @@ export default function BillingPageClient({
                   {ui.key === 'trial_expired' || billingState.trial.isExpired ? (
                     <div className="mt-4 flex flex-col gap-2">
                       <div className="text-[12px] text-[#6B7280]">
-                        Ihre Testphase ist beendet. Schließen Sie jetzt Ihr Abo ab, um AniDocs weiter zu nutzen.
+                        Deine Testphase ist beendet. Schließe jetzt dein Abo ab, um AniDocs weiter zu nutzen.
                       </div>
                       <button
                         type="button"
@@ -739,12 +739,12 @@ export default function BillingPageClient({
                     }
                     description={
                       subscribing
-                        ? 'Schließen Sie Ihr AniDocs Abo jetzt ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'
+                        ? 'Schließe dein AniDocs Abo jetzt ab. Falls eine 3D‑Secure‑Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster deiner Bank.'
                         : paymentMethod
-                          ? 'Ändern Sie Ihre Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in Ihrem Stripe‑Konto hinterlegt.'
+                          ? 'Ändere deine Zahlungsmethode direkt hier. Die Aktualisierung wird sofort in deinem Stripe‑Konto hinterlegt.'
                           : isTrialActive
-                            ? 'Damit Ihr Abo nach dem Testzeitraum nahtlos weiterläuft, können Sie schon jetzt eine Zahlungsmethode hinterlegen.'
-                            : 'Hinterlegen Sie zuerst eine Zahlungsmethode. Danach wird Ihr AniDocs‑Abo eingerichtet und die erste Zahlung ausgelöst (3D‑Secure kann kurz erscheinen).'
+                            ? 'Damit dein Abo nach dem Testzeitraum nahtlos weiterläuft, kannst du schon jetzt eine Zahlungsmethode hinterlegen.'
+                            : 'Hinterlege zuerst eine Zahlungsmethode. Danach wird dein AniDocs‑Abo eingerichtet und die erste Zahlung ausgelöst (3D‑Secure kann kurz erscheinen).'
                     }
                     prepareUrl={
                       subscribing
@@ -853,12 +853,12 @@ export default function BillingPageClient({
           {
             icon: 'bi-arrow-repeat',
             title: 'Monatlich kündbar',
-            text: 'Keine Mindestlaufzeit. Sie können jederzeit im Kundenportal kündigen oder verwalten.',
+            text: 'Keine Mindestlaufzeit. Du kannst jederzeit im Kundenportal kündigen oder verwalten.',
           },
           {
             icon: 'bi-lock-fill',
             title: 'Daten geschützt',
-            text: 'Ihre Daten gehören Ihnen. Bei Kündigung können Sie sie weiterhin exportieren.',
+            text: 'Deine Daten gehören dir. Bei Kündigung kannst du sie weiterhin exportieren.',
           },
         ].map((t) => (
           <div key={t.title} className="content-card px-4 py-3 flex items-start gap-3">

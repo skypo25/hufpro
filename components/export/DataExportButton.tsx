@@ -47,7 +47,7 @@ export default function DataExportButton({
       if (startJson.reuseComplete) {
         setHeadline('Export bereit')
         setBody(
-          'Ihr letzter Export ist noch verfügbar. Laden Sie die ZIP unten in den Einstellungen bzw. unter Abrechnung herunter — oder nutzen Sie „Herunterladen“ im Bereich „Ihre Exporte“ auf dieser Seite.'
+          'Dein letzter Export ist noch verfügbar. Lade die ZIP unten in den Einstellungen bzw. unter Abrechnung herunter — oder nutze „Herunterladen“ im Bereich „Deine Exporte“ auf dieser Seite.'
         )
         setBusy(false)
         return
@@ -56,7 +56,7 @@ export default function DataExportButton({
       if (startJson.resumed) {
         setHeadline('Export läuft bereits')
         setBody(
-          'Für Ihr Konto ist bereits ein Export aktiv. Sie können den Browser schließen — wenn die ZIP fertig ist, erhalten Sie eine E-Mail. Den Download finden Sie in den Einstellungen oder unter Abrechnung unter „Ihre Exporte“.'
+          'Für dein Konto ist bereits ein Export aktiv. Du kannst den Browser schließen — wenn die ZIP fertig ist, erhältst du eine E-Mail. Den Download findest du in den Einstellungen oder unter Abrechnung unter „Deine Exporte“.'
         )
         setBusy(false)
         return
@@ -64,7 +64,7 @@ export default function DataExportButton({
 
       setHeadline('Export gestartet')
       setBody(
-        'Die ZIP-Datei wird auf dem Server erstellt. Sie können dieses Fenster und den Browser schließen. Sobald der Export fertig ist, erhalten Sie eine E-Mail. Den Download starten Sie nach dem Anmelden unter Einstellungen oder Abrechnung im Bereich „Ihre Exporte“.'
+        'Die ZIP-Datei wird auf dem Server erstellt. Du kannst dieses Fenster und den Browser schließen. Sobald der Export fertig ist, erhältst du eine E-Mail. Den Download startest du nach dem Anmelden unter Einstellungen oder Abrechnung im Bereich „Deine Exporte“.'
       )
       setBusy(false)
     } catch (e) {

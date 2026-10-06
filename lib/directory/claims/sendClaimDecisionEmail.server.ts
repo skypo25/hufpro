@@ -87,26 +87,26 @@ export async function sendDirectoryClaimDecisionEmail(args: ClaimDecisionEmailAr
   let html: string
 
   if (args.kind === 'approved') {
-    subject = 'AniDocs: Ihr Profil-Antrag wurde angenommen'
+    subject = 'AniDocs: Dein Profil-Antrag wurde angenommen'
     text = [
-      `Guten Tag,`,
+      `Hallo,`,
       ``,
-      `Ihr Antrag auf Übernahme des Verzeichniseintrags „${name}“ wurde angenommen.`,
+      `Dein Antrag auf Übernahme des Verzeichniseintrags „${name}“ wurde angenommen.`,
       ``,
-      `Melden Sie sich in der AniDocs-App an: ${loginUrl}`,
-      `Ihr Verzeichnisprofil finden Sie unter: ${meinProfilUrl}`,
+      `Melde dich in der AniDocs-App an: ${loginUrl}`,
+      `Dein Verzeichnisprofil findest du unter: ${meinProfilUrl}`,
       `Öffentliche Ansicht: ${publicProfilUrl}`,
       ``,
       `Viele Grüße`,
-      `Ihr AniDocs-Team`,
+      `Dein AniDocs-Team`,
     ].join('\n')
-    html = `<p>Guten Tag,</p>
-<p>Ihr Antrag auf Übernahme des Verzeichniseintrags <strong>${escapeHtml(name)}</strong> wurde <strong>angenommen</strong>.</p>
+    html = `<p>Hallo,</p>
+<p>Dein Antrag auf Übernahme des Verzeichniseintrags <strong>${escapeHtml(name)}</strong> wurde <strong>angenommen</strong>.</p>
 <p><a href="${escapeHtml(loginUrl)}">Zur Anmeldung</a> · <a href="${escapeHtml(meinProfilUrl)}">Mein Verzeichnisprofil</a></p>
 <p><small>Öffentliche Seite: <a href="${escapeHtml(publicProfilUrl)}">${escapeHtml(publicProfilUrl)}</a></small></p>
-<p>Viele Grüße<br/>Ihr AniDocs-Team</p>`
+<p>Viele Grüße<br/>Dein AniDocs-Team</p>`
   } else {
-    subject = 'AniDocs: Ihr Profil-Antrag wurde abgelehnt'
+    subject = 'AniDocs: Dein Profil-Antrag wurde abgelehnt'
     const reasonBlock =
       args.rejectionReason && args.rejectionReason.trim()
         ? `\n\nHinweis von AniDocs:\n${args.rejectionReason.trim()}`
@@ -116,20 +116,20 @@ export async function sendDirectoryClaimDecisionEmail(args: ClaimDecisionEmailAr
         ? `<p><strong>Hinweis:</strong> ${escapeHtml(args.rejectionReason.trim())}</p>`
         : ''
     text = [
-      `Guten Tag,`,
+      `Hallo,`,
       ``,
-      `Ihr Antrag auf Übernahme des Verzeichniseintrags „${name}“ wurde leider abgelehnt.${reasonBlock}`,
+      `Dein Antrag auf Übernahme des Verzeichniseintrags „${name}“ wurde leider abgelehnt.${reasonBlock}`,
       ``,
-      `Bei Rückfragen wenden Sie sich bitte an den AniDocs-Support.`,
+      `Bei Rückfragen wende dich bitte an den AniDocs-Support.`,
       ``,
       `Viele Grüße`,
-      `Ihr AniDocs-Team`,
+      `Dein AniDocs-Team`,
     ].join('\n')
-    html = `<p>Guten Tag,</p>
-<p>Ihr Antrag auf Übernahme des Verzeichniseintrags <strong>${escapeHtml(name)}</strong> wurde <strong>abgelehnt</strong>.</p>
+    html = `<p>Hallo,</p>
+<p>Dein Antrag auf Übernahme des Verzeichniseintrags <strong>${escapeHtml(name)}</strong> wurde <strong>abgelehnt</strong>.</p>
 ${reasonHtml}
-<p>Bei Rückfragen wenden Sie sich bitte an den AniDocs-Support.</p>
-<p>Viele Grüße<br/>Ihr AniDocs-Team</p>`
+<p>Bei Rückfragen wende dich bitte an den AniDocs-Support.</p>
+<p>Viele Grüße<br/>Dein AniDocs-Team</p>`
   }
 
   try {

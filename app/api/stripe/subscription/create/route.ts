@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const account = (accountRow as BillingAccountRow | null) ?? null
   const status = (account?.subscription_status ?? null)?.toString() ?? 'none'
   if (status === 'active' || status === 'trialing') {
-    return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
+    return NextResponse.json({ error: 'Dein Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 
   const customerId = account?.stripe_customer_id ?? null
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       })
       const s = (existing.status ?? '').toString()
       if (s === 'active' || s === 'trialing') {
-        return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
+        return NextResponse.json({ error: 'Dein Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
       }
       if (['incomplete', 'unpaid', 'past_due'].includes(s)) {
         const updated = await stripe.subscriptions.update(existingSubId, {

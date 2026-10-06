@@ -78,8 +78,11 @@ export default function AppLayoutClient({
   directoryInternChrome?: boolean
   directoryInternPaket?: 'gratis' | 'premium' | null
 }) {
-  // unknown bis Viewport gemessen — verhindert Desktop-Flash und weiße Lücke in der PWA
-  const [shell, setShell] = useState<'unknown' | 'mobile' | 'desktop'>('unknown')
+  // unknown nur beim SSR; Client-Remount (RSC-Refresh) sofort mit Viewport, sonst leer + Splash
+  const [shell, setShell] = useState<'unknown' | 'mobile' | 'desktop'>(() => {
+    if (typeof window === 'undefined') return 'unknown'
+    return window.innerWidth < MOBILE_BREAKPOINT ? 'mobile' : 'desktop'
+  })
   const pathname = usePathname()
   const isAdminSection = Boolean(pathname?.startsWith('/admin'))
 

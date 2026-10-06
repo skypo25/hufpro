@@ -813,8 +813,11 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
 
         {tab === 'rechnungen' && (
           <div className="cd-section cd-umsatz-card">
-            <div className="cd-section-header flex justify-between items-center">
+            <div className="cd-section-header flex justify-between items-center gap-2">
               <h3>Umsatz {revenueYear}</h3>
+              <Link href={`/invoices/new?customerId=${customer.id}`} className="text-[12px] font-semibold text-primary">
+                Neue Rechnung
+              </Link>
             </div>
             <div className="cd-section-body">
               {revenueRows.length === 0 ? (
@@ -833,6 +836,12 @@ export default function MobileCustomerDetail({ customerId: customerIdProp }: { c
                   </div>
                 </>
               )}
+              <Link
+                href={`/customers/${customer.id}/invoices`}
+                className="mt-3 block text-center text-[13px] font-semibold text-primary"
+              >
+                Alle Rechnungen
+              </Link>
             </div>
           </div>
         )}

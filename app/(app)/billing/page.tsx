@@ -49,7 +49,7 @@ export default async function BillingPage() {
           Billing
         </h1>
         <p className="mt-1 text-[14px] text-[#6B7280]">
-          Verwalten Sie Ihr Abo, Rechnungen und Zahlungsdaten sicher über Stripe.
+          Verwalte dein Abo, Rechnungen und Zahlungsdaten sicher über Stripe.
         </p>
       </div>
 

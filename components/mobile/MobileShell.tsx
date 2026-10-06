@@ -45,10 +45,11 @@ export default function MobileShell({
   }, [])
   const [moreSheetOpen, setMoreSheetOpen] = useState(false)
   const [todayAppointmentCount, setTodayAppointmentCount] = useState(0)
-  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|animals\/new|animals\/[^/]+\/edit|animals\/[^/]+\/erstanamnese(\/edit)?)$/.test(
+  const showTabBar = !/\/(records\/(new|[^/]+\/edit)|customers\/(new|[^/]+\/edit)|animals\/new|animals\/[^/]+\/edit|animals\/[^/]+\/erstanamnese(\/edit)?|invoices\/new|invoices\/[^/]+\/edit)$/.test(
     pathname ?? ''
   )
-  const isMoreActive = pathname?.startsWith('/settings') ?? false
+  const isMoreActive =
+    Boolean(pathname?.startsWith('/settings')) || Boolean(pathname?.startsWith('/invoices'))
 
   useEffect(() => {
     let cancelled = false

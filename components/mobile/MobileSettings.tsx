@@ -703,14 +703,14 @@ export default function MobileSettings() {
               <div id="datenexport-downloads" className="mt-4 scroll-mt-20 border-t border-[#F0EEEA] pt-4">
                 <div className="text-[12px] font-semibold text-[#1B1F23]">Datenexport</div>
                 <p className="mt-1 text-[11px] leading-relaxed text-[#6B7280]">
-                  Läuft auf dem Server — E-Mail bei Fertigstellung. Download unten unter „Ihre Exporte“.
+                  Läuft auf dem Server — E-Mail bei Fertigstellung. Download unten unter „Deine Exporte“.
                 </p>
                 <DataExportButton className="mt-2 inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-medium text-[#1B1F23] disabled:opacity-60">
                   <i className="bi bi-download" aria-hidden />
                   ZIP exportieren
                 </DataExportButton>
                 <div className="mt-4">
-                  <div className="text-[11px] font-semibold text-[#1B1F23]">Ihre Exporte</div>
+                  <div className="text-[11px] font-semibold text-[#1B1F23]">Deine Exporte</div>
                   <div className="mt-2">
                     <DataExportDownloadsPanel />
                   </div>

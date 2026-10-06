@@ -524,7 +524,8 @@ export default function NewInvoiceForm({
               ))}
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+              <div className="min-w-[520px]">
               <div className="grid grid-cols-[1fr_120px_70px_100px_44px] gap-3 border-b border-[var(--border)] bg-[color-mix(in_oklab,var(--border)_22%,var(--card))] px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
                 <div>Leistung</div>
                 <div>Pferd</div>
@@ -682,6 +683,7 @@ export default function NewInvoiceForm({
                 >
                   <FontAwesomeIcon icon={faPlus} className="h-4 w-4" /> Position hinzufügen
                 </button>
+              </div>
               </div>
             </div>
 

@@ -67,7 +67,7 @@ export async function POST() {
         { status: 409 },
       )
     }
-    return NextResponse.json({ error: 'Ihr Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
+    return NextResponse.json({ error: 'Dein Abo ist bereits aktiv oder in der Testphase.' }, { status: 409 })
   }
 
   let customerId = account?.stripe_customer_id ?? null

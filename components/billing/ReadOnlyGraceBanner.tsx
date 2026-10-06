@@ -34,7 +34,7 @@ export default function ReadOnlyGraceBanner({ graceEndsAtIso }: { graceEndsAtIso
           <span className="font-semibold">Nur Lesen</span>
           <span className="text-[#334155]">
             {' '}
-            — Ihr Abo ist gekündigt. Änderungen sind nicht mehr möglich. Datenexport bis{' '}
+            — Dein Abo ist gekündigt. Änderungen sind nicht mehr möglich. Datenexport bis{' '}
             <time dateTime={graceEndsAtIso}>{formatDateTimeDe(graceEndsAtIso)}</time>.
           </span>
           <div className="mt-1.5 text-[12px] text-[#334155]">
@@ -47,7 +47,7 @@ export default function ReadOnlyGraceBanner({ graceEndsAtIso }: { graceEndsAtIso
               Einstellungen
             </Link>
             {' '}
-            unter „Ihre Exporte“.
+            unter „Deine Exporte“.
           </div>
         </div>
       </div>

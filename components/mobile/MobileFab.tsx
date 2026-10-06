@@ -19,6 +19,7 @@ export default function MobileFab() {
   const fabItems = useMemo(
     () => [
       { href: '/appointments/new', label: 'Neuer Termin' },
+      { href: '/invoices/new', label: 'Neue Rechnung' },
       { href: '/customers/new', label: 'Neuer Kunde' },
       { href: '/animals/new', label: newAnimalFabLabel(profile.terminology) },
     ],

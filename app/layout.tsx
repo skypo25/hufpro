@@ -109,7 +109,7 @@ export default function RootLayout({
         <link rel="preload" href="/icon.png" as="image" />
       </head>
       <body>
-        <div dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_HTML }} />
+        <div id="anidocs-boot-host" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_HTML }} />
         <ConsentProvider>
           <CookieConsentLayerGate />
           <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === 'development'}>

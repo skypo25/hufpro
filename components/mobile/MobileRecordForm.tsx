@@ -1216,7 +1216,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
           <div className="mrf-s-body">
             <textarea
               className="mrf-editor"
-              placeholder="Interne Notizen (nur für Sie sichtbar) …"
+              placeholder="Interne Notizen (nur für dich sichtbar) …"
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}
               rows={3}

@@ -1075,8 +1075,8 @@ export default function SettingsForm({
                   <div>
                     <h4 className="text-[14px] font-semibold text-[#1B1F23]">Datenexport</h4>
                     <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
-                      ZIP mit Tabellen (CSV/JSON) und Fotos. Der Lauf erfolgt auf dem Server — Sie erhalten eine E-Mail,
-                      wenn die Datei fertig ist. Den Download starten Sie hier unter „Ihre Exporte“. Entspricht dem Export
+                      ZIP mit Tabellen (CSV/JSON) und Fotos. Der Lauf erfolgt auf dem Server — du erhältst eine E-Mail,
+                      wenn die Datei fertig ist. Den Download startest du hier unter „Deine Exporte“. Entspricht dem Export
                       unter Abrechnung.
                     </p>
                   </div>
@@ -1091,7 +1091,7 @@ export default function SettingsForm({
                   </div>
                 </div>
                 <div className="mt-6">
-                  <h5 className="text-[13px] font-semibold text-[#1B1F23]">Ihre Exporte</h5>
+                  <h5 className="text-[13px] font-semibold text-[#1B1F23]">Deine Exporte</h5>
                   <div className="mt-3">
                     <DataExportDownloadsPanel />
                   </div>

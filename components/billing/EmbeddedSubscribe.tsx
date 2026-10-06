@@ -153,7 +153,7 @@ function InnerForm({
           }}
           onLoadError={() => {
             setError(
-              'Das Zahlungsformular konnte nicht geladen werden. Bitte laden Sie die Seite neu oder versuchen Sie es erneut.'
+              'Das Zahlungsformular konnte nicht geladen werden. Bitte lade die Seite neu oder versuche es erneut.'
             )
           }}
         />
@@ -169,7 +169,7 @@ function InnerForm({
       </button>
 
       <div className="text-[12px] text-[#6B7280]">
-        Die Zahlung erfolgt sicher über Stripe. Ihre Zahlungsdaten werden nicht auf AniDocs-Servern gespeichert.
+        Die Zahlung erfolgt sicher über Stripe. Deine Zahlungsdaten werden nicht auf AniDocs-Servern gespeichert.
       </div>
     </div>
   )
@@ -337,7 +337,7 @@ export default function EmbeddedSubscribe({
       <div className="space-y-3">
         <div className="text-[14px] text-[#6B7280]">
           {description ??
-            'Schließen Sie Ihr AniDocs-Abo direkt hier ab. Falls eine 3D-Secure-Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster Ihrer Bank.'}
+            'Schließe dein AniDocs-Abo direkt hier ab. Falls eine 3D-Secure-Bestätigung nötig ist, öffnet sich ggf. ein kurzes Bestätigungsfenster deiner Bank.'}
         </div>
         {body}
       </div>
