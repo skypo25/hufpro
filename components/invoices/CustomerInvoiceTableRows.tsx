@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFilePdf, faEllipsisVertical, faCheck, faClock, faBan } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
+import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
 
 export type InvoiceRowData = {
   id: string
@@ -44,6 +45,7 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [pdfPendingId, setPdfPendingId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -116,10 +118,13 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                window.open(`/invoices/${inv.id}/pdf`, '_blank')
+                if (pdfPendingId) return
+                setPdfPendingId(inv.id)
+                void downloadInvoicePdf(inv.id).finally(() => setPdfPendingId(null))
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-primary hover:text-primary"
-              title="PDF"
+              disabled={pdfPendingId === inv.id}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] text-[#6B7280] transition hover:border-primary hover:text-primary disabled:opacity-50"
+              title={pdfPendingId === inv.id ? 'PDF wird erstellt…' : 'PDF'}
             >
               <FontAwesomeIcon icon={faFilePdf} className="h-3.5 w-3.5" />
             </button>

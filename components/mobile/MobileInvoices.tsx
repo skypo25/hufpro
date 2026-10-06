@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import MobileInvoiceListRow from '@/components/mobile/MobileInvoiceListRow'
 
 type InvoiceRow = {
   id: string
@@ -17,29 +18,8 @@ type InvoiceRow = {
 
 type StatusFilter = 'all' | 'open' | 'paid'
 
-function formatDate(d: string | null | undefined) {
-  if (!d) return '–'
-  const date = new Date(d)
-  if (Number.isNaN(date.getTime())) return d
-  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
-}
-
 function formatEuro(cents: number) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
-}
-
-function statusLabel(s: string) {
-  return s === 'paid' ? 'Bezahlt' : s === 'sent' ? 'Offen' : s === 'cancelled' ? 'Storniert' : 'Entwurf'
-}
-
-function statusClass(s: string) {
-  return s === 'paid'
-    ? 'bg-[#DCFCE7] text-[#166534]'
-    : s === 'sent'
-      ? 'bg-[#FEF3C7] text-[#92400E]'
-      : s === 'cancelled'
-        ? 'bg-[#F3F4F6] text-[#9CA3AF]'
-        : 'bg-[#F3F4F6] text-[#6B7280]'
 }
 
 function IconSearch() {
@@ -154,29 +134,15 @@ export default function MobileInvoices({ customerId }: { customerId?: string }) 
           </div>
         ) : (
           <div className="flex flex-col gap-2 pb-4">
-            {invoices.map((inv) => {
-              const href = inv.status === 'draft' ? `/invoices/${inv.id}/edit` : `/invoices/${inv.id}`
-              return (
-                <Link
-                  key={inv.id}
-                  href={href}
-                  className="flex items-center gap-3 rounded-[12px] border border-[#F0EEEA] bg-white px-3.5 py-3 active:bg-black/[0.03]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14px] font-semibold text-[#1A1A1A]">{inv.invoiceNumber}</div>
-                    <div className="truncate text-[12px] text-[#6B7280]">
-                      {inv.customerName} · {formatDate(inv.invoiceDate)}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-[14px] font-semibold tabular-nums text-primary">{formatEuro(inv.totalCents)}</div>
-                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(inv.status)}`}>
-                      {statusLabel(inv.status)}
-                    </span>
-                  </div>
-                </Link>
-              )
-            })}
+            {invoices.map((inv) => (
+              <MobileInvoiceListRow
+                key={inv.id}
+                invoice={inv}
+                onUpdated={(patch) => {
+                  setInvoices((prev) => prev.map((row) => (row.id === inv.id ? { ...row, ...patch } : row)))
+                }}
+              />
+            ))}
           </div>
         )}
       </div>

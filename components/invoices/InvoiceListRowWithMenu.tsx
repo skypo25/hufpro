@@ -46,19 +46,14 @@ export default function InvoiceListRowWithMenu({
 }: InvoiceListRowWithMenuProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [sendOpen, setSendOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [sendingMail, setSendingMail] = useState(false)
   const [mailMsg, setMailMsg] = useState<string | null>(null)
-  const [testTo, setTestTo] = useState('')
   const [rowStatus, setRowStatus] = useState(status)
   const [rowSentAt, setRowSentAt] = useState(sentAt)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const sendPanelRef = useRef<HTMLDivElement>(null)
-  const sendButtonRef = useRef<HTMLButtonElement>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
-  const [sendPos, setSendPos] = useState<{ top: number; right: number } | null>(null)
 
   useEffect(() => {
     setRowStatus(status)
@@ -75,17 +70,6 @@ export default function InvoiceListRowWithMenu({
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [open])
-
-  useEffect(() => {
-    if (!sendOpen) return
-    const close = (e: MouseEvent) => {
-      if (sendPanelRef.current?.contains(e.target as Node)) return
-      if (sendButtonRef.current?.contains(e.target as Node)) return
-      setSendOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [sendOpen])
 
   useEffect(() => {
     if (!open) {
@@ -107,26 +91,6 @@ export default function InvoiceListRowWithMenu({
     }
   }, [open])
 
-  useEffect(() => {
-    if (!sendOpen) {
-      setSendPos(null)
-      return
-    }
-    const measure = () => {
-      const btn = sendButtonRef.current
-      if (!btn) return
-      const rect = btn.getBoundingClientRect()
-      setSendPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    }
-    measure()
-    window.addEventListener('scroll', measure, true)
-    window.addEventListener('resize', measure)
-    return () => {
-      window.removeEventListener('scroll', measure, true)
-      window.removeEventListener('resize', measure)
-    }
-  }, [sendOpen])
-
   const handleStatus = async (newStatus: 'paid' | 'sent' | 'cancelled') => {
     setOpen(false)
     setPending(true)
@@ -138,7 +102,7 @@ export default function InvoiceListRowWithMenu({
     }
   }
 
-  const sendInvoiceEmail = async (opts?: { test?: boolean; to?: string }) => {
+  const sendInvoiceEmail = async () => {
     if (sendingMail) return
     setMailMsg(null)
     setSendingMail(true)
@@ -147,25 +111,14 @@ export default function InvoiceListRowWithMenu({
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(opts?.test ? { test: true, to: opts.to } : {}),
+        body: JSON.stringify({}),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
       const to = (json as { to?: string })?.to
-      setMailMsg(
-        opts?.test
-          ? to
-            ? `Test an ${to} versendet.`
-            : 'Test-E-Mail versendet.'
-          : to
-            ? `E-Mail an ${to} versendet.`
-            : 'E-Mail versendet.'
-      )
-      setSendOpen(false)
-      if (!opts?.test) {
-        setRowStatus((prev) => (prev === 'cancelled' || prev === 'paid' ? prev : 'sent'))
-        setRowSentAt(new Date().toISOString())
-      }
+      setMailMsg(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
+      setRowStatus((prev) => (prev === 'cancelled' || prev === 'paid' ? prev : 'sent'))
+      setRowSentAt(new Date().toISOString())
     } catch (err) {
       setMailMsg(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen')
     } finally {
@@ -214,62 +167,20 @@ export default function InvoiceListRowWithMenu({
 
       <div className="z-20 flex justify-end">
         <button
-          ref={sendButtonRef}
           type="button"
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
             setOpen(false)
-            setSendOpen((v) => !v)
+            void sendInvoiceEmail()
           }}
           disabled={sendingMail || rowStatus === 'cancelled'}
           className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E2DC] bg-white text-[#6B7280] transition hover:border-primary hover:text-primary disabled:opacity-50"
           title={rowStatus === 'cancelled' ? 'Stornierte Rechnung' : (rowSentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden')}
           aria-label={rowSentAt ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
-          aria-expanded={sendOpen}
         >
           <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
         </button>
-        {sendOpen &&
-          sendPos &&
-          typeof document !== 'undefined' &&
-          createPortal(
-            <div
-              ref={sendPanelRef}
-              className="fixed z-50 w-[280px] rounded-lg border border-[#E5E2DC] bg-white p-3 shadow-lg"
-              style={{ top: sendPos.top, right: sendPos.right }}
-            >
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
-                E-Mail-Versand
-              </p>
-              <button
-                type="button"
-                onClick={() => void sendInvoiceEmail()}
-                disabled={sendingMail}
-                className="mb-3 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-[13px] font-medium text-white hover:bg-primary-dark disabled:opacity-50"
-              >
-                {sendingMail ? 'Sende…' : rowSentAt ? 'Erneut an Kunden senden' : 'An Kunden senden'}
-              </button>
-              <label className="mb-1.5 block text-[11px] font-medium text-[#6B7280]">Test an</label>
-              <input
-                type="email"
-                value={testTo}
-                onChange={(e) => setTestTo(e.target.value)}
-                placeholder="empfaenger@example.de"
-                className="input mb-2 w-full text-[13px]"
-                autoComplete="email"
-              />
-              <button
-                type="button"
-                onClick={() => void sendInvoiceEmail({ test: true, to: testTo.trim() })}
-                disabled={sendingMail || !testTo.trim()}
-                className="flex w-full items-center justify-center rounded-md border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-medium text-[#1B1F23] hover:border-primary hover:text-primary disabled:opacity-50"
-              >
-                Test-E-Mail senden
-              </button>
-            </div>,
-            document.body
-          )}
       </div>
 
       <div className="z-20 flex justify-end">
@@ -280,7 +191,6 @@ export default function InvoiceListRowWithMenu({
             data-invoice-menu-toggle
             onClick={(e) => {
               e.preventDefault()
-              setSendOpen(false)
               setOpen((v) => !v)
             }}
             disabled={pending}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { InvoicePdfData } from '@/lib/pdf/invoiceTypes'
 import { resolveKleinunternehmerHinweis } from '@/lib/invoices/kleinunternehmer'
+import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faChevronLeft,
@@ -66,9 +67,21 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
   )
 
   const [sending, setSending] = useState(false)
-  const [testSending, setTestSending] = useState(false)
   const [sendMsg, setSendMsg] = useState<string | null>(null)
-  const [testTo, setTestTo] = useState('')
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const handlePdfDownload = async () => {
+    if (pdfLoading) return
+    setPdfLoading(true)
+    setSendMsg(null)
+    try {
+      await downloadInvoicePdf(invoiceId)
+    } catch {
+      setSendMsg('PDF konnte nicht erstellt werden. Bitte erneut versuchen.')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
 
   const statusLabel = status === 'paid' ? 'Bezahlt' : status === 'sent' ? 'Offen' : status === 'cancelled' ? 'Storniert' : 'Entwurf'
   const statusClass =
@@ -80,47 +93,26 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           ? 'bg-[#F3F4F6] text-[#9CA3AF]'
           : 'bg-[#F3F4F6] text-[#6B7280]'
 
-  const postInvoiceEmail = async (body: { test?: boolean; to?: string }) => {
-    const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
-    }
-    return json as { to?: string; test?: boolean }
-  }
-
   const handleSendEmail = async () => {
     setSendMsg(null)
     setSending(true)
     try {
-      const json = await postInvoiceEmail({})
-      setSendMsg(json.to ? `E-Mail wurde an ${json.to} versendet.` : 'E-Mail wurde versendet.')
+      const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
+      }
+      const to = (json as { to?: string }).to
+      setSendMsg(to ? `E-Mail wurde an ${to} versendet.` : 'E-Mail wurde versendet.')
     } catch (e) {
       setSendMsg(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')
     } finally {
       setSending(false)
-    }
-  }
-
-  const handleTestEmail = async () => {
-    setSendMsg(null)
-    setTestSending(true)
-    try {
-      const json = await postInvoiceEmail({ test: true, to: testTo.trim() })
-      setSendMsg(
-        json.to
-          ? `Test-E-Mail wurde an ${json.to} versendet. Die Rechnung gilt weiterhin als nicht versendet.`
-          : 'Test-E-Mail wurde versendet.'
-      )
-    } catch (e) {
-      setSendMsg(e instanceof Error ? e.message : 'Test-E-Mail fehlgeschlagen')
-    } finally {
-      setTestSending(false)
     }
   }
 
@@ -152,15 +144,16 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
             <FontAwesomeIcon icon={faPrint} className="h-4 w-4" />
             Drucken
           </button>
-          <a
-            href={`/invoices/${invoiceId}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-primary hover:text-primary"
+          <button
+            type="button"
+            onClick={() => void handlePdfDownload()}
+            disabled={pdfLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+            aria-busy={pdfLoading}
           >
             <FontAwesomeIcon icon={faFilePdf} className="h-4 w-4" />
-            PDF herunterladen
-          </a>
+            {pdfLoading ? 'PDF wird erstellt…' : 'PDF herunterladen'}
+          </button>
           {data.sentAt ? (
             <span className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23]">
               <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4 text-primary" />
@@ -179,32 +172,6 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           )}
         </div>
       </div>
-
-      {status !== 'cancelled' && (
-        <div className="mb-5 flex w-full max-w-[820px] flex-col gap-2 print:hidden sm:flex-row sm:items-end">
-          <label className="min-w-0 flex-1">
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
-              Testversand an
-            </span>
-            <input
-              type="email"
-              value={testTo}
-              onChange={(e) => setTestTo(e.target.value)}
-              placeholder="deine@adresse.de"
-              className="input w-full"
-              autoComplete="email"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void handleTestEmail()}
-            disabled={testSending || sending || !testTo.trim()}
-            className="secondary-button"
-          >
-            {testSending ? 'Sende Test…' : 'Test-E-Mail senden'}
-          </button>
-        </div>
-      )}
 
       {sendMsg && (
         <div className="content-card mb-5 w-full max-w-[820px] px-4 py-3 text-[13px] text-[#1B1F23] print:hidden">

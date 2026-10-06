@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase-client'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 import { KLEINUNTERNEHMER_PFLICHTSATZ } from '@/lib/invoices/kleinunternehmer'
+import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
 
 export type SettingsData = {
   // Persönliche Daten
@@ -425,7 +426,7 @@ export default function SettingsForm({
         return
       }
       if (data.invoiceId) {
-        window.open(`/invoices/${data.invoiceId}/pdf`, '_blank', 'noopener,noreferrer')
+        await downloadInvoicePdf(data.invoiceId)
       }
     } finally {
       setTestInvoiceLoading(false)
