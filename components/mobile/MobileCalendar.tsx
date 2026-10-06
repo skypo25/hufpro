@@ -5,6 +5,7 @@ import Link from 'next/link'
 import AppointmentAnimalsInline, {
   CALENDAR_OVERVIEW_ICON_CLASS,
 } from '@/components/appointments/AppointmentAnimalsInline'
+import { useBottomSheetDrag } from '@/components/mobile/useBottomSheetDrag'
 
 type DayInfo = {
   dateKey: string
@@ -176,6 +177,10 @@ export default function MobileCalendar() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'confirmed' | 'suggested'>('all')
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const closeAppointmentSheet = useCallback(() => setSelectedAppointmentId(null), [])
+  const { offset: sheetOffset, dragging: sheetDragging, handleProps: sheetHandleProps } = useBottomSheetDrag(
+    closeAppointmentSheet
+  )
   const [detailData, setDetailData] = useState<AppointmentDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [routeSegmentOpen, setRouteSegmentOpen] = useState(false)
@@ -559,15 +564,20 @@ export default function MobileCalendar() {
             role="presentation"
             aria-hidden="true"
             className="cal-sheet-overlay"
-            onClick={() => setSelectedAppointmentId(null)}
+            onClick={closeAppointmentSheet}
           />
           <div
             className="cal-sheet"
             aria-modal="true"
             aria-labelledby="cal-sheet-title"
             role="dialog"
+            style={{
+              transform: `translateX(-50%) translateY(${sheetOffset}px)`,
+              animation: sheetDragging || sheetOffset > 0 ? 'none' : undefined,
+              transition: sheetDragging ? 'none' : undefined,
+            }}
           >
-            <div className="cal-sheet-handle" aria-hidden />
+            <div className="cal-sheet-handle touch-none" {...sheetHandleProps} />
             <div className="cal-sheet-inner">
               {detailLoading ? (
                 <div className="cal-dp-loading">Termin wird geladen…</div>

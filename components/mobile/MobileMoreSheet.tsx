@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-client'
 import { canUseMobilePhotoDebugPanel } from '@/lib/mobile/mobilePhotoDebugAccess'
 import PhotoGridDebugSheet from '@/components/mobile/PhotoGridDebugSheet'
+import { useBottomSheetDrag } from '@/components/mobile/useBottomSheetDrag'
 
 const MENU_ITEMS = [
   { href: '/invoices', title: 'Rechnungen', sub: 'Übersicht, schreiben, versenden', icon: 'bi-receipt', color: 'green' },
@@ -88,6 +89,7 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
 
   const tabH = 64
   const safeBottom = 'env(safe-area-inset-bottom, 0px)'
+  const { offset, dragging, handleProps } = useBottomSheetDrag(onClose)
 
   return (
     <>
@@ -107,13 +109,18 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
       <div
         className="fixed bottom-0 left-1/2 z-[100] w-full max-w-[430px] rounded-t-2xl bg-white shadow-[0_-4px_40px_rgba(0,0,0,0.15)]"
         style={{
-          transform: open ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100%)',
+          transform: open
+            ? `translateX(-50%) translateY(${offset}px)`
+            : 'translateX(-50%) translateY(100%)',
           paddingBottom: `calc(${tabH}px + ${safeBottom})`,
-          transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: dragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
       >
         {/* Handle */}
-        <div className="flex justify-center py-2.5 pb-1.5">
+        <div
+          className="flex touch-none justify-center py-3 pb-2"
+          {...handleProps}
+        >
           <span className="block h-1 w-9 rounded-full bg-[#D1D5DB]" aria-hidden />
         </div>
 

@@ -5762,7 +5762,8 @@ div.border-gray-200:not(.input-wrap):not(.form-group),
 .mobile-app .cal-sheet-handle {
   display: flex;
   justify-content: center;
-  padding: 10px 0 6px;
+  padding: 12px 0 8px;
+  cursor: pointer;
 }
 .mobile-app .cal-sheet-handle::before {
   content: '';

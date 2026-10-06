@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane, faEllipsisVertical, faCheck, faClock, faBan } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
 import { useToast } from '@/context/ToastContext'
+import { useBottomSheetDrag } from '@/components/mobile/useBottomSheetDrag'
 
 type InvoiceRow = {
   id: string
@@ -52,6 +53,8 @@ export default function MobileInvoiceListRow({
 }) {
   const { showToast } = useToast()
   const [sheet, setSheet] = useState<'status' | null>(null)
+  const closeSheet = () => setSheet(null)
+  const { offset, dragging, handleProps } = useBottomSheetDrag(closeSheet)
   const [pending, setPending] = useState(false)
   const [sendingMail, setSendingMail] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -114,10 +117,18 @@ export default function MobileInvoiceListRow({
               type="button"
               className="fixed inset-0 z-[90] bg-black/40"
               aria-label="Schließen"
-              onClick={() => setSheet(null)}
+              onClick={closeSheet}
             />
-            <div className="fixed inset-x-0 bottom-0 z-[100] mx-auto w-full max-w-[430px] rounded-t-2xl bg-white px-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]">
-              <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[#D1D5DB]" aria-hidden />
+            <div
+              className="fixed inset-x-0 bottom-0 z-[100] mx-auto w-full max-w-[430px] rounded-t-2xl bg-white px-4 pb-[calc(20px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]"
+              style={{
+                transform: `translateY(${offset}px)`,
+                transition: dragging ? 'none' : 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
+              }}
+            >
+              <div className="mx-auto mb-3 flex touch-none justify-center py-1" {...handleProps}>
+                <span className="block h-1 w-9 rounded-full bg-[#D1D5DB]" aria-hidden />
+              </div>
               <p className="mb-2 text-[13px] font-semibold text-[#1A1A1A]">Status ändern</p>
               {invoice.status === 'draft' ? (
                 <p className="py-2 text-[13px] text-[#6B7280]">Entwurf: zuerst speichern und versenden.</p>

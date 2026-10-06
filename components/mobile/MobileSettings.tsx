@@ -201,6 +201,26 @@ export default function MobileSettings() {
     setSaved(false)
   }
 
+  const updateService = (index: number, field: 'label' | 'price', value: string) => {
+    const next = [...(s?.services ?? [])]
+    if (!next[index]) return
+    next[index] = { ...next[index], [field]: value }
+    update('services', next)
+  }
+
+  function formatPriceOnBlur(value: string): string {
+    const trimmed = value.trim()
+    if (!trimmed) return trimmed
+    const normalized = trimmed.replace(',', '.').replace(/[^\d.-]/g, '')
+    const num = parseFloat(normalized)
+    if (Number.isNaN(num)) return trimmed
+    return `${num.toFixed(2).replace('.', ',')} €`
+  }
+
+  const removeService = (index: number) => {
+    update('services', (s?.services ?? []).filter((_, i) => i !== index))
+  }
+
   async function handleSave() {
     if (!s) return
     setSaving(true)
@@ -569,18 +589,49 @@ export default function MobileSettings() {
             <SecAccordion icon="bi-tags-fill" title="Leistungen & Preise">
               <div className="mb-3 flex gap-2 rounded-lg px-3 py-2.5 text-[11px]" style={{ background: 'rgba(82,183,136,.06)', border: '1px solid rgba(82,183,136,.15)', color: '#2D7A3A' }}>
                 <i className="bi bi-info-circle-fill shrink-0" />
-                <span>Standardleistungen mit Preisen – erscheinen bei der Abrechnung als Schnellauswahl.</span>
+                <span>Standardleistungen mit Preisen – erscheinen bei der Abrechnung als Schnellauswahl. Nach dem Ändern unten speichern.</span>
               </div>
               {(s.services ?? []).map((svc, i) => (
-                <div key={i} className="flex items-center gap-2 border-b border-[#F0EEEA] py-2.5 last:border-0">
-                  <span className="flex-1 text-[12px] font-medium">{svc.label}</span>
-                  <span className="min-w-[60px] text-right text-[13px] font-bold">{svc.price}</span>
-                  <i className="bi bi-pencil-fill text-[#9CA3AF] cursor-pointer text-[14px]" aria-hidden />
+                <div key={i} className="mb-3 rounded-[10px] border border-[#E5E2DC] bg-[#FAFAF8] p-3">
+                  <label className="mb-1.5 block text-[12px] font-medium text-[#374151]">Leistung</label>
+                  <input
+                    className={inputClass}
+                    value={svc.label}
+                    placeholder="z. B. Barhufbearbeitung"
+                    onChange={(e) => updateService(i, 'label', e.target.value)}
+                  />
+                  <div className="mt-2.5 flex items-end gap-2">
+                    <div className="min-w-0 flex-1">
+                      <label className="mb-1.5 block text-[12px] font-medium text-[#374151]">Preis (netto)</label>
+                      <input
+                        className={`${inputClass} text-right`}
+                        value={svc.price}
+                        placeholder="z. B. 65,00 €"
+                        inputMode="decimal"
+                        onChange={(e) => updateService(i, 'price', e.target.value)}
+                        onBlur={(e) => {
+                          const formatted = formatPriceOnBlur(e.target.value)
+                          if (formatted !== e.target.value) updateService(i, 'price', formatted)
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeService(i)}
+                      className="mb-[1px] inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[10px] border border-[#E5E2DC] bg-white text-[22px] text-[#9CA3AF] active:text-[#EF4444]"
+                      aria-label="Leistung entfernen"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               ))}
+              {(s.services ?? []).length === 0 ? (
+                <p className="mb-2 text-[12px] text-[#6B7280]">Noch keine Leistungen hinterlegt.</p>
+              ) : null}
               <button
                 type="button"
-                className="mt-2 flex w-full items-center justify-center gap-1.5 py-2.5 text-[12px] font-semibold text-primary"
+                className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-[10px] border-2 border-dashed border-[#E5E2DC] py-2.5 text-[12px] font-semibold text-primary"
                 onClick={() => update('services', [...(s.services ?? []), { label: '', price: '' }])}
               >
                 <i className="bi bi-plus-circle-fill" /> Weitere Leistung hinzufügen
