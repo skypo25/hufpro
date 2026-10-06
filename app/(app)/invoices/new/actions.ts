@@ -49,7 +49,8 @@ export async function createInvoice(
     .select('settings')
     .eq('user_id', user.id)
     .maybeSingle<{ settings: Record<string, unknown> | null }>()
-  const { taxRatePercent } = vatFromSettings(settingsRow?.settings as Record<string, unknown> | null)
+  const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const { taxRatePercent } = vatFromSettings(s)
 
   const { data: customer } = await supabase
     .from('customers')
@@ -130,12 +131,6 @@ export async function createInvoice(
     }
   }
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle<{ settings: Record<string, unknown> | null }>()
-  const s = (settingsRow?.settings ?? {}) as Record<string, unknown>
   const nextNumber = `${year}-${String(nextSeq + 1).padStart(4, '0')}`
   await supabase
     .from('user_settings')
