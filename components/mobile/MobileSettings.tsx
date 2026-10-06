@@ -595,7 +595,7 @@ export default function MobileSettings() {
                   <span>65,00 €</span>
                 </div>
                 {s.kleinunternehmer && (
-                  <div className="mt-2 text-[8px]">{s.kleinunternehmerText ?? 'Gemäß §19 UStG …'}</div>
+                  <div className="mt-2 text-[8px]">{s.kleinunternehmerText?.trim() || 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.'}</div>
                 )}
                 <div className="mt-2 border-t border-[#E5E2DC] pt-2 text-center text-[8px]">
                   {s.companyName || [s.firstName, s.lastName].filter(Boolean).join(' ')} · {[s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}<br />

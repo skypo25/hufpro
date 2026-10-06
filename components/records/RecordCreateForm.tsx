@@ -745,7 +745,7 @@ export default function RecordCreateForm({
         }
         const staged = Object.entries(stagedPhotos) as [PhotoSlotKey, StagedPhoto][]
         for (const [slot, photo] of staged) {
-          if (!photo) continue
+          if (!photo || slot === 'whole_left' || slot === 'whole_right') continue
           await uploadProcessedPhoto({
             recordId: editRecordId,
             horseId: horse.id,
@@ -781,7 +781,7 @@ export default function RecordCreateForm({
       if (!recordId) return
       const staged = Object.entries(stagedPhotos) as [PhotoSlotKey, StagedPhoto][]
       for (const [slot, photo] of staged) {
-        if (!photo) continue
+        if (!photo || slot === 'whole_left' || slot === 'whole_right') continue
         await uploadProcessedPhoto({
           recordId,
           horseId: horse.id,
@@ -997,7 +997,7 @@ export default function RecordCreateForm({
             icon={<i className="bi bi-eye-fill text-[14px]" aria-hidden />}
             title="Allgemeiner Eindruck"
             hint="~30 Sek. pro Pferd"
-            iconClassName="bg-primary-light text-[#166534]"
+            iconClassName="bg-primary-light text-primary"
           />
 
           <div className="px-[22px] py-5">
@@ -1155,7 +1155,6 @@ export default function RecordCreateForm({
               imageUrls={filteredExistingPhotoUrls}
               stagedPhotos={stagedPhotos}
               annotationsBySlot={annotationsBySlot}
-              isErsttermin={!isEdit && /^erst/i.test(defaultRecordType)}
               onStagedAdd={handleStagedPhotoAdd}
               onStagedRemove={handleStagedPhotoRemove}
               onAnnotationsChange={handleAnnotationsChange}
@@ -1232,10 +1231,10 @@ export default function RecordCreateForm({
 
         <section className="content-card content-card--lg">
           <SectionHeader
-            icon="✅"
+            icon={<i className="bi bi-check2-square text-[14px]" aria-hidden />}
             title="Checkliste"
             hint="Abhaken per Fingertipp"
-            iconClassName="bg-[#DCFCE7] text-[#166534]"
+            iconClassName="bg-primary-light text-primary"
           />
 
           <div className="grid gap-2 px-[22px] py-5 md:grid-cols-2">
@@ -1250,7 +1249,7 @@ export default function RecordCreateForm({
                   className={[
                     'flex items-center gap-2.5 rounded-[10px] border-[1.5px] px-3.5 py-3 text-left transition',
                     active
-                      ? 'border-[#34A853] bg-[rgba(52,168,83,0.04)]'
+                      ? 'border-primary bg-primary-light'
                       : 'border-[#E5E2DC] bg-white hover:border-primary',
                   ].join(' ')}
                 >
@@ -1258,7 +1257,7 @@ export default function RecordCreateForm({
                     className={[
                       'flex h-[22px] w-[22px] items-center justify-center rounded-[6px] border-2 text-[12px]',
                       active
-                        ? 'border-[#34A853] bg-[#34A853] text-white'
+                        ? 'border-primary bg-primary text-white'
                         : 'border-[#E5E2DC] bg-white text-transparent',
                     ].join(' ')}
                   >
@@ -1314,7 +1313,7 @@ export default function RecordCreateForm({
                   name="intent"
                   value="complete"
                   disabled={submitting}
-                  className="primary-button primary-button--lg success-button"
+                  className="primary-button primary-button--lg"
                 >
                   <i className="bi bi-check text-[18px]" aria-hidden /> Dokumentation abschließen
                 </button>

@@ -8,11 +8,10 @@ import { useOfflineDraft, useOnlineStatus } from '@/hooks/useOfflineDraft'
 import OfflineStatusBanner from '@/components/OfflineStatusBanner'
 import { serializeRecordForm, deserializeStagedPhotos } from '@/lib/record-draft-serializer'
 import { uploadProcessedPhoto, saveAnnotationsForExistingPhoto } from '@/components/photos/usePhotoUpload'
-import { processHoofImage, processWholeBodyImage } from '@/components/photos/imageProcessing'
+import { processHoofImage } from '@/components/photos/imageProcessing'
 import {
   SLOT_SOLAR,
   SLOT_LATERAL,
-  SLOT_WHOLE_BODY,
   SLOT_LABELS,
   toCanonicalPhotoSlot,
   type PhotoSlotKey,
@@ -112,10 +111,6 @@ const HOOF_EMPTY: HoofState = {
 const HOOF_KEYS = ['vl', 'vr', 'hl', 'hr'] as const
 type HoofKey = typeof HOOF_KEYS[number]
 const HOOF_LABELS: Record<HoofKey, string> = { vl: 'VL — Vorne Links', vr: 'VR — Vorne Rechts', hl: 'HL — Hinten Links', hr: 'HR — Hinten Rechts' }
-
-function isWholeBodySlotKey(slot: PhotoSlotKey): boolean {
-  return slot === 'whole_left' || slot === 'whole_right'
-}
 
 // Slot-Keys aus photoTypes – müssen mit Desktop/Detail übereinstimmen (VL_solar, VL_lateral, …)
 
@@ -471,7 +466,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
   const [isSyncing, setIsSyncing] = useState(false)
   const [progressOpen, setProgressOpen] = useState(true)
   const [photoOpen, setPhotoOpen] = useState(false)
-  /** Nur Neuanlage ohne frühere Dokumentation — Ganzkörperfotos wie Desktop */
+  /** Nur Neuanlage ohne frühere Dokumentation — Typ Ersttermin */
   const [isErsttermin, setIsErsttermin] = useState(false)
   const [recordType, setRecordType] = useState('Regeltermin')
   const actionRowRef = useRef<HTMLDivElement>(null)
@@ -747,9 +742,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
   const handlePhotoSelect = useCallback(async (slot: PhotoSlotKey, file: File) => {
     setUploadingSlot(slot)
     setError('')
-    const whole = isWholeBodySlotKey(slot)
     try {
-      const result = whole ? await processWholeBodyImage(file) : await processHoofImage(file)
+      const result = await processHoofImage(file)
       const previewUrl = URL.createObjectURL(result.blob)
       setStagedPhotos((prev) => ({
         ...prev,
@@ -791,8 +785,8 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
             [slot]: {
               slot,
               blob,
-              width: whole ? 1000 : 1080,
-              height: whole ? 750 : 1920,
+              width: 1080,
+              height: 1920,
               previewUrl,
             },
           }))
@@ -857,7 +851,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
       const staged = Object.entries(stagedPhotosRef.current) as [PhotoSlotKey, StagedPhoto][]
       const stagedSlots = new Set<PhotoSlotKey>()
       for (const [slot, photo] of staged) {
-        if (!photo) continue
+        if (!photo || slot === 'whole_left' || slot === 'whole_right') continue
         stagedSlots.add(slot)
         await uploadProcessedPhoto({
           recordId: targetRecordId,
@@ -1101,8 +1095,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
         {/* 3. FOTOS – ausklappbar */}
         {(() => {
           const hoofSlots = [...SLOT_SOLAR, ...SLOT_LATERAL] as PhotoSlotKey[]
-          const slotsForCount =
-            !isEdit && isErsttermin ? [...hoofSlots, ...SLOT_WHOLE_BODY] : hoofSlots
+          const slotsForCount = hoofSlots
           const maxSlots = slotsForCount.length
           const totalPhotos = slotsForCount.filter((s) => stagedPhotos[s] || photoUrls[s]).length
           return (
@@ -1159,30 +1152,6 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
                       />
                     ))}
                   </div>
-                  {!isEdit && isErsttermin && (
-                    <>
-                      <div className="photo-label">Ganzkörperfotos (optional)</div>
-                      <p className="mb-2 text-[11px] leading-snug text-[#6B7280]">
-                        Gesamtes Pferd von der Seite — Smartphone{' '}
-                        <strong className="font-semibold text-[#4B5563]">quer halten</strong> (nicht
-                        hochkant), damit das Bildformat passt.
-                      </p>
-                      <div className="photo-grid">
-                        {SLOT_WHOLE_BODY.map((slot) => (
-                          <MobilePhotoSlot
-                            key={slot}
-                            slot={slot}
-                            label={SLOT_LABELS[slot]}
-                            signedUrl={photoUrls[slot]}
-                            staged={stagedPhotos[slot]}
-                            uploading={uploadingSlot === slot}
-                            isWholeBody
-                            onFileSelect={handlePhotoSelect}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
             </div>

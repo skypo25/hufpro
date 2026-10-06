@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { sendMail } from '@/lib/email'
+import { isValidEmail, sendMail } from '@/lib/email'
 import { fetchInvoicePdfData } from '@/lib/pdf/invoiceData'
 import InvoicePdfDocument from '@/components/pdf/InvoicePdfDocument'
 import { renderToBuffer } from '@react-pdf/renderer'
@@ -47,7 +47,7 @@ function escapeHtml(s: string): string {
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const gate = await requireAppAccess({ mode: 'write' })
@@ -62,6 +62,24 @@ export async function POST(
   const { id: invoiceId } = await params
   if (!invoiceId?.trim()) {
     return NextResponse.json({ error: 'invoiceId fehlt.' }, { status: 400 })
+  }
+
+  let isTest = false
+  let testTo = ''
+  try {
+    const body = (await request.json().catch(() => ({}))) as { test?: boolean; to?: string }
+    isTest = body.test === true
+    testTo = typeof body.to === 'string' ? body.to.trim() : ''
+  } catch {
+    // kein Body
+  }
+  if (isTest) {
+    if (!isValidEmail(testTo)) {
+      return NextResponse.json(
+        { error: 'Bitte eine gültige Test-Empfängeradresse angeben.' },
+        { status: 400 }
+      )
+    }
   }
 
   const { data: invRow, error: invErr } = await supabase
@@ -80,22 +98,25 @@ export async function POST(
   }
 
   const customerId = invRow.customer_id as string | null
-  if (!customerId) {
+  if (!isTest && !customerId) {
     return NextResponse.json({ error: 'Kein Kunde zugeordnet. Bitte Rechnungsempfänger prüfen.' }, { status: 400 })
   }
 
-  const { data: customer, error: custErr } = await supabase
-    .from('customers')
-    .select('id, name, first_name, last_name, email')
-    .eq('id', customerId)
-    .eq('user_id', user.id)
-    .single()
+  const { data: customer } = customerId
+    ? await supabase
+        .from('customers')
+        .select('id, name, first_name, last_name, email')
+        .eq('id', customerId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+    : { data: null }
 
-  if (custErr || !customer) {
+  if (!isTest && !customer) {
     return NextResponse.json({ error: 'Kunde nicht gefunden.' }, { status: 404 })
   }
 
-  const toEmail = (customer.email ?? '').toString().trim()
+  const customerEmail = (customer?.email ?? '').toString().trim()
+  const toEmail = isTest ? testTo : customerEmail
   if (!toEmail) {
     return NextResponse.json(
       { error: 'Beim Kunden ist keine E-Mail-Adresse hinterlegt. Bitte beim Kunden eine E-Mail eintragen.' },
@@ -155,18 +176,18 @@ export async function POST(
 
   const filename = `Rechnung-${pdfData.invoiceNumber}.pdf`
   const customerName =
-    (customer.name ?? '').toString().trim() ||
-    [customer.first_name, customer.last_name].filter(Boolean).join(' ').trim() ||
+    (customer?.name ?? '').toString().trim() ||
+    [customer?.first_name, customer?.last_name].filter(Boolean).join(' ').trim() ||
     'Kunde/Kundin'
 
-  const subject = `Rechnung ${pdfData.invoiceNumber}`
+  const subject = `${isTest ? '[Test] ' : ''}Rechnung ${pdfData.invoiceNumber}`
   const totalStr = formatCurrency(pdfData.totalCents)
   const dueStr = pdfData.paymentDueDate ? fmtDeDate(pdfData.paymentDueDate) : '–'
   const invDateStr = fmtDeDate(pdfData.invoiceDate)
 
   const customerFirstName =
-    (customer.first_name ?? '').toString().trim() ||
-    (customer.name ?? '').toString().trim() ||
+    (customer?.first_name ?? '').toString().trim() ||
+    (customer?.name ?? '').toString().trim() ||
     'Hallo'
 
   const text = [
@@ -452,15 +473,18 @@ export async function POST(
       }
     )
 
-    // Wenn der Status noch nicht "sent" ist: als versendet führen.
-    const nowIso = new Date().toISOString()
-    const patch: Record<string, unknown> = { updated_at: nowIso }
-    if (invRow.status === 'draft') patch.status = 'sent'
-    if (!invRow.sent_at) patch.sent_at = nowIso
-    await supabase.from('invoices').update(patch).eq('id', invoiceId).eq('user_id', user.id)
+    // Testversand ändert den Rechnungsstatus nicht.
+    if (!isTest) {
+      const nowIso = new Date().toISOString()
+      const patch: Record<string, unknown> = { updated_at: nowIso }
+      if (invRow.status === 'draft') patch.status = 'sent'
+      if (!invRow.sent_at) patch.sent_at = nowIso
+      await supabase.from('invoices').update(patch).eq('id', invoiceId).eq('user_id', user.id)
+    }
 
     return NextResponse.json({
       ok: true,
+      test: isTest,
       to: toEmail,
       subject,
       messageId: out.messageId ?? null,

@@ -1,5 +1,6 @@
 import ZUGFeRDGenerator from 'zugferd-generator'
 import type { InvoicePdfData } from '@/lib/pdf/invoiceTypes'
+import { resolveKleinunternehmerHinweis } from '@/lib/invoices/kleinunternehmer'
 
 function isoCountryToCode(country: string | null | undefined): string {
   const c = (country ?? '').trim()
@@ -29,6 +30,7 @@ export async function embedZugferdIntoPdf(
 ): Promise<Buffer> {
   const seller = data.seller
   const buyer = data.buyer
+  const kuNote = resolveKleinunternehmerHinweis(seller.kleinunternehmer, seller.kleinunternehmerText)
 
   const invoiceData = {
     id: data.invoiceNumber,
@@ -66,9 +68,7 @@ export async function embedZugferdIntoPdf(
     },
     notes: [
       ...(data.introText ? [data.introText] : []),
-      ...(seller.kleinunternehmer && seller.kleinunternehmerText
-        ? [seller.kleinunternehmerText]
-        : []),
+      ...(kuNote ? [kuNote] : []),
     ],
     lineItems: data.items.map((it, idx) => ({
       id: String(idx + 1),

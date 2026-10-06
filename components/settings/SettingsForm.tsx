@@ -7,6 +7,7 @@ import DataExportDownloadsPanel from '@/components/export/DataExportDownloadsPan
 import { supabase } from '@/lib/supabase-client'
 import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminderOptions'
 import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
+import { KLEINUNTERNEHMER_PFLICHTSATZ } from '@/lib/invoices/kleinunternehmer'
 
 export type SettingsData = {
   // Persönliche Daten
@@ -89,7 +90,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   taxNumber: '',
   taxOffice: '',
   kleinunternehmer: true,
-  kleinunternehmerText: 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.',
+  kleinunternehmerText: KLEINUNTERNEHMER_PFLICHTSATZ,
   ustId: '',
   defaultTaxRate: '19% (Regelsteuersatz)',
   accountHolder: '',
@@ -239,6 +240,7 @@ export default function SettingsForm({
   const [testEmailLoading, setTestEmailLoading] = useState(false)
   const [testEmailError, setTestEmailError] = useState<string | null>(null)
   const [testEmailSuccess, setTestEmailSuccess] = useState(false)
+  const [testEmailTo, setTestEmailTo] = useState(userEmail ?? merged.email ?? '')
   const [logoUploading, setLogoUploading] = useState(false)
   const [logoError, setLogoError] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -379,6 +381,7 @@ export default function SettingsForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           test: true,
+          to: testEmailTo.trim(),
           smtpHost: s.smtpHost,
           smtpPort: s.smtpPort,
           smtpSecure: s.smtpSecure,
@@ -392,7 +395,7 @@ export default function SettingsForm({
           companyName: s.companyName,
         }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      const data = (await res.json().catch(() => ({}))) as { error?: string; to?: string }
       if (!res.ok) {
         setTestEmailError(data.error ?? 'Test-E-Mail konnte nicht versendet werden')
         return
@@ -818,7 +821,7 @@ export default function SettingsForm({
                   </div>
                   {s.kleinunternehmer && (
                     <div className="mt-2 rounded-md bg-[#F0FDF4] px-3 py-2 text-[11px] text-[#166534]">
-                      {s.kleinunternehmerText ?? 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.'}
+                      {s.kleinunternehmerText ?? KLEINUNTERNEHMER_PFLICHTSATZ}
                     </div>
                   )}
                   <div className="mt-4 border-t border-[#E5E2DC] pt-3 text-center text-[11px] text-[#9CA3AF] leading-relaxed">
@@ -985,16 +988,37 @@ export default function SettingsForm({
                 <input type="text" className={inputClass()} placeholder="Hufpflege Mustermann" value={s.smtpFromName ?? ''} onChange={(e) => update('smtpFromName', e.target.value)} />
               </FormGroup>
             </FormRow>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="min-w-[240px] flex-1">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
+                  Test an
+                </label>
+                <input
+                  type="email"
+                  className={inputClass()}
+                  placeholder="empfaenger@example.de"
+                  value={testEmailTo}
+                  onChange={(e) => {
+                    setTestEmailTo(e.target.value)
+                    setTestEmailSuccess(false)
+                    setTestEmailError(null)
+                  }}
+                  autoComplete="email"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleTestEmail}
                 disabled={testEmailLoading || !(s.smtpHost?.trim() && s.smtpUser?.trim())}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1F23] transition-colors hover:border-[#2563EB] hover:bg-[#EFF6FF] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-sm font-medium text-[#1B1F23] transition-colors hover:border-primary hover:text-primary disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {testEmailLoading ? 'Wird gesendet…' : 'Test-E-Mail senden'}
               </button>
-              {testEmailSuccess && <span className="text-sm text-[#34A853]">✓ Test-E-Mail wurde versendet. Prüfe dein Postfach.</span>}
+              {testEmailSuccess && (
+                <span className="text-sm text-primary">
+                  ✓ Test-E-Mail wurde{testEmailTo.trim() ? ` an ${testEmailTo.trim()}` : ''} versendet.
+                </span>
+              )}
               {testEmailError && <span className="text-sm text-[#EF4444]">{testEmailError}</span>}
             </div>
           </FormSection>

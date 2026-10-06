@@ -32,6 +32,13 @@ export function createMailer(config: SmtpConfig) {
   })
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function isValidEmail(value: string): boolean {
+  const trimmed = value.trim()
+  return trimmed.length > 3 && trimmed.length <= 254 && EMAIL_RE.test(trimmed)
+}
+
 export type SendMailOptions = {
   to: string
   subject: string

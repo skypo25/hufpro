@@ -1,6 +1,7 @@
 import React from "react"
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer"
 import type { InvoicePdfData } from "@/lib/pdf/invoiceTypes"
+import { resolveKleinunternehmerHinweis } from "@/lib/invoices/kleinunternehmer"
 import { BRAND_COLORS } from "@/lib/branding"
 
 const styles = StyleSheet.create({
@@ -287,7 +288,10 @@ type InvoicePdfDocumentProps = {
 export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
   const { seller, buyer, items, totalCents } = data
   const kleinunternehmer = seller.kleinunternehmer
-  const kleinunternehmerText = seller.kleinunternehmerText
+  const kleinunternehmerText = resolveKleinunternehmerHinweis(
+    seller.kleinunternehmer,
+    seller.kleinunternehmerText
+  )
 
   const sellerDisplayName = seller.companyName?.trim() || seller.name
   const sellerAddress = formatAddress([seller.street, [seller.zip, seller.city].filter(Boolean).join(" "), seller.country])
@@ -402,14 +406,14 @@ export default function InvoicePdfDocument({ data }: InvoicePdfDocumentProps) {
         </View>
 
         {/* Kleinunternehmer-Hinweis (Banner wie im Bild) */}
-        {kleinunternehmer && kleinunternehmerText && (
+        {kleinunternehmer && kleinunternehmerText ? (
           <View style={styles.taxNotice}>
             <View style={styles.taxNoticeIcon}>
               <Text style={styles.taxNoticeIconText}>i</Text>
             </View>
             <Text style={styles.taxNoticeText}>{kleinunternehmerText}</Text>
           </View>
-        )}
+        ) : null}
 
         {/* Zahlungsinformation: Bankverbindung | Zahlungshinweis */}
         <View style={styles.paymentBox}>

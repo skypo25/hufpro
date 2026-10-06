@@ -1,13 +1,13 @@
 'use client'
 
 import { useCallback } from 'react'
-import { SLOT_SOLAR, SLOT_LATERAL, SLOT_WHOLE_BODY, SLOT_LABELS } from '@/lib/photos/photoTypes'
+import { SLOT_SOLAR, SLOT_LATERAL, SLOT_LABELS } from '@/lib/photos/photoTypes'
 import type { PhotoSlotKey } from '@/lib/photos/photoTypes'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import type { StagedPhoto } from './usePhotoUpload'
 import type { ExistingPhoto } from './PhotoSlot'
 import PhotoSlot from './PhotoSlot'
-import { processHoofImage, processWholeBodyImage } from './imageProcessing'
+import { processHoofImage } from './imageProcessing'
 
 export type PhotoGridProps = {
   recordId: string | null
@@ -16,7 +16,6 @@ export type PhotoGridProps = {
   imageUrls?: Record<string, string>
   stagedPhotos?: Partial<Record<PhotoSlotKey, StagedPhoto>>
   annotationsBySlot?: Partial<Record<PhotoSlotKey, AnnotationsData>>
-  isErsttermin?: boolean
   onStagedAdd?: (slot: PhotoSlotKey, staged: StagedPhoto) => void
   onStagedRemove?: (slot: PhotoSlotKey) => void
   onRemoveExistingPhoto?: (photoId: string) => void
@@ -32,7 +31,6 @@ export default function PhotoGrid({
   imageUrls = {},
   stagedPhotos = {},
   annotationsBySlot = {},
-  isErsttermin = false,
   onStagedAdd,
   onStagedRemove,
   onRemoveExistingPhoto,
@@ -47,9 +45,8 @@ export default function PhotoGrid({
 
   const handleFileSelect = useCallback(
     async (slot: PhotoSlotKey, file: File) => {
-      const isWhole = SLOT_WHOLE_BODY.includes(slot as 'whole_left' | 'whole_right')
       try {
-        const result = isWhole ? await processWholeBodyImage(file) : await processHoofImage(file)
+        const result = await processHoofImage(file)
         const previewUrl = URL.createObjectURL(result.blob)
         onStagedAdd?.(slot, {
           slot,
@@ -129,42 +126,6 @@ export default function PhotoGrid({
           })}
         </div>
       </div>
-
-      {isErsttermin && (
-        <div>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[#6B7280]">
-            Ganzkörperfotos (optional)
-          </div>
-          <p className="mb-3 text-[12px] leading-relaxed text-[#6B7280]">
-            Bitte das gesamte Pferd von der Seite erfassen und das Gerät{' '}
-            <strong className="font-medium text-[#4B5563]">im Querformat</strong> halten (Kamera quer, nicht
-            hochkant).
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {SLOT_WHOLE_BODY.map((slot) => {
-              const existing = bySlot(slot)
-              return (
-                <PhotoSlot
-                  key={slot}
-                  slot={slot}
-                  slotLabel={SLOT_LABELS[slot] ?? slot}
-                  recordId={recordId}
-                  horseId={horseId}
-                  existingPhoto={existing}
-                  imageUrl={imageUrls[slot]}
-                  stagedPhoto={stagedPhotos[slot]}
-                  isWholeBody={true}
-                  allowAnnotation={false}
-                  onFileSelect={(file) => handleFileSelect(slot, file)}
-                  onStagedRemove={stagedPhotos[slot] ? () => onStagedRemove?.(slot) : undefined}
-                  onRemoveExisting={existing && onRemoveExistingPhoto ? () => onRemoveExistingPhoto(existing.id) : undefined}
-                  uploading={uploadingSlot === slot}
-                />
-              )
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

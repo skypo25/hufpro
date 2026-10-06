@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { InvoicePdfData, InvoicePdfSeller, InvoicePdfBuyer, InvoicePdfItem } from "./invoiceTypes"
+import { resolveKleinunternehmerHinweis } from "@/lib/invoices/kleinunternehmer"
 
 type SettingsRow = { settings: Record<string, unknown> | null }
 type InvoiceRow = {
@@ -88,7 +89,10 @@ function sellerFromSettings(s: Record<string, unknown> | null): InvoicePdfSeller
     taxOffice: (o.taxOffice as string) ?? null,
     ustId: (o.ustId as string) ?? null,
     kleinunternehmer: coerceBoolean(o.kleinunternehmer, true),
-    kleinunternehmerText: (o.kleinunternehmerText as string) ?? null,
+    kleinunternehmerText: resolveKleinunternehmerHinweis(
+      coerceBoolean(o.kleinunternehmer, true),
+      typeof o.kleinunternehmerText === "string" ? o.kleinunternehmerText : null
+    ),
     bank: (o.bank as string) ?? null,
     accountHolder: (o.accountHolder as string) ?? null,
     iban: (o.iban as string) ?? null,

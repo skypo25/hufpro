@@ -1166,7 +1166,7 @@ export default function HorseForm({
               </div>
 
               <InfoBanner type="warn" title="Hinweis:">
-                Beim Ersttermin solltest du unbedingt Ganzkörperfotos und Sohlenfotos aller 4 Hufe erstellen. Plane dafür etwas mehr Zeit ein als bei einem normalen Regeltermin.
+                Beim Ersttermin solltest du Sohlenfotos aller 4 Hufe erstellen. Die Vollprofil-Fotos gehören zur Pferdeakte beim Anlegen. Plane für den Termin etwas mehr Zeit ein als bei einem Regeltermin.
               </InfoBanner>
             </div>
           )}

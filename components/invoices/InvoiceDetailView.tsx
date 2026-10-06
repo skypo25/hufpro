@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { InvoicePdfData } from '@/lib/pdf/invoiceTypes'
+import { resolveKleinunternehmerHinweis } from '@/lib/invoices/kleinunternehmer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faChevronLeft,
@@ -59,9 +60,15 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
   const sellerName = seller.companyName?.trim() || seller.name
   const sellerAddress = formatAddress([seller.street, [seller.zip, seller.city].filter(Boolean).join(' '), seller.country])
   const buyerAddress = formatAddress([buyer.street, [buyer.zip, buyer.city].filter(Boolean).join(' '), buyer.country])
+  const kleinunternehmerHinweis = resolveKleinunternehmerHinweis(
+    seller.kleinunternehmer,
+    seller.kleinunternehmerText
+  )
 
   const [sending, setSending] = useState(false)
+  const [testSending, setTestSending] = useState(false)
   const [sendMsg, setSendMsg] = useState<string | null>(null)
+  const [testTo, setTestTo] = useState('')
 
   const statusLabel = status === 'paid' ? 'Bezahlt' : status === 'sent' ? 'Offen' : status === 'cancelled' ? 'Storniert' : 'Entwurf'
   const statusClass =
@@ -73,26 +80,47 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           ? 'bg-[#F3F4F6] text-[#9CA3AF]'
           : 'bg-[#F3F4F6] text-[#6B7280]'
 
+  const postInvoiceEmail = async (body: { test?: boolean; to?: string }) => {
+    const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
+    }
+    return json as { to?: string; test?: boolean }
+  }
+
   const handleSendEmail = async () => {
     setSendMsg(null)
     setSending(true)
     try {
-      const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
-      }
-      const to = (json as { to?: string })?.to
-      setSendMsg(to ? `E-Mail wurde an ${to} versendet.` : 'E-Mail wurde versendet.')
+      const json = await postInvoiceEmail({})
+      setSendMsg(json.to ? `E-Mail wurde an ${json.to} versendet.` : 'E-Mail wurde versendet.')
     } catch (e) {
       setSendMsg(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleTestEmail = async () => {
+    setSendMsg(null)
+    setTestSending(true)
+    try {
+      const json = await postInvoiceEmail({ test: true, to: testTo.trim() })
+      setSendMsg(
+        json.to
+          ? `Test-E-Mail wurde an ${json.to} versendet. Die Rechnung gilt weiterhin als nicht versendet.`
+          : 'Test-E-Mail wurde versendet.'
+      )
+    } catch (e) {
+      setSendMsg(e instanceof Error ? e.message : 'Test-E-Mail fehlgeschlagen')
+    } finally {
+      setTestSending(false)
     }
   }
 
@@ -151,6 +179,32 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           )}
         </div>
       </div>
+
+      {status !== 'cancelled' && (
+        <div className="mb-5 flex w-full max-w-[820px] flex-col gap-2 print:hidden sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+              Testversand an
+            </span>
+            <input
+              type="email"
+              value={testTo}
+              onChange={(e) => setTestTo(e.target.value)}
+              placeholder="deine@adresse.de"
+              className="input w-full"
+              autoComplete="email"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void handleTestEmail()}
+            disabled={testSending || sending || !testTo.trim()}
+            className="secondary-button"
+          >
+            {testSending ? 'Sende Test…' : 'Test-E-Mail senden'}
+          </button>
+        </div>
+      )}
 
       {sendMsg && (
         <div className="content-card mb-5 w-full max-w-[820px] px-4 py-3 text-[13px] text-[#1B1F23] print:hidden">
@@ -266,10 +320,12 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
                 <span>Zwischensumme</span>
                 <span>{formatCurrency(totalCents)}</span>
               </div>
-              <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
-                <span>Umsatzsteuer</span>
-                <span>entfällt (§19 UStG)</span>
-              </div>
+              {seller.kleinunternehmer && (
+                <div className="flex justify-between py-2 text-[14px] text-[#6B7280]">
+                  <span>Umsatzsteuer</span>
+                  <span>entfällt (§ 19 UStG)</span>
+                </div>
+              )}
               <div className="mt-2 flex justify-between border-t-2 border-[#1B1F23] pt-4 text-[18px] font-bold">
                 <span>Gesamtbetrag</span>
                 <span className="text-[22px] text-primary">{formatCurrency(totalCents)}</span>
@@ -278,9 +334,9 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           </div>
 
           {/* Kleinunternehmer */}
-          {seller.kleinunternehmer && seller.kleinunternehmerText && (
+          {kleinunternehmerHinweis && (
             <div className="mt-6 flex items-center gap-3 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 px-5 py-3.5 text-[13px] text-primary-dark">
-              {seller.kleinunternehmerText}
+              {kleinunternehmerHinweis}
             </div>
           )}
 

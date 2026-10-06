@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { sendMail } from '@/lib/email'
+import { isValidEmail, sendMail } from '@/lib/email'
 
 type SettingsSmtp = {
   smtpHost?: string
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
 
   let body: {
     test?: boolean
+    to?: string
     smtpHost?: string
     smtpPort?: number
     smtpSecure?: boolean
@@ -118,13 +119,17 @@ export async function POST(request: Request) {
   const fromEmailTrim = (fromEmail ?? '').toString().trim()
   const fromNameTrim = (fromName ?? '').toString().trim()
 
-  // Empfänger nur aus vertrauenswürdigen Quellen — niemals frei aus dem Request-Body (kein Relay).
-  const to = ((user.email ?? '').toString().trim() || (settings.email ?? '').toString().trim())
+  const requestedTo = (body.to ?? '').toString().trim()
+  const fallbackTo = ((user.email ?? '').toString().trim() || (settings.email ?? '').toString().trim())
+  const to = requestedTo || fallbackTo
+  if (requestedTo && !isValidEmail(requestedTo)) {
+    return NextResponse.json({ error: 'Bitte eine gültige Test-Empfängeradresse angeben.' }, { status: 400 })
+  }
   if (!to) {
     return NextResponse.json(
       {
         error:
-          'Keine Zieladresse: Bitte in deinem Konto eine E-Mail hinterlegen oder unter Einstellungen → Mein Betrieb eine E-Mail speichern.',
+          'Keine Zieladresse: Bitte eine Test-Empfängeradresse eintragen oder unter Einstellungen → Mein Betrieb eine E-Mail speichern.',
       },
       { status: 400 }
     )
@@ -153,6 +158,7 @@ export async function POST(request: Request) {
     if (isProduction) {
       return NextResponse.json({
         ok: true,
+        to,
         messageId: out.messageId ?? null,
       })
     }
