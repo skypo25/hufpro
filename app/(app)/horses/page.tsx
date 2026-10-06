@@ -176,102 +176,123 @@ export default async function HorsesPage({
     currentSort === 'breed' ||
     currentSort === 'age_asc'
 
-  // Stats parallel (keine Voll-Liste)
-  const [
-    { count: horseCountExact },
-    { count: customerCountExact },
-    { count: dogsCountExact },
-    { count: catsCountExact },
-    { count: smallCountExact },
-    { count: otherCountExact },
-    { count: horsesTypeCountExact },
-    { count: barhufCountExact },
-    { count: hoofschutzCountExact },
-    { data: intervalRows },
-  ] = await Promise.all([
+  // Stats: nur was die jeweilige Terminologie wirklich anzeigt (keine toten COUNTs)
+  const [{ count: horseCountExact }, { count: customerCountExact }] = await Promise.all([
     supabase.from('horses').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('customers').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('animal_type', 'dog'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('animal_type', 'cat'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('animal_type', 'small'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('animal_type', 'other'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .or('animal_type.is.null,animal_type.eq.horse'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .ilike('hoof_status', '%barhuf%'),
-    supabase
-      .from('horses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .or('hoof_status.ilike.%hufschuhe%,hoof_status.ilike.%kunststoff%,hoof_status.ilike.%scoot%'),
-    supabase
-      .from('customers')
-      .select('interval_weeks')
-      .eq('user_id', user.id)
-      .not('interval_weeks', 'is', null)
-      .returns<{ interval_weeks: string | null }[]>(),
   ])
 
-  // Korrektur-Stat: leichte Spalten (selten groß)
-  const { data: correctionProbe } = await supabase
-    .from('horses')
-    .select('hoof_status, special_notes')
-    .eq('user_id', user.id)
-    .returns<{ hoof_status: string | null; special_notes: string | null }[]>()
-  const correctionCount = (correctionProbe || []).filter((horse) => {
-    const value = `${horse.hoof_status || ''} ${horse.special_notes || ''}`.toLowerCase()
-    return (
-      value.includes('korrektur') ||
-      value.includes('trachten') ||
-      value.includes('sohle') ||
-      value.includes('problem')
-    )
-  }).length
+  let dogsCount = 0
+  let catsCount = 0
+  let smallCount = 0
+  let otherCount = 0
+  let horsesCount = 0
+  let barhufCount = 0
+  let hoofschutzCount = 0
+  let correctionCount = 0
+  let avgInterval = '-'
 
-  const intervals = (intervalRows || [])
-    .map((customer) => customer.interval_weeks)
-    .filter(Boolean)
-    .map((value) => Number(String(value).replace(/[^\d.,]/g, '').replace(',', '.')))
-    .filter((value) => Number.isFinite(value) && value > 0)
+  if (term === 'tier') {
+    const [
+      { count: dogsCountExact },
+      { count: catsCountExact },
+      { count: smallCountExact },
+      { count: otherCountExact },
+      { count: horsesTypeCountExact },
+    ] = await Promise.all([
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('animal_type', 'dog'),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('animal_type', 'cat'),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('animal_type', 'small'),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('animal_type', 'other'),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .or('animal_type.is.null,animal_type.eq.horse'),
+    ])
+    dogsCount = dogsCountExact ?? 0
+    catsCount = catsCountExact ?? 0
+    smallCount = smallCountExact ?? 0
+    otherCount = otherCountExact ?? 0
+    horsesCount = horsesTypeCountExact ?? 0
+  } else {
+    const [
+      { count: barhufCountExact },
+      { count: hoofschutzCountExact },
+      { count: correctionCountExact },
+      { data: intervalRows },
+    ] = await Promise.all([
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .ilike('hoof_status', '%barhuf%'),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .or(
+          'hoof_status.ilike.%hufschuhe%,hoof_status.ilike.%kunststoff%,hoof_status.ilike.%scoot%'
+        ),
+      supabase
+        .from('horses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .or(
+          [
+            'hoof_status.ilike.%korrektur%',
+            'hoof_status.ilike.%trachten%',
+            'hoof_status.ilike.%sohle%',
+            'hoof_status.ilike.%problem%',
+            'special_notes.ilike.%korrektur%',
+            'special_notes.ilike.%trachten%',
+            'special_notes.ilike.%sohle%',
+            'special_notes.ilike.%problem%',
+          ].join(',')
+        ),
+      supabase
+        .from('customers')
+        .select('interval_weeks')
+        .eq('user_id', user.id)
+        .not('interval_weeks', 'is', null)
+        .returns<{ interval_weeks: string | null }[]>(),
+    ])
+    barhufCount = barhufCountExact ?? 0
+    hoofschutzCount = hoofschutzCountExact ?? 0
+    correctionCount = correctionCountExact ?? 0
 
-  const avgInterval =
-    intervals.length > 0
-      ? (intervals.reduce((sum, value) => sum + value, 0) / intervals.length)
-          .toFixed(1)
-          .replace('.', ',')
-      : '-'
+    const intervals = (intervalRows || [])
+      .map((customer) => customer.interval_weeks)
+      .filter(Boolean)
+      .map((value) => Number(String(value).replace(/[^\d.,]/g, '').replace(',', '.')))
+      .filter((value) => Number.isFinite(value) && value > 0)
+
+    avgInterval =
+      intervals.length > 0
+        ? (intervals.reduce((sum, value) => sum + value, 0) / intervals.length)
+            .toFixed(1)
+            .replace('.', ',')
+        : '-'
+  }
 
   const horseCount = horseCountExact ?? 0
   const customerCount = customerCountExact ?? 0
-  const dogsCount = dogsCountExact ?? 0
-  const catsCount = catsCountExact ?? 0
-  const smallCount = smallCountExact ?? 0
-  const otherCount = otherCountExact ?? 0
-  const horsesCount = horsesTypeCountExact ?? 0
-  const barhufCount = barhufCountExact ?? 0
-  const hoofschutzCount = hoofschutzCountExact ?? 0
 
   // Suche: passende Horse-IDs (inkl. Besitzername)
   let filterIds: string[] | null = null
@@ -667,25 +688,6 @@ export default async function HorsesPage({
               Suchen
             </button>
           </form>
-
-          <div className="flex gap-2">
-            <span className="rounded-full bg-primary px-4 py-2 text-[12px] font-medium text-white">
-              Alle ({horseCount})
-            </span>
-            {term === 'pferd' && (
-              <>
-                <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
-                  Barhuf ({barhufCount})
-                </span>
-                <span className="rounded-full border border-[#E5E2DC] bg-white px-4 py-2 text-[12px] font-medium text-[#6B7280]">
-                  Hufschutz ({hoofschutzCount})
-                </span>
-                <span className="rounded-full border border-[#F59E0B] bg-white px-4 py-2 text-[12px] font-medium text-[#F59E0B]">
-                  Korrektur ({correctionCount})
-                </span>
-              </>
-            )}
-          </div>
         </div>
 
         <form method="get" className="flex items-center gap-2">

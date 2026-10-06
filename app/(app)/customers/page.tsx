@@ -432,7 +432,7 @@ export default async function CustomersPage({
     <AppPage>
       <PageHeader
         title="Kunden"
-        description={`${customerCount} Kunden · ${horseCount} Tiere in Betreuung`}
+        description="Kundenverwaltung und Übersicht"
         actions={
           <Link
             href="/customers/new"

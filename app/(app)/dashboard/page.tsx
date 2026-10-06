@@ -8,6 +8,7 @@ import {
   deriveAppProfile,
   newAnimalButtonLabel,
 } from '@/lib/appProfile'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUserPlus,
@@ -166,12 +167,7 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const settings = (settingsRow?.settings ?? {}) as Record<string, unknown>
+  const settings = (await getUserSettingsCached(user.id)) ?? {}
   const userFirstName = String(settings.firstName ?? '').trim() || null
   const profile = deriveAppProfile(settings.profession, settings.animal_focus)
   const term = profile.terminology

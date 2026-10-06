@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
-import { getCurrentWeekRange } from '@/lib/date'
 import { formatAnimalTypeLabel } from '@/lib/animalTypeDisplay'
 
 type Horse = {
@@ -67,6 +66,7 @@ export async function GET(request: Request) {
   const sort = searchParams.get('sort') || 'name_asc'
   const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit')) || 20))
   const offset = Math.max(0, Number(searchParams.get('offset')) || 0)
+  const includeStats = offset === 0
 
   const { data: horses, error } = await supabase
     .from('horses')
@@ -82,12 +82,8 @@ export async function GET(request: Request) {
   const customerIds = [
     ...new Set(horseList.map((h) => h.customer_id).filter(Boolean)),
   ] as string[]
-  const horseIds = horseList.map((h) => h.id)
 
   let customers: Customer[] = []
-  const appointmentLinks: { appointment_id: string; horse_id: string }[] = []
-  const appointments: { id: string; appointment_date: string | null }[] = []
-
   if (customerIds.length > 0) {
     const { data: customerData } = await supabase
       .from('customers')
@@ -98,56 +94,7 @@ export async function GET(request: Request) {
     customers = customerData || []
   }
 
-  if (horseIds.length > 0) {
-    const { data: linkData } = await supabase
-      .from('appointment_horses')
-      .select('appointment_id, horse_id')
-      .eq('user_id', user.id)
-      .in('horse_id', horseIds)
-      .returns<{ appointment_id: string; horse_id: string }[]>()
-    if (linkData) appointmentLinks.push(...linkData)
-
-    const appointmentIds = [...new Set(appointmentLinks.map((l) => l.appointment_id))]
-    if (appointmentIds.length > 0) {
-      const { data: appointmentData } = await supabase
-        .from('appointments')
-        .select('id, appointment_date')
-        .eq('user_id', user.id)
-        .in('id', appointmentIds)
-        .gte('appointment_date', new Date().toISOString())
-        .order('appointment_date', { ascending: true })
-        .returns<{ id: string; appointment_date: string | null }[]>()
-      if (appointmentData) appointments.push(...appointmentData)
-    }
-  }
-
-  let documentationCountByHorse = new Map<string, number>()
-  if (horseIds.length > 0) {
-    try {
-      documentationCountByHorse = await countDocumentationByHorseIds(
-        supabase,
-        user.id,
-        horseIds
-      )
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : 'Dokumentationszähler konnte nicht geladen werden.'
-      return NextResponse.json({ error: message }, { status: 500 })
-    }
-  }
-
   const customersById = new Map(customers.map((c) => [c.id, c]))
-  const appointmentsById = new Map(appointments.map((a) => [a.id, a]))
-
-  const nextAppointmentByHorse = new Map<string, string>()
-  for (const link of appointmentLinks) {
-    const appointment = appointmentsById.get(link.appointment_id)
-    if (!appointment?.appointment_date) continue
-    const existing = nextAppointmentByHorse.get(link.horse_id)
-    if (!existing || appointment.appointment_date < existing) {
-      nextAppointmentByHorse.set(link.horse_id, appointment.appointment_date)
-    }
-  }
 
   type Row = {
     horse: Horse
@@ -160,8 +107,8 @@ export async function GET(request: Request) {
   let rows: Row[] = horseList.map((horse) => ({
     horse,
     customer: horse.customer_id ? customersById.get(horse.customer_id) || null : null,
-    nextAppointment: nextAppointmentByHorse.get(horse.id) || null,
-    documentationCount: documentationCountByHorse.get(horse.id) || 0,
+    nextAppointment: null,
+    documentationCount: 0,
     intervalWeeks: horse.customer_id
       ? customersById.get(horse.customer_id)?.interval_weeks ?? null
       : null,
@@ -186,6 +133,15 @@ export async function GET(request: Request) {
         .toLowerCase()
       return haystack.includes(q)
     })
+  }
+
+  // Für next_appointment-Sort: Termine nur für gefilterte IDs (nicht alle Docs)
+  if (sort === 'next_appointment' && rows.length > 0) {
+    const sortHorseIds = rows.map((r) => r.horse.id)
+    const nextByHorse = await loadNextAppointmentsByHorse(supabase, user.id, sortHorseIds)
+    for (const row of rows) {
+      row.nextAppointment = nextByHorse.get(row.horse.id) || null
+    }
   }
 
   switch (sort) {
@@ -221,31 +177,32 @@ export async function GET(request: Request) {
 
   const total = rows.length
   const paged = rows.slice(offset, offset + limit)
+  const pageHorseIds = paged.map((r) => r.horse.id)
 
-  const barhufCount = horseList.filter(isBarhuf).length
-  const hoofschutzCount = horseList.filter(isHufschutz).length
-  const correctionCount = horseList.filter(isKorrektur).length
+  // Anreicherung nur für die sichtbare Seite
+  if (pageHorseIds.length > 0) {
+    const [nextByHorse, documentationCountByHorse] = await Promise.all([
+      sort === 'next_appointment'
+        ? Promise.resolve(
+            new Map(
+              paged
+                .filter((r) => r.nextAppointment)
+                .map((r) => [r.horse.id, r.nextAppointment as string])
+            )
+          )
+        : loadNextAppointmentsByHorse(supabase, user.id, pageHorseIds),
+      countDocumentationByHorseIds(supabase, user.id, pageHorseIds).catch(() => {
+        return new Map<string, number>()
+      }),
+    ])
 
-  const dogsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'dog').length
-  const catsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'cat').length
-  const smallAnimalsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'small').length
-  const otherAnimalsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'other').length
-  const typeHorseCount = horseList.filter((a) => {
-    const ty = (a.animal_type ?? '').trim()
-    return !ty || ty === 'horse'
-  }).length
-
-  const intervals = customers
-    .map((c) => c.interval_weeks)
-    .filter(Boolean)
-    .map((v) => Number(String(v).replace(/[^\d.,]/g, '').replace(',', '.')))
-    .filter((n) => Number.isFinite(n) && n > 0)
-  const avgInterval =
-    intervals.length > 0
-      ? (intervals.reduce((s, n) => s + n, 0) / intervals.length)
-          .toFixed(1)
-          .replace('.', ',')
-      : null
+    for (const row of paged) {
+      if (sort !== 'next_appointment') {
+        row.nextAppointment = nextByHorse.get(row.horse.id) || null
+      }
+      row.documentationCount = documentationCountByHorse.get(row.horse.id) || 0
+    }
+  }
 
   function getOwnerLocation(h: Horse, c: Customer | null) {
     if (h.stable_name) return h.stable_name
@@ -260,7 +217,7 @@ export async function GET(request: Request) {
     return `${num.toString().replace('.', ',')} Wo`
   }
 
-  return NextResponse.json({
+  const payload: Record<string, unknown> = {
     horses: paged.map((r) => ({
       id: r.horse.id,
       name: r.horse.name,
@@ -279,16 +236,80 @@ export async function GET(request: Request) {
       intervalWeeks: formatInterval(r.intervalWeeks),
     })),
     total,
-    horseCount: horseList.length,
-    customerCount: customers.length,
-    barhufCount,
-    hoofschutzCount,
-    correctionCount,
-    avgInterval: avgInterval ?? '–',
-    dogsCount,
-    catsCount,
-    typeHorseCount,
-    smallAnimalsCount,
-    otherAnimalsCount,
-  })
+  }
+
+  if (includeStats) {
+    const intervals = customers
+      .map((c) => c.interval_weeks)
+      .filter(Boolean)
+      .map((v) => Number(String(v).replace(/[^\d.,]/g, '').replace(',', '.')))
+      .filter((n) => Number.isFinite(n) && n > 0)
+    const avgInterval =
+      intervals.length > 0
+        ? (intervals.reduce((s, n) => s + n, 0) / intervals.length)
+            .toFixed(1)
+            .replace('.', ',')
+        : null
+
+    payload.horseCount = horseList.length
+    payload.customerCount = customers.length
+    payload.barhufCount = horseList.filter(isBarhuf).length
+    payload.hoofschutzCount = horseList.filter(isHufschutz).length
+    payload.correctionCount = horseList.filter(isKorrektur).length
+    payload.avgInterval = avgInterval ?? '–'
+    payload.dogsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'dog').length
+    payload.catsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'cat').length
+    payload.typeHorseCount = horseList.filter((a) => {
+      const ty = (a.animal_type ?? '').trim()
+      return !ty || ty === 'horse'
+    }).length
+    payload.smallAnimalsCount = horseList.filter(
+      (a) => (a.animal_type ?? '').trim() === 'small'
+    ).length
+    payload.otherAnimalsCount = horseList.filter(
+      (a) => (a.animal_type ?? '').trim() === 'other'
+    ).length
+  }
+
+  return NextResponse.json(payload)
+}
+
+async function loadNextAppointmentsByHorse(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  horseIds: string[]
+) {
+  const nextAppointmentByHorse = new Map<string, string>()
+  if (horseIds.length === 0) return nextAppointmentByHorse
+
+  const { data: linkData } = await supabase
+    .from('appointment_horses')
+    .select('appointment_id, horse_id')
+    .eq('user_id', userId)
+    .in('horse_id', horseIds)
+    .returns<{ appointment_id: string; horse_id: string }[]>()
+
+  const appointmentLinks = linkData || []
+  const appointmentIds = [...new Set(appointmentLinks.map((l) => l.appointment_id))]
+  if (appointmentIds.length === 0) return nextAppointmentByHorse
+
+  const { data: appointmentData } = await supabase
+    .from('appointments')
+    .select('id, appointment_date')
+    .eq('user_id', userId)
+    .in('id', appointmentIds)
+    .gte('appointment_date', new Date().toISOString())
+    .order('appointment_date', { ascending: true })
+    .returns<{ id: string; appointment_date: string | null }[]>()
+
+  const appointmentsById = new Map((appointmentData || []).map((a) => [a.id, a]))
+  for (const link of appointmentLinks) {
+    const appointment = appointmentsById.get(link.appointment_id)
+    if (!appointment?.appointment_date) continue
+    const existing = nextAppointmentByHorse.get(link.horse_id)
+    if (!existing || appointment.appointment_date < existing) {
+      nextAppointmentByHorse.set(link.horse_id, appointment.appointment_date)
+    }
+  }
+  return nextAppointmentByHorse
 }
