@@ -29,19 +29,20 @@ export async function signHorseProfileWholeBodyPhotos(
   supabase: SupabaseClient,
   horse: HorseProfilePhotoPaths
 ): Promise<HorseWholeBodyDisplayItem[]> {
-  const items: HorseWholeBodyDisplayItem[] = []
-  for (const slot of SLOT_WHOLE_BODY) {
-    const path = horse[HORSE_PROFILE_PATH_COLUMN[slot]]
-    if (!path) continue
-    const { data } = await supabase.storage.from('hoof-photos').createSignedUrl(path, 60 * 60)
-    if (!data?.signedUrl) continue
-    items.push({
-      id: `profile-${slot}`,
-      imageUrl: data.signedUrl,
-      label: SLOT_LABELS[slot] ?? slot,
+  const signed = await Promise.all(
+    SLOT_WHOLE_BODY.map(async (slot) => {
+      const path = horse[HORSE_PROFILE_PATH_COLUMN[slot]]
+      if (!path) return null
+      const { data } = await supabase.storage.from('hoof-photos').createSignedUrl(path, 60 * 60)
+      if (!data?.signedUrl) return null
+      return {
+        id: `profile-${slot}`,
+        imageUrl: data.signedUrl,
+        label: SLOT_LABELS[slot] ?? slot,
+      } satisfies HorseWholeBodyDisplayItem
     })
-  }
-  return items
+  )
+  return signed.filter((x): x is HorseWholeBodyDisplayItem => x != null)
 }
 
 export async function mergeWholeBodyPhotosForHorseDisplay(

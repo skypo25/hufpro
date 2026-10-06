@@ -1,3 +1,4 @@
+import '@/app/behandler-verzeichnis.css'
 import { DirectoryPublicChrome } from '@/components/directory/public/DirectoryPublicChrome'
 
 export function DirectoryPublicShell({ children }: { children: React.ReactNode }) {

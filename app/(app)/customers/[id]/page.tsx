@@ -19,6 +19,7 @@ import {
   animalSingularLabel,
   deriveAppProfile,
 } from '@/lib/appProfile'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 
 type CustomerPageProps = {
   params: Promise<{
@@ -207,52 +208,67 @@ export default async function CustomerDetailPage({
     )
   }
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const revenueYear = new Date().getFullYear()
+
+  const [settings, horsesData, appointmentsData, revenueInvoices] = await Promise.all([
+    getUserSettingsCached(user.id),
+    supabase
+      .from('horses')
+      .select(
+        'id, name, breed, sex, birth_year, usage, animal_type, customer_id, stable_name, stable_city, stable_street, stable_zip'
+      )
+      .eq('user_id', user.id)
+      .eq('customer_id', customer.id)
+      .order('name', { ascending: true })
+      .returns<Horse[]>()
+      .then((r) => r.data),
+    supabase
+      .from('appointments')
+      .select('id, customer_id, appointment_date, type, status, notes')
+      .eq('user_id', user.id)
+      .eq('customer_id', customer.id)
+      .order('appointment_date', { ascending: false })
+      .returns<Appointment[]>()
+      .then((r) => r.data),
+    supabase
+      .from('invoices')
+      .select('id, invoice_date')
+      .eq('user_id', user.id)
+      .eq('customer_id', customer.id)
+      .in('status', ['paid', 'sent'])
+      .gte('invoice_date', `${revenueYear}-01-01`)
+      .lt('invoice_date', `${revenueYear + 1}-01-01`)
+      .then((r) => r.data),
+  ])
+
   const appProfile = deriveAppProfile(settings?.profession, settings?.animal_focus)
   const animalsPlural = animalsNavLabel(appProfile.terminology)
   const animalSingular = animalSingularLabel(appProfile.terminology)
   const headerAnimalsIcon = appProfile.terminology === 'tier' ? faPaw : faHorse
 
-  const { data: horsesData } = await supabase
-    .from('horses')
-    .select(
-      'id, name, breed, sex, birth_year, usage, animal_type, customer_id, stable_name, stable_city, stable_street, stable_zip'
-    )
-    .eq('user_id', user.id)
-    .eq('customer_id', customer.id)
-    .order('name', { ascending: true })
-    .returns<Horse[]>()
-
   const horses = horsesData || []
-
-  const { data: appointmentsData } = await supabase
-    .from('appointments')
-    .select('id, customer_id, appointment_date, type, status, notes')
-    .eq('user_id', user.id)
-    .eq('customer_id', customer.id)
-    .order('appointment_date', { ascending: false })
-    .returns<Appointment[]>()
-
   const appointments = appointmentsData || []
   const appointmentIds = appointments.map((appointment) => appointment.id)
+  const revenueInvoiceIds = (revenueInvoices ?? []).map((r) => r.id)
 
-  let appointmentHorseRows: AppointmentHorse[] = []
-
-  if (appointmentIds.length > 0) {
-    const { data: linkData } = await supabase
-      .from('appointment_horses')
-      .select('appointment_id, horse_id')
-      .eq('user_id', user.id)
-      .in('appointment_id', appointmentIds)
-      .returns<AppointmentHorse[]>()
-
-    appointmentHorseRows = linkData || []
-  }
+  const [appointmentHorseRows, revenueItems] = await Promise.all([
+    appointmentIds.length > 0
+      ? supabase
+          .from('appointment_horses')
+          .select('appointment_id, horse_id')
+          .eq('user_id', user.id)
+          .in('appointment_id', appointmentIds)
+          .returns<AppointmentHorse[]>()
+          .then((r) => r.data || [])
+      : Promise.resolve([] as AppointmentHorse[]),
+    revenueInvoiceIds.length > 0
+      ? supabase
+          .from('invoice_items')
+          .select('invoice_id, amount_cents')
+          .in('invoice_id', revenueInvoiceIds)
+          .then((r) => r.data)
+      : Promise.resolve(null),
+  ])
 
   const horseNamesById = new Map(horses.map((horse) => [horse.id, horse.name || '-']))
 
@@ -330,32 +346,17 @@ export default async function CustomerDetailPage({
     ? firstHorseIdByAppointment.get(nextAppointment.id)
     : null
 
-  const revenueYear = new Date().getFullYear()
   const monthlyRevenueCents: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  const { data: revenueInvoices } = await supabase
-    .from('invoices')
-    .select('id, invoice_date')
-    .eq('user_id', user.id)
-    .eq('customer_id', customer.id)
-    .in('status', ['paid', 'sent'])
-    .gte('invoice_date', `${revenueYear}-01-01`)
-    .lt('invoice_date', `${revenueYear + 1}-01-01`)
-  const revenueInvoiceIds = (revenueInvoices ?? []).map((r) => r.id)
-  if (revenueInvoiceIds.length > 0) {
-    const { data: revenueItems } = await supabase
-      .from('invoice_items')
-      .select('invoice_id, amount_cents')
-      .in('invoice_id', revenueInvoiceIds)
-    const sumByInvoice = new Map<string, number>()
-    for (const row of revenueItems ?? []) {
-      sumByInvoice.set(row.invoice_id, (sumByInvoice.get(row.invoice_id) ?? 0) + (row.amount_cents ?? 0))
-    }
-    for (const inv of revenueInvoices ?? []) {
-      const month = new Date(inv.invoice_date).getMonth()
-      monthlyRevenueCents[month] = (monthlyRevenueCents[month] ?? 0) + (sumByInvoice.get(inv.id) ?? 0)
-    }
+  const sumByInvoice = new Map<string, number>()
+  for (const row of revenueItems ?? []) {
+    sumByInvoice.set(row.invoice_id, (sumByInvoice.get(row.invoice_id) ?? 0) + (row.amount_cents ?? 0))
+  }
+  for (const inv of revenueInvoices ?? []) {
+    const month = new Date(inv.invoice_date).getMonth()
+    monthlyRevenueCents[month] = (monthlyRevenueCents[month] ?? 0) + (sumByInvoice.get(inv.id) ?? 0)
   }
   const totalRevenueCents = monthlyRevenueCents.reduce((a, b) => a + b, 0)
+
 
   const primaryStallHorse = pickPrimaryStallHorse(horses)
   const headerLocationLabel = primaryStallHorse ? stallOverviewLine(primaryStallHorse) : null

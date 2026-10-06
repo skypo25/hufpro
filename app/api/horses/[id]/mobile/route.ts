@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { deriveAppProfile } from '@/lib/appProfile'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
-import { mergeWholeBodyPhotosForHorseDisplay } from '@/lib/photos/horseProfilePhotos'
+import { signHorseProfileWholeBodyPhotos } from '@/lib/photos/horseProfilePhotos'
 
 type CustomerRelation =
   | {
@@ -80,18 +80,12 @@ export async function GET(
     )
   }
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
-  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
-
-  const { data: horse, error: horseError } = await supabase
-    .from('horses')
-    .select(
-      `
+  const [{ data: settingsRow }, { data: horse, error: horseError }] = await Promise.all([
+    supabase.from('user_settings').select('settings').eq('user_id', user.id).maybeSingle(),
+    supabase
+      .from('horses')
+      .select(
+        `
       id,
       name,
       breed,
@@ -115,10 +109,11 @@ export async function GET(
         phone
       )
     `
-    )
-    .eq('id', horseId)
-    .eq('user_id', user.id)
-    .single<Horse>()
+      )
+      .eq('id', horseId)
+      .eq('user_id', user.id)
+      .single<Horse>(),
+  ])
 
   if (horseError) {
     return NextResponse.json({ error: horseError.message }, { status: 500 })
@@ -128,55 +123,62 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
   const owner = relationOwner(horse.customers)
   const nowIso = new Date().toISOString()
-
-  // Nächster Termin: über appointment_horses (Pferde sind über Verknüpfungstabelle zugeordnet)
-  const { data: aptLinks } = await supabase
-    .from('appointment_horses')
-    .select('appointment_id')
-    .eq('horse_id', horseId)
-    .eq('user_id', user.id)
-  const aptIds = [...new Set((aptLinks ?? []).map((l: { appointment_id: string }) => l.appointment_id))]
-  let nextAppointment: string | null = null
-  if (aptIds.length > 0) {
-    const { data: nextApts } = await supabase
-      .from('appointments')
-      .select('appointment_date')
-      .eq('user_id', user.id)
-      .in('id', aptIds)
-      .gte('appointment_date', nowIso)
-      .order('appointment_date', { ascending: true })
-      .limit(1)
-    const first = nextApts?.[0] as { appointment_date?: string } | undefined
-    nextAppointment = first?.appointment_date || null
-  }
-
-  // Letzte Bearbeitung: Datum des letzten vergangenen Termins (nicht Dokumentation)
-  let lastTreatment: string | null = null
-  if (aptIds.length > 0) {
-    const { data: lastApts } = await supabase
-      .from('appointments')
-      .select('appointment_date')
-      .eq('user_id', user.id)
-      .in('id', aptIds)
-      .lte('appointment_date', nowIso)
-      .order('appointment_date', { ascending: false })
-      .limit(1)
-    const first = lastApts?.[0] as { appointment_date?: string } | undefined
-    lastTreatment = first?.appointment_date || null
-  }
+  const hasProfileWholeBody = !!(horse.photo_whole_left_path || horse.photo_whole_right_path)
 
   let dokuRows: DokuRow[] = []
   let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
   let wholeBodyRecordDate: string | null = null
+  let nextAppointment: string | null = null
+  let lastTreatment: string | null = null
+
   try {
-    const { recordRows, wholeBodyPhotoSources, latestRecordId } = await loadRecordListForHorseView(
-      supabase,
-      user.id,
-      horseId
-    )
-    dokuRows = recordRows.slice(0, 20).map((row) => ({
+    const [aptLinksRes, recordsResult] = await Promise.all([
+      supabase
+        .from('appointment_horses')
+        .select('appointment_id')
+        .eq('horse_id', horseId)
+        .eq('user_id', user.id),
+      loadRecordListForHorseView(supabase, user.id, horseId, {
+        limit: 20,
+        includeWholeBodySources: !hasProfileWholeBody,
+      }),
+    ])
+
+    const aptIds = [
+      ...new Set((aptLinksRes.data ?? []).map((l: { appointment_id: string }) => l.appointment_id)),
+    ]
+
+    if (aptIds.length > 0) {
+      const [nextRes, lastRes] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('appointment_date')
+          .eq('user_id', user.id)
+          .in('id', aptIds)
+          .gte('appointment_date', nowIso)
+          .order('appointment_date', { ascending: true })
+          .limit(1),
+        supabase
+          .from('appointments')
+          .select('appointment_date')
+          .eq('user_id', user.id)
+          .in('id', aptIds)
+          .lte('appointment_date', nowIso)
+          .order('appointment_date', { ascending: false })
+          .limit(1),
+      ])
+      nextAppointment =
+        (nextRes.data?.[0] as { appointment_date?: string } | undefined)?.appointment_date || null
+      lastTreatment =
+        (lastRes.data?.[0] as { appointment_date?: string } | undefined)?.appointment_date || null
+    }
+
+    const { recordRows, wholeBodyPhotoSources, latestRecordId } = recordsResult
+    dokuRows = recordRows.map((row) => ({
       id: row.record.id,
       record_date: row.record.record_date,
       photoCount: row.photoCount,
@@ -184,7 +186,11 @@ export async function GET(
     if (latestRecordId && recordRows[0]?.record.record_date) {
       wholeBodyRecordDate = recordRows[0].record.record_date
     }
-    if (wholeBodyPhotoSources.length > 0) {
+
+    if (hasProfileWholeBody) {
+      wholeBodyPhotos = await signHorseProfileWholeBodyPhotos(supabase, horse)
+      wholeBodyRecordDate = null
+    } else if (wholeBodyPhotoSources.length > 0) {
       const withUrls = await Promise.all(
         wholeBodyPhotoSources.map(async (p) => {
           if (!p.file_path) return null
@@ -199,16 +205,9 @@ export async function GET(
           }
         })
       )
-      wholeBodyPhotos = withUrls.filter(
-        (x): x is { id: string; imageUrl: string; label: string } => x != null
-      )
-      wholeBodyPhotos.sort(
-        (a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1)
-      )
-    }
-    wholeBodyPhotos = await mergeWholeBodyPhotosForHorseDisplay(supabase, horse, wholeBodyPhotos)
-    if (horse.photo_whole_left_path || horse.photo_whole_right_path) {
-      wholeBodyRecordDate = null
+      wholeBodyPhotos = withUrls
+        .filter((x): x is { id: string; imageUrl: string; label: string } => x != null)
+        .sort((a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1))
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Dokumentationsliste konnte nicht geladen werden.'

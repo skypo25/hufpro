@@ -5,17 +5,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFileInvoice, faPlus } from '@fortawesome/free-solid-svg-icons'
 import CustomerInvoiceTableRows, { type InvoiceRowData } from '@/components/invoices/CustomerInvoiceTableRows'
 import AppPage from '@/components/layout/AppPage'
+import ListPagination, { parseListPageParams } from '@/components/ui/ListPagination'
 import { invoiceGrossCentsFromItems, vatFromSettings } from '@/lib/invoices/vat'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 
 type CustomerInvoicesPageProps = {
   params: Promise<{ id: string }>
-}
-
-function formatDate(d: string | null) {
-  if (!d) return '–'
-  const date = new Date(d)
-  if (Number.isNaN(date.getTime())) return d
-  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+  searchParams: Promise<{ page?: string; perPage?: string }>
 }
 
 function formatCurrency(cents: number) {
@@ -36,8 +32,19 @@ function isOverdue(paymentDue: string | null, status: string) {
   return new Date(paymentDue) < new Date()
 }
 
-export default async function CustomerInvoicesPage({ params }: CustomerInvoicesPageProps) {
+function buildPageHref(customerId: string, page: number, perPage: number) {
+  const params = new URLSearchParams()
+  if (page > 1) params.set('page', String(page))
+  if (perPage !== 10) params.set('perPage', String(perPage))
+  const q = params.toString()
+  return `/customers/${customerId}/invoices${q ? `?${q}` : ''}`
+}
+
+export default async function CustomerInvoicesPage({ params, searchParams }: CustomerInvoicesPageProps) {
   const { id: customerId } = await params
+  const sp = await searchParams
+  const { page: currentPage, perPage: currentPerPage } = parseListPageParams(sp)
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -59,13 +66,6 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
 
   const customerName = customer.name?.trim() || [customer.first_name, customer.last_name].filter(Boolean).join(' ').trim() || 'Kunde'
 
-  const { data: invoices } = await supabase
-    .from('invoices')
-    .select('id, invoice_number, invoice_date, payment_due_date, status')
-    .eq('user_id', user.id)
-    .eq('customer_id', customerId)
-    .order('invoice_date', { ascending: false })
-
   const { data: horses } = await supabase
     .from('horses')
     .select('id, name')
@@ -74,37 +74,94 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
     .order('name')
 
   const horseNames = (horses ?? []).map((h) => h.name || '–').join(' · ')
-  const invoiceIds = (invoices ?? []).map((i) => i.id)
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
+  const settings = await getUserSettingsCached(user.id)
+  const vat = vatFromSettings(settings)
+
+  // Meta für Stats (alle Rechnungen des Kunden – leicht)
+  const { data: allMeta } = await supabase
+    .from('invoices')
+    .select('id, status, payment_due_date')
     .eq('user_id', user.id)
-    .maybeSingle()
-  const vat = vatFromSettings((settingsRow?.settings ?? null) as Record<string, unknown> | null)
+    .eq('customer_id', customerId)
 
-  let itemsByInvoice: Map<string, { description: string; totalCents: number }> = new Map()
-  if (invoiceIds.length > 0) {
+  const allInvoicesMeta = allMeta ?? []
+  const allIds = allInvoicesMeta.map((i) => i.id)
+
+  let totalsByInvoice = new Map<string, number>()
+  if (allIds.length > 0) {
     const { data: items } = await supabase
       .from('invoice_items')
-      .select('invoice_id, description, amount_cents, tax_rate_percent')
-      .in('invoice_id', invoiceIds)
-    for (const inv of invoices ?? []) {
-      const invItems = (items ?? []).filter((it) => it.invoice_id === inv.id)
-      const totalCents = invoiceGrossCentsFromItems(invItems, vat.kleinunternehmer, vat.taxRatePercent)
-      const firstDesc = invItems[0]?.description ?? '–'
-      itemsByInvoice.set(inv.id, { description: firstDesc, totalCents })
+      .select('invoice_id, amount_cents, tax_rate_percent')
+      .in('invoice_id', allIds)
+    const byInvoice = new Map<string, { amount_cents: number; tax_rate_percent: number }[]>()
+    for (const row of items ?? []) {
+      const list = byInvoice.get(row.invoice_id) ?? []
+      list.push({
+        amount_cents: row.amount_cents ?? 0,
+        tax_rate_percent: Number(row.tax_rate_percent) || 0,
+      })
+      byInvoice.set(row.invoice_id, list)
+    }
+    for (const [id, invItems] of byInvoice) {
+      totalsByInvoice.set(id, invoiceGrossCentsFromItems(invItems, vat.kleinunternehmer, vat.taxRatePercent))
     }
   }
 
-  const totalPaidCents = (invoices ?? [])
+  const totalPaidCents = allInvoicesMeta
     .filter((i) => i.status === 'paid')
-    .reduce((s, i) => s + (itemsByInvoice.get(i.id)?.totalCents ?? 0), 0)
-  const openCents = (invoices ?? [])
+    .reduce((s, i) => s + (totalsByInvoice.get(i.id) ?? 0), 0)
+  const openCents = allInvoicesMeta
     .filter((i) => i.status !== 'paid' && i.status !== 'cancelled')
-    .reduce((s, i) => s + (itemsByInvoice.get(i.id)?.totalCents ?? 0), 0)
-  const overdueInvoices = (invoices ?? []).filter((i) => isOverdue(i.payment_due_date, i.status))
-  const overdueCents = overdueInvoices.reduce((s, i) => s + (itemsByInvoice.get(i.id)?.totalCents ?? 0), 0)
+    .reduce((s, i) => s + (totalsByInvoice.get(i.id) ?? 0), 0)
+  const overdueInvoices = allInvoicesMeta.filter((i) => isOverdue(i.payment_due_date, i.status))
+  const overdueCents = overdueInvoices.reduce((s, i) => s + (totalsByInvoice.get(i.id) ?? 0), 0)
+
+  // Seite
+  let from = (currentPage - 1) * currentPerPage
+  let to = from + currentPerPage - 1
+  let { data: pageInvoices, count } = await supabase
+    .from('invoices')
+    .select('id, invoice_number, invoice_date, payment_due_date, status', { count: 'exact' })
+    .eq('user_id', user.id)
+    .eq('customer_id', customerId)
+    .order('invoice_date', { ascending: false })
+    .range(from, to)
+
+  const totalRows = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+  if (currentPage > totalPages && totalRows > 0) {
+    from = (totalPages - 1) * currentPerPage
+    to = from + currentPerPage - 1
+    ;({ data: pageInvoices } = await supabase
+      .from('invoices')
+      .select('id, invoice_number, invoice_date, payment_due_date, status')
+      .eq('user_id', user.id)
+      .eq('customer_id', customerId)
+      .order('invoice_date', { ascending: false })
+      .range(from, to))
+  }
+
+  const safePage = Math.min(currentPage, totalPages)
+  const startIndex = totalRows === 0 ? 0 : (safePage - 1) * currentPerPage
+  const endIndex = startIndex + currentPerPage
+  const invoices = pageInvoices ?? []
+
+  // Beschreibungen nur für die aktuelle Seite
+  const pageIds = invoices.map((i) => i.id)
+  const firstDescByInvoice = new Map<string, string>()
+  if (pageIds.length > 0) {
+    const { data: pageItems } = await supabase
+      .from('invoice_items')
+      .select('invoice_id, description, position')
+      .in('invoice_id', pageIds)
+      .order('position', { ascending: true })
+    for (const it of pageItems ?? []) {
+      if (!firstDescByInvoice.has(it.invoice_id)) {
+        firstDescByInvoice.set(it.invoice_id, it.description ?? '–')
+      }
+    }
+  }
 
   return (
     <AppPage>
@@ -136,17 +193,17 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Rechnungen gesamt</div>
-          <div className="font-serif text-[26px] !font-extrabold text-[#1B1F23]">{(invoices ?? []).length}</div>
+          <div className="font-serif text-[26px] !font-extrabold text-[#1B1F23]">{totalRows}</div>
         </div>
         <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Bezahlt</div>
           <div className="font-serif text-[26px] !font-extrabold text-primary">{formatCurrency(totalPaidCents)}</div>
-          <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status === 'paid').length} Rechnungen</div>
+          <div className="text-[11px] text-[#9CA3AF]">{allInvoicesMeta.filter((i) => i.status === 'paid').length} Rechnungen</div>
         </div>
         <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Offen</div>
           <div className="font-serif text-[26px] !font-extrabold text-[#F59E0B]">{formatCurrency(openCents)}</div>
-          <div className="text-[11px] text-[#9CA3AF]">{(invoices ?? []).filter((i) => i.status !== 'paid' && i.status !== 'cancelled').length} Rechnungen</div>
+          <div className="text-[11px] text-[#9CA3AF]">{allInvoicesMeta.filter((i) => i.status !== 'paid' && i.status !== 'cancelled').length} Rechnungen</div>
         </div>
         <div className="content-card p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Überfällig</div>
@@ -177,35 +234,46 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
           <div className="text-center">Status</div>
           <div className="text-right">Optionen</div>
         </div>
-        {(invoices ?? []).length === 0 ? (
+        {invoices.length === 0 ? (
           <div className="px-6 py-16 text-center text-[14px] text-[#6B7280]">
             Noch keine Rechnungen für diesen Kunden. <Link href={`/invoices/new?customerId=${customerId}`} className="text-primary hover:underline">Neue Rechnung anlegen</Link>
           </div>
         ) : (
-          <CustomerInvoiceTableRows
-            rows={(invoices ?? []).map((inv) => {
-              const info = itemsByInvoice.get(inv.id)
-              const totalCents = info?.totalCents ?? 0
-              const firstDesc = info?.description ?? '–'
-              const overdue = isOverdue(inv.payment_due_date, inv.status)
-              const badge = getStatusBadge(inv.status)
-              const statusLabel = overdue && inv.status !== 'paid' && inv.status !== 'cancelled' ? 'Überfällig' : badge.label
-              const statusClass = overdue && inv.status !== 'paid' ? 'bg-[#FEE2E2] text-[#991B1B]' : badge.class
-              return {
-                id: inv.id,
-                invoice_number: inv.invoice_number,
-                invoice_date: inv.invoice_date,
-                payment_due_date: inv.payment_due_date,
-                status: inv.status,
-                totalCents,
-                firstDesc,
-                statusLabel,
-                statusClass,
-                overdue,
-              } satisfies InvoiceRowData
-            })}
-            horseNames={horseNames}
-          />
+          <>
+            <CustomerInvoiceTableRows
+              rows={invoices.map((inv) => {
+                const totalCents = totalsByInvoice.get(inv.id) ?? 0
+                const firstDesc = firstDescByInvoice.get(inv.id) ?? '–'
+                const overdue = isOverdue(inv.payment_due_date, inv.status)
+                const badge = getStatusBadge(inv.status)
+                const statusLabel = overdue && inv.status !== 'paid' && inv.status !== 'cancelled' ? 'Überfällig' : badge.label
+                const statusClass = overdue && inv.status !== 'paid' ? 'bg-[#FEE2E2] text-[#991B1B]' : badge.class
+                return {
+                  id: inv.id,
+                  invoice_number: inv.invoice_number,
+                  invoice_date: inv.invoice_date,
+                  payment_due_date: inv.payment_due_date,
+                  status: inv.status,
+                  totalCents,
+                  firstDesc,
+                  statusLabel,
+                  statusClass,
+                  overdue,
+                } satisfies InvoiceRowData
+              })}
+              horseNames={horseNames}
+            />
+            <ListPagination
+              totalRows={totalRows}
+              currentPage={safePage}
+              totalPages={totalPages}
+              perPage={currentPerPage}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              itemLabel="Rechnungen"
+              buildHref={(page, perPage) => buildPageHref(customerId, page, perPage)}
+            />
+          </>
         )}
       </div>
     </AppPage>

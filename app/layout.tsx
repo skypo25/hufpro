@@ -3,8 +3,6 @@ import '@fontsource-variable/dm-sans/wght.css'
 import '@fontsource-variable/outfit/wght.css'
 import './globals.css'
 import './form-styles.css'
-/* Direkt importieren: verschachteltes @import nach tailwindcss wird sonst oft nicht gebündelt → /behandler wirkt „ohne CSS“. */
-import './behandler-verzeichnis.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import { CookieConsentLayerGate } from '@/components/consent/CookieConsentLayerGate'
 import AnidocsAppLoader from '@/components/AnidocsAppLoader'

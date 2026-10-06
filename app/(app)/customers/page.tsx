@@ -18,6 +18,8 @@ import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import CustomersStatsCards from '@/components/customers/CustomersStatsCards'
 import CustomersCardsAnimated from '@/components/customers/CustomersCardsAnimated'
+import PendingNavRow from '@/components/ui/PendingNavRow'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 
 type CustomersPageProps = {
   searchParams: Promise<{
@@ -110,12 +112,7 @@ export default async function CustomersPage({
     redirect('/login')
   }
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
+  const settings = await getUserSettingsCached(user.id)
   const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
   const term = profile.terminology
 
@@ -569,15 +566,12 @@ export default async function CustomersPage({
               const location = row.locationLine
 
               return (
-                <div
+                <PendingNavRow
                   key={row.customer.id}
+                  href={`/customers/${row.customer.id}`}
+                  ariaLabel={`Kunde ${row.customer.name || ''} öffnen`}
                   className="relative grid grid-cols-[52px_minmax(0,1fr)_160px_90px_140px_70px] items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-[14px] transition hover:bg-[rgba(1,85,85,0.03)] last:border-b-0 max-[1000px]:grid-cols-[52px_minmax(0,1fr)_80px_140px_70px] max-[1000px]:[&>*:nth-child(4)]:hidden max-[768px]:grid-cols-[42px_minmax(0,1fr)_70px_70px] max-[768px]:[&>*:nth-child(5)]:hidden"
                 >
-                  <Link
-                    href={`/customers/${row.customer.id}`}
-                    className="absolute inset-0 z-0"
-                    aria-label={`Kunde ${row.customer.name || ''} öffnen`}
-                  />
                   <div
                     className="pointer-events-none flex h-[34px] w-[34px] items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-white"
                   >
@@ -634,7 +628,7 @@ export default async function CustomersPage({
                       <i className="bi bi-calendar-plus text-[14px]" />
                     </Link>
                   </div>
-                </div>
+                </PendingNavRow>
               )
             })}
 

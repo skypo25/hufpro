@@ -23,6 +23,8 @@ import StatCard from '@/components/ui/StatCard'
 import EmptyState from '@/components/ui/EmptyState'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import PendingNavRow from '@/components/ui/PendingNavRow'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 
 type HorsesPageProps = {
   searchParams: Promise<{
@@ -146,13 +148,8 @@ export default async function HorsesPage({
     redirect('/login')
   }
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const settings = await getUserSettingsCached(user.id)
 
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
   const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
   const term = profile.terminology
 
@@ -752,16 +749,12 @@ export default async function HorsesPage({
                           : faPaw
 
             return (
-              <div
+              <PendingNavRow
                 key={row.horse.id}
+                href={`/animals/${row.horse.id}`}
+                ariaLabel={`${animalSingularLabel(term)} ${row.horse.name || ''} öffnen`}
                 className={listRowClass}
               >
-                <Link
-                  href={`/animals/${row.horse.id}`}
-                  className="absolute inset-0 z-0"
-                  aria-label={`${animalSingularLabel(term)} ${row.horse.name || ''} öffnen`}
-                />
-
                 <div className="pointer-events-none z-10 flex h-[35px] w-[35px] shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary-dark">
                   <FontAwesomeIcon icon={rowIcon} className="h-4 w-4" />
                 </div>
@@ -841,7 +834,7 @@ export default async function HorsesPage({
                     <i className="bi bi-calendar-plus text-[14px]" />
                   </Link>
                 </div>
-              </div>
+              </PendingNavRow>
             )
           })}
 

@@ -2,6 +2,8 @@ import type { NextConfig } from 'next'
 import { withSerwist } from '@serwist/turbopack'
 
 const nextConfig: NextConfig = {
+  /** gzip/brotli für Responses (Vercel CDN macht das zusätzlich ohnehin). */
+  compress: true,
   /** Verzeichnis-Wizard: Logo + mehrere Galerie-Fotos per Server Action (FormData) — Standard 1 MB reicht nicht. */
   experimental: {
     serverActions: {

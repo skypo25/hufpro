@@ -18,6 +18,8 @@ type InvoiceRow = {
 
 type StatusFilter = 'all' | 'open' | 'paid'
 
+const PAGE_SIZE = 20
+
 function formatEuro(cents: number) {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100)
 }
@@ -41,7 +43,10 @@ export default function MobileInvoices({ customerId }: { customerId?: string }) 
   const [status, setStatus] = useState<StatusFilter>('all')
   const [invoices, setInvoices] = useState<InvoiceRow[]>([])
   const [openTotalCents, setOpenTotalCents] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -52,22 +57,40 @@ export default function MobileInvoices({ customerId }: { customerId?: string }) 
     }
   }, [q])
 
-  const fetchData = useCallback(async () => {
-    const params = new URLSearchParams()
-    if (debouncedQ) params.set('q', debouncedQ)
-    params.set('status', status)
-    if (scopedCustomerId) params.set('customerId', scopedCustomerId)
-    const res = await fetch(`/api/invoices/mobile?${params}`, { credentials: 'include' })
-    if (!res.ok) return
-    const data = await res.json()
-    setInvoices(data.invoices ?? [])
-    setOpenTotalCents(data.openTotalCents ?? 0)
-  }, [debouncedQ, status, scopedCustomerId])
+  const fetchPage = useCallback(
+    async (offset: number, append: boolean) => {
+      const params = new URLSearchParams()
+      if (debouncedQ) params.set('q', debouncedQ)
+      params.set('status', status)
+      if (scopedCustomerId) params.set('customerId', scopedCustomerId)
+      params.set('limit', String(PAGE_SIZE))
+      params.set('offset', String(offset))
+      const res = await fetch(`/api/invoices/mobile?${params}`, { credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      const next = (data.invoices ?? []) as InvoiceRow[]
+      setInvoices((prev) => (append ? [...prev, ...next] : next))
+      setOpenTotalCents(data.openTotalCents ?? 0)
+      setTotal(data.total ?? next.length)
+      setHasMore(Boolean(data.hasMore))
+    },
+    [debouncedQ, status, scopedCustomerId]
+  )
 
   useEffect(() => {
     setLoading(true)
-    fetchData().finally(() => setLoading(false))
-  }, [fetchData])
+    fetchPage(0, false).finally(() => setLoading(false))
+  }, [fetchPage])
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      await fetchPage(invoices.length, true)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const newHref = scopedCustomerId ? `/invoices/new?customerId=${scopedCustomerId}` : '/invoices/new'
 
@@ -78,7 +101,10 @@ export default function MobileInvoices({ customerId }: { customerId?: string }) 
         <div className="ah-top">
           <div>
             <h1 className="mobile-greeting">Rechnungen</h1>
-            <div className="mobile-sub">Offen: {formatEuro(openTotalCents)}</div>
+            <div className="mobile-sub">
+              Offen: {formatEuro(openTotalCents)}
+              {!loading && total > 0 ? ` · ${total} gesamt` : ''}
+            </div>
           </div>
           <Link href={newHref} className="ah-btn" aria-label="Neue Rechnung">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
@@ -143,6 +169,16 @@ export default function MobileInvoices({ customerId }: { customerId?: string }) 
                 }}
               />
             ))}
+            {hasMore ? (
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="mt-2 rounded-xl border border-[#E5E2DC] bg-white py-3 text-[13px] font-semibold text-[#1A1A1A] disabled:opacity-50"
+              >
+                {loadingMore ? 'Lädt…' : 'Weitere laden'}
+              </button>
+            ) : null}
           </div>
         )}
       </div>

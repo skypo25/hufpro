@@ -94,6 +94,13 @@ export function getLatestVisitRecordDateFromMergedList(
   return recordRows[0]?.record.record_date ?? null
 }
 
+export type LoadRecordListForHorseViewOptions = {
+  /** Nur die ersten N Einträge anreichern (Fotozählung). Standard: alle. */
+  limit?: number
+  /** Ganzkörper-Quellen laden (default true). Aus, wenn Profilfotos reichen. */
+  includeWholeBodySources?: boolean
+}
+
 /**
  * Lädt die Dokumentationsliste für ein Pferd: documentation_records primär,
  * hoof_records/hoof_photos für Lücken und Fallback.
@@ -101,30 +108,36 @@ export function getLatestVisitRecordDateFromMergedList(
 export async function loadRecordListForHorseView(
   supabase: SupabaseClient,
   userId: string,
-  horseId: string
+  horseId: string,
+  options: LoadRecordListForHorseViewOptions = {}
 ): Promise<LoadRecordListForHorseViewResult> {
+  const includeWholeBodySources = options.includeWholeBodySources !== false
+
   // Kein hoof_records.doc_number: Spalte fehlt in älteren DBs; Nummer kommt aus documentation_records.
-  const { data: hoofRows, error: hoofErr } = await supabase
-    .from('hoof_records')
-    .select('id, horse_id, record_date, created_at, updated_at')
-    .eq('horse_id', horseId)
-    .eq('user_id', userId)
-    .returns<HoofListRow[]>()
+  const [hoofRes, docRes] = await Promise.all([
+    supabase
+      .from('hoof_records')
+      .select('id, horse_id, record_date, created_at, updated_at')
+      .eq('horse_id', horseId)
+      .eq('user_id', userId)
+      .returns<HoofListRow[]>(),
+    supabase
+      .from('documentation_records')
+      .select('id, session_date, doc_number, metadata, created_at, updated_at')
+      .eq('animal_id', horseId)
+      .eq('user_id', userId)
+      .returns<DocListRow[]>(),
+  ])
 
-  if (hoofErr) {
-    throw new Error(`hoof_records (Liste): ${hoofErr.message}`)
+  if (hoofRes.error) {
+    throw new Error(`hoof_records (Liste): ${hoofRes.error.message}`)
+  }
+  if (docRes.error) {
+    throw new Error(`documentation_records (Liste): ${docRes.error.message}`)
   }
 
-  const { data: docRows, error: docErr } = await supabase
-    .from('documentation_records')
-    .select('id, session_date, doc_number, metadata, created_at, updated_at')
-    .eq('animal_id', horseId)
-    .eq('user_id', userId)
-    .returns<DocListRow[]>()
-
-  if (docErr) {
-    throw new Error(`documentation_records (Liste): ${docErr.message}`)
-  }
+  const hoofRows = hoofRes.data
+  const docRows = docRes.data
 
   const legacyToDoc = new Map<string, DocListRow>()
   for (const row of docRows ?? []) {
@@ -164,6 +177,11 @@ export async function loadRecordListForHorseView(
 
   merged.sort((a, b) => b.sortTime - a.sortTime)
 
+  const enrichRows =
+    typeof options.limit === 'number' && options.limit > 0
+      ? merged.slice(0, options.limit)
+      : merged
+
   const docBacked = merged.filter((m) => m.documentationRecordId != null).length
   const hoofOnly = merged.length - docBacked
 
@@ -172,32 +190,48 @@ export async function loadRecordListForHorseView(
     console.info('[horse-detail record-list]', {
       horseId,
       total: merged.length,
+      enriched: enrichRows.length,
       docBacked,
       hoofOnlyFallback: hoofOnly,
     })
   }
 
   const docIds = [
-    ...new Set(merged.map((m) => m.documentationRecordId).filter(Boolean)),
+    ...new Set(enrichRows.map((m) => m.documentationRecordId).filter(Boolean)),
   ] as string[]
 
-  const allLegacyHoofIds = merged.map((m) => m.legacyHoofId)
+  const enrichLegacyHoofIds = enrichRows.map((m) => m.legacyHoofId)
 
   const docCountByLegacy = new Map<string, number>()
+  const hoofCountByLegacy = new Map<string, number>()
+
+  const [docPhotosRes, hoofPhotosRes] = await Promise.all([
+    docIds.length > 0
+      ? supabase
+          .from('documentation_photos')
+          .select('documentation_record_id, photo_type')
+          .eq('user_id', userId)
+          .in('documentation_record_id', docIds)
+      : Promise.resolve({ data: null, error: null }),
+    enrichLegacyHoofIds.length > 0
+      ? supabase
+          .from('hoof_photos')
+          .select('hoof_record_id, photo_type')
+          .eq('user_id', userId)
+          .in('hoof_record_id', enrichLegacyHoofIds)
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  if (docPhotosRes.error) {
+    throw new Error(`documentation_photos (Liste): ${docPhotosRes.error.message}`)
+  }
+  if (hoofPhotosRes.error) {
+    throw new Error(`hoof_photos (Liste): ${hoofPhotosRes.error.message}`)
+  }
 
   if (docIds.length > 0) {
-    const { data: docPhotos, error: dpErr } = await supabase
-      .from('documentation_photos')
-      .select('documentation_record_id, photo_type')
-      .eq('user_id', userId)
-      .in('documentation_record_id', docIds)
-
-    if (dpErr) {
-      throw new Error(`documentation_photos (Liste): ${dpErr.message}`)
-    }
-
     const byDocId = new Map<string, { photo_type: string | null }[]>()
-    for (const p of docPhotos ?? []) {
+    for (const p of docPhotosRes.data ?? []) {
       const row = p as { documentation_record_id: string | null; photo_type: string | null }
       const rid = row.documentation_record_id
       if (!rid) continue
@@ -207,7 +241,7 @@ export async function loadRecordListForHorseView(
     }
 
     const docIdToLegacy = new Map<string, string>()
-    for (const m of merged) {
+    for (const m of enrichRows) {
       if (m.documentationRecordId) {
         docIdToLegacy.set(m.documentationRecordId, m.legacyHoofId)
       }
@@ -220,20 +254,9 @@ export async function loadRecordListForHorseView(
     }
   }
 
-  const hoofCountByLegacy = new Map<string, number>()
-  if (allLegacyHoofIds.length > 0) {
-    const { data: hoofPhotos, error: hpErr } = await supabase
-      .from('hoof_photos')
-      .select('hoof_record_id, photo_type')
-      .eq('user_id', userId)
-      .in('hoof_record_id', allLegacyHoofIds)
-
-    if (hpErr) {
-      throw new Error(`hoof_photos (Liste): ${hpErr.message}`)
-    }
-
+  if (enrichLegacyHoofIds.length > 0) {
     const byHoof = new Map<string, { photo_type: string | null }[]>()
-    for (const p of hoofPhotos ?? []) {
+    for (const p of hoofPhotosRes.data ?? []) {
       const row = p as { hoof_record_id: string | null; photo_type: string | null }
       const hid = row.hoof_record_id
       if (!hid) continue
@@ -242,7 +265,7 @@ export async function loadRecordListForHorseView(
       byHoof.set(hid, arr)
     }
 
-    for (const hid of allLegacyHoofIds) {
+    for (const hid of enrichLegacyHoofIds) {
       const photos = byHoof.get(hid) ?? []
       hoofCountByLegacy.set(hid, countNonWholePhotos(photos))
     }
@@ -256,7 +279,7 @@ export async function loadRecordListForHorseView(
     return hoofN
   }
 
-  const recordRows: HorseRecordListRow[] = merged.map((m) => ({
+  const recordRows: HorseRecordListRow[] = enrichRows.map((m) => ({
     record: m.record,
     photoCount: resolvePhotoCount(m),
   }))
@@ -264,7 +287,7 @@ export async function loadRecordListForHorseView(
   const latest = merged[0]
   let wholeBodyPhotoSources: WholeBodyPhotoSource[] = []
 
-  if (latest) {
+  if (includeWholeBodySources && latest) {
     if (latest.documentationRecordId) {
       const { data: wb, error: wbErr } = await supabase
         .from('documentation_photos')

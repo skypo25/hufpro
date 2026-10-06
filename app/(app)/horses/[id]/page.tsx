@@ -14,7 +14,8 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { profilePhotoPathFromIntake } from '@/lib/animals/clinicalIntakeTypes'
-import { mergeWholeBodyPhotosForHorseDisplay } from '@/lib/photos/horseProfilePhotos'
+import { signHorseProfileWholeBodyPhotos } from '@/lib/photos/horseProfilePhotos'
+import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
 
 type HorsePageProps = {
   params: Promise<{ id: string }>
@@ -166,19 +167,11 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   const { id } = await params
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
-  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
-  const term = profile.terminology
-  const singularLabel = animalSingularLabel(term)
-
-  const { data: horse } = await supabase
-    .from('horses')
-    .select(`
+  const [settings, { data: horse }] = await Promise.all([
+    getUserSettingsCached(user.id),
+    supabase
+      .from('horses')
+      .select(`
       id,
       name,
       breed,
@@ -205,9 +198,14 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
         phone
       )
     `)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single<Horse>()
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single<Horse>(),
+  ])
+
+  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const term = profile.terminology
+  const singularLabel = animalSingularLabel(term)
 
   if (!horse) {
     return (
@@ -237,51 +235,58 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
   const owner = relationOwner(horse.customers)
   const nowIso = new Date().toISOString()
+  const hasProfileWholeBody = !!(horse.photo_whole_left_path || horse.photo_whole_right_path)
+  const profilePhotoPath = profilePhotoPathFromIntake(horse.intake)
 
-  // Nächster Termin: über appointment_horses (Pferde sind über Verknüpfungstabelle zugeordnet)
-  const { data: aptLinks } = await supabase
-    .from('appointment_horses')
-    .select('appointment_id')
-    .eq('horse_id', id)
-    .eq('user_id', user.id)
-  const aptIds = [...new Set((aptLinks ?? []).map((l) => l.appointment_id))]
+  const [aptLinksRes, recordsResult, profilePhotoSignedRes] = await Promise.all([
+    supabase
+      .from('appointment_horses')
+      .select('appointment_id')
+      .eq('horse_id', id)
+      .eq('user_id', user.id),
+    loadRecordListForHorseView(supabase, user.id, id, {
+      includeWholeBodySources: !hasProfileWholeBody,
+    }),
+    profilePhotoPath
+      ? supabase.storage.from('hoof-photos').createSignedUrl(profilePhotoPath, 60 * 60)
+      : Promise.resolve({ data: null }),
+  ])
+
+  const aptIds = [...new Set((aptLinksRes.data ?? []).map((l) => l.appointment_id))]
+  const { recordRows, wholeBodyPhotoSources, latestRecordId } = recordsResult
+  const profilePhotoSignedUrl = profilePhotoSignedRes.data?.signedUrl ?? null
+
   let nextAppointment: string | null = null
-  if (aptIds.length > 0) {
-    const { data: nextApts } = await supabase
-      .from('appointments')
-      .select('appointment_date')
-      .eq('user_id', user.id)
-      .in('id', aptIds)
-      .gte('appointment_date', nowIso)
-      .order('appointment_date', { ascending: true })
-      .limit(1)
-    nextAppointment = nextApts?.[0]?.appointment_date || null
-  }
-
-  // Letzte Bearbeitung: Datum des letzten vergangenen Termins (nicht Dokumentation)
   let lastTreatment: string | null = null
   if (aptIds.length > 0) {
-    const { data: lastApts } = await supabase
-      .from('appointments')
-      .select('appointment_date')
-      .eq('user_id', user.id)
-      .in('id', aptIds)
-      .lte('appointment_date', nowIso)
-      .order('appointment_date', { ascending: false })
-      .limit(1)
-    lastTreatment = lastApts?.[0]?.appointment_date || null
+    const [nextRes, lastRes] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('appointment_date')
+        .eq('user_id', user.id)
+        .in('id', aptIds)
+        .gte('appointment_date', nowIso)
+        .order('appointment_date', { ascending: true })
+        .limit(1),
+      supabase
+        .from('appointments')
+        .select('appointment_date')
+        .eq('user_id', user.id)
+        .in('id', aptIds)
+        .lte('appointment_date', nowIso)
+        .order('appointment_date', { ascending: false })
+        .limit(1),
+    ])
+    nextAppointment = nextRes.data?.[0]?.appointment_date || null
+    lastTreatment = lastRes.data?.[0]?.appointment_date || null
   }
-
-  const { recordRows, wholeBodyPhotoSources, latestRecordId } = await loadRecordListForHorseView(
-    supabase,
-    user.id,
-    id
-  )
 
   const age = getAgeFromBirthYear(horse.birth_year)
 
   let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
-  if (wholeBodyPhotoSources.length > 0) {
+  if (hasProfileWholeBody) {
+    wholeBodyPhotos = await signHorseProfileWholeBodyPhotos(supabase, horse)
+  } else if (wholeBodyPhotoSources.length > 0) {
     const withUrls = await Promise.all(
       wholeBodyPhotoSources.map(async (p) => {
         if (!p.file_path) return null
@@ -296,21 +301,12 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
         }
       })
     )
-    wholeBodyPhotos = withUrls.filter(
-      (x): x is { id: string; imageUrl: string; label: string } => x != null
-    )
+    wholeBodyPhotos = withUrls
+      .filter((x): x is { id: string; imageUrl: string; label: string } => x != null)
+      .sort((a, b) => (a.label.includes('links') ? 0 : 1) - (b.label.includes('links') ? 0 : 1))
   }
-  wholeBodyPhotos = await mergeWholeBodyPhotosForHorseDisplay(supabase, horse, wholeBodyPhotos)
-  const wholeBodyFromProfile = !!(horse.photo_whole_left_path || horse.photo_whole_right_path)
+  const wholeBodyFromProfile = hasProfileWholeBody && wholeBodyPhotos.length > 0
 
-  const profilePhotoPath = profilePhotoPathFromIntake(horse.intake)
-  let profilePhotoSignedUrl: string | null = null
-  if (profilePhotoPath) {
-    const { data: profileSigned } = await supabase.storage
-      .from('hoof-photos')
-      .createSignedUrl(profilePhotoPath, 60 * 60)
-    profilePhotoSignedUrl = profileSigned?.signedUrl ?? null
-  }
 
   return (
     <AppPage>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { formatShortGermanDate, getInitials } from '@/lib/format'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -33,8 +34,14 @@ export default function CustomersCardsAnimated({
   rows,
   emptyDescription = 'Keine Kunden gefunden.',
 }: CustomersCardsAnimatedProps) {
+  const pathname = usePathname()
   const gridRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setPendingId(null)
+  }, [pathname])
 
   useEffect(() => {
     const el = gridRef.current
@@ -60,17 +67,21 @@ export default function CustomersCardsAnimated({
     >
       {rows.map((row, index) => {
         const location = row.locationLine
+        const pending = pendingId === row.customer.id
         return (
           <Link
             key={row.customer.id}
             href={`/customers/${row.customer.id}`}
-            className="content-card transition-all duration-200 ease-out opacity-0 -translate-y-2 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 content-card--hover hover:-translate-y-[2px] hover:border-primary"
+            onClick={() => setPendingId(row.customer.id)}
+            aria-busy={pending || undefined}
+            className={[
+              'content-card transition-all duration-200 ease-out opacity-0 -translate-y-2 group-[.cards-visible]:opacity-100 group-[.cards-visible]:translate-y-0 content-card--hover hover:-translate-y-[2px] hover:border-primary',
+              pending ? 'border-primary bg-[rgba(1,85,85,0.04)]' : '',
+            ].join(' ')}
             style={{ transitionDelay: `${Math.min(index, 5) * 30}ms` }}
           >
             <div className="flex items-center gap-3 border-b border-[#E5E2DC] px-[22px] py-5">
-              <div
-                className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-white"
-              >
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-white">
                 {getInitials(row.customer.name)}
               </div>
 
@@ -93,17 +104,13 @@ export default function CustomersCardsAnimated({
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#6B7280]">Nächster Termin</span>
                 <span className="font-medium text-[#1B1F23]">
-                  {row.nextAppointment
-                    ? formatShortGermanDate(row.nextAppointment)
-                    : '-'}
+                  {row.nextAppointment ? formatShortGermanDate(row.nextAppointment) : '-'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#6B7280]">Telefon</span>
-                <span className="font-medium text-[#1B1F23]">
-                  {row.customer.phone || '-'}
-                </span>
+                <span className="font-medium text-[#1B1F23]">{row.customer.phone || '-'}</span>
               </div>
 
               <div className="flex items-center justify-between text-[13px]">
@@ -116,13 +123,9 @@ export default function CustomersCardsAnimated({
 
             <div className="flex items-center justify-between border-t border-[#E5E2DC] bg-[rgba(0,0,0,0.015)] px-[22px] py-3">
               <span className="truncate text-[12px] text-[#6B7280]">
-                {row.horseNames.length > 0
-                  ? row.horseNames.join(' · ')
-                  : 'Keine Tiere'}
+                {row.horseNames.length > 0 ? row.horseNames.slice(0, 3).join(', ') : 'Keine Tiere'}
               </span>
-              <span className="ml-3 whitespace-nowrap text-[12px] font-semibold text-primary">
-                Details →
-              </span>
+              <i className="bi bi-chevron-right text-[14px] text-primary" />
             </div>
           </Link>
         )
