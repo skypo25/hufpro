@@ -40,8 +40,8 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
       {stats.map((stat, index) => (
         <div
           key={stat.label}
-          className="dashboard-stat-card content-card relative overflow-hidden px-[22px] py-5 transition-all duration-500 ease-out opacity-0 -translate-y-3 group-[.dashboard-stats-visible]:opacity-100 group-[.dashboard-stats-visible]:translate-y-0"
-          style={{ transitionDelay: `${index * 80}ms` }}
+          className="dashboard-stat-card content-card relative overflow-hidden px-[22px] py-5 transition-all duration-200 ease-out opacity-0 -translate-y-2 group-[.dashboard-stats-visible]:opacity-100 group-[.dashboard-stats-visible]:translate-y-0"
+          style={{ transitionDelay: `${index * 30}ms` }}
         >
           <div
             className={`absolute right-0 top-0 h-20 w-20 translate-x-[30%] -translate-y-[30%] rounded-full opacity-40 ${stat.tone}`}
@@ -53,7 +53,7 @@ export default function DashboardStats({ stats }: DashboardStatsProps) {
             </div>
 
             <div className="dashboard-serif text-[26px] !font-extrabold leading-none tracking-[-0.02em] text-[#1B1F23] tabular-nums">
-              <CountUp value={stat.value} duration={1400} delay={index * 80} startOnView />
+              <CountUp value={stat.value} duration={700} delay={index * 30} startOnView />
             </div>
 
             <div

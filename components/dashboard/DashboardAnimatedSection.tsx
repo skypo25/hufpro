@@ -33,8 +33,8 @@ export default function DashboardAnimatedSection({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-500 ease-out opacity-0 -translate-y-3 ${visible ? 'opacity-100 translate-y-0' : ''} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      className={`transition-all duration-200 ease-out opacity-0 -translate-y-2 ${visible ? 'opacity-100 translate-y-0' : ''} ${className}`}
+      style={{ transitionDelay: `${Math.min(delay, 80)}ms` }}
     >
       {children}
     </div>

@@ -113,12 +113,17 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebarContext()
   const { profile } = useAppProfile()
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [userDisplay, setUserDisplay] = useState<{
     name: string
     initials: string
   } | null>(null)
   const [showAdminNav, setShowAdminNav] = useState(false)
   const [adminUserCount, setAdminUserCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    setPendingHref(null)
+  }, [pathname])
 
   useEffect(() => {
     let cancelled = false
@@ -243,7 +248,7 @@ export default function Sidebar() {
 
             <div className="space-y-[2px]">
               {group.items.map((item) => {
-                const active = isItemActive(pathname, item.href)
+                const active = isItemActive(pendingHref ?? pathname, item.href)
                 const showUserBadge =
                   pathname.startsWith('/admin') &&
                   item.href === '/admin/users' &&
@@ -254,8 +259,11 @@ export default function Sidebar() {
                     key={`${group.title}-${item.href}`}
                     href={item.href}
                     title={isCollapsed ? item.label : undefined}
+                    onClick={() => {
+                      if (!isItemActive(pathname, item.href)) setPendingHref(item.href)
+                    }}
                     className={[
-                      'group relative flex items-center rounded-lg px-3 py-2.5 text-[14px] transition-all duration-150',
+                      'group relative flex items-center rounded-lg px-3 py-2.5 text-[14px] transition-colors duration-100',
                       isCollapsed ? 'justify-center' : 'gap-3',
                       active
                         ? 'bg-[#3d3f44] text-white shadow-sm'

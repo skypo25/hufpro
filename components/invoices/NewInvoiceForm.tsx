@@ -1107,13 +1107,13 @@ export default function NewInvoiceForm({
 
       {/* Bottom actions */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border)] pt-6 lg:col-span-2">
-        <div className="flex gap-3">
-          <Link
-            href={isEdit && editMode ? editMode.backHref : '/invoices'}
-            className="inline-flex items-center gap-2 rounded-lg border border-transparent px-4 py-2.5 text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[color-mix(in_oklab,var(--foreground)_4%,var(--card))]"
-          >
-            <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4 rotate-180" /> {isEdit ? 'Zurück' : 'Abbrechen'}
-          </Link>
+        <Link
+          href={isEdit && editMode ? editMode.backHref : '/invoices'}
+          className="inline-flex items-center gap-2 rounded-lg border border-transparent px-4 py-2.5 text-[14px] font-medium text-[var(--text-secondary)] hover:bg-[color-mix(in_oklab,var(--foreground)_4%,var(--card))]"
+        >
+          <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4 rotate-180" /> {isEdit ? 'Zurück' : 'Abbrechen'}
+        </Link>
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={handleSaveDraft}
@@ -1122,17 +1122,16 @@ export default function NewInvoiceForm({
           >
             Als Entwurf speichern
           </button>
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={isEdit ? handleSaveAsSent : handleSaveDraft}
-            disabled={saving || !selectedCustomer}
-            className="primary-button disabled:opacity-50"
-          >
-            <FontAwesomeIcon icon={faCheck} className="h-4 w-4" /> {isEdit ? 'Speichern & als versendet markieren' : 'Rechnung erstellen'}
-          </button>
-          {!isEdit && (
+          {isEdit ? (
+            <button
+              type="button"
+              onClick={handleSaveAsSent}
+              disabled={saving || !selectedCustomer}
+              className="primary-button disabled:opacity-50"
+            >
+              <FontAwesomeIcon icon={faCheck} className="h-4 w-4" /> Speichern & als versendet markieren
+            </button>
+          ) : (
             <button
               type="button"
               onClick={handleCreateAndSend}

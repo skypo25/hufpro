@@ -134,8 +134,7 @@ export default async function CustomersPage({
     ? currentPageRaw
     : 1
 
-  let customerIdsFromSearch: string[] = []
-  let customerIdsFromHorses: string[] = []
+  let filterIds: string[] | null = null
 
   if (searchQuery) {
     const textMatchQuery = supabase
@@ -154,101 +153,230 @@ export default async function CustomersPage({
           ...(Number.isInteger(Number(searchQuery)) ? [`customer_number.eq.${Number(searchQuery)}`] : []),
         ].join(',')
       )
-    const { data: textMatch } = await textMatchQuery.returns<{ id: string }[]>()
-    customerIdsFromSearch = (textMatch || []).map((r) => r.id)
-
-    const { data: horsesMatch } = await supabase
-      .from('horses')
-      .select('customer_id')
-      .eq('user_id', user.id)
-      .not('customer_id', 'is', null)
-      .or(
-        `name.ilike.%${searchQuery}%,stable_name.ilike.%${searchQuery}%,stable_city.ilike.%${searchQuery}%,breed.ilike.%${searchQuery}%`
-      )
-      .returns<{ customer_id: string | null }[]>()
-    customerIdsFromHorses = (horsesMatch || [])
-      .map((r) => r.customer_id)
-      .filter((id): id is string => Boolean(id))
+    const [{ data: textMatch }, { data: horsesMatch }] = await Promise.all([
+      textMatchQuery.returns<{ id: string }[]>(),
+      supabase
+        .from('horses')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .not('customer_id', 'is', null)
+        .or(
+          `name.ilike.%${searchQuery}%,stable_name.ilike.%${searchQuery}%,stable_city.ilike.%${searchQuery}%,breed.ilike.%${searchQuery}%`
+        )
+        .returns<{ customer_id: string | null }[]>(),
+    ])
+    filterIds = [
+      ...new Set([
+        ...(textMatch || []).map((r) => r.id),
+        ...(horsesMatch || []).map((r) => r.customer_id).filter((id): id is string => Boolean(id)),
+      ]),
+    ]
   }
 
-  const allFilteredIds =
-    searchQuery.length > 0
-      ? [...new Set([...customerIdsFromSearch, ...customerIdsFromHorses])]
-      : null
+  const customerCols =
+    'id, customer_number, name, first_name, last_name, phone, email, city, created_at'
+  const dbSortable =
+    currentSort === 'name_asc' ||
+    currentSort === 'name_desc' ||
+    currentSort === 'newest'
 
-  let query = supabase
-    .from('customers')
-    .select(
-      'id, customer_number, name, first_name, last_name, phone, email, city, created_at'
-    )
-    .eq('user_id', user.id)
+  let customers: Customer[] = []
+  let totalRows = 0
+  let listError: string | null = null
 
-  if (allFilteredIds !== null) {
-    if (allFilteredIds.length === 0) {
-      query = query.eq('id', '__none__')
+  if (filterIds !== null && filterIds.length === 0) {
+    totalRows = 0
+    customers = []
+  } else if (dbSortable) {
+    let safeGuess = currentPage
+    let from = (safeGuess - 1) * currentPerPage
+    let to = from + currentPerPage - 1
+
+    const build = () => {
+      let q = supabase
+        .from('customers')
+        .select(customerCols, { count: 'exact' })
+        .eq('user_id', user.id)
+      if (filterIds) q = q.in('id', filterIds)
+      if (currentSort === 'name_desc') {
+        q = q.order('name', { ascending: false, nullsFirst: false })
+      } else if (currentSort === 'newest') {
+        q = q.order('created_at', { ascending: false, nullsFirst: false })
+      } else {
+        q = q.order('name', { ascending: true, nullsFirst: false })
+      }
+      return q
+    }
+
+    let { data, count, error } = await build().range(from, to).returns<Customer[]>()
+    totalRows = count ?? 0
+    const totalPagesTmp = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+    if (currentPage > totalPagesTmp && totalRows > 0) {
+      safeGuess = totalPagesTmp
+      from = (safeGuess - 1) * currentPerPage
+      to = from + currentPerPage - 1
+      ;({ data, count, error } = await build().range(from, to).returns<Customer[]>())
+      totalRows = count ?? totalRows
+    }
+    if (error) listError = error.message
+    customers = data || []
+  } else {
+    // Sortierung nach Termin / Tieranzahl: nur IDs laden, dann Seite anreichern
+    let idQuery = supabase.from('customers').select('id, name, created_at').eq('user_id', user.id)
+    if (filterIds) idQuery = idQuery.in('id', filterIds)
+    const { data: idRows, error: idErr } = await idQuery.returns<
+      { id: string; name: string | null; created_at: string | null }[]
+    >()
+    if (idErr) {
+      listError = idErr.message
     } else {
-      query = query.in('id', allFilteredIds)
+      const ids = (idRows || []).map((r) => r.id)
+      const horseCountByCustomer = new Map<string, number>()
+      const nextAppointmentByCustomer = new Map<string, string>()
+
+      if (ids.length > 0 && currentSort === 'horses_desc') {
+        const { data: horseData } = await supabase
+          .from('horses')
+          .select('customer_id')
+          .eq('user_id', user.id)
+          .in('customer_id', ids)
+          .returns<{ customer_id: string | null }[]>()
+        for (const h of horseData || []) {
+          if (!h.customer_id) continue
+          horseCountByCustomer.set(
+            h.customer_id,
+            (horseCountByCustomer.get(h.customer_id) || 0) + 1
+          )
+        }
+      }
+      if (ids.length > 0 && currentSort === 'next_appointment') {
+        const { data: appointmentData } = await supabase
+          .from('appointments')
+          .select('customer_id, appointment_date')
+          .eq('user_id', user.id)
+          .in('customer_id', ids)
+          .gte('appointment_date', new Date().toISOString())
+          .order('appointment_date', { ascending: true })
+          .returns<{ customer_id: string | null; appointment_date: string | null }[]>()
+        for (const a of appointmentData || []) {
+          if (!a.customer_id || !a.appointment_date) continue
+          if (!nextAppointmentByCustomer.has(a.customer_id)) {
+            nextAppointmentByCustomer.set(a.customer_id, a.appointment_date)
+          }
+        }
+      }
+
+      const sortedIds = [...(idRows || [])].sort((a, b) => {
+        if (currentSort === 'horses_desc') {
+          return (horseCountByCustomer.get(b.id) || 0) - (horseCountByCustomer.get(a.id) || 0)
+        }
+        const na = nextAppointmentByCustomer.get(a.id) || null
+        const nb = nextAppointmentByCustomer.get(b.id) || null
+        if (!na && !nb) return (a.name || '').localeCompare(b.name || '', 'de')
+        if (!na) return 1
+        if (!nb) return -1
+        return na.localeCompare(nb)
+      })
+
+      totalRows = sortedIds.length
+      const totalPagesTmp = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+      const safePageTmp = Math.min(currentPage, Math.max(1, totalPagesTmp))
+      const pageIds = sortedIds
+        .slice((safePageTmp - 1) * currentPerPage, safePageTmp * currentPerPage)
+        .map((r) => r.id)
+
+      if (pageIds.length > 0) {
+        const { data, error } = await supabase
+          .from('customers')
+          .select(customerCols)
+          .eq('user_id', user.id)
+          .in('id', pageIds)
+          .returns<Customer[]>()
+        if (error) listError = error.message
+        const byId = new Map((data || []).map((c) => [c.id, c]))
+        customers = pageIds.map((id) => byId.get(id)).filter((c): c is Customer => Boolean(c))
+      }
     }
   }
 
-  const { data: customers, error } = await query.returns<Customer[]>()
-
-  if (error) {
+  if (listError) {
     return (
       <AppPage>
         <EmptyState
           title="Fehler"
-          description={`Kunden konnten nicht geladen werden: ${error.message}`}
+          description={`Kunden konnten nicht geladen werden: ${listError}`}
           className="border-red-200 bg-red-50"
         />
       </AppPage>
     )
   }
 
-  const customerIds = (customers || []).map((customer) => customer.id)
-  const nowIso = new Date().toISOString()
+  const totalPages = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+  const safePage = Math.min(currentPage, totalPages)
+  const startIndex = totalRows === 0 ? 0 : (safePage - 1) * currentPerPage
+  const endIndex = startIndex + currentPerPage
+  const pagedCustomerIds = customers.map((c) => c.id)
 
   let horses: Horse[] = []
   let appointments: Appointment[] = []
   let appointmentHorseRows: AppointmentHorse[] = []
+  const nowIso = new Date().toISOString()
 
-  if (customerIds.length > 0) {
-    const { data: horseData } = await supabase
-      .from('horses')
-      .select('id, name, customer_id, animal_type, stable_name, stable_city, stable_street, stable_zip')
-      .eq('user_id', user.id)
-      .in('customer_id', customerIds)
-      .returns<Horse[]>()
+  const [{ count: horseCountExact }, { count: appointmentsThisWeekCount }, { count: allCustomerCount }, pageExtras] =
+    await Promise.all([
+      supabase.from('horses').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      (() => {
+        const { weekStart, weekEnd } = getCurrentWeekRange()
+        return supabase
+          .from('appointments')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('appointment_date', weekStart.toISOString())
+          .lt('appointment_date', weekEnd.toISOString())
+      })(),
+      supabase.from('customers').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+      pagedCustomerIds.length === 0
+        ? Promise.resolve({ horses: [] as Horse[], appointments: [] as Appointment[], links: [] as AppointmentHorse[] })
+        : (async () => {
+            const [{ data: horseData }, { data: appointmentData }] = await Promise.all([
+              supabase
+                .from('horses')
+                .select(
+                  'id, name, customer_id, animal_type, stable_name, stable_city, stable_street, stable_zip'
+                )
+                .eq('user_id', user.id)
+                .in('customer_id', pagedCustomerIds)
+                .returns<Horse[]>(),
+              supabase
+                .from('appointments')
+                .select('id, customer_id, appointment_date')
+                .eq('user_id', user.id)
+                .in('customer_id', pagedCustomerIds)
+                .gte('appointment_date', nowIso)
+                .order('appointment_date', { ascending: true })
+                .returns<Appointment[]>(),
+            ])
+            const appts = appointmentData || []
+            let links: AppointmentHorse[] = []
+            const appointmentIds = appts.map((a) => a.id)
+            if (appointmentIds.length > 0) {
+              const { data: linkData } = await supabase
+                .from('appointment_horses')
+                .select('appointment_id, horse_id')
+                .eq('user_id', user.id)
+                .in('appointment_id', appointmentIds)
+                .returns<AppointmentHorse[]>()
+              links = linkData || []
+            }
+            return { horses: horseData || [], appointments: appts, links }
+          })(),
+    ])
 
-    horses = horseData || []
-
-    const { data: appointmentData } = await supabase
-      .from('appointments')
-      .select('id, customer_id, appointment_date')
-      .eq('user_id', user.id)
-      .in('customer_id', customerIds)
-      .gte('appointment_date', nowIso)
-      .order('appointment_date', { ascending: true })
-      .returns<Appointment[]>()
-
-    appointments = appointmentData || []
-
-    const appointmentIds = appointments.map((appointment) => appointment.id)
-
-    if (appointmentIds.length > 0) {
-      const { data: linkData } = await supabase
-        .from('appointment_horses')
-        .select('appointment_id, horse_id')
-        .eq('user_id', user.id)
-        .in('appointment_id', appointmentIds)
-        .returns<AppointmentHorse[]>()
-
-      appointmentHorseRows = linkData || []
-    }
-  }
+  horses = pageExtras.horses
+  appointments = pageExtras.appointments
+  appointmentHorseRows = pageExtras.links
 
   const horsesByCustomer = new Map<string, Horse[]>()
-
   for (const horse of horses) {
     if (!horse.customer_id) continue
     const existing = horsesByCustomer.get(horse.customer_id) || []
@@ -256,7 +384,6 @@ export default async function CustomersPage({
   }
 
   const horseCountByAppointment = new Map<string, number>()
-
   for (const row of appointmentHorseRows) {
     horseCountByAppointment.set(
       row.appointment_id,
@@ -264,14 +391,9 @@ export default async function CustomersPage({
     )
   }
 
-  const nextAppointmentByCustomer = new Map<
-    string,
-    { date: string; horseCount: number }
-  >()
-
+  const nextAppointmentByCustomer = new Map<string, { date: string; horseCount: number }>()
   for (const appointment of appointments) {
     if (!appointment.customer_id || !appointment.appointment_date) continue
-
     if (!nextAppointmentByCustomer.has(appointment.customer_id)) {
       nextAppointmentByCustomer.set(appointment.customer_id, {
         date: appointment.appointment_date,
@@ -280,7 +402,7 @@ export default async function CustomersPage({
     }
   }
 
-  const rows: CustomerRow[] = (customers || []).map((customer) => {
+  const pagedRows: CustomerRow[] = customers.map((customer) => {
     const customerHorses = horsesByCustomer.get(customer.id) || []
     const next = nextAppointmentByCustomer.get(customer.id)
     const stallHorse = pickPrimaryStallHorse(customerHorses)
@@ -300,43 +422,9 @@ export default async function CustomersPage({
     }
   })
 
-  const sortedRows = [...rows].sort((a, b) => {
-    switch (currentSort) {
-      case 'name_desc':
-        return (b.customer.name || '').localeCompare(a.customer.name || '', 'de')
-      case 'next_appointment':
-        if (!a.nextAppointment && !b.nextAppointment) return 0
-        if (!a.nextAppointment) return 1
-        if (!b.nextAppointment) return -1
-        return a.nextAppointment.localeCompare(b.nextAppointment)
-      case 'horses_desc':
-        return b.horseCount - a.horseCount
-      case 'newest':
-        return (
-          new Date(b.customer.created_at || 0).getTime() -
-          new Date(a.customer.created_at || 0).getTime()
-        )
-      default:
-        return (a.customer.name || '').localeCompare(b.customer.name || '', 'de')
-    }
-  })
-
-  const totalRows = sortedRows.length
-  const totalPages = Math.max(1, Math.ceil(totalRows / currentPerPage))
-  const safePage = Math.min(currentPage, totalPages)
-  const startIndex = (safePage - 1) * currentPerPage
-  const endIndex = startIndex + currentPerPage
-  const pagedRows = sortedRows.slice(startIndex, endIndex)
-
-  const customerCount = rows.length
-  const horseCount = horses.length
-
-  const { weekStart, weekEnd } = getCurrentWeekRange()
-  const appointmentsThisWeek = appointments.filter((appointment) => {
-    if (!appointment.appointment_date) return false
-    const appointmentDate = new Date(appointment.appointment_date)
-    return appointmentDate >= weekStart && appointmentDate < weekEnd
-  }).length
+  const customerCount = allCustomerCount ?? 0
+  const horseCount = horseCountExact ?? 0
+  const appointmentsThisWeek = appointmentsThisWeekCount ?? 0
 
   const avgHorsesPerCustomer =
     customerCount > 0

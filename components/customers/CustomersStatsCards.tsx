@@ -72,8 +72,8 @@ export default function CustomersStatsCards({
       {stats.map((stat, index) => (
         <div
           key={stat.label}
-          className="stats-card transition-all duration-500 ease-out opacity-0 translate-y-3 group-[.stats-visible]:opacity-100 group-[.stats-visible]:translate-y-0"
-          style={{ transitionDelay: `${index * 80}ms` }}
+          className="stats-card transition-all duration-200 ease-out opacity-0 translate-y-2 group-[.stats-visible]:opacity-100 group-[.stats-visible]:translate-y-0"
+          style={{ transitionDelay: `${index * 30}ms` }}
         >
           <StatCard
             label={stat.label}
@@ -83,8 +83,8 @@ export default function CustomersStatsCards({
               ) : (
                 <CountUp
                   value={stat.value as number}
-                  duration={1400}
-                  delay={index * 80}
+                  duration={700}
+                  delay={index * 30}
                   startOnView
                   observerId="customers-stats-grid"
                 />

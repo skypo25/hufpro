@@ -17,7 +17,6 @@ import {
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { countDocumentationByHorseIds } from '@/lib/documentation/countDocumentationByHorseIds'
 import { formatGermanDate, getAgeFromBirthYear } from '@/lib/format'
-import { getCurrentWeekRange } from '@/lib/date'
 import { animalTypeBadgeClassName, formatAnimalTypeLabel } from '@/lib/animalTypeDisplay'
 import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
@@ -172,168 +171,79 @@ export default async function HorsesPage({
     ? currentPageRaw
     : 1
 
-  const { data: horses, error } = await supabase
-    .from('horses')
-    .select('*')
-    .eq('user_id', user.id)
-    .returns<Horse[]>()
+  const horseCols =
+    'id, name, breed, sex, birth_year, animal_type, usage, hoof_status, special_notes, customer_id, stable_name, stable_city, stable_street, stable_zip'
+  const dbSortable =
+    currentSort === 'name_asc' ||
+    currentSort === 'name_desc' ||
+    currentSort === 'breed' ||
+    currentSort === 'age_asc'
 
-  if (error) {
-    return (
-      <AppPage>
-        <EmptyState
-          title="Fehler"
-          description={horsesLoadErrorDescription(term, error.message)}
-          className="border-red-200 bg-red-50"
-        />
-      </AppPage>
-    )
-  }
-
-  const horseList = horses || []
-  const customerIds = [
-    ...new Set(
-      horseList.map((horse) => horse.customer_id).filter(Boolean)
-    ),
-  ] as string[]
-  const horseIds = horseList.map((horse) => horse.id)
-
-  let customers: Customer[] = []
-  let appointmentLinks: AppointmentHorse[] = []
-  let appointments: Appointment[] = []
-
-  if (customerIds.length > 0) {
-    const { data: customerData } = await supabase
+  // Stats parallel (keine Voll-Liste)
+  const [
+    { count: horseCountExact },
+    { count: customerCountExact },
+    { count: dogsCountExact },
+    { count: catsCountExact },
+    { count: smallCountExact },
+    { count: otherCountExact },
+    { count: horsesTypeCountExact },
+    { count: barhufCountExact },
+    { count: hoofschutzCountExact },
+    { data: intervalRows },
+  ] = await Promise.all([
+    supabase.from('horses').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('animal_type', 'dog'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('animal_type', 'cat'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('animal_type', 'small'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('animal_type', 'other'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .or('animal_type.is.null,animal_type.eq.horse'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .ilike('hoof_status', '%barhuf%'),
+    supabase
+      .from('horses')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .or('hoof_status.ilike.%hufschuhe%,hoof_status.ilike.%kunststoff%,hoof_status.ilike.%scoot%'),
+    supabase
       .from('customers')
-      .select('id, customer_number, name, city, interval_weeks')
+      .select('interval_weeks')
       .eq('user_id', user.id)
-      .in('id', customerIds)
-      .returns<Customer[]>()
+      .not('interval_weeks', 'is', null)
+      .returns<{ interval_weeks: string | null }[]>(),
+  ])
 
-    customers = customerData || []
-  }
-
-  if (horseIds.length > 0) {
-    const { data: linkData } = await supabase
-      .from('appointment_horses')
-      .select('appointment_id, horse_id')
-      .eq('user_id', user.id)
-      .in('horse_id', horseIds)
-      .returns<AppointmentHorse[]>()
-
-    appointmentLinks = linkData || []
-
-    const appointmentIds = [...new Set(appointmentLinks.map((item) => item.appointment_id))]
-
-    if (appointmentIds.length > 0) {
-      const { data: appointmentData } = await supabase
-        .from('appointments')
-        .select('id, appointment_date')
-        .eq('user_id', user.id)
-        .in('id', appointmentIds)
-        .gte('appointment_date', new Date().toISOString())
-        .order('appointment_date', { ascending: true })
-        .returns<Appointment[]>()
-
-      appointments = appointmentData || []
-    }
-  }
-
-  let documentationCountByHorse = new Map<string, number>()
-  if (horseIds.length > 0) {
-    documentationCountByHorse = await countDocumentationByHorseIds(
-      supabase,
-      user.id,
-      horseIds
-    )
-  }
-
-  const customersById = new Map(customers.map((customer) => [customer.id, customer]))
-  const appointmentsById = new Map(appointments.map((appointment) => [appointment.id, appointment]))
-
-  const nextAppointmentByHorse = new Map<string, string>()
-  for (const link of appointmentLinks) {
-    const appointment = appointmentsById.get(link.appointment_id)
-    if (!appointment?.appointment_date) continue
-
-    const existing = nextAppointmentByHorse.get(link.horse_id)
-    if (!existing || appointment.appointment_date < existing) {
-      nextAppointmentByHorse.set(link.horse_id, appointment.appointment_date)
-    }
-  }
-
-  let rows: HorseRow[] = horseList.map((horse) => ({
-    horse,
-    customer: horse.customer_id ? customersById.get(horse.customer_id) || null : null,
-    nextAppointment: nextAppointmentByHorse.get(horse.id) || null,
-    documentationCount: documentationCountByHorse.get(horse.id) || 0,
-  }))
-
-  if (searchQuery) {
-    rows = rows.filter((row) => {
-      const haystack = [
-        row.horse.name,
-        row.horse.breed,
-        row.horse.sex,
-        row.horse.usage,
-        row.horse.animal_type,
-        formatAnimalTypeLabel(row.horse.animal_type),
-        row.customer?.name,
-        row.customer?.city,
-        row.horse.stable_name,
-        row.horse.stable_city,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(searchQuery)
-    })
-  }
-
-  rows = [...rows].sort((a, b) => {
-    switch (currentSort) {
-      case 'name_desc':
-        return (b.horse.name || '').localeCompare(a.horse.name || '', 'de')
-      case 'owner_asc':
-        return (a.customer?.name || '').localeCompare(b.customer?.name || '', 'de')
-      case 'next_appointment':
-        if (!a.nextAppointment && !b.nextAppointment) return 0
-        if (!a.nextAppointment) return 1
-        if (!b.nextAppointment) return -1
-        return a.nextAppointment.localeCompare(b.nextAppointment)
-      case 'breed':
-        return (a.horse.breed || '').localeCompare(b.horse.breed || '', 'de')
-      case 'age_asc': {
-        const ageA = getAgeFromBirthYear(a.horse.birth_year ?? null) ?? 999
-        const ageB = getAgeFromBirthYear(b.horse.birth_year ?? null) ?? 999
-        return ageA - ageB
-      }
-      default:
-        return (a.horse.name || '').localeCompare(b.horse.name || '', 'de')
-    }
-  })
-
-  const totalRows = rows.length
-  const totalPages = Math.max(1, Math.ceil(totalRows / currentPerPage))
-  const safePage = Math.min(currentPage, totalPages)
-  const startIndex = (safePage - 1) * currentPerPage
-  const endIndex = startIndex + currentPerPage
-  const pagedRows = rows.slice(startIndex, endIndex)
-
-  const horseCount = horseList.length
-  const customerCount = customers.length
-
-  const barhufCount = horseList.filter((horse) =>
-    (horse.hoof_status || '').toLowerCase().includes('barhuf')
-  ).length
-
-  const hoofschutzCount = horseList.filter((horse) => {
-    const value = (horse.hoof_status || '').toLowerCase()
-    return value.includes('hufschuhe') || value.includes('kunststoff') || value.includes('scoot')
-  }).length
-
-  const correctionCount = horseList.filter((horse) => {
+  // Korrektur-Stat: leichte Spalten (selten groß)
+  const { data: correctionProbe } = await supabase
+    .from('horses')
+    .select('hoof_status, special_notes')
+    .eq('user_id', user.id)
+    .returns<{ hoof_status: string | null; special_notes: string | null }[]>()
+  const correctionCount = (correctionProbe || []).filter((horse) => {
     const value = `${horse.hoof_status || ''} ${horse.special_notes || ''}`.toLowerCase()
     return (
       value.includes('korrektur') ||
@@ -343,7 +253,7 @@ export default async function HorsesPage({
     )
   }).length
 
-  const intervals = customers
+  const intervals = (intervalRows || [])
     .map((customer) => customer.interval_weeks)
     .filter(Boolean)
     .map((value) => Number(String(value).replace(/[^\d.,]/g, '').replace(',', '.')))
@@ -356,22 +266,285 @@ export default async function HorsesPage({
           .replace('.', ',')
       : '-'
 
-  const dogsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'dog').length
-  const catsCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'cat').length
-  const smallCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'small').length
-  const otherCount = horseList.filter((a) => (a.animal_type ?? '').trim() === 'other').length
-  // NULL/leer = Pferd (Legacy / Pferde-only Profil)
-  const horsesCount = horseList.filter((a) => {
-    const t = (a.animal_type ?? '').trim()
-    return !t || t === 'horse'
-  }).length
+  const horseCount = horseCountExact ?? 0
+  const customerCount = customerCountExact ?? 0
+  const dogsCount = dogsCountExact ?? 0
+  const catsCount = catsCountExact ?? 0
+  const smallCount = smallCountExact ?? 0
+  const otherCount = otherCountExact ?? 0
+  const horsesCount = horsesTypeCountExact ?? 0
+  const barhufCount = barhufCountExact ?? 0
+  const hoofschutzCount = hoofschutzCountExact ?? 0
 
-  const { weekStart, weekEnd } = getCurrentWeekRange()
-  const appointmentsThisWeek = appointments.filter((appointment) => {
-    if (!appointment.appointment_date) return false
-    const d = new Date(appointment.appointment_date)
-    return d >= weekStart && d < weekEnd
-  }).length
+  // Suche: passende Horse-IDs (inkl. Besitzername)
+  let filterIds: string[] | null = null
+  if (searchQuery) {
+    const [{ data: horseHits }, { data: ownerHits }] = await Promise.all([
+      supabase
+        .from('horses')
+        .select('id')
+        .eq('user_id', user.id)
+        .or(
+          [
+            `name.ilike.%${searchQuery}%`,
+            `breed.ilike.%${searchQuery}%`,
+            `sex.ilike.%${searchQuery}%`,
+            `usage.ilike.%${searchQuery}%`,
+            `animal_type.ilike.%${searchQuery}%`,
+            `stable_name.ilike.%${searchQuery}%`,
+            `stable_city.ilike.%${searchQuery}%`,
+          ].join(',')
+        )
+        .returns<{ id: string }[]>(),
+      supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .or(`name.ilike.%${searchQuery}%,city.ilike.%${searchQuery}%`)
+        .returns<{ id: string }[]>(),
+    ])
+    const ownerIds = (ownerHits || []).map((c) => c.id)
+    let fromOwners: string[] = []
+    if (ownerIds.length > 0) {
+      const { data: owned } = await supabase
+        .from('horses')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('customer_id', ownerIds)
+        .returns<{ id: string }[]>()
+      fromOwners = (owned || []).map((h) => h.id)
+    }
+    filterIds = [...new Set([...(horseHits || []).map((h) => h.id), ...fromOwners])]
+  }
+
+  let pagedRowsBase: HorseRow[] = []
+  let totalRows = 0
+  let listError: string | null = null
+
+  if (filterIds !== null && filterIds.length === 0) {
+    totalRows = 0
+  } else if (dbSortable) {
+    const build = () => {
+      let q = supabase
+        .from('horses')
+        .select(horseCols, { count: 'exact' })
+        .eq('user_id', user.id)
+      if (filterIds) q = q.in('id', filterIds)
+      if (currentSort === 'name_desc') {
+        q = q.order('name', { ascending: false, nullsFirst: false })
+      } else if (currentSort === 'breed') {
+        q = q.order('breed', { ascending: true, nullsFirst: false })
+      } else if (currentSort === 'age_asc') {
+        q = q.order('birth_year', { ascending: false, nullsFirst: false })
+      } else {
+        q = q.order('name', { ascending: true, nullsFirst: false })
+      }
+      return q
+    }
+
+    let from = (currentPage - 1) * currentPerPage
+    let to = from + currentPerPage - 1
+    let { data, count, error } = await build().range(from, to).returns<Horse[]>()
+    totalRows = count ?? 0
+    const totalPagesTmp = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+    if (currentPage > totalPagesTmp && totalRows > 0) {
+      from = (totalPagesTmp - 1) * currentPerPage
+      to = from + currentPerPage - 1
+      ;({ data, count, error } = await build().range(from, to).returns<Horse[]>())
+      totalRows = count ?? totalRows
+    }
+    if (error) listError = error.message
+
+    const pageHorses = data || []
+    const pageCustomerIds = [
+      ...new Set(pageHorses.map((h) => h.customer_id).filter(Boolean)),
+    ] as string[]
+    let customersById = new Map<string, Customer>()
+    if (pageCustomerIds.length > 0) {
+      const { data: customerData } = await supabase
+        .from('customers')
+        .select('id, customer_number, name, city, interval_weeks')
+        .eq('user_id', user.id)
+        .in('id', pageCustomerIds)
+        .returns<Customer[]>()
+      customersById = new Map((customerData || []).map((c) => [c.id, c]))
+    }
+    pagedRowsBase = pageHorses.map((horse) => ({
+      horse,
+      customer: horse.customer_id ? customersById.get(horse.customer_id) || null : null,
+      nextAppointment: null,
+      documentationCount: 0,
+    }))
+  } else {
+    // owner_asc / next_appointment: leichte Voll-ID-Liste, dann nur Seite laden
+    let lightQuery = supabase
+      .from('horses')
+      .select('id, name, customer_id')
+      .eq('user_id', user.id)
+    if (filterIds) lightQuery = lightQuery.in('id', filterIds)
+    const { data: lightRows, error: lightErr } = await lightQuery.returns<
+      { id: string; name: string | null; customer_id: string | null }[]
+    >()
+    if (lightErr) {
+      listError = lightErr.message
+    } else {
+      const light = lightRows || []
+      const allCustIds = [...new Set(light.map((h) => h.customer_id).filter(Boolean))] as string[]
+      let customersById = new Map<string, Customer>()
+      if (allCustIds.length > 0) {
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('id, customer_number, name, city, interval_weeks')
+          .eq('user_id', user.id)
+          .in('id', allCustIds)
+          .returns<Customer[]>()
+        customersById = new Map((customerData || []).map((c) => [c.id, c]))
+      }
+
+      const nextAppointmentByHorse = new Map<string, string>()
+      if (currentSort === 'next_appointment' && light.length > 0) {
+        const ids = light.map((h) => h.id)
+        const { data: linkData } = await supabase
+          .from('appointment_horses')
+          .select('appointment_id, horse_id')
+          .eq('user_id', user.id)
+          .in('horse_id', ids)
+          .returns<AppointmentHorse[]>()
+        const links = linkData || []
+        const appointmentIds = [...new Set(links.map((l) => l.appointment_id))]
+        if (appointmentIds.length > 0) {
+          const { data: appointmentData } = await supabase
+            .from('appointments')
+            .select('id, appointment_date')
+            .eq('user_id', user.id)
+            .in('id', appointmentIds)
+            .gte('appointment_date', new Date().toISOString())
+            .order('appointment_date', { ascending: true })
+            .returns<Appointment[]>()
+          const byId = new Map((appointmentData || []).map((a) => [a.id, a]))
+          for (const link of links) {
+            const ap = byId.get(link.appointment_id)
+            if (!ap?.appointment_date) continue
+            const existing = nextAppointmentByHorse.get(link.horse_id)
+            if (!existing || ap.appointment_date < existing) {
+              nextAppointmentByHorse.set(link.horse_id, ap.appointment_date)
+            }
+          }
+        }
+      }
+
+      const sorted = [...light].sort((a, b) => {
+        if (currentSort === 'owner_asc') {
+          const na = a.customer_id ? customersById.get(a.customer_id)?.name || '' : ''
+          const nb = b.customer_id ? customersById.get(b.customer_id)?.name || '' : ''
+          return na.localeCompare(nb, 'de')
+        }
+        const na = nextAppointmentByHorse.get(a.id) || null
+        const nb = nextAppointmentByHorse.get(b.id) || null
+        if (!na && !nb) return (a.name || '').localeCompare(b.name || '', 'de')
+        if (!na) return 1
+        if (!nb) return -1
+        return na.localeCompare(nb)
+      })
+
+      totalRows = sorted.length
+      const totalPagesTmp = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+      const safePageTmp = Math.min(currentPage, totalPagesTmp)
+      const pageLight = sorted.slice(
+        (safePageTmp - 1) * currentPerPage,
+        safePageTmp * currentPerPage
+      )
+      const pageIds = pageLight.map((h) => h.id)
+      if (pageIds.length > 0) {
+        const { data: pageHorses, error } = await supabase
+          .from('horses')
+          .select(horseCols)
+          .eq('user_id', user.id)
+          .in('id', pageIds)
+          .returns<Horse[]>()
+        if (error) listError = error.message
+        const byId = new Map((pageHorses || []).map((h) => [h.id, h]))
+        pagedRowsBase = pageIds.map((id) => {
+          const horse = byId.get(id)!
+          return {
+            horse,
+            customer: horse.customer_id ? customersById.get(horse.customer_id) || null : null,
+            nextAppointment: nextAppointmentByHorse.get(id) || null,
+            documentationCount: 0,
+          }
+        }).filter((r) => r.horse)
+      }
+    }
+  }
+
+  if (listError) {
+    return (
+      <AppPage>
+        <EmptyState
+          title="Fehler"
+          description={horsesLoadErrorDescription(term, listError)}
+          className="border-red-200 bg-red-50"
+        />
+      </AppPage>
+    )
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalRows / currentPerPage) || 1)
+  const safePage = Math.min(currentPage, totalPages)
+  const startIndex = totalRows === 0 ? 0 : (safePage - 1) * currentPerPage
+  const endIndex = startIndex + currentPerPage
+  const pagedHorseIds = pagedRowsBase.map((r) => r.horse.id)
+
+  let documentationCountByHorse = new Map<string, number>()
+  const nextAppointmentForPage = new Map<string, string>()
+
+  if (pagedHorseIds.length > 0) {
+    const needAppointments = currentSort !== 'next_appointment'
+    const [docCounts, linkRes] = await Promise.all([
+      countDocumentationByHorseIds(supabase, user.id, pagedHorseIds),
+      needAppointments
+        ? supabase
+            .from('appointment_horses')
+            .select('appointment_id, horse_id')
+            .eq('user_id', user.id)
+            .in('horse_id', pagedHorseIds)
+            .returns<AppointmentHorse[]>()
+        : Promise.resolve({ data: null as AppointmentHorse[] | null }),
+    ])
+    documentationCountByHorse = docCounts
+
+    if (needAppointments) {
+      const appointmentLinks = linkRes.data || []
+      const appointmentIds = [...new Set(appointmentLinks.map((item) => item.appointment_id))]
+      if (appointmentIds.length > 0) {
+        const { data: appointmentData } = await supabase
+          .from('appointments')
+          .select('id, appointment_date')
+          .eq('user_id', user.id)
+          .in('id', appointmentIds)
+          .gte('appointment_date', new Date().toISOString())
+          .order('appointment_date', { ascending: true })
+          .returns<Appointment[]>()
+
+        const appointmentsById = new Map((appointmentData || []).map((a) => [a.id, a]))
+        for (const link of appointmentLinks) {
+          const appointment = appointmentsById.get(link.appointment_id)
+          if (!appointment?.appointment_date) continue
+          const existing = nextAppointmentForPage.get(link.horse_id)
+          if (!existing || appointment.appointment_date < existing) {
+            nextAppointmentForPage.set(link.horse_id, appointment.appointment_date)
+          }
+        }
+      }
+    }
+  }
+
+  const pagedRows: HorseRow[] = pagedRowsBase.map((row) => ({
+    ...row,
+    nextAppointment:
+      nextAppointmentForPage.get(row.horse.id) || row.nextAppointment,
+    documentationCount: documentationCountByHorse.get(row.horse.id) || 0,
+  }))
 
   const isTierTerm = term === 'tier'
   const listHeaderClass = isTierTerm
