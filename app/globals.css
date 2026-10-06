@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+@keyframes anidocs-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes anidocs-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+}
+
+.anidocs-toast-in {
+  animation: anidocs-toast-in 0.28s ease-out both;
+}
+
+.anidocs-toast-out {
+  animation: anidocs-toast-out 0.26s ease-in both;
+}
+
 :root {
   /* Self-hosted (kein Google Fonts CDN) — @fontsource-variable in app/layout.tsx */
   --font-dm-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;

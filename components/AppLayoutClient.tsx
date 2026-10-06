@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { AppProfileProvider } from '@/context/AppProfileContext'
 import { SidebarProvider } from '@/context/SidebarContext'
+import { ToastProvider } from '@/context/ToastContext'
 import { ANIDOCS_SHELL_COOKIE } from '@/lib/mobile/shellPreference'
 import { signalAnidocsShellReady } from '@/lib/mobile/shellReady'
 import { AdminAppChromeMobile } from '@/components/admin/AdminAppChrome'
@@ -128,31 +129,21 @@ export default function AppLayoutClient({
 
   const isMobile = shell === 'mobile'
 
-  if (useVerzeichnisIntern) {
-    return (
-      <AppProfileProvider>
-        <DirectoryVerzeichnisInternLayout paketLabel={directoryInternPaket} readOnlyBanner={readOnlyBanner}>
-          {children}
-        </DirectoryVerzeichnisInternLayout>
-      </AppProfileProvider>
-    )
-  }
-
-  if (isAdminSection && isMobile) {
-    return (
-      <AppProfileProvider>
-        <AdminMobileReady>{children}</AdminMobileReady>
-      </AppProfileProvider>
-    )
-  }
+  const inner = useVerzeichnisIntern ? (
+    <DirectoryVerzeichnisInternLayout paketLabel={directoryInternPaket} readOnlyBanner={readOnlyBanner}>
+      {children}
+    </DirectoryVerzeichnisInternLayout>
+  ) : isAdminSection && isMobile ? (
+    <AdminMobileReady>{children}</AdminMobileReady>
+  ) : isMobile ? (
+    <MobileAppBranch readOnlyBanner={readOnlyBanner} />
+  ) : (
+    <DesktopLayout readOnlyBanner={readOnlyBanner}>{children}</DesktopLayout>
+  )
 
   return (
     <AppProfileProvider>
-      {isMobile ? (
-        <MobileAppBranch readOnlyBanner={readOnlyBanner} />
-      ) : (
-        <DesktopLayout readOnlyBanner={readOnlyBanner}>{children}</DesktopLayout>
-      )}
+      <ToastProvider>{inner}</ToastProvider>
     </AppProfileProvider>
   )
 }

@@ -8,6 +8,7 @@ import { faChevronRight, faCheck, faFilePdf, faPaperPlane, faPlus, faUser, faChe
 import { createInvoice } from '@/app/(app)/invoices/new/actions'
 import { updateInvoice } from '@/app/(app)/invoices/[id]/edit/actions'
 import { useAppProfile } from '@/context/AppProfileContext'
+import { useToast } from '@/context/ToastContext'
 import { invoiceVatTotals } from '@/lib/invoices/vat'
 import { animalSingularLabel } from '@/lib/appProfile'
 
@@ -168,6 +169,7 @@ export default function NewInvoiceForm({
 }) {
   const router = useRouter()
   const { profile } = useAppProfile()
+  const { showToast } = useToast()
   const animalLabel = animalSingularLabel(profile.terminology)
   const isEdit = !!editMode
   const [selectedCustomer, setSelectedCustomer] = useState<(Customer & { name: string }) | null>(initialCustomer)
@@ -421,6 +423,8 @@ export default function NewInvoiceForm({
       if (!res.ok) {
         throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
       }
+      const to = (json as { to?: string })?.to
+      showToast(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
     } catch (e) {
       setSaving(false)
       setError(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')

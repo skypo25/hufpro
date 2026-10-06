@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { invoiceGrossCentsFromItems, vatFromSettings } from '@/lib/invoices/vat'
 
 function customerDisplayName(c: {
   name: string | null
@@ -22,6 +23,13 @@ export async function GET(request: Request) {
   const customerId = (searchParams.get('customerId') ?? '').trim()
   const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const vat = vatFromSettings((settingsRow?.settings ?? null) as Record<string, unknown> | null)
+
   const { data: openInvoices } = await supabase
     .from('invoices')
     .select('id')
@@ -30,8 +38,11 @@ export async function GET(request: Request) {
   const openIds = (openInvoices ?? []).map((r) => r.id)
   let openTotalCents = 0
   if (openIds.length > 0) {
-    const { data: items } = await supabase.from('invoice_items').select('amount_cents').in('invoice_id', openIds)
-    openTotalCents = (items ?? []).reduce((sum, row) => sum + (row.amount_cents ?? 0), 0)
+    const { data: items } = await supabase
+      .from('invoice_items')
+      .select('amount_cents, tax_rate_percent')
+      .in('invoice_id', openIds)
+    openTotalCents = invoiceGrossCentsFromItems(items ?? [], vat.kleinunternehmer, vat.taxRatePercent)
   }
 
   let invoices: {
@@ -140,10 +151,19 @@ export async function GET(request: Request) {
   if (ids.length > 0) {
     const { data: items } = await supabase
       .from('invoice_items')
-      .select('invoice_id, amount_cents')
+      .select('invoice_id, amount_cents, tax_rate_percent')
       .in('invoice_id', ids)
+    const byInvoice = new Map<string, { amount_cents: number; tax_rate_percent: number }[]>()
     for (const row of items ?? []) {
-      totals.set(row.invoice_id, (totals.get(row.invoice_id) ?? 0) + (row.amount_cents ?? 0))
+      const list = byInvoice.get(row.invoice_id) ?? []
+      list.push({
+        amount_cents: row.amount_cents ?? 0,
+        tax_rate_percent: Number(row.tax_rate_percent) || 0,
+      })
+      byInvoice.set(row.invoice_id, list)
+    }
+    for (const [invoiceId, invItems] of byInvoice) {
+      totals.set(invoiceId, invoiceGrossCentsFromItems(invItems, vat.kleinunternehmer, vat.taxRatePercent))
     }
   }
 

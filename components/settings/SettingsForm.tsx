@@ -9,6 +9,7 @@ import { APPOINTMENT_REMINDER_MINUTES_OPTIONS } from '@/lib/appointments/reminde
 import { DACH_FORM_COUNTRIES, dachLandSelectLabel } from '@/lib/dachCountryFlags'
 import { KLEINUNTERNEHMER_PFLICHTSATZ } from '@/lib/invoices/kleinunternehmer'
 import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
+import { useToast } from '@/context/ToastContext'
 
 export type SettingsData = {
   // Persönliche Daten
@@ -247,6 +248,7 @@ export default function SettingsForm({
   const logoInputRef = useRef<HTMLInputElement>(null)
   /** Rechnungsvorschau nutzt Session-E-Mail u. a. — erst nach Hydration rendern, sonst SSR/Client-Mismatch. */
   const [invoicePreviewReady, setInvoicePreviewReady] = useState(false)
+  const { showToast } = useToast()
   useEffect(() => {
     setInvoicePreviewReady(true)
   }, [])
@@ -399,9 +401,11 @@ export default function SettingsForm({
       const data = (await res.json().catch(() => ({}))) as { error?: string; to?: string }
       if (!res.ok) {
         setTestEmailError(data.error ?? 'Test-E-Mail konnte nicht versendet werden')
+        showToast(data.error ?? 'Test-E-Mail konnte nicht versendet werden', 'error')
         return
       }
       setTestEmailSuccess(true)
+      showToast(data.to ? `Test-E-Mail an ${data.to} versendet.` : 'Test-E-Mail versendet.')
     } finally {
       setTestEmailLoading(false)
     }

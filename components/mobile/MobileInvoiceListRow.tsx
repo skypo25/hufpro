@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane, faEllipsisVertical, faCheck, faClock, faBan } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
+import { useToast } from '@/context/ToastContext'
 
 type InvoiceRow = {
   id: string
@@ -49,10 +50,10 @@ export default function MobileInvoiceListRow({
   invoice: InvoiceRow
   onUpdated: (patch: Partial<InvoiceRow>) => void
 }) {
+  const { showToast } = useToast()
   const [sheet, setSheet] = useState<'status' | null>(null)
   const [pending, setPending] = useState(false)
   const [sendingMail, setSendingMail] = useState(false)
-  const [mailMsg, setMailMsg] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -66,17 +67,22 @@ export default function MobileInvoiceListRow({
     const result = await updateInvoiceStatus(invoice.id, newStatus)
     setPending(false)
     if ('error' in result) {
-      setMailMsg(result.error)
-      window.setTimeout(() => setMailMsg(null), 5000)
+      showToast(result.error, 'error')
       return
     }
     onUpdated({ status: newStatus })
     setSheet(null)
+    showToast(
+      newStatus === 'paid'
+        ? 'Als bezahlt markiert.'
+        : newStatus === 'cancelled'
+          ? 'Rechnung storniert.'
+          : 'Als offen markiert.'
+    )
   }
 
   const sendInvoiceEmail = async () => {
     if (sendingMail) return
-    setMailMsg(null)
     setSendingMail(true)
     try {
       const res = await fetch(`/api/invoices/${invoice.id}/send-email`, {
@@ -88,16 +94,15 @@ export default function MobileInvoiceListRow({
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
       const to = (json as { to?: string })?.to
-      setMailMsg(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
+      showToast(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
       onUpdated({
         status: invoice.status === 'cancelled' || invoice.status === 'paid' ? invoice.status : 'sent',
         sentAt: new Date().toISOString(),
       })
     } catch (err) {
-      setMailMsg(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen')
+      showToast(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen', 'error')
     } finally {
       setSendingMail(false)
-      window.setTimeout(() => setMailMsg(null), 6000)
     }
   }
 
@@ -173,7 +178,6 @@ export default function MobileInvoiceListRow({
           {invoice.sentAt ? (
             <div className="mt-0.5 truncate text-[11px] text-[#6B7280]">Gesendet: {formatDate(invoice.sentAt)}</div>
           ) : null}
-          {mailMsg ? <div className="mt-0.5 text-[11px] text-[#6B7280]">{mailMsg}</div> : null}
         </Link>
         <div className="shrink-0 text-right">
           <div className="text-[14px] font-semibold tabular-nums text-primary">{formatEuro(invoice.totalCents)}</div>

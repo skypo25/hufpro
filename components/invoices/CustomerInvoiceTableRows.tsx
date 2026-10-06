@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFilePdf, faEllipsisVertical, faCheck, faClock, faBan } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
 import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
+import { useToast } from '@/context/ToastContext'
 
 export type InvoiceRowData = {
   id: string
@@ -42,6 +43,7 @@ type MenuPosition = { top: number; right: number }
 
 export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerInvoiceTableRowsProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -81,7 +83,17 @@ export default function CustomerInvoiceTableRows({ rows, horseNames }: CustomerI
     setPendingId(invoiceId)
     const result = await updateInvoiceStatus(invoiceId, status)
     setPendingId(null)
-    if ('error' in result) return
+    if ('error' in result) {
+      showToast(result.error, 'error')
+      return
+    }
+    showToast(
+      status === 'paid'
+        ? 'Als bezahlt markiert.'
+        : status === 'cancelled'
+          ? 'Rechnung storniert.'
+          : 'Als offen markiert.'
+    )
     router.refresh()
   }
 

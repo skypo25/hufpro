@@ -6,6 +6,7 @@ import { faPlus, faFileInvoice } from '@fortawesome/free-solid-svg-icons'
 import InvoiceListRowWithMenu from '@/components/invoices/InvoiceListRowWithMenu'
 import InvoicesListSearchForm from '@/components/invoices/InvoicesListSearchForm'
 import AppPage from '@/components/layout/AppPage'
+import { invoiceGrossCentsFromItems, vatFromSettings } from '@/lib/invoices/vat'
 
 type InvoicesPageProps = {
   searchParams: Promise<{ q?: string; status?: string }>
@@ -23,6 +24,13 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   const { q = '', status } = await searchParams
   const qTrim = (typeof q === 'string' ? q : '').trim()
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const vat = vatFromSettings((settingsRow?.settings ?? null) as Record<string, unknown> | null)
+
   // Summe offener Rechnungen (Entwurf + Versendet)
   const { data: openInvoices } = await supabase
     .from('invoices')
@@ -34,9 +42,9 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   if (openIds.length > 0) {
     const { data: items } = await supabase
       .from('invoice_items')
-      .select('amount_cents')
+      .select('amount_cents, tax_rate_percent')
       .in('invoice_id', openIds)
-    openTotalCents = (items ?? []).reduce((sum, row) => sum + (row.amount_cents ?? 0), 0)
+    openTotalCents = invoiceGrossCentsFromItems(items ?? [], vat.kleinunternehmer, vat.taxRatePercent)
   }
 
   let invoices: {

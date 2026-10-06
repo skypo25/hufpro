@@ -47,3 +47,25 @@ export function effectiveLineTaxRate(
   if (kleinunternehmer) return 0
   return storedRate > 0 ? storedRate : defaultRate
 }
+
+export function lineGrossCents(
+  netCents: number,
+  storedRate: number,
+  kleinunternehmer: boolean,
+  defaultRate: number
+): number {
+  const rate = effectiveLineTaxRate(storedRate, kleinunternehmer, defaultRate)
+  return netCents + taxCentsOnNet(netCents, rate)
+}
+
+export function invoiceGrossCentsFromItems(
+  items: Array<{ amount_cents?: number | null; tax_rate_percent?: number | null }>,
+  kleinunternehmer: boolean,
+  defaultRate: number
+): number {
+  return items.reduce(
+    (sum, it) =>
+      sum + lineGrossCents(it.amount_cents ?? 0, Number(it.tax_rate_percent) || 0, kleinunternehmer, defaultRate),
+    0
+  )
+}

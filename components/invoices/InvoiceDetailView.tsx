@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { InvoicePdfData } from '@/lib/pdf/invoiceTypes'
 import { resolveKleinunternehmerHinweis } from '@/lib/invoices/kleinunternehmer'
 import { downloadInvoicePdf } from '@/lib/pdf/downloadInvoicePdf'
+import { useToast } from '@/context/ToastContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faChevronLeft,
@@ -57,6 +58,7 @@ type InvoiceDetailViewProps = {
 }
 
 export default function InvoiceDetailView({ data, backHref, invoiceId, status }: InvoiceDetailViewProps) {
+  const { showToast } = useToast()
   const { seller, buyer, items, netCents, taxCents, taxRatePercent, totalCents } = data
   const sellerName = seller.companyName?.trim() || seller.name
   const sellerAddress = formatAddress([seller.street, [seller.zip, seller.city].filter(Boolean).join(' '), seller.country])
@@ -67,17 +69,15 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
   )
 
   const [sending, setSending] = useState(false)
-  const [sendMsg, setSendMsg] = useState<string | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
 
   const handlePdfDownload = async () => {
     if (pdfLoading) return
     setPdfLoading(true)
-    setSendMsg(null)
     try {
       await downloadInvoicePdf(invoiceId)
     } catch {
-      setSendMsg('PDF konnte nicht erstellt werden. Bitte erneut versuchen.')
+      showToast('PDF konnte nicht erstellt werden. Bitte erneut versuchen.', 'error')
     } finally {
       setPdfLoading(false)
     }
@@ -94,7 +94,6 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           : 'bg-[#F3F4F6] text-[#6B7280]'
 
   const handleSendEmail = async () => {
-    setSendMsg(null)
     setSending(true)
     try {
       const res = await fetch(`/api/invoices/${invoiceId}/send-email`, {
@@ -108,9 +107,9 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
         throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
       }
       const to = (json as { to?: string }).to
-      setSendMsg(to ? `E-Mail wurde an ${to} versendet.` : 'E-Mail wurde versendet.')
+      showToast(to ? `E-Mail wurde an ${to} versendet.` : 'E-Mail wurde versendet.')
     } catch (e) {
-      setSendMsg(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen')
+      showToast(e instanceof Error ? e.message : 'E-Mail-Versand fehlgeschlagen', 'error')
     } finally {
       setSending(false)
     }
@@ -172,12 +171,6 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
           )}
         </div>
       </div>
-
-      {sendMsg && (
-        <div className="content-card mb-5 w-full max-w-[820px] px-4 py-3 text-[13px] text-[#1B1F23] print:hidden">
-          {sendMsg}
-        </div>
-      )}
 
       {/* Invoice card */}
       <div className="w-full max-w-[820px] overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">

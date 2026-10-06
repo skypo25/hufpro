@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEllipsisVertical, faCheck, faClock, faBan, faPaperPlane } from '@fortawesome/free-solid-svg-icons'
 import { updateInvoiceStatus } from '@/app/(app)/invoices/actions'
+import { useToast } from '@/context/ToastContext'
 
 type InvoiceListRowWithMenuProps = {
   id: string
@@ -45,10 +46,10 @@ export default function InvoiceListRowWithMenu({
   status,
 }: InvoiceListRowWithMenuProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [sendingMail, setSendingMail] = useState(false)
-  const [mailMsg, setMailMsg] = useState<string | null>(null)
   const [rowStatus, setRowStatus] = useState(status)
   const [rowSentAt, setRowSentAt] = useState(sentAt)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -96,15 +97,23 @@ export default function InvoiceListRowWithMenu({
     setPending(true)
     const result = await updateInvoiceStatus(id, newStatus)
     setPending(false)
-    if (!('error' in result)) {
-      setRowStatus(newStatus)
-      router.refresh()
+    if ('error' in result) {
+      showToast(result.error, 'error')
+      return
     }
+    setRowStatus(newStatus)
+    showToast(
+      newStatus === 'paid'
+        ? 'Als bezahlt markiert.'
+        : newStatus === 'cancelled'
+          ? 'Rechnung storniert.'
+          : 'Als offen markiert.'
+    )
+    router.refresh()
   }
 
   const sendInvoiceEmail = async () => {
     if (sendingMail) return
-    setMailMsg(null)
     setSendingMail(true)
     try {
       const res = await fetch(`/api/invoices/${id}/send-email`, {
@@ -116,14 +125,13 @@ export default function InvoiceListRowWithMenu({
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((json as { error?: string })?.error || 'E-Mail-Versand fehlgeschlagen')
       const to = (json as { to?: string })?.to
-      setMailMsg(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
+      showToast(to ? `E-Mail an ${to} versendet.` : 'E-Mail versendet.')
       setRowStatus((prev) => (prev === 'cancelled' || prev === 'paid' ? prev : 'sent'))
       setRowSentAt(new Date().toISOString())
     } catch (err) {
-      setMailMsg(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen')
+      showToast(err instanceof Error ? err.message : 'E-Mail-Versand fehlgeschlagen', 'error')
     } finally {
       setSendingMail(false)
-      window.setTimeout(() => setMailMsg(null), 6000)
     }
   }
 
@@ -152,11 +160,6 @@ export default function InvoiceListRowWithMenu({
 
       <div className="pointer-events-none z-10 min-w-0">
         <div className="truncate text-[13px] font-medium text-[#1B1F23]">{customerName}</div>
-        {mailMsg && (
-          <div className="mt-0.5 truncate text-[11px] text-[#6B7280]">
-            {mailMsg}
-          </div>
-        )}
       </div>
 
       <div className="pointer-events-none z-10 flex justify-end pr-3">

@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFileInvoice, faPlus } from '@fortawesome/free-solid-svg-icons'
 import CustomerInvoiceTableRows, { type InvoiceRowData } from '@/components/invoices/CustomerInvoiceTableRows'
 import AppPage from '@/components/layout/AppPage'
+import { invoiceGrossCentsFromItems, vatFromSettings } from '@/lib/invoices/vat'
 
 type CustomerInvoicesPageProps = {
   params: Promise<{ id: string }>
@@ -75,15 +76,22 @@ export default async function CustomerInvoicesPage({ params }: CustomerInvoicesP
   const horseNames = (horses ?? []).map((h) => h.name || '–').join(' · ')
   const invoiceIds = (invoices ?? []).map((i) => i.id)
 
+  const { data: settingsRow } = await supabase
+    .from('user_settings')
+    .select('settings')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const vat = vatFromSettings((settingsRow?.settings ?? null) as Record<string, unknown> | null)
+
   let itemsByInvoice: Map<string, { description: string; totalCents: number }> = new Map()
   if (invoiceIds.length > 0) {
     const { data: items } = await supabase
       .from('invoice_items')
-      .select('invoice_id, description, amount_cents')
+      .select('invoice_id, description, amount_cents, tax_rate_percent')
       .in('invoice_id', invoiceIds)
     for (const inv of invoices ?? []) {
       const invItems = (items ?? []).filter((it) => it.invoice_id === inv.id)
-      const totalCents = invItems.reduce((s, it) => s + it.amount_cents, 0)
+      const totalCents = invoiceGrossCentsFromItems(invItems, vat.kleinunternehmer, vat.taxRatePercent)
       const firstDesc = invItems[0]?.description ?? '–'
       itemsByInvoice.set(inv.id, { description: firstDesc, totalCents })
     }
