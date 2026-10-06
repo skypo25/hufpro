@@ -1,6 +1,15 @@
+'use client'
+
+import { useAppProfile } from '@/context/AppProfileContext'
+import { animalDetailLoadingMessage } from '@/lib/appProfile'
+
+/** Skeleton beim Öffnen einer Tier-/Pferde-Akte (Desktop). */
 export default function AnimalDetailLoading() {
+  const { profile } = useAppProfile()
+  const label = animalDetailLoadingMessage(profile.terminology)
+
   return (
-    <div className="w-full animate-pulse space-y-6" aria-busy="true" aria-label="Tier wird geladen">
+    <div className="w-full animate-pulse space-y-6" aria-busy="true" aria-label={label}>
       <div className="flex items-center gap-5">
         <div className="h-[72px] w-[72px] shrink-0 rounded-2xl bg-[#E8E6E2]" />
         <div className="min-w-0 flex-1 space-y-2">

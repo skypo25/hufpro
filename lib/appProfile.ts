@@ -210,6 +210,19 @@ export function animalsLoadingMessage(terminology: Terminology): string {
   return terminology === 'pferd' ? 'Pferde werden geladen…' : 'Tiere werden geladen…'
 }
 
+/** Detailseite: „Pferd wird geladen…“ vs. „Tier wird geladen…“ */
+export function animalDetailLoadingMessage(terminology: Terminology): string {
+  return `${animalSingularLabel(terminology)} wird geladen…`
+}
+
+export function animalDetailNotFoundMessage(terminology: Terminology): string {
+  return `${animalSingularLabel(terminology)} nicht gefunden.`
+}
+
+export function animalDetailLoadFailedMessage(terminology: Terminology): string {
+  return `${animalSingularLabel(terminology)} konnte nicht geladen werden.`
+}
+
 export function animalsEmptyMessage(terminology: Terminology): string {
   return terminology === 'pferd' ? 'Keine Pferde gefunden.' : 'Keine Tiere gefunden.'
 }

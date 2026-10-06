@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { formatAnimalTypeLabel, formatNeuteredLabel, formatWeightKgKg } from '@/lib/animalTypeDisplay'
 import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
+import {
+  animalDetailLoadFailedMessage,
+  animalDetailLoadingMessage,
+  animalDetailNotFoundMessage,
+  animalSingularLabel,
+} from '@/lib/appProfile'
 
 type Owner = {
   id: string
@@ -135,6 +141,8 @@ function getHorseIdFromPath(path: string): string {
 
 export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: string }) {
   const { profile } = useAppProfile()
+  const term = profile.terminology
+  const singular = animalSingularLabel(term)
   const pathname = usePathname()
   const fromPath = pathname ? getHorseIdFromPath(pathname) : ''
   const horseId = (horseIdProp && horseIdProp !== 'undefined' ? horseIdProp : fromPath) || ''
@@ -142,7 +150,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<ViewTab>('overview')
-  const [terminology, setTerminology] = useState<'tier' | 'pferd'>('pferd')
+  const [terminology, setTerminology] = useState<'tier' | 'pferd'>(term)
   const [horse, setHorse] = useState<Horse | null>(null)
   const [owner, setOwner] = useState<Owner | null>(null)
   const [lastTreatment, setLastTreatment] = useState<string | null>(null)
@@ -152,11 +160,15 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
   const [wholeBodyRecordDate, setWholeBodyRecordDate] = useState<string | null>(null)
 
   useEffect(() => {
+    setTerminology(term)
+  }, [term])
+
+  useEffect(() => {
     const idFromUrl =
       typeof window !== 'undefined' ? getHorseIdFromPath(window.location.pathname) : ''
     const effectiveId = (horseId && UUID_REGEX.test(horseId) ? horseId : idFromUrl) || ''
     if (!effectiveId || !UUID_REGEX.test(effectiveId)) {
-      setError('Pferd konnte nicht geladen werden (keine gültige ID).')
+      setError(`${animalDetailLoadFailedMessage(term)} (keine gültige ID).`)
       setLoading(false)
       return
     }
@@ -184,11 +196,11 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
         )
       })
       .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'Pferd konnte nicht geladen werden.'
+        const msg = err instanceof Error ? err.message : animalDetailLoadFailedMessage(term)
         setError(msg)
       })
       .finally(() => setLoading(false))
-  }, [horseId, pathname])
+  }, [horseId, pathname, term])
 
   const metaLine = horse
     ? [
@@ -208,7 +220,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
       <>
         <div className="status-bar" aria-hidden />
         <header className="mobile-header">
-          <div className="mobile-greeting">Pferd wird geladen…</div>
+          <div className="mobile-greeting">{animalDetailLoadingMessage(term)}</div>
         </header>
       </>
     )
@@ -219,11 +231,11 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
       <>
         <div className="status-bar" aria-hidden />
         <header className="mobile-header">
-          <div className="mobile-greeting">Pferd</div>
+          <div className="mobile-greeting">{singular}</div>
         </header>
         <div className="mobile-content">
           <div className="content-card p-4 text-[14px] text-red-700">
-            {error || 'Pferd nicht gefunden.'}
+            {error || animalDetailNotFoundMessage(term)}
           </div>
         </div>
       </>
@@ -236,7 +248,7 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
       <header className="mobile-header">
         <div className="cd-hero flex items-center gap-3">
           <div className="cd-info min-w-0 flex-1">
-            <div className="cd-name">{horse.name || 'Pferd'}</div>
+            <div className="cd-name">{horse.name || singular}</div>
             <div className="cd-meta flex flex-wrap items-center gap-x-1 gap-y-0.5">
               {metaLine && <span className="whitespace-nowrap">{metaLine}</span>}
             </div>
@@ -560,10 +572,10 @@ export default function MobileHorseDetail({ horseId: horseIdProp }: { horseId?: 
               <Link
                 href={`/animals/${horse.id}`}
                 className="danger-btn"
-                aria-label="Pferd im Desktop löschen"
+                aria-label={`${singular} im Desktop löschen`}
               >
                 <IconTrash />
-                Pferd löschen
+                {singular} löschen
               </Link>
             </div>
           </>
