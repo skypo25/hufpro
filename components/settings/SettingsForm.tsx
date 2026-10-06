@@ -1018,8 +1018,7 @@ export default function SettingsForm({
               <div>
                 <h4 className="text-[14px] font-semibold text-[#1B1F23]">Passwort ändern</h4>
                 <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280]">
-                  Wenn du dich mit Google/Apple anmeldest, hast du ggf. kein App-Passwort gesetzt. In dem Fall kannst du hier
-                  später ein Passwort definieren (oder weiterhin OAuth nutzen).
+                  Hier kannst du das Passwort für dein AniDocs-Konto ändern.
                 </p>
               </div>
               <form onSubmit={handleChangePassword} className="space-y-3">

@@ -52,11 +52,76 @@ export function getAppointmentStartEndFromRow(
   }
 }
 
+export const APPOINTMENT_DISPLAY_TIMEZONE = 'Europe/Berlin'
+
 const DE_TIME_BERLIN = new Intl.DateTimeFormat('de-DE', {
   hour: '2-digit',
   minute: '2-digit',
-  timeZone: 'Europe/Berlin',
+  timeZone: APPOINTMENT_DISPLAY_TIMEZONE,
 })
+
+const DE_LONG_DATE_BERLIN = new Intl.DateTimeFormat('de-DE', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: APPOINTMENT_DISPLAY_TIMEZONE,
+})
+
+const DE_SHORT_MONTH_BERLIN = new Intl.DateTimeFormat('de-DE', {
+  month: 'short',
+  timeZone: APPOINTMENT_DISPLAY_TIMEZONE,
+})
+
+const DE_DAY_BERLIN = new Intl.DateTimeFormat('de-DE', {
+  day: 'numeric',
+  timeZone: APPOINTMENT_DISPLAY_TIMEZONE,
+})
+
+/** Einzelne Uhrzeit in Europe/Berlin (SSR und Client identisch). */
+export function formatAppointmentTimeDe(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return ''
+  return DE_TIME_BERLIN.format(date)
+}
+
+export function formatAppointmentLongDateDe(dateString: string | null | undefined): string {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return '-'
+  return DE_LONG_DATE_BERLIN.format(date)
+}
+
+export function formatAppointmentShortMonthDe(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return ''
+  return DE_SHORT_MONTH_BERLIN.format(date)
+}
+
+export function formatAppointmentDayDe(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return ''
+  return DE_DAY_BERLIN.format(date)
+}
+
+const DE_DATETIME_BERLIN = new Intl.DateTimeFormat('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: APPOINTMENT_DISPLAY_TIMEZONE,
+})
+
+export function formatAppointmentDateTimeDe(dateString: string | null | undefined): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return ''
+  return DE_DATETIME_BERLIN.format(date)
+}
 
 /**
  * Zeitspanne „HH:MM – HH:MM Uhr“ (Start/Ende wie Kalender/Detail, inkl. Default-Dauer).

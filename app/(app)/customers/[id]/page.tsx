@@ -119,6 +119,7 @@ function formatTime(dateString: string | null) {
   return new Intl.DateTimeFormat('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Europe/Berlin',
   }).format(date)
 }
 

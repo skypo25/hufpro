@@ -2,6 +2,11 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
+import { formatAppointmentTimeDe } from '@/lib/appointments/appointmentDisplay'
+import {
+  isoToLocalDateInputValue,
+  isoToLocalTimeInputValue,
+} from '@/lib/datetime/localDateTime'
 import AppointmentForm from '@/components/appointments/AppointmentForm'
 import AppPage from '@/components/layout/AppPage'
 import type {
@@ -63,36 +68,15 @@ type AppointmentHorseRow = {
 }
 
 function toDateInputValue(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return isoToLocalDateInputValue(dateString)
 }
 
 function toTimeInputValue(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-
-  return new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date)
+  return isoToLocalTimeInputValue(dateString)
 }
 
 function formatTime(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-
-  return new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatAppointmentTimeDe(dateString)
 }
 
 export default async function EditAppointmentPage({

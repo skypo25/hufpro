@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import AppPage from '@/components/layout/AppPage'
+import SectionCard from '@/components/ui/SectionCard'
 import {
   formatCustomerNumber,
   formatGermanDate,
@@ -9,7 +11,12 @@ import {
   getInitials,
   getAgeFromBirthYear,
 } from '@/lib/format'
-import { getAppointmentStartEndFromRow } from '@/lib/appointments/appointmentDisplay'
+import {
+  formatAppointmentDayDe,
+  formatAppointmentLongDateDe,
+  formatAppointmentShortMonthDe,
+  formatAppointmentTimeRangeDe,
+} from '@/lib/appointments/appointmentDisplay'
 import { minutesToDurationLabelDesktop } from '@/lib/appointments/appointmentDuration'
 import { getAppointmentReminderStatusLine } from '@/lib/reminders/reminderStatus'
 import {
@@ -24,44 +31,36 @@ import { faIconForAnimalType } from '@/lib/animalTypeDisplay'
 
 type PageProps = { params: Promise<{ id: string }> }
 
-function formatTime(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
-
-function formatLongGermanDate(dateString: string | null) {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return '-'
-  return new Intl.DateTimeFormat('de-DE', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
-}
-
-function formatShortMonth(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat('de-DE', { month: 'short' }).format(date)
-}
-
-function formatDay(dateString: string | null) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat('de-DE', { day: 'numeric' }).format(date)
-}
-
 function getNavUrl(address: string) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address.trim())}`
+}
+
+function SectionTitle({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[14px] text-[var(--accent)]">
+        <i className={`bi ${icon}`} aria-hidden />
+      </span>
+      {children}
+    </span>
+  )
+}
+
+function DetailRow({
+  label,
+  children,
+  valueClassName = '',
+}: {
+  label: string
+  children: ReactNode
+  valueClassName?: string
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-[#E5E2DC] py-3 last:border-b-0">
+      <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">{label}</span>
+      <span className={`text-right text-[14px] font-medium text-[#1B1F23] ${valueClassName}`}>{children}</span>
+    </div>
+  )
 }
 
 export default async function AppointmentDetailPage({ params }: PageProps) {
@@ -150,10 +149,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   const title = `${customerName}${horseNames.length > 0 ? ' · ' + horseNames.join(', ') : ''}`
 
   const aptDate = appointment.appointment_date
-  const slot = getAppointmentStartEndFromRow(aptDate, appointment.duration_minutes)
-  const startTime = slot ? formatTime(slot.startIso) : ''
-  const endTime = slot ? formatTime(slot.endIso) : ''
-  const timeRange = startTime && endTime ? `${startTime} – ${endTime} Uhr` : ''
+  const timeRange = formatAppointmentTimeRangeDe(aptDate, appointment.duration_minutes)
   const durationDisplay = minutesToDurationLabelDesktop(appointment.duration_minutes)
   const reminderStatus = getAppointmentReminderStatusLine({
     reminderMinutesBefore: appointment.reminder_minutes_before,
@@ -197,90 +193,103 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
 
   return (
     <AppPage>
-      <div className="apt-detail-header">
-        <div className="apt-detail-ph-cal">
-          <span className="apt-detail-ph-day">{aptDate ? formatDay(aptDate) : '–'}</span>
-          <span className="apt-detail-ph-month">{aptDate ? formatShortMonth(aptDate) : ''}</span>
-        </div>
-        <div className="apt-detail-ph-info">
-          <h1 className="apt-detail-ph-title">{title}</h1>
-          <div className="apt-detail-ph-meta">
-            <i className="bi bi-clock-fill" />
-            {timeRange}
-            {timeRange && ' · '}
-            {durationDisplay}
-            {locationLabel && (
-              <>
-                <i className="bi bi-geo-alt-fill" style={{ marginLeft: 8 }} />
-                {locationLabel}
-              </>
-            )}
-          </div>
-          <div className="apt-detail-ph-badges">
-            <span className={`apt-detail-ph-badge ${isConfirmed ? 'confirmed' : 'open'}`}>
-              <i className="bi bi-check-circle-fill" />
-              {appointment.status || 'Bestätigt'}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="content-card flex h-16 w-16 shrink-0 flex-col items-center justify-center">
+            <span className="text-[26px] font-semibold leading-none text-[#1B1F23]">
+              {aptDate ? formatAppointmentDayDe(aptDate) : '–'}
             </span>
-            <span className="apt-detail-ph-badge type">
-              <i className="bi bi-arrow-repeat" />
-              {appointment.type || 'Regeltermin'}
+            <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+              {aptDate ? formatAppointmentShortMonthDe(aptDate) : ''}
             </span>
           </div>
+          <div>
+            <h1 className="dashboard-serif text-[26px] font-medium tracking-[-0.02em] text-[#1B1F23]">
+              {title}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[#6B7280]">
+              <span className="inline-flex items-center gap-1.5">
+                <i className="bi bi-clock text-[14px]" />
+                {timeRange}
+                {timeRange ? ` · ${durationDisplay}` : durationDisplay}
+              </span>
+              {locationLabel ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="bi bi-geo-alt text-[14px]" />
+                  {locationLabel}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold ${
+                  isConfirmed
+                    ? 'bg-[var(--accent-light)] text-[var(--accent)]'
+                    : 'bg-[#FDF6EC] text-[#B8860B]'
+                }`}
+              >
+                <i className="bi bi-check-circle-fill text-[12px]" />
+                {appointment.status || 'Bestätigt'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-[#DBEAFE] px-2.5 py-1 text-[12px] font-semibold text-[#1D4ED8]">
+                <i className="bi bi-arrow-repeat text-[12px]" />
+                {appointment.type || 'Regeltermin'}
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="apt-detail-ph-actions">
+
+        <div className="flex flex-wrap gap-2.5">
           {!isPastAppointment && (
-            <Link href={`/appointments/${id}/edit`} className="apt-detail-btn">
-              <i className="bi bi-pencil-fill" />
+            <Link href={`/appointments/${id}/edit`} className="secondary-button">
+              <i className="bi bi-pencil-square text-[14px]" />
               Bearbeiten
             </Link>
           )}
           {horses[0] && (
             <Link
               href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
-              className="apt-detail-btn primary"
+              className="primary-button"
             >
-              <i className="bi bi-file-earmark-plus-fill" />
+              <i className="bi bi-file-earmark-plus-fill text-[14px]" />
               Dokumentation
             </Link>
           )}
         </div>
       </div>
 
-      <div className="apt-detail-grid">
-        <div>
-          <section className="apt-detail-section">
-            <div className="apt-detail-s-header">
-              <i className="bi bi-person-fill apt-detail-s-icon" />
-              <h3>Kunde</h3>
-              <Link href={`/customers/${customer.id}`} className="apt-detail-s-link">
-                <i className="bi bi-chevron-right" />
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-7">
+          <SectionCard
+            title={<SectionTitle icon="bi-person-fill">Kunde</SectionTitle>}
+            right={
+              <Link href={`/customers/${customer.id}`} className="text-[13px] font-medium text-primary hover:underline">
                 Kundenakte öffnen
               </Link>
-            </div>
-            <div className="apt-detail-customer-card">
-              <div className="apt-detail-cc-avatar">{getInitials(customerName)}</div>
-              <div className="apt-detail-cc-info">
-                <div className="apt-detail-cc-name">{customerName}</div>
-                <div className="apt-detail-cc-sub">
+            }
+          >
+            <div className="flex items-center gap-3.5 border-b border-[#E5E2DC] px-[22px] py-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-[15px] font-bold text-white">
+                {getInitials(customerName)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold text-[#1B1F23]">{customerName}</div>
+                <div className="text-[12px] text-[#6B7280]">
                   {formatCustomerNumber(customer.customer_number)} · Kundin seit {custSince}
                 </div>
               </div>
-              <div className="apt-detail-cc-actions">
+              <div className="flex gap-1.5">
                 {customer.phone && (
                   <a
                     href={`tel:${customer.phone.replace(/\s/g, '')}`}
-                    className="apt-detail-cc-btn"
+                    className="secondary-button"
                     title="Anrufen"
                   >
                     <i className="bi bi-telephone-fill" />
                   </a>
                 )}
                 {customer.email && (
-                  <a
-                    href={`mailto:${customer.email}`}
-                    className="apt-detail-cc-btn"
-                    title="E-Mail"
-                  >
+                  <a href={`mailto:${customer.email}`} className="secondary-button" title="E-Mail">
                     <i className="bi bi-envelope-fill" />
                   </a>
                 )}
@@ -289,7 +298,7 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                     href={getNavUrl(billingNav)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="apt-detail-cc-btn"
+                    className="secondary-button"
                     title="Route zur Rechnungsadresse"
                   >
                     <i className="bi bi-geo-alt-fill" />
@@ -297,53 +306,42 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
-            <div className="apt-detail-s-body" style={{ paddingTop: 0 }}>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Telefon</span>
-                <span className="apt-detail-d-value">
-                  {customer.phone ? (
-                    <a href={`tel:${customer.phone.replace(/\s/g, '')}`}>{customer.phone}</a>
-                  ) : (
-                    '–'
-                  )}
-                </span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">E-Mail</span>
-                <span className="apt-detail-d-value">
-                  {customer.email ? (
-                    <a href={`mailto:${customer.email}`}>{customer.email}</a>
-                  ) : (
-                    '–'
-                  )}
-                </span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Bevorzugte Tage</span>
-                <span className="apt-detail-d-value">{preferredDays}</span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Bearbeitungsintervall</span>
-                <span className="apt-detail-d-value">{intervalLabel}</span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Bevorzugter Kontaktweg</span>
-                <span className="apt-detail-d-value">{preferredContact}</span>
-              </div>
+            <div className="px-[22px]">
+              <DetailRow label="Telefon">
+                {customer.phone ? (
+                  <a href={`tel:${customer.phone.replace(/\s/g, '')}`} className="text-primary hover:underline">
+                    {customer.phone}
+                  </a>
+                ) : (
+                  '–'
+                )}
+              </DetailRow>
+              <DetailRow label="E-Mail">
+                {customer.email ? (
+                  <a href={`mailto:${customer.email}`} className="text-primary hover:underline">
+                    {customer.email}
+                  </a>
+                ) : (
+                  '–'
+                )}
+              </DetailRow>
+              <DetailRow label="Bevorzugte Tage">{preferredDays}</DetailRow>
+              <DetailRow label="Bearbeitungsintervall">{intervalLabel}</DetailRow>
+              <DetailRow label="Bevorzugter Kontaktweg">{preferredContact}</DetailRow>
             </div>
-          </section>
+          </SectionCard>
 
-          <section className="apt-detail-section">
-            <div className="apt-detail-s-header">
-              <i className="bi bi-heart-pulse-fill apt-detail-s-icon" />
-              <h3>Pferde</h3>
-              <span className="apt-detail-s-meta">
+          <SectionCard
+            title={<SectionTitle icon="bi-heart-pulse-fill">Pferde</SectionTitle>}
+            right={
+              <span className="text-[12px] text-[#6B7280]">
                 {horses.length} {horses.length === 1 ? 'Pferd' : 'Pferde'} für diesen Termin
               </span>
-            </div>
-            <div className="apt-detail-s-body">
+            }
+          >
+            <div className="px-[22px]">
               {horses.length === 0 ? (
-                <p className="apt-detail-empty">Kein Pferd zugeordnet</p>
+                <p className="py-4 text-[13px] text-[#6B7280]">Kein Pferd zugeordnet</p>
               ) : (
                 horses.map((horse) => {
                   const age = getAgeFromBirthYear(horse.birth_year)
@@ -368,255 +366,198 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
                     <Link
                       key={horse.id}
                       href={`/animals/${horse.id}`}
-                      className="apt-detail-horse-item"
+                      className="flex items-center gap-3 border-b border-[#E5E2DC] py-3.5 last:border-b-0 hover:opacity-80"
                     >
-                      <div className="apt-detail-hi-icon">
-                        <FontAwesomeIcon
-                          icon={faIconForAnimalType(horse.animal_type)}
-                          className="h-4 w-4"
-                        />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-light)] text-[var(--accent)]">
+                        <FontAwesomeIcon icon={faIconForAnimalType(horse.animal_type)} className="h-4 w-4" />
                       </div>
-                      <div className="apt-detail-hi-info">
-                        <div className="apt-detail-hi-name">{horse.name || '–'}</div>
-                        <div className="apt-detail-hi-breed">{meta || '–'}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[14px] font-semibold text-[#1B1F23]">{horse.name || '–'}</div>
+                        <div className="text-[12px] text-[#6B7280]">{meta || '–'}</div>
                       </div>
-                      <i className="bi bi-chevron-right apt-detail-hi-chevron" />
+                      <i className="bi bi-chevron-right text-[13px] text-[#9CA3AF]" />
                     </Link>
                   )
                 })
               )}
             </div>
-          </section>
+          </SectionCard>
 
-          <section className="apt-detail-section">
-            <div className="apt-detail-s-header">
-              <i className="bi bi-geo-alt-fill apt-detail-s-icon" />
-              <h3>Stall / Ort</h3>
-            </div>
-            <div className="apt-detail-s-body">
-              <div className="apt-detail-stall-block">
-                <div className="apt-detail-stall-icon">
-                  <i className="bi bi-geo-alt-fill" />
+          <SectionCard title={<SectionTitle icon="bi-geo-alt-fill">Stall / Ort</SectionTitle>}>
+            <div className="flex gap-3.5 p-[22px]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#D97706]">
+                <i className="bi bi-geo-alt-fill" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold text-[#1B1F23]">
+                  {stallHorse ? stallDisplayLabel(stallHorse, customer.city) || '–' : 'Kein Stall hinterlegt'}
                 </div>
-                <div className="apt-detail-stall-info">
-                  <div className="apt-detail-stall-name">
-                    {stallHorse
-                      ? stallDisplayLabel(stallHorse, customer.city) || '–'
-                      : 'Kein Stall hinterlegt'}
+                <div className="mt-1 text-[13px] leading-relaxed text-[#6B7280]">
+                  {stableAddress
+                    ? stableAddress.split('\n').map((line, i) => (
+                        <span key={i}>
+                          {line}
+                          <br />
+                        </span>
+                      ))
+                    : '–'}
+                </div>
+                {(stallHorse?.stable_contact || stallHorse?.stable_phone) && (
+                  <div className="mt-2 text-[13px] text-[#6B7280]">
+                    <i className="bi bi-person-fill mr-1" />
+                    Ansprechpartner: {stallHorse?.stable_contact || '–'}
+                    {stallHorse?.stable_phone && ` · ${stallHorse.stable_phone}`}
                   </div>
-                  <div className="apt-detail-stall-address">
-                    {stableAddress
-                      ? stableAddress.split('\n').map((line, i) => (
-                          <span key={i}>
-                            {line}
-                            <br />
-                          </span>
-                        ))
-                      : '–'}
+                )}
+                {stallHorse?.stable_directions && (
+                  <div className="mt-2 rounded-lg bg-[#F7F7F7] px-3 py-2 text-[13px] text-[#6B7280]">
+                    <i className="bi bi-signpost-fill mr-1" />
+                    {stallHorse.stable_directions}
                   </div>
-                  {(stallHorse?.stable_contact || stallHorse?.stable_phone) && (
-                    <div className="apt-detail-stall-contact">
-                      <i className="bi bi-person-fill" />
-                      Ansprechpartner: {stallHorse?.stable_contact || '–'}
-                      {stallHorse?.stable_phone && ` · ${stallHorse.stable_phone}`}
-                    </div>
+                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {stallNav && (
+                    <a
+                      href={getNavUrl(stallNav)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="secondary-button"
+                    >
+                      <i className="bi bi-map-fill" />
+                      Route zum Stall
+                    </a>
                   )}
-                  {stallHorse?.stable_directions && (
-                    <div className="apt-detail-stall-hint">
-                      <i className="bi bi-signpost-fill" />
-                      {stallHorse.stable_directions}
-                    </div>
+                  {billingNav && stallNav && (
+                    <a
+                      href={getNavUrl(billingNav)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="secondary-button"
+                    >
+                      <i className="bi bi-house-fill" />
+                      Route zum Kunden
+                    </a>
                   )}
-                  <div className="apt-detail-stall-actions">
-                    {stallNav && (
-                      <a
-                        href={getNavUrl(stallNav)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="apt-detail-btn"
-                      >
-                        <i className="bi bi-map-fill" />
-                        Route zum Stall
-                      </a>
-                    )}
-                    {billingNav && stallNav && (
-                      <a
-                        href={getNavUrl(billingNav)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="apt-detail-btn"
-                      >
-                        <i className="bi bi-house-fill" />
-                        Route zum Kunden
-                      </a>
-                    )}
-                    {stallHorse?.stable_phone && (
-                      <a
-                        href={`tel:${stallHorse.stable_phone.replace(/\s/g, '')}`}
-                        className="apt-detail-btn"
-                      >
-                        <i className="bi bi-telephone-fill" />
-                        Stall anrufen
-                      </a>
-                    )}
-                  </div>
+                  {stallHorse?.stable_phone && (
+                    <a href={`tel:${stallHorse.stable_phone.replace(/\s/g, '')}`} className="secondary-button">
+                      <i className="bi bi-telephone-fill" />
+                      Stall anrufen
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
-          </section>
+          </SectionCard>
 
-          {appointment.notes && (
-            <section className="apt-detail-section">
-              <div className="apt-detail-s-header">
-                <i className="bi bi-chat-text-fill apt-detail-s-icon" />
-                <h3>Notizen zum Termin</h3>
-              </div>
-              <div className="apt-detail-s-body">
-                <div className="apt-detail-notiz-text">{appointment.notes}</div>
-              </div>
-            </section>
-          )}
+          {appointment.notes ? (
+            <SectionCard title={<SectionTitle icon="bi-chat-text-fill">Notizen zum Termin</SectionTitle>}>
+              <p className="whitespace-pre-wrap px-[22px] py-4 text-[14px] leading-relaxed text-[#1B1F23]">
+                {appointment.notes}
+              </p>
+            </SectionCard>
+          ) : null}
         </div>
 
-        <div>
-          <div className="apt-detail-sp">
-            <div className="apt-detail-sp-header">
-              <i className="bi bi-lightning-fill" />
-              <h4>Aktionen</h4>
-            </div>
-            <div className="apt-detail-sp-body">
-              <div className="apt-detail-qa-list">
-                {horses[0] && (
-                  <Link
-                    href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
-                    className="apt-detail-qa-item primary"
-                  >
-                    <i className="bi bi-file-earmark-plus-fill" />
-                    Dokumentation starten
-                  </Link>
-                )}
-                {stallNav && (
-                  <a
-                    href={getNavUrl(stallNav)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="apt-detail-qa-item"
-                  >
-                    <i className="bi bi-geo-alt-fill" />
-                    Route zum Stall
-                  </a>
-                )}
-                {customer.phone && (
-                  <a href={`tel:${customer.phone.replace(/\s/g, '')}`} className="apt-detail-qa-item">
-                    <i className="bi bi-telephone-fill" />
-                    Kunde anrufen
-                  </a>
-                )}
-                {customer.email && (
-                  <a href={`mailto:${customer.email}`} className="apt-detail-qa-item">
-                    <i className="bi bi-envelope-fill" />
-                    E-Mail senden
-                  </a>
-                )}
-                {!isPastAppointment && (
-                  <Link href={`/appointments/${id}/edit`} className="apt-detail-qa-item">
-                    <i className="bi bi-arrow-left-right" />
-                    Termin verschieben
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="apt-detail-sp">
-            <div className="apt-detail-sp-header">
-              <i className="bi bi-calendar-fill" />
-              <h4>Termin-Details</h4>
-            </div>
-            <div className="apt-detail-sp-body">
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Datum</span>
-                <span className="apt-detail-d-value">
-                  {aptDate ? formatLongGermanDate(aptDate) : '–'}
-                </span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Uhrzeit</span>
-                <span className="apt-detail-d-value">{timeRange || '–'}</span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Dauer</span>
-                <span className="apt-detail-d-value">{durationDisplay}</span>
-              </div>
-              {reminderStatus && (
-                <div className="apt-detail-d-row">
-                  <span className="apt-detail-d-label">Erinnerung</span>
-                  <span
-                    className="apt-detail-d-value"
-                    style={{
-                      color:
-                        reminderStatus.tone === 'ok'
-                          ? 'var(--apt-accent)'
-                          : reminderStatus.tone === 'warn'
-                            ? '#b45309'
-                            : '#6B7280',
-                    }}
-                  >
-                    {reminderStatus.text}
-                  </span>
-                </div>
+        <div className="space-y-7">
+          <SectionCard title={<SectionTitle icon="bi-lightning-fill">Aktionen</SectionTitle>}>
+            <div className="flex flex-col gap-2 p-[18px]">
+              {horses[0] && (
+                <Link
+                  href={`/animals/${horses[0].id}/records/new?appointmentId=${id}`}
+                  className="primary-button w-full justify-start"
+                >
+                  <i className="bi bi-file-earmark-plus-fill" />
+                  Dokumentation starten
+                </Link>
               )}
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Terminart</span>
-                <span className="apt-detail-d-value">{appointment.type || 'Regeltermin'}</span>
-              </div>
-              <div className="apt-detail-d-row">
-                <span className="apt-detail-d-label">Status</span>
-                <span className="apt-detail-d-value" style={{ color: 'var(--apt-accent)' }}>
-                  {appointment.status || 'Bestätigt'}
-                </span>
-              </div>
-              {appointment.created_at && (
-                <div className="apt-detail-d-row">
-                  <span className="apt-detail-d-label">Erstellt am</span>
-                  <span className="apt-detail-d-value">
-                    {formatGermanDate(appointment.created_at)}
-                  </span>
-                </div>
+              {stallNav && (
+                <a
+                  href={getNavUrl(stallNav)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="secondary-button w-full justify-start"
+                >
+                  <i className="bi bi-geo-alt-fill" />
+                  Route zum Stall
+                </a>
+              )}
+              {customer.phone && (
+                <a href={`tel:${customer.phone.replace(/\s/g, '')}`} className="secondary-button w-full justify-start">
+                  <i className="bi bi-telephone-fill" />
+                  Kunde anrufen
+                </a>
+              )}
+              {customer.email && (
+                <a href={`mailto:${customer.email}`} className="secondary-button w-full justify-start">
+                  <i className="bi bi-envelope-fill" />
+                  E-Mail senden
+                </a>
+              )}
+              {!isPastAppointment && (
+                <Link href={`/appointments/${id}/edit`} className="secondary-button w-full justify-start">
+                  <i className="bi bi-arrow-left-right" />
+                  Termin verschieben
+                </Link>
               )}
             </div>
-          </div>
+          </SectionCard>
 
-          {pastAppointments.length > 0 && (
-            <div className="apt-detail-sp">
-              <div className="apt-detail-sp-header">
-                <i className="bi bi-clock-history" />
-                <h4>Terminverlauf</h4>
-              </div>
-              <div className="apt-detail-sp-body">
-                {pastAppointments.map((past, i) => {
+          <SectionCard title={<SectionTitle icon="bi-calendar-fill">Termin-Details</SectionTitle>}>
+            <div className="px-[22px]">
+              <DetailRow label="Datum">{aptDate ? formatAppointmentLongDateDe(aptDate) : '–'}</DetailRow>
+              <DetailRow label="Uhrzeit">{timeRange || '–'}</DetailRow>
+              <DetailRow label="Dauer">{durationDisplay}</DetailRow>
+              {reminderStatus ? (
+                <DetailRow
+                  label="Erinnerung"
+                  valueClassName={
+                    reminderStatus.tone === 'ok'
+                      ? 'text-primary'
+                      : reminderStatus.tone === 'warn'
+                        ? 'text-[#b45309]'
+                        : 'text-[#6B7280]'
+                  }
+                >
+                  {reminderStatus.text}
+                </DetailRow>
+              ) : null}
+              <DetailRow label="Terminart">{appointment.type || 'Regeltermin'}</DetailRow>
+              <DetailRow label="Status" valueClassName="text-primary">
+                {appointment.status || 'Bestätigt'}
+              </DetailRow>
+              {appointment.created_at ? (
+                <DetailRow label="Erstellt am">{formatGermanDate(appointment.created_at)}</DetailRow>
+              ) : null}
+            </div>
+          </SectionCard>
+
+          {pastAppointments.length > 0 ? (
+            <SectionCard title={<SectionTitle icon="bi-clock-history">Terminverlauf</SectionTitle>}>
+              <div className="space-y-3 px-[22px] py-4">
+                {pastAppointments.map((past) => {
                   const isCurrent = past.id === id
                   return (
-                    <div key={past.id} className="apt-detail-tl-item">
-                      <div className={`apt-detail-tl-dot ${isCurrent ? '' : 'gray'}`} />
-                      <div className="apt-detail-tl-text">
-                        <strong>
-                          {past.appointment_date
-                            ? formatGermanDate(past.appointment_date)
-                            : '–'}
+                    <div key={past.id} className="flex gap-3">
+                      <span
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                          isCurrent ? 'bg-[var(--accent)]' : 'bg-[#D1D5DB]'
+                        }`}
+                      />
+                      <div className="text-[13px] leading-snug">
+                        <strong className="font-semibold text-[#1B1F23]">
+                          {past.appointment_date ? formatGermanDate(past.appointment_date) : '–'}
                         </strong>
                         {isCurrent ? ' — Aktueller Termin' : ''}
-                        <br />
-                        <span className="apt-detail-tl-date">
+                        <div className="text-[12px] text-[#6B7280]">
                           {past.type || 'Regeltermin'} · {past.status || 'Bestätigt'}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </div>
-          )}
+            </SectionCard>
+          ) : null}
         </div>
       </div>
     </AppPage>

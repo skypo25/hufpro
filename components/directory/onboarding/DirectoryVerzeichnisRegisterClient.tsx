@@ -123,19 +123,6 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
     setLoading(false)
   }
 
-  async function handleOAuth(provider: 'google' | 'apple') {
-    setError('')
-    setAwaitingEmail(false)
-    const { error: oErr } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: callbackUrl(),
-        data: { [DIRECTORY_PUBLIC_PAKET_USER_META_KEY]: paket },
-      },
-    })
-    if (oErr) setError(translateAuthError(oErr.message))
-  }
-
   const isPremium = paket === 'premium'
   const title = isPremium ? 'Premium im Verzeichnis' : 'Gratis-Profil im Verzeichnis'
   const lead = isPremium
@@ -177,30 +164,6 @@ export function DirectoryVerzeichnisRegisterClient({ paket }: Props) {
 
             {!awaitingEmail ? (
               <>
-                <div className="mb-5 flex flex-col gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => void handleOAuth('google')}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#cdcdd0] bg-white py-3 text-[15px] font-medium text-[#111]"
-                  >
-                    Mit Google
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleOAuth('apple')}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#cdcdd0] bg-white py-3 text-[15px] font-medium text-[#111]"
-                  >
-                    <i className="bi bi-apple text-lg leading-none" aria-hidden />
-                    Mit Apple
-                  </button>
-                </div>
-
-                <div className="mb-5 flex items-center gap-3 text-xs text-[#9ca3af]">
-                  <span className="h-px flex-1 bg-[#e5e2dc]" />
-                  oder mit E-Mail
-                  <span className="h-px flex-1 bg-[#e5e2dc]" />
-                </div>
-
                 {error ? (
                   <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                     {error}

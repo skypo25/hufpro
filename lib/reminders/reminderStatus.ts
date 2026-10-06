@@ -1,22 +1,11 @@
 import { getAppointmentReminderDueAt } from '@/lib/appointments/reminderSchedule'
+import { formatAppointmentDateTimeDe } from '@/lib/appointments/appointmentDisplay'
 
 export type ReminderStatusTone = 'ok' | 'warn' | 'muted'
 
 export type AppointmentReminderStatus = {
   text: string
   tone: ReminderStatusTone
-}
-
-function fmtDeDateTime(iso: string): string {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return new Intl.DateTimeFormat('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d)
 }
 
 /**
@@ -35,7 +24,7 @@ export function getAppointmentReminderStatusLine(
 
   if (p.reminderEmailSentAt) {
     return {
-      text: `Erinnerung gesendet am ${fmtDeDateTime(p.reminderEmailSentAt)}`,
+      text: `Erinnerung gesendet am ${formatAppointmentDateTimeDe(p.reminderEmailSentAt)}`,
       tone: 'ok',
     }
   }
@@ -69,7 +58,7 @@ export function getAppointmentReminderStatusLine(
   )
   if (dueAt && now.getTime() < dueAt.getTime()) {
     return {
-      text: `Erinnerung frühestens ab ${fmtDeDateTime(dueAt.toISOString())}`,
+      text: `Erinnerung frühestens ab ${formatAppointmentDateTimeDe(dueAt.toISOString())}`,
       tone: 'muted',
     }
   }
