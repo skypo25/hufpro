@@ -63,14 +63,6 @@ export default function OfflineStatusBanner({
     )
   }
 
-  if (hasLocalDraft) {
-    return (
-      <div className={`${baseClass} border border-primary/40 bg-[#edf7f2] text-[#166534]`}>
-        <span className="shrink-0 text-base">✓</span>
-        <span>Lokaler Entwurf vorhanden – Änderungen werden synchronisiert.</span>
-      </div>
-    )
-  }
-
+  // Online + lokaler Autosave: still halten, kein Statusbanner.
   return null
 }

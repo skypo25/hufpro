@@ -221,8 +221,12 @@ export default async function NewHoofRecordPage({ params }: NewRecordPageProps) 
     ? {
         id: horse.id,
         name: horse.name,
+        breed: horse.breed,
+        sex: horse.sex,
+        birthYear: horse.birthYear,
         customerName: horse.customerName,
         stableName: horse.stableName,
+        memo: horse.memo,
       }
     : null
 

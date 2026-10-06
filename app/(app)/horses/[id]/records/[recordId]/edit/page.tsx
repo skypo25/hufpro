@@ -249,8 +249,12 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
       ? {
           id: horse.id,
           name: horse.name,
+          breed: horse.breed,
+          sex: horse.sex,
+          birthYear: horse.birthYear,
           customerName: horse.customerName,
           stableName: horse.stableName,
+          memo: horse.memo,
         }
       : null
     const preservedExtendedFields = {
@@ -267,6 +271,7 @@ export default async function EditRecordPage({ params }: EditRecordPageProps) {
         <TherapyRecordForm
           horse={therapyHorse}
           defaultRecordDate={defaultRecordDate}
+          lastRecord={lastRecord}
           therapyAiType={professionToTherapyAiType(profile.profession)}
           saveAction={createRecord}
           mode="edit"
