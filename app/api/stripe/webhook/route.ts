@@ -160,15 +160,30 @@ export async function POST(request: Request) {
 
     if (!userId) return
 
+    const transactionalSlug = session.metadata?.directory_profile_slug?.toString().trim() || ''
+    const transactionalKind = session.metadata?.directory_transactional_email?.toString().trim() || ''
+    const isDirectoryProductCheckout =
+      !!directoryProfileId ||
+      transactionalKind === 'directory_premium_checkout_done' ||
+      !!session.metadata?.directory_top_profile_kind?.toString().trim()
+    /** App-Abo-Checkout: explizit markiert oder reines App-Checkout ohne Directory-Metadaten. */
+    const isAppCheckout =
+      transactionalKind === 'app_checkout_done' || (!isDirectoryProductCheckout && !!subscriptionId)
+
+    // Customer/E-Mail immer verknüpfen — Subscription-Felder nur für App-Checkout,
+    // sonst überschreibt Directory Top/Premium die App-Abo-ID (z. B. mit null).
+    const checkoutPatch: BillingUpdate = {
+      stripe_customer_id: customerId,
+      billing_email: email ?? null,
+      last_stripe_event_at: nowIso,
+    }
+    if (isAppCheckout && subscriptionId) {
+      checkoutPatch.stripe_subscription_id = subscriptionId
+    }
     await applyBillingUpdate({
       supabaseAdmin,
       userId,
-      patch: {
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscriptionId,
-        billing_email: email ?? null,
-        last_stripe_event_at: nowIso,
-      },
+      patch: checkoutPatch,
     })
 
     if (directoryProfileId) {
@@ -183,8 +198,6 @@ export async function POST(request: Request) {
       }
     }
 
-    const transactionalSlug = session.metadata?.directory_profile_slug?.toString().trim() || ''
-    const transactionalKind = session.metadata?.directory_transactional_email?.toString().trim() || ''
     if (
       transactionalSlug &&
       (transactionalKind === 'directory_premium_checkout_done' || transactionalKind === 'app_checkout_done')
@@ -216,40 +229,52 @@ export async function POST(request: Request) {
     const itemPriceIds = sub.items.data
       .map((it) => it.price?.id)
       .filter((id): id is string => typeof id === 'string' && id.length > 0)
-    /** Nur das App-Monatsabo soll app_subscription setzen/löschen — nicht andere Stripe-Subscriptions desselben Customers. */
+    /** Nur bei gesetzter App-Price-ID und Match — fehlende Env darf kein Directory-Abo freischalten. */
     const isAppMonthlySubscription =
-      !appMonthlyPriceId || itemPriceIds.includes(appMonthlyPriceId)
+      !!appMonthlyPriceId && itemPriceIds.includes(appMonthlyPriceId)
     const isDirectoryPremiumSubscription =
       (!!directoryPremiumMonthlyPriceId && itemPriceIds.includes(directoryPremiumMonthlyPriceId)) ||
       (!!directoryPremiumTop30PriceId && itemPriceIds.includes(directoryPremiumTop30PriceId))
 
-    const priceId = sub.items.data[0]?.price?.id ?? null
-    const st = (sub.status ?? '').toString()
-    /** Nach Kündigung: 10 Tage nur Lesen + Export (ab Periodenende bzw. jetzt). */
-    let postCancelAccessUntil: string | null | undefined
-    if (st === 'canceled') {
-      const periodEndSec = sub.current_period_end
-      const baseMs = periodEndSec ? Math.max(Date.now(), periodEndSec * 1000) : Date.now()
-      postCancelAccessUntil = new Date(baseMs + 10 * 24 * 60 * 60 * 1000).toISOString()
-    } else if (st === 'active' || st === 'trialing') {
-      postCancelAccessUntil = null
+    // Customer-ID immer verknüpfen; Abo-Status nur für das App-Monatsabo.
+    const billingPatch: BillingUpdate = {
+      stripe_customer_id: customerId,
+      last_stripe_event_at: nowIso,
+    }
+
+    if (isAppMonthlySubscription) {
+      const priceId = sub.items.data[0]?.price?.id ?? null
+      const st = (sub.status ?? '').toString()
+      /** Nach Kündigung: 10 Tage nur Lesen + Export (ab Periodenende bzw. jetzt). */
+      let postCancelAccessUntil: string | null | undefined
+      const periodEndSec = (sub as { current_period_end?: number }).current_period_end
+      if (st === 'canceled') {
+        const baseMs = periodEndSec ? Math.max(Date.now(), periodEndSec * 1000) : Date.now()
+        postCancelAccessUntil = new Date(baseMs + 10 * 24 * 60 * 60 * 1000).toISOString()
+      } else if (st === 'active' || st === 'trialing') {
+        postCancelAccessUntil = null
+      }
+
+      billingPatch.stripe_subscription_id = sub.id
+      billingPatch.subscription_status = sub.status ?? null
+      billingPatch.subscription_price_id = priceId
+      billingPatch.subscription_current_period_end = asIsoSeconds(periodEndSec) ?? null
+      billingPatch.subscription_cancel_at_period_end = sub.cancel_at_period_end ?? false
+      billingPatch.subscription_cancel_at = asIsoSeconds(sub.cancel_at) ?? null
+      // Stripe trial_end oft null — nicht den lokalen 14-Tage-Trial überschreiben.
+      const stripeTrialEnd = asIsoSeconds(sub.trial_end)
+      if (stripeTrialEnd) {
+        billingPatch.trial_ends_at = stripeTrialEnd
+      }
+      if (postCancelAccessUntil !== undefined) {
+        billingPatch.post_cancel_access_until = postCancelAccessUntil
+      }
     }
 
     await applyBillingUpdate({
       supabaseAdmin,
       userId,
-      patch: {
-        stripe_customer_id: customerId,
-        stripe_subscription_id: sub.id,
-        subscription_status: sub.status ?? null,
-        subscription_price_id: priceId,
-        subscription_current_period_end: asIsoSeconds(sub.current_period_end) ?? null,
-        subscription_cancel_at_period_end: sub.cancel_at_period_end ?? false,
-        subscription_cancel_at: asIsoSeconds(sub.cancel_at) ?? null,
-        trial_ends_at: asIsoSeconds(sub.trial_end) ?? null,
-        ...(postCancelAccessUntil !== undefined ? { post_cancel_access_until: postCancelAccessUntil } : {}),
-        last_stripe_event_at: nowIso,
-      },
+      patch: billingPatch,
     })
 
     // App-Subscription => Top-Profil automatisch aktiv (Quelle: app_subscription)
@@ -261,7 +286,7 @@ export async function POST(request: Request) {
           .select('id')
           .eq('claimed_by_user_id', userId)
 
-        const untilIso = asIsoSeconds(sub.current_period_end) ?? null
+        const untilIso = asIsoSeconds((sub as { current_period_end?: number }).current_period_end) ?? null
         const rows =
           (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => ({
             directory_profile_id: p.id,
@@ -301,7 +326,7 @@ export async function POST(request: Request) {
           .select('id')
           .eq('claimed_by_user_id', userId)
 
-        const untilIso = asIsoSeconds(sub.current_period_end) ?? null
+        const untilIso = asIsoSeconds((sub as { current_period_end?: number }).current_period_end) ?? null
         const rowsDir =
           (ownedProfiles as { id: string }[] | null | undefined)?.map((p) => ({
             directory_profile_id: p.id,
@@ -351,17 +376,58 @@ export async function POST(request: Request) {
     const userId = await resolveUserIdForCustomer({ supabaseAdmin, stripeCustomerId: customerId })
     if (!userId) return
 
-    const status = paid ? 'active' : 'past_due'
-    await applyBillingUpdate({
-      supabaseAdmin,
-      userId,
-      patch: {
-        stripe_customer_id: customerId,
-        stripe_subscription_id: (typeof inv.subscription === 'string' ? inv.subscription : inv.subscription?.id) ?? null,
-        subscription_status: status,
-        last_stripe_event_at: nowIso,
-      },
-    })
+    const appMonthlyPriceId = process.env.STRIPE_PRICE_ID_MONTHLY?.trim() || null
+    const linePriceIds = (inv.lines?.data ?? [])
+      .map((line) => {
+        const price = (line as { price?: string | { id?: string } | null }).price
+        if (typeof price === 'string') return price
+        return price?.id ?? null
+      })
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+    const subRef = (inv as { subscription?: string | { id?: string } | null }).subscription
+    const subscriptionId =
+      typeof subRef === 'string' ? subRef : subRef && typeof subRef === 'object' ? subRef.id ?? null : null
+
+    let isAppMonthlyInvoice =
+      !!appMonthlyPriceId && linePriceIds.includes(appMonthlyPriceId)
+
+    // Fallback: Line-Items ohne Price → nur wenn Invoice zur gespeicherten App-Subscription gehört
+    if (!isAppMonthlyInvoice && appMonthlyPriceId && subscriptionId) {
+      const { data: acc } = await supabaseAdmin
+        .from('billing_accounts')
+        .select('stripe_subscription_id')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const storedSub = (acc as { stripe_subscription_id?: string | null } | null)?.stripe_subscription_id
+      if (storedSub && storedSub === subscriptionId) {
+        isAppMonthlyInvoice = true
+      }
+    }
+
+    // Directory-Rechnungen dürfen App-subscription_status nicht auf active/past_due setzen.
+    if (isAppMonthlyInvoice) {
+      const status = paid ? 'active' : 'past_due'
+      await applyBillingUpdate({
+        supabaseAdmin,
+        userId,
+        patch: {
+          stripe_customer_id: customerId,
+          ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
+          subscription_status: status,
+          last_stripe_event_at: nowIso,
+        },
+      })
+    } else {
+      await applyBillingUpdate({
+        supabaseAdmin,
+        userId,
+        patch: {
+          stripe_customer_id: customerId,
+          last_stripe_event_at: nowIso,
+        },
+      })
+    }
 
     await supabaseAdmin
       .from('stripe_webhook_events')

@@ -295,26 +295,6 @@ export default function HoofComparePageClient({
             {statusSummary ? ` ${statusSummary}` : ''}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled
-            title="Demnächst"
-            className="inline-flex cursor-not-allowed items-center gap-2 rounded-[10px] border border-[#E5E2DC] bg-[#fafaf9] px-4 py-2.5 text-[13px] font-semibold text-[#9CA3AF]"
-          >
-            <i className="bi bi-file-pdf-fill" aria-hidden />
-            Vergleich als PDF
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Demnächst"
-            className="inline-flex cursor-not-allowed items-center gap-2 rounded-[10px] border border-[#E5E2DC] bg-[#fafaf9] px-4 py-2.5 text-[13px] font-semibold text-[#9CA3AF]"
-          >
-            <i className="bi bi-share-fill" aria-hidden />
-            Teilen
-          </button>
-        </div>
       </section>
 
       {timeline.length > 0 && (

@@ -283,15 +283,6 @@ export default function HoofCompareFullscreen({
         <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
           <button
             type="button"
-            disabled
-            title="Demnächst"
-            className="flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-white/[0.08] px-4 text-[12px] font-semibold text-[#6B7280]"
-          >
-            <i className="bi bi-file-pdf-fill text-[15px]" aria-hidden />
-            PDF
-          </button>
-          <button
-            type="button"
             onClick={() => void handleExportPng()}
             disabled={exporting || (!left.signedUrl && !right.signedUrl)}
             title="Beide Fotos nebeneinander als PNG speichern"
@@ -299,15 +290,6 @@ export default function HoofCompareFullscreen({
           >
             <i className={`bi ${exporting ? 'bi-hourglass-split' : 'bi-download'} text-[15px]`} aria-hidden />
             {exporting ? 'Export…' : 'Export'}
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Demnächst"
-            className="flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-white/[0.08] px-4 text-[12px] font-semibold text-[#6B7280]"
-          >
-            <i className="bi bi-share-fill text-[15px]" aria-hidden />
-            Teilen
           </button>
         </div>
         <button

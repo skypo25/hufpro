@@ -74,11 +74,15 @@ export default async function SettingsPage() {
         canExportData={canExportData}
       />
 
-      <div>
-        <AppProfileProvider>
-          <SeedTestDataButton />
-        </AppProfileProvider>
-      </div>
+      {(process.env.NODE_ENV !== 'production' ||
+        process.env.ALLOW_SEED === 'true' ||
+        process.env.ALLOW_SEED === '1') && (
+        <div>
+          <AppProfileProvider>
+            <SeedTestDataButton />
+          </AppProfileProvider>
+        </div>
+      )}
     </AppPage>
   )
 }

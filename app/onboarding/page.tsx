@@ -167,6 +167,13 @@ export default function OnboardingPage() {
       { onConflict: 'user_id' }
     )
 
+    // Fallback falls DB-Trigger kein billing_accounts angelegt hat → 14-Tage-Trial sicherstellen
+    try {
+      await fetch('/api/billing/account')
+    } catch {
+      /* Onboarding nicht blockieren */
+    }
+
     setSaving(false)
     setStep(3)
   }

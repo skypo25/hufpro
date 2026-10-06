@@ -567,9 +567,11 @@ export default function SettingsForm({
             </FormRow>
           </FormSection>
 
-          <FormSection icon={<i className="bi bi-receipt-cutoff-fill" aria-hidden />} title="Steuerliche Angaben" badge="Wichtig für korrekte Rechnungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
+          <FormSection icon={<i className="bi bi-receipt-cutoff" aria-hidden />} title="Steuerliche Angaben" badge="Wichtig für korrekte Rechnungen" badgeClass="bg-[#DBEAFE] text-[#1E40AF]">
             <div className="mb-4 flex gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] p-4 text-[13px] leading-relaxed text-[#1E40AF]">
-              <span className="shrink-0 text-lg">ℹ️</span>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#DBEAFE] text-[15px] text-[#2563EB]">
+                <i className="bi bi-info-circle-fill" aria-hidden />
+              </span>
               <p><strong>Hinweis:</strong> Diese Angaben sind entscheidend dafür, wie deine Rechnungen aussehen. Als Kleinunternehmer nach §19 UStG darfst du keine Umsatzsteuer ausweisen. AniDocs erledigt das automatisch für dich.</p>
             </div>
             <FormRow>

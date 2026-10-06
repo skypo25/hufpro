@@ -3,11 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { deriveAppProfile } from "@/lib/appProfile"
 import { runSeed } from "@/lib/seed/seed-data"
 import { requireAppAccess } from "@/lib/billing/requireAppAccess"
-import { isAdminUserId } from "@/lib/admin/config"
 
 /**
  * POST /api/seed – Legt realistische Testdaten für den aktuell eingeloggten User an.
- * Nur Dev oder explizit freigeschaltet / Admin.
+ * Nur Dev oder explizit freigeschaltet (ALLOW_SEED) — nie stillschweigend in Produktion.
  */
 export async function POST() {
   const allowSeed =
@@ -15,15 +14,15 @@ export async function POST() {
     process.env.ALLOW_SEED === "true" ||
     process.env.ALLOW_SEED === "1"
 
-  const gate = await requireAppAccess({ mode: "write" })
-  if (!gate.ok) return gate.response
-
-  if (!allowSeed && !isAdminUserId(gate.userId)) {
+  if (!allowSeed) {
     return NextResponse.json(
       { error: "Seed in Produktion nicht erlaubt." },
       { status: 403 }
     )
   }
+
+  const gate = await requireAppAccess({ mode: "write" })
+  if (!gate.ok) return gate.response
 
   const supabase = await createSupabaseServerClient()
   const { data: settingsRow } = await supabase
