@@ -152,7 +152,6 @@ type SettingsFormProps = {
 
 const TABS = [
   { id: 'betrieb', label: 'Mein Betrieb' },
-  { id: 'rechnung', label: 'Rechnungseinstellungen' },
   { id: 'benachrichtigungen', label: 'Benachrichtigungen' },
   { id: 'vorlagen', label: 'Vorlagen & Textbausteine' },
   { id: 'konto', label: 'Konto & Sicherheit' },
@@ -861,11 +860,6 @@ export default function SettingsForm({
         </>
       )}
 
-      {activeTab === 'rechnung' && (
-        <div className="rounded-xl border border-[#E5E2DC] bg-white p-8 text-center text-[#6B7280]">
-          Rechnungseinstellungen — Inhalt folgt
-        </div>
-      )}
       {activeTab === 'benachrichtigungen' && (
         <>
           <FormSection icon={<i className="bi bi-bell-fill" aria-hidden />} title="Termin-Erinnerungen (E-Mail)" badge="Automatisch an Kund:innen" badgeClass="bg-[#D1FAE5] text-[#065F46]">
