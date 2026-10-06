@@ -126,18 +126,19 @@ async function buildPdfPhotosFromPaths(
   supabase: SupabaseClient,
   rows: { file_path: string | null; photo_type: string | null }[]
 ): Promise<RecordPdfPhoto[]> {
-  const photos: RecordPdfPhoto[] = []
-  for (const p of rows) {
-    if (!p.file_path || !p.photo_type) continue
-    const dataUrl = await imageToDataUrl(supabase, p.file_path)
-    if (!dataUrl) continue
-    photos.push({
-      photoType: p.photo_type,
-      label: SLOT_LABELS[p.photo_type] ?? p.photo_type,
-      dataUrl,
+  const results = await Promise.all(
+    rows.map(async (p) => {
+      if (!p.file_path || !p.photo_type) return null
+      const dataUrl = await imageToDataUrl(supabase, p.file_path)
+      if (!dataUrl) return null
+      return {
+        photoType: p.photo_type,
+        label: SLOT_LABELS[p.photo_type] ?? p.photo_type,
+        dataUrl,
+      } satisfies RecordPdfPhoto
     })
-  }
-  return photos
+  )
+  return results.filter((p): p is RecordPdfPhoto => p !== null)
 }
 
 async function loadSharedContext(

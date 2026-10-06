@@ -13,6 +13,7 @@ import { parseAnnotationsJson } from '@/lib/photos/annotations'
 import type { AnnotationsData } from '@/lib/photos/annotations'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
 import { MobileRouteLoading } from '@/components/mobile/MobileRouteLoading'
+import { downloadRecordPdf } from '@/lib/pdf/downloadRecordPdf'
 import { usePhotoGridDebugVersion } from '@/components/mobile/usePhotoGridDebugVersion'
 import {
   gridSectionLabelForIndex,
@@ -727,6 +728,7 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   const [photoMeta, setPhotoMeta] = useState<Partial<Record<PhotoSlotKey, { annotations: AnnotationsData; width: number; height: number }>>>({})
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [pdfDownloading, setPdfDownloading] = useState(false)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const photoRetryDoneRef = useRef(false)
 
@@ -858,7 +860,15 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
   }
 
   async function handlePdfDownload() {
-    window.open(`/animals/${horseId}/records/${recordId}/pdf`, '_blank')
+    if (pdfDownloading) return
+    setPdfDownloading(true)
+    try {
+      await downloadRecordPdf(horseId, recordId)
+    } catch {
+      alert('PDF konnte nicht erstellt werden. Bitte erneut versuchen.')
+    } finally {
+      setPdfDownloading(false)
+    }
   }
 
   async function handleEmail() {
@@ -935,12 +945,12 @@ export default function MobileRecordDetail({ horseId, recordId }: { horseId: str
           </svg>
           Per E-Mail senden
         </button>
-        <button type="button" className="mrd-act-light primary" onClick={handlePdfDownload}>
+        <button type="button" className="mrd-act-light primary" onClick={handlePdfDownload} disabled={pdfDownloading}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
-          PDF herunterladen
+          {pdfDownloading ? 'PDF wird erstellt…' : 'PDF herunterladen'}
         </button>
       </div>
 

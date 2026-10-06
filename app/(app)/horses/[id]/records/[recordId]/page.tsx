@@ -9,6 +9,7 @@ import {
   type RecordDetailHoofRecord,
 } from '@/lib/documentation/loadRecordForDetailView'
 import DeleteRecordForm from './DeleteRecordForm'
+import RecordPdfDownloadButton from '@/components/records/RecordPdfDownloadButton'
 import { SLOT_LABELS, SLOT_SOLAR, SLOT_LATERAL } from '@/lib/photos/photoTypes'
 import { createHoofPhotoSignedUrls } from '@/lib/photos/createHoofPhotoSignedUrls'
 import { formatCustomerNumber } from '@/lib/format'
@@ -599,14 +600,11 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
               <h3 className="text-[14px] font-semibold text-[#1B1F23]">Aktionen</h3>
             </div>
             <div className="space-y-2 p-4">
-              <a
-                href={`/animals/${horseId}/records/${recordId}/pdf`}
-                download
+              <RecordPdfDownloadButton
+                horseId={horseId}
+                recordId={recordId}
                 className="primary-button primary-button--full font-semibold"
-              >
-                <i className="bi bi-file-earmark-pdf text-[15px]" aria-hidden />
-                PDF herunterladen
-              </a>
+              />
               <a
                 href={`/animals/${horseId}/records/${recordId}/pdf?preview=1`}
                 target="_blank"
