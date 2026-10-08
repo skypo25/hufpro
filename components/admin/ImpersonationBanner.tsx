@@ -1,7 +1,5 @@
 'use client'
 
-import { endImpersonation } from '@/app/(app)/admin/users/[id]/actions'
-
 export default function ImpersonationBanner({
   targetEmail,
 }: {
@@ -14,7 +12,7 @@ export default function ImpersonationBanner({
           <strong className="font-semibold">Support-Ansicht aktiv.</strong>{' '}
           Du siehst die App als {targetEmail || 'dieser Nutzer'}. Änderungen wirken auf dessen Account.
         </div>
-        <form action={endImpersonation}>
+        <form action="/api/admin/impersonate/end" method="post">
           <button
             type="submit"
             className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-[12px] font-semibold text-amber-950 hover:bg-amber-100"

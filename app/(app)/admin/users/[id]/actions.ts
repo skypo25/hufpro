@@ -2,17 +2,15 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
 import { requireAdmin } from '@/lib/admin/requireAdmin'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
 import { getStripe } from '@/lib/stripe/stripe'
 import { listLiveSubscriptions } from '@/lib/billing/stripeSubscriptionExclusive.server'
 import { syncBillingSubscriptionFromStripeForUser } from '@/lib/billing/syncSubscriptionFromStripe.server'
 import { createAndSendPasswordResetForUserId } from '@/lib/auth/passwordReset.server'
 import { isFeatureEnabled, type AdminFeatureFlagKey } from '@/lib/admin/featureFlagsShared'
-import { IMPERSONATION_COOKIE } from '@/lib/admin/impersonation'
+import { prepareEndImpersonation } from '@/lib/admin/impersonation'
 
 function backTo(userId: string, q: Record<string, string> = {}) {
   const p = new URLSearchParams(q)
@@ -640,32 +638,12 @@ export async function deleteUserAccount(formData: FormData) {
   redirect('/admin/users?saved=deleted')
 }
 
+/** @deprecated Prefer POST /api/admin/impersonate/end */
 export async function endImpersonation() {
-  const cookieStore = await cookies()
-  const raw = cookieStore.get(IMPERSONATION_COOKIE)?.value
-  let adminId: string | null = null
-  let targetId: string | null = null
-  try {
-    if (raw) {
-      const parsed = JSON.parse(raw) as { adminId?: string; targetId?: string }
-      adminId = parsed.adminId ?? null
-      targetId = parsed.targetId ?? null
-    }
-  } catch {
-    // ignore
-  }
-
-  cookieStore.delete(IMPERSONATION_COOKIE)
-
-  const supabase = await createSupabaseServerClient()
-  await supabase.auth.signOut()
-
-  await logAdminAuditEvent({
-    actorUserId: adminId,
-    targetUserId: targetId,
-    action: 'impersonation.end',
-  })
-
-  redirect('/login?hint=impersonation_ended')
+  const result = await prepareEndImpersonation()
+  if (!result.ok) redirect(result.redirectTo)
+  redirect(
+    `/auth/impersonate?token_hash=${encodeURIComponent(result.tokenHash)}&next=${encodeURIComponent(result.next)}`
+  )
 }
 

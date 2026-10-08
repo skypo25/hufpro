@@ -127,3 +127,60 @@ export async function getActiveImpersonation(): Promise<ImpersonationCookiePaylo
     return null
   }
 }
+
+/**
+ * Beendet Impersonation und liefert token_hash zum Wiedereinloggen als Admin.
+ */
+export async function prepareEndImpersonation(): Promise<
+  { ok: true; tokenHash: string; next: string } | { ok: false; redirectTo: string }
+> {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(IMPERSONATION_COOKIE)?.value
+  let adminId: string | null = null
+  let targetId: string | null = null
+  let adminEmail: string | null = null
+  try {
+    if (raw) {
+      const parsed = JSON.parse(raw) as ImpersonationCookiePayload
+      adminId = parsed.adminId ?? null
+      targetId = parsed.targetId ?? null
+      adminEmail = parsed.adminEmail ?? null
+    }
+  } catch {
+    // ignore
+  }
+
+  cookieStore.delete(IMPERSONATION_COOKIE)
+
+  await logAdminAuditEvent({
+    actorUserId: adminId,
+    targetUserId: targetId,
+    action: 'impersonation.end',
+  })
+
+  if (!adminId || !isAdminUserId(adminId)) {
+    return { ok: false, redirectTo: '/login?hint=impersonation_ended' }
+  }
+
+  const db = createSupabaseServiceRoleClient()
+  let email = adminEmail?.trim() || null
+  if (!email) {
+    const { data } = await db.auth.admin.getUserById(adminId)
+    email = data.user?.email ?? null
+  }
+  if (!email) {
+    return { ok: false, redirectTo: '/login?hint=impersonation_ended' }
+  }
+
+  const { data: linkRes, error: linkErr } = await db.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  })
+  const tokenHash = linkRes?.properties?.hashed_token
+  if (linkErr || !tokenHash) {
+    return { ok: false, redirectTo: '/login?hint=impersonation_ended' }
+  }
+
+  const next = targetId ? `/admin/users/${targetId}` : '/admin'
+  return { ok: true, tokenHash, next }
+}

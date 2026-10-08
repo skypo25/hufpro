@@ -2,16 +2,20 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { safeNextPath } from '@/lib/auth/safeNextPath'
 import { supabase } from '@/lib/supabase-client'
 
 /**
- * Schliesst Admin-Impersonation ab: bestehende Session verwerfen,
- * Magic-Link-Token einlösen, dann zur App (nicht Verzeichnis-Wizard).
+ * Session-Wechsel per Magic-Link-Token (Impersonation starten oder Admin wiederherstellen).
  */
 function ImpersonateInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [message, setMessage] = useState('Support-Ansicht wird geladen…')
+  const nextPath = safeNextPath(searchParams.get('next'), '/dashboard')
+  const restoringAdmin = nextPath.startsWith('/admin')
+  const [message, setMessage] = useState(
+    restoringAdmin ? 'Admin-Sitzung wird wiederhergestellt…' : 'Support-Ansicht wird geladen…'
+  )
   const started = useRef(false)
 
   useEffect(() => {
@@ -26,8 +30,6 @@ function ImpersonateInner() {
         return
       }
 
-      // Admin-Session muss weg, sonst bleibt man oft als Admin eingeloggt
-      // und landet (Verzeichnis-Metadaten) im Behandler-Profil.
       await supabase.auth.signOut({ scope: 'local' })
 
       let result = await supabase.auth.verifyOtp({
@@ -43,7 +45,7 @@ function ImpersonateInner() {
 
       if (result.error || !result.data.user) {
         console.error('impersonate verifyOtp', result.error)
-        setMessage('Login als Nutzer fehlgeschlagen.')
+        setMessage(restoringAdmin ? 'Admin-Login fehlgeschlagen.' : 'Login als Nutzer fehlgeschlagen.')
         router.replace(
           `/login?error=impersonate&msg=${encodeURIComponent(
             result.error?.message?.slice(0, 120) ?? 'verify'
@@ -52,11 +54,11 @@ function ImpersonateInner() {
         return
       }
 
-      router.replace('/dashboard')
+      router.replace(nextPath)
     }
 
     void run()
-  }, [router, searchParams])
+  }, [router, searchParams, nextPath, restoringAdmin])
 
   return (
     <div
