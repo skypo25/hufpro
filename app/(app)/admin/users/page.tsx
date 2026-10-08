@@ -10,7 +10,6 @@ import { formatGermanDate, formatStorageBytesShort, daysBetweenFloor } from '@/l
 import { formatAdminLastActivity } from '@/lib/admin/lastActivity'
 import {
   adminBillingPrimarySecondary,
-  avatarColorForUserId,
   professionBadgeClass,
   statusBadgeForBucket,
 } from '@/lib/admin/userListDisplay'
@@ -247,7 +246,6 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                 .join('')
                 .slice(0, 2)
                 .toUpperCase()
-              const av = avatarColorForUserId(r.id)
               const created = r.created_at ? new Date(r.created_at) : null
               const regDays =
                 created && !Number.isNaN(created.getTime()) ? daysBetweenFloor(created, now) : null
@@ -283,16 +281,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   />
 
                   <div className="pointer-events-none flex min-w-0 items-center gap-3">
-                    <div
-                      className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-                      style={{ background: av }}
-                    >
+                    <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-white">
                       {initials || '?'}
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-[14px] font-semibold text-[#1B1F23]">{r.name}</div>
                       <div className="truncate text-[12px] text-[#6B7280]">{r.email}</div>
-                      <div className="font-[tabular-nums] text-[11px] text-[#9CA3AF]">USR-{String(ordinal).padStart(5, '0')}</div>
+                      <div className="tabular-nums text-[11px] text-[#9CA3AF]">USR-{String(ordinal).padStart(5, '0')}</div>
                     </div>
                   </div>
 

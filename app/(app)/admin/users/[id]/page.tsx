@@ -9,8 +9,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
 import AdminNextLink from '@/components/admin/AdminNextLink'
-import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, startImpersonation, toggleAdminUserFlag } from './actions'
-import { BRAND_COLORS } from '@/lib/branding'
+import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, toggleAdminUserFlag } from './actions'
 import AppPage from '@/components/layout/AppPage'
 
 export const dynamic = 'force-dynamic'
@@ -33,13 +32,6 @@ function getInitials(name: string) {
       .slice(0, 2)
       .toUpperCase() || '?'
   )
-}
-
-function avatarColorFromId(id: string) {
-  const hues = [BRAND_COLORS.accent, '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 7)) % 997
-  return hues[h % hues.length]
 }
 
 function badgeClass(kind: 'green' | 'blue' | 'orange' | 'red' | 'gray') {
@@ -130,7 +122,6 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
     : null
 
   const initials = getInitials(name)
-  const avatarBg = avatarColorFromId(user.id)
   const activity = formatAdminLastActivity(user.last_sign_in_at ?? null, new Date())
   const dotClass =
     activity.dot === 'online' ? 'bg-primary' : activity.dot === 'recent' ? 'bg-[#3B82F6]' : 'bg-[#E5E2DC]'
@@ -223,10 +214,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
       <section className="content-card">
         <div className="flex flex-col gap-4 px-[22px] py-[18px] md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <div
-              className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-2xl text-[20px] font-semibold text-white"
-              style={{ background: avatarBg }}
-            >
+            <div className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-2xl bg-primary text-[20px] font-semibold text-white">
               {initials}
             </div>
             <div className="min-w-0">
@@ -238,7 +226,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                 <span className="truncate">{user.email ?? '—'}</span>
                 <span className="text-[#E5E2DC]">·</span>
                 <i className="bi bi-hash text-[13px] text-[#9CA3AF]" aria-hidden />
-                <span className="font-[tabular-nums] text-[13px] text-[#6B7280]">USR-{user.id.slice(0, 8)}</span>
+                <span className="tabular-nums text-[13px] text-[#6B7280]">USR-{user.id.slice(0, 8)}</span>
                 <span className="text-[#E5E2DC]">·</span>
                 <i className="bi bi-calendar-fill text-[13px] text-[#9CA3AF]" aria-hidden />
                 <span>
@@ -280,7 +268,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               </a>
             ) : null}
             {canImpersonate ? (
-              <form action={startImpersonation}>
+              <form action="/api/admin/impersonate" method="post" target="_blank" rel="noopener noreferrer">
                 <input type="hidden" name="userId" value={user.id} />
                 <button
                   type="submit"
@@ -524,7 +512,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                 </a>
               ) : null}
               {canImpersonate ? (
-                <form action={startImpersonation}>
+                <form action="/api/admin/impersonate" method="post" target="_blank" rel="noopener noreferrer">
                   <input type="hidden" name="userId" value={user.id} />
                   <button
                     type="submit"
@@ -738,7 +726,7 @@ function LogItem(props: { time: string; kind: string; msg: string; tone: 'blue' 
               : 'bg-[rgba(107,114,128,.08)] text-[#6B7280]'
   return (
     <div className="flex items-start gap-3 border-b border-[#E5E2DC] py-2 last:border-b-0">
-      <div className="min-w-[130px] font-[tabular-nums] text-[12px] text-[#9CA3AF]">{props.time}</div>
+      <div className="min-w-[130px] tabular-nums text-[12px] text-[#9CA3AF]">{props.time}</div>
       <div className={`min-w-[70px] rounded px-2 py-1 text-center text-[11px] font-semibold ${tone}`}>{props.kind}</div>
       <div className="min-w-0 flex-1 text-[13px] text-[#6B7280]">{props.msg}</div>
     </div>

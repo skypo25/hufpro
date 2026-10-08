@@ -127,12 +127,3 @@ export function professionBadgeClass(prof: string): string {
   return 'bg-[rgba(107,114,128,.08)] text-[#6B7280]'
 }
 
-import { BRAND_COLORS } from '@/lib/branding'
-
-const AVATAR_HUES = [BRAND_COLORS.accent, '#3B82F6', '#8B5CF6', '#F97316', '#DC2626', '#B8860B', '#64748B']
-
-export function avatarColorForUserId(id: string): string {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 7)) % 997
-  return AVATAR_HUES[h % AVATAR_HUES.length]
-}

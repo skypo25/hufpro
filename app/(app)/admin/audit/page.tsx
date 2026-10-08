@@ -158,7 +158,7 @@ export default async function AdminAuditPage({ searchParams }: PageProps) {
                       : null
                   return (
                     <tr key={row.id} className="align-top hover:bg-[rgba(1,85,85,0.03)]">
-                      <td className="whitespace-nowrap px-4 py-3 font-[tabular-nums] text-[12px] text-[#6B7280]">
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-[12px] text-[#6B7280]">
                         {formatGermanDateTime(row.created_at)}
                       </td>
                       <td className="px-4 py-3">
