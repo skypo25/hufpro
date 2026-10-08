@@ -27,11 +27,11 @@ function safeErr(err: unknown) {
 }
 
 /**
- * Bereitet Impersonation vor und liefert den Magic-Link.
- * Cookie wird gesetzt; Aufrufer leitet auf actionLink um (idealerweise in neuem Fenster).
+ * Bereitet Impersonation vor und liefert den token_hash für /auth/impersonate.
+ * Cookie wird gesetzt; Aufrufer leitet dorthin um (idealerweise in neuem Fenster).
  */
 export async function prepareImpersonation(userId: string): Promise<
-  { ok: true; actionLink: string } | { ok: false; redirectTo: string }
+  { ok: true; tokenHash: string } | { ok: false; redirectTo: string }
 > {
   if (!userId) {
     return { ok: false, redirectTo: '/admin/users?err=impersonate' }
@@ -70,7 +70,8 @@ export async function prepareImpersonation(userId: string): Promise<
     type: 'magiclink',
     email: userRes.user.email,
   })
-  if (linkErr || !linkRes?.properties?.action_link) {
+  const tokenHash = linkRes?.properties?.hashed_token
+  if (linkErr || !tokenHash) {
     return {
       ok: false,
       redirectTo: backToUser(userId, {
@@ -106,7 +107,7 @@ export async function prepareImpersonation(userId: string): Promise<
     metadata: { targetEmail: userRes.user.email },
   })
 
-  return { ok: true, actionLink: linkRes.properties.action_link }
+  return { ok: true, tokenHash }
 }
 
 export async function getActiveImpersonation(): Promise<ImpersonationCookiePayload | null> {

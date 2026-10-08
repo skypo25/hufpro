@@ -15,6 +15,7 @@ function KpiCard(props: {
   label: string
   value: string | number
   hint?: string
+  href?: string
   accent?: 'default' | 'green' | 'blue' | 'orange' | 'red' | 'purple'
 }) {
   const valColor =
@@ -29,13 +30,24 @@ function KpiCard(props: {
             : props.accent === 'purple'
               ? 'text-[#8B5CF6]'
               : 'text-[#1B1F23]'
-  return (
-    <div className={`${adminCardClass} relative overflow-hidden p-4 md:p-[18px]`}>
+  const inner = (
+    <>
       <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">{props.label}</div>
       <div className={`text-[26px] font-bold leading-none md:text-[28px] ${valColor}`}>{props.value}</div>
       {props.hint ? <div className="mt-1 text-[10px] text-[#9CA3AF]">{props.hint}</div> : null}
-    </div>
+    </>
   )
+  if (props.href) {
+    return (
+      <Link
+        href={props.href}
+        className={`${adminCardClass} relative block overflow-hidden p-4 transition hover:border-primary md:p-[18px]`}
+      >
+        {inner}
+      </Link>
+    )
+  }
+  return <div className={`${adminCardClass} relative overflow-hidden p-4 md:p-[18px]`}>{inner}</div>
 }
 
 export default async function AdminDashboardPage() {
@@ -100,7 +112,13 @@ export default async function AdminDashboardPage() {
             <KpiCard label="Nutzer gesamt" value={data.totalUsers} />
             <KpiCard label="Aktive Abos" value={data.activeSubscriptions} accent="green" hint="subscription_status = active" />
             <KpiCard label="Trial / trialing" value={data.trialUsers} accent="blue" hint="Trial-Phase oder Stripe trialing" />
-            <KpiCard label="Billing-Probleme" value={data.billingProblems} accent="red" hint="past_due / unpaid" />
+            <KpiCard
+              label="Billing-Probleme"
+              value={data.billingProblems}
+              accent="red"
+              hint="past_due / unpaid · zur Liste"
+              href="/admin/users?billing=past_due"
+            />
             <KpiCard label="Dokumentationen (DB)" value={data.documentationRecords} hint="documentation_records" />
           </div>
 

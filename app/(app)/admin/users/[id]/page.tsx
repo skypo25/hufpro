@@ -9,7 +9,19 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
 import AdminNextLink from '@/components/admin/AdminNextLink'
-import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, toggleAdminUserFlag } from './actions'
+import {
+  cancelSubscriptionAtPeriodEnd,
+  cancelSubscriptionNow,
+  deleteUserAccount,
+  endTrialNow,
+  extendTrial,
+  grantCompAccessDays,
+  reactivateSubscription,
+  saveAdminUserNote,
+  sendPasswordReset,
+  setUserBan,
+  toggleAdminUserFlag,
+} from './actions'
 import AppPage from '@/components/layout/AppPage'
 
 export const dynamic = 'force-dynamic'
@@ -86,6 +98,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
         docRecords,
         docPhotos,
         invoices,
+        dirClaims,
+        dirProfiles,
       ] = await Promise.all([
         db.from('customers').select('*', { count: 'exact', head: true }).eq('user_id', id),
         db.from('horses').select('*', { count: 'exact', head: true }).eq('user_id', id),
@@ -96,6 +110,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
         db.from('documentation_records').select('*', { count: 'exact', head: true }).eq('user_id', id),
         db.from('documentation_photos').select('*', { count: 'exact', head: true }).eq('user_id', id),
         db.from('invoices').select('*', { count: 'exact', head: true }).eq('user_id', id),
+        db.from('directory_claims').select('*', { count: 'exact', head: true }).eq('claimant_user_id', id),
+        db.from('directory_profiles').select('*', { count: 'exact', head: true }).eq('claimed_by_user_id', id),
       ])
       const safe = (r: any) => (typeof r?.count === 'number' ? r.count : 0)
       return {
@@ -108,6 +124,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
         docRecords: safe(docRecords),
         docPhotos: safe(docPhotos),
         invoices: safe(invoices),
+        dirClaims: safe(dirClaims),
+        dirProfiles: safe(dirProfiles),
       }
     } catch {
       return null
@@ -178,7 +196,17 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                       ? 'Account deaktiviert.'
                       : sp.saved === 'unban'
                         ? 'Account wieder aktiviert.'
-                        : 'Aktualisierung durchgeführt.'}
+                        : sp.saved === 'password_reset'
+                          ? 'Passwort-Reset-E-Mail wurde gesendet.'
+                          : sp.saved === 'billing_cancel_period'
+                            ? 'Abo wird zum Periodenende gekündigt.'
+                            : sp.saved === 'billing_cancel_now'
+                              ? 'Abo wurde sofort gekündigt.'
+                              : sp.saved === 'billing_reactivate'
+                                ? 'Periodenend-Kündigung widerrufen.'
+                                : sp.saved === 'billing_comp'
+                                  ? 'Comp-/Grace-Zugang verlängert.'
+                                  : 'Aktualisierung durchgeführt.'}
           </section>
         )
       ) : null}
@@ -197,7 +225,11 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                     ? 'Account konnte nicht gelöscht werden.'
                     : sp.err === 'impersonate'
                       ? 'Support-Ansicht konnte nicht gestartet werden.'
-                      : 'Aktion fehlgeschlagen.'}
+                      : sp.err === 'password_reset'
+                        ? 'Passwort-Reset konnte nicht gesendet werden.'
+                        : sp.err === 'billing'
+                          ? 'Billing-Aktion fehlgeschlagen.'
+                          : 'Aktion fehlgeschlagen.'}
           {sp.msg ? <div className="mt-1 text-[13px] text-red-900/80">{sp.msg}</div> : null}
         </section>
       ) : null}
@@ -430,6 +462,68 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               label="Letztes Stripe-Event"
               value={billing?.last_stripe_event_at ? formatGermanDateTime(billing.last_stripe_event_at) : '—'}
             />
+            <DataRow
+              label="Grace / Comp bis"
+              value={
+                billing?.post_cancel_access_until
+                  ? formatGermanDateTime(billing.post_cancel_access_until)
+                  : '—'
+              }
+            />
+            <div className="mt-4 space-y-2 border-t border-[#E5E2DC] pt-4">
+              <div className="text-[12px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Support-Aktionen</div>
+              <div className="flex flex-col gap-2">
+                <form action={cancelSubscriptionAtPeriodEnd}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] hover:border-primary"
+                  >
+                    Kündigung zum Periodenende
+                  </button>
+                </form>
+                <form action={reactivateSubscription}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] hover:border-primary"
+                  >
+                    Periodenend-Kündigung widerrufen
+                  </button>
+                </form>
+                <form action={cancelSubscriptionNow}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[rgba(220,38,38,.25)] bg-white px-4 py-2.5 text-[13px] font-medium text-[#DC2626] hover:bg-[rgba(220,38,38,.06)]"
+                  >
+                    Abo sofort kündigen
+                  </button>
+                </form>
+                <form action={grantCompAccessDays} className="flex gap-2">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <select
+                    name="days"
+                    defaultValue="7"
+                    className="rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] text-[#1B1F23]"
+                  >
+                    <option value="3">+3 Tage</option>
+                    <option value="7">+7 Tage</option>
+                    <option value="14">+14 Tage</option>
+                    <option value="30">+30 Tage</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[13px] font-medium text-[#1B1F23] hover:border-primary"
+                  >
+                    Comp-/Grace-Zugang
+                  </button>
+                </form>
+              </div>
+              <p className="text-[11px] text-[#9CA3AF]">
+                Comp verlängert den App-Zugang über <code className="font-mono">post_cancel_access_until</code> (ohne Stripe-Preisänderung).
+              </p>
+            </div>
           </SectionCard>
 
           {/* PROFILE */}
@@ -492,14 +586,16 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   E-Mail senden
                 </a>
               ) : null}
-              <button
-                disabled
-                title="Password-Reset Link folgt als nächster Schritt"
-                className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#9CA3AF] opacity-70"
-              >
-                <i className="bi bi-key-fill" aria-hidden />
-                Passwort-Reset
-              </button>
+              <form action={sendPasswordReset}>
+                <input type="hidden" name="userId" value={user.id} />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
+                >
+                  <i className="bi bi-key-fill" aria-hidden />
+                  Passwort-Reset senden
+                </button>
+              </form>
               {stripeCustomerUrl ? (
                 <a
                   href={stripeCustomerUrl}
@@ -583,7 +679,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             <div className="mt-4 rounded-xl border border-[rgba(220,38,38,.18)] bg-white p-4">
               <div className="text-[13px] font-semibold text-[#1B1F23]">Hard Delete (GDPR) – Vorschau</div>
               <div className="mt-1 text-[12px] text-[#6B7280]">
-                Das löscht App-Daten + Storage-Dateien und entfernt danach den Auth-User. Diese Aktion ist nicht rückgängig zu machen.
+                Löscht App-Daten, Verzeichnis-Zuordnung, Storage, kündigt Stripe-Abos und entfernt den Stripe-Kunden (best effort) sowie den Auth-User. Nicht rückgängig zu machen.
               </div>
               {purgePreview ? (
                 <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-[12px] text-[#374151]">
@@ -596,6 +692,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   <div className="flex items-center justify-between gap-3"><span>Dokumentationen</span><span className="font-semibold text-[#1B1F23]">{purgePreview.docRecords}</span></div>
                   <div className="flex items-center justify-between gap-3"><span>Doku-Fotos (DB)</span><span className="font-semibold text-[#1B1F23]">{purgePreview.docPhotos}</span></div>
                   <div className="flex items-center justify-between gap-3"><span>Rechnungen</span><span className="font-semibold text-[#1B1F23]">{purgePreview.invoices}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Dir.-Claims</span><span className="font-semibold text-[#1B1F23]">{purgePreview.dirClaims}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Dir.-Profile (Owner)</span><span className="font-semibold text-[#1B1F23]">{purgePreview.dirProfiles}</span></div>
                   <div className="flex items-center justify-between gap-3"><span>Storage bytes</span><span className="font-semibold text-[#1B1F23]">{formatStorageBytesShort(typeof storageBytes === 'number' ? storageBytes : 0)}</span></div>
                 </div>
               ) : (
@@ -603,6 +701,9 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               )}
               <div className="mt-3 rounded-lg bg-[rgba(220,38,38,.06)] px-3 py-2 text-[12px] text-[#7F1D1D]">
                 <strong className="font-semibold">Bestätigung erforderlich:</strong> Checkbox setzen und die User-ID exakt eingeben.
+                {billing?.stripe_customer_id ? (
+                  <span className="mt-1 block">Stripe-Kunde {billing.stripe_customer_id} wird mitgelöscht (soweit möglich).</span>
+                ) : null}
               </div>
             </div>
             <div className="mt-4 flex flex-col gap-2">

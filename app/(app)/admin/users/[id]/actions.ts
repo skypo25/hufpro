@@ -8,6 +8,9 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
 import { getStripe } from '@/lib/stripe/stripe'
+import { listLiveSubscriptions } from '@/lib/billing/stripeSubscriptionExclusive.server'
+import { syncBillingSubscriptionFromStripeForUser } from '@/lib/billing/syncSubscriptionFromStripe.server'
+import { createAndSendPasswordResetForUserId } from '@/lib/auth/passwordReset.server'
 import { isFeatureEnabled, type AdminFeatureFlagKey } from '@/lib/admin/featureFlagsShared'
 import { IMPERSONATION_COOKIE } from '@/lib/admin/impersonation'
 
@@ -284,6 +287,199 @@ export async function endTrialNow(formData: FormData) {
   redirect(backTo(userId, { saved: 'trial_end' }))
 }
 
+export async function sendPasswordReset(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=password_reset')
+  const admin = await requireAdmin()
+
+  const result = await createAndSendPasswordResetForUserId(userId, {
+    createdUserAgent: 'admin-support',
+  })
+  if (!result.ok) {
+    redirect(backTo(userId, { err: 'password_reset', msg: safeErr(result.error) }))
+  }
+
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'password_reset.admin_send',
+  })
+
+  revalidatePath(`/admin/users/${userId}`)
+  redirect(backTo(userId, { saved: 'password_reset' }))
+}
+
+async function resolveLiveSubscriptionId(userId: string): Promise<{
+  customerId: string | null
+  subscriptionId: string | null
+}> {
+  const db = createSupabaseServiceRoleClient()
+  const { data: bill } = await db
+    .from('billing_accounts')
+    .select('stripe_customer_id, stripe_subscription_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const customerId = (bill?.stripe_customer_id as string | null) ?? null
+  const storedSubId = (bill?.stripe_subscription_id as string | null) ?? null
+  if (!customerId && !storedSubId) return { customerId: null, subscriptionId: null }
+
+  try {
+    const stripe = getStripe()
+    if (customerId) {
+      const live = await listLiveSubscriptions(stripe, customerId)
+      if (storedSubId && live.some((s) => s.id === storedSubId)) {
+        return { customerId, subscriptionId: storedSubId }
+      }
+      return { customerId, subscriptionId: live[0]?.id ?? storedSubId }
+    }
+    return { customerId, subscriptionId: storedSubId }
+  } catch {
+    return { customerId, subscriptionId: storedSubId }
+  }
+}
+
+/** Kündigung zum Periodenende (Stripe cancel_at_period_end). */
+export async function cancelSubscriptionAtPeriodEnd(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=billing')
+  const admin = await requireAdmin()
+  const { subscriptionId } = await resolveLiveSubscriptionId(userId)
+  if (!subscriptionId) {
+    redirect(backTo(userId, { err: 'billing', msg: 'Keine aktive Stripe-Subscription.' }))
+  }
+  try {
+    const stripe = getStripe()
+    await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true })
+    await syncBillingSubscriptionFromStripeForUser(userId)
+  } catch (e) {
+    redirect(backTo(userId, { err: 'billing', msg: `Stripe: ${safeErr(e)}` }))
+  }
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'billing.cancel_at_period_end',
+    metadata: { subscriptionId },
+  })
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  revalidatePath('/admin')
+  redirect(backTo(userId, { saved: 'billing_cancel_period' }))
+}
+
+/** Sofortkündigung in Stripe. */
+export async function cancelSubscriptionNow(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=billing')
+  const admin = await requireAdmin()
+  const { subscriptionId } = await resolveLiveSubscriptionId(userId)
+  if (!subscriptionId) {
+    redirect(backTo(userId, { err: 'billing', msg: 'Keine aktive Stripe-Subscription.' }))
+  }
+  try {
+    const stripe = getStripe()
+    await stripe.subscriptions.cancel(subscriptionId)
+    await syncBillingSubscriptionFromStripeForUser(userId)
+  } catch (e) {
+    redirect(backTo(userId, { err: 'billing', msg: `Stripe: ${safeErr(e)}` }))
+  }
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'billing.cancel_now',
+    metadata: { subscriptionId },
+  })
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  revalidatePath('/admin')
+  redirect(backTo(userId, { saved: 'billing_cancel_now' }))
+}
+
+/** Widerruf der Periodenend-Kündigung. */
+export async function reactivateSubscription(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=billing')
+  const admin = await requireAdmin()
+  const db = createSupabaseServiceRoleClient()
+  const { data: bill } = await db
+    .from('billing_accounts')
+    .select('stripe_subscription_id, subscription_cancel_at_period_end')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const subscriptionId = (bill?.stripe_subscription_id as string | null) ?? null
+  if (!subscriptionId) {
+    redirect(backTo(userId, { err: 'billing', msg: 'Keine Subscription-ID.' }))
+  }
+  try {
+    const stripe = getStripe()
+    const sub = await stripe.subscriptions.retrieve(subscriptionId)
+    if (sub.status === 'canceled') {
+      redirect(
+        backTo(userId, {
+          err: 'billing',
+          msg: 'Abo ist bereits beendet — Reaktivierung nur über neues Checkout/Stripe.',
+        })
+      )
+    }
+    await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: false })
+    await syncBillingSubscriptionFromStripeForUser(userId)
+  } catch (e) {
+    redirect(backTo(userId, { err: 'billing', msg: `Stripe: ${safeErr(e)}` }))
+  }
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'billing.reactivate',
+    metadata: { subscriptionId },
+  })
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  redirect(backTo(userId, { saved: 'billing_reactivate' }))
+}
+
+/** Comp-/Grace-Zugangstage (DB: post_cancel_access_until). */
+export async function grantCompAccessDays(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=billing')
+  const admin = await requireAdmin()
+  const days = Number(formData.get('days') ?? 0)
+  const addDays = Number.isFinite(days) ? Math.max(1, Math.min(60, Math.floor(days))) : 7
+  const db = createSupabaseServiceRoleClient()
+  const now = new Date()
+
+  const { data: bill } = await db
+    .from('billing_accounts')
+    .select('post_cancel_access_until')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const current = bill?.post_cancel_access_until ? new Date(String(bill.post_cancel_access_until)) : null
+  const base =
+    current && !Number.isNaN(current.getTime()) && current.getTime() > now.getTime() ? current : now
+  const next = new Date(base.getTime() + addDays * 24 * 60 * 60 * 1000).toISOString()
+
+  const { error } = await db.from('billing_accounts').upsert(
+    {
+      user_id: userId,
+      post_cancel_access_until: next,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' }
+  )
+  if (error) redirect(backTo(userId, { err: 'billing', msg: safeErr(error.message) }))
+
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'billing.comp_access',
+    metadata: { addDays, next },
+  })
+
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  redirect(backTo(userId, { saved: 'billing_comp' }))
+}
+
 export async function setUserBan(formData: FormData) {
   const userId = readUserId(formData)
   if (!userId) redirect('/admin/users?err=ban')
@@ -329,25 +525,73 @@ export async function deleteUserAccount(formData: FormData) {
   }
   const db = createSupabaseServiceRoleClient()
 
-  // Hard delete: remove app data + storage objects before deleting auth user.
-  // Best-effort: if some tables/buckets are missing, continue.
+  // Hard delete: Stripe → Directory → Storage → App-Daten → Auth-User.
   const chunk = <T,>(arr: T[], size: number) => {
     const out: T[][] = []
     for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
     return out
   }
 
+  const { data: billRow } = await db
+    .from('billing_accounts')
+    .select('stripe_customer_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const stripeCustomerId = (billRow?.stripe_customer_id as string | null) ?? null
+  let stripeCleanup: string | null = null
+  if (stripeCustomerId) {
+    try {
+      const stripe = getStripe()
+      const live = await listLiveSubscriptions(stripe, stripeCustomerId)
+      for (const sub of live) {
+        try {
+          await stripe.subscriptions.cancel(sub.id)
+        } catch {
+          /* already canceled */
+        }
+      }
+      try {
+        await stripe.customers.del(stripeCustomerId)
+        stripeCleanup = 'customer_deleted'
+      } catch {
+        stripeCleanup = 'subs_canceled_customer_kept'
+      }
+    } catch (e) {
+      stripeCleanup = `stripe_error:${safeErr(e)}`
+    }
+  }
+
+  // directory_claims.claimant_user_id is ON DELETE RESTRICT — must clear first.
+  await db.from('directory_claims').delete().eq('claimant_user_id', userId)
+  await db
+    .from('directory_profiles')
+    .update({
+      claimed_by_user_id: null,
+      claim_state: 'unclaimed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('claimed_by_user_id', userId)
+  await db.from('directory_user_access').delete().eq('user_id', userId)
+
   try {
-    const [hoof, docPhotos] = await Promise.all([
+    const [hoof, docPhotos, horses] = await Promise.all([
       db.from('hoof_photos').select('file_path').eq('user_id', userId),
       db.from('documentation_photos').select('file_path').eq('user_id', userId),
+      db
+        .from('horses')
+        .select('photo_whole_left_path, photo_whole_right_path')
+        .eq('user_id', userId),
+    ])
+    const horsePaths = ((horses.data as any[] | null | undefined) ?? []).flatMap((r) => [
+      String(r.photo_whole_left_path || ''),
+      String(r.photo_whole_right_path || ''),
     ])
     const paths = [
       ...((hoof.data as any[] | null | undefined) ?? []).map((r) => String(r.file_path || '')).filter(Boolean),
       ...((docPhotos.data as any[] | null | undefined) ?? []).map((r) => String(r.file_path || '')).filter(Boolean),
+      ...horsePaths.filter(Boolean),
     ]
     for (const part of chunk(Array.from(new Set(paths)), 100)) {
-      // Photos live in storage bucket 'hoof-photos'
       await db.storage.from('hoof-photos').remove(part).catch(() => null)
     }
   } catch {
@@ -355,7 +599,6 @@ export async function deleteUserAccount(formData: FormData) {
   }
 
   try {
-    // user logos are stored as `${userId}/logo.ext`
     const bucket = db.storage.from('user-logos')
     const list = await bucket.list(userId, { limit: 1000 }).catch(() => null)
     const names = (list as any)?.data as Array<{ name: string }> | undefined
@@ -367,23 +610,21 @@ export async function deleteUserAccount(formData: FormData) {
     // ignore
   }
 
-  // Delete domain data (order matters when no FKs exist everywhere).
-  const deletes: Array<Promise<any>> = []
-  deletes.push(db.from('appointment_horses').delete().eq('user_id', userId))
-  deletes.push(db.from('appointments').delete().eq('user_id', userId))
-  deletes.push(db.from('hoof_photos').delete().eq('user_id', userId))
-  deletes.push(db.from('documentation_photos').delete().eq('user_id', userId))
-  deletes.push(db.from('hoof_records').delete().eq('user_id', userId))
-  deletes.push(db.from('documentation_records').delete().eq('user_id', userId))
-  deletes.push(db.from('horses').delete().eq('user_id', userId))
-  deletes.push(db.from('invoices').delete().eq('user_id', userId))
-  deletes.push(db.from('customers').delete().eq('user_id', userId))
-  // Tables with FK cascade will be cleaned up automatically too; these calls are harmless if already gone.
-  deletes.push(db.from('billing_accounts').delete().eq('user_id', userId))
-  deletes.push(db.from('user_settings').delete().eq('user_id', userId))
-  deletes.push(db.from('admin_user_meta').delete().eq('user_id', userId))
-  deletes.push(db.from('password_reset_tokens').delete().eq('user_id', userId))
-  await Promise.allSettled(deletes)
+  await Promise.allSettled([
+    db.from('appointment_horses').delete().eq('user_id', userId),
+    db.from('appointments').delete().eq('user_id', userId),
+    db.from('hoof_photos').delete().eq('user_id', userId),
+    db.from('documentation_photos').delete().eq('user_id', userId),
+    db.from('hoof_records').delete().eq('user_id', userId),
+    db.from('documentation_records').delete().eq('user_id', userId),
+    db.from('horses').delete().eq('user_id', userId),
+    db.from('invoices').delete().eq('user_id', userId),
+    db.from('customers').delete().eq('user_id', userId),
+    db.from('billing_accounts').delete().eq('user_id', userId),
+    db.from('user_settings').delete().eq('user_id', userId),
+    db.from('admin_user_meta').delete().eq('user_id', userId),
+    db.from('password_reset_tokens').delete().eq('user_id', userId),
+  ])
 
   const { error } = await db.auth.admin.deleteUser(userId)
   if (error) redirect(backTo(userId, { err: 'delete', msg: safeErr(error.message) }))
@@ -392,6 +633,7 @@ export async function deleteUserAccount(formData: FormData) {
     actorUserId: admin.userId,
     targetUserId: userId,
     action: 'account.delete_hard',
+    metadata: { stripeCleanup, stripeCustomerId },
   })
 
   revalidatePath('/admin/users')

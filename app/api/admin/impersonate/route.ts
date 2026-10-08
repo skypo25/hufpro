@@ -4,8 +4,8 @@ import { prepareImpersonation } from '@/lib/admin/impersonation'
 export const dynamic = 'force-dynamic'
 
 /**
- * Startet Impersonation und redirected auf den Magic-Link.
- * Formulare nutzen target="_blank", damit die Admin-Ansicht im ursprünglichen Tab bleibt.
+ * Startet Impersonation und redirected auf /auth/impersonate (Session-Wechsel).
+ * Formulare nutzen target="_blank", damit der Admin-Tab sichtbar bleibt.
  */
 export async function POST(request: Request) {
   const form = await request.formData().catch(() => null)
@@ -16,5 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL(result.redirectTo, request.url), 303)
   }
 
-  return NextResponse.redirect(result.actionLink, 303)
+  const dest = new URL('/auth/impersonate', request.url)
+  dest.searchParams.set('token_hash', result.tokenHash)
+  return NextResponse.redirect(dest, 303)
 }
