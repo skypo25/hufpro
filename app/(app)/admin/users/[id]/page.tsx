@@ -8,7 +8,9 @@ import { formatAdminLastActivity } from '@/lib/admin/lastActivity'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
+import AdminFlashToast from '@/components/admin/AdminFlashToast'
 import AdminNextLink from '@/components/admin/AdminNextLink'
+import AdminPendingSubmitButton from '@/components/admin/AdminPendingSubmitButton'
 import {
   cancelSubscriptionAtPeriodEnd,
   cancelSubscriptionNow,
@@ -165,72 +167,24 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
   const flagBeta = isFeatureEnabled(flags, 'beta')
   const canImpersonate = !isAdminUserId(user.id)
 
+  const quickActionClass =
+    'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] transition hover:border-primary hover:bg-primary/5 active:scale-[0.98]'
+
   return (
     <AppPage className="pb-12">
+      <AdminFlashToast saved={sp.saved} err={sp.err} msg={sp.msg} />
       <PageHeader
         title="Nutzerprofil"
         description="Admin · interne Detailansicht"
       />
 
-      {sp.saved ? (
-        sp.saved === 'trial_end_db' ? (
-          <section className="content-card border border-amber-200 bg-amber-50 px-[22px] py-4 text-[14px] text-amber-950">
-            <strong className="font-semibold">Nur Datenbank.</strong>{' '}
-            Der Trial wurde in AniDocs beendet, aber es wurde <strong className="font-semibold">keine Stripe-Subscription</strong>{' '}
-            gefunden (kein Kunde oder keine aktive Subscription in Stripe). Prüfe im Nutzer-Bereich die Stripe Customer ID und im
-            Stripe-Dashboard den Kunden — ggf. Test-/Live-Modus und API-Key.
-            {sp.msg ? <div className="mt-2 text-[12px] text-amber-900/90">Code: {sp.msg}</div> : null}
-          </section>
-        ) : (
-          <section className="content-card border border-primary/25 bg-primary/6 px-[22px] py-4 text-[14px] text-[#154227]">
-            <strong className="font-semibold">Gespeichert.</strong>{' '}
-            {sp.saved === 'flag'
-              ? 'Feature-Flag aktualisiert.'
-              : sp.saved === 'note'
-                ? 'Notiz gespeichert.'
-                : sp.saved === 'trial'
-                  ? 'Trial verlängert.'
-                  : sp.saved === 'trial_end'
-                    ? 'Trial in der App und bei Stripe aktualisiert (sofern Subscription gefunden).'
-                    : sp.saved === 'ban'
-                      ? 'Account deaktiviert.'
-                      : sp.saved === 'unban'
-                        ? 'Account wieder aktiviert.'
-                        : sp.saved === 'password_reset'
-                          ? 'Passwort-Reset-E-Mail wurde gesendet.'
-                          : sp.saved === 'billing_cancel_period'
-                            ? 'Abo wird zum Periodenende gekündigt.'
-                            : sp.saved === 'billing_cancel_now'
-                              ? 'Abo wurde sofort gekündigt.'
-                              : sp.saved === 'billing_reactivate'
-                                ? 'Periodenend-Kündigung widerrufen.'
-                                : sp.saved === 'billing_comp'
-                                  ? 'Comp-/Grace-Zugang verlängert.'
-                                  : 'Aktualisierung durchgeführt.'}
-          </section>
-        )
-      ) : null}
-      {sp.err ? (
-        <section className="content-card border border-red-200 bg-red-50 px-[22px] py-4 text-[14px] text-red-900">
-          <strong className="font-semibold">Fehler.</strong>{' '}
-          {sp.err === 'flag'
-            ? 'Feature-Flag konnte nicht gespeichert werden.'
-            : sp.err === 'note'
-              ? 'Notiz konnte nicht gespeichert werden.'
-              : sp.err === 'trial'
-                ? 'Trial konnte nicht aktualisiert werden.'
-                : sp.err === 'ban'
-                  ? 'Account konnte nicht geändert werden.'
-                  : sp.err === 'delete'
-                    ? 'Account konnte nicht gelöscht werden.'
-                    : sp.err === 'impersonate'
-                      ? 'Support-Ansicht konnte nicht gestartet werden.'
-                      : sp.err === 'password_reset'
-                        ? 'Passwort-Reset konnte nicht gesendet werden.'
-                        : sp.err === 'billing'
-                          ? 'Billing-Aktion fehlgeschlagen.'
-                          : 'Aktion fehlgeschlagen.'}
-          {sp.msg ? <div className="mt-1 text-[13px] text-red-900/80">{sp.msg}</div> : null}
+      {sp.saved === 'trial_end_db' ? (
+        <section className="content-card border border-amber-200 bg-amber-50 px-[22px] py-4 text-[14px] text-amber-950">
+          <strong className="font-semibold">Nur Datenbank.</strong>{' '}
+          Der Trial wurde in AniDocs beendet, aber es wurde <strong className="font-semibold">keine Stripe-Subscription</strong>{' '}
+          gefunden (kein Kunde oder keine aktive Subscription in Stripe). Prüfe im Nutzer-Bereich die Stripe Customer ID und im
+          Stripe-Dashboard den Kunden — ggf. Test-/Live-Modus und API-Key.
+          {sp.msg ? <div className="mt-2 text-[12px] text-amber-900/90">Code: {sp.msg}</div> : null}
         </section>
       ) : null}
 
@@ -578,31 +532,20 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
           <SectionCard title="Schnellaktionen" bodyClassName="px-[22px] py-[18px]">
             <div className="flex flex-col gap-2">
               {user.email ? (
-                <a
-                  href={`mailto:${user.email}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
-                >
+                <a href={`mailto:${user.email}`} className={quickActionClass}>
                   <i className="bi bi-envelope-fill" aria-hidden />
                   E-Mail senden
                 </a>
               ) : null}
               <form action={sendPasswordReset}>
                 <input type="hidden" name="userId" value={user.id} />
-                <button
-                  type="submit"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
-                >
+                <AdminPendingSubmitButton pendingLabel="E-Mail wird gesendet…">
                   <i className="bi bi-key-fill" aria-hidden />
                   Passwort-Reset senden
-                </button>
+                </AdminPendingSubmitButton>
               </form>
               {stripeCustomerUrl ? (
-                <a
-                  href={stripeCustomerUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
-                >
+                <a href={stripeCustomerUrl} target="_blank" rel="noreferrer" className={quickActionClass}>
                   <i className="bi bi-box-arrow-up-right" aria-hidden />
                   Stripe
                 </a>
@@ -610,13 +553,10 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
               {canImpersonate ? (
                 <form action="/api/admin/impersonate" method="post" target="_blank" rel="noopener noreferrer">
                   <input type="hidden" name="userId" value={user.id} />
-                  <button
-                    type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
-                  >
+                  <AdminPendingSubmitButton pendingLabel="Fenster wird geöffnet…">
                     <i className="bi bi-person-badge-fill" aria-hidden />
                     Als Nutzer einloggen
-                  </button>
+                  </AdminPendingSubmitButton>
                 </form>
               ) : null}
             </div>

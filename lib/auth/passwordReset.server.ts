@@ -97,13 +97,27 @@ export async function createAndSendPasswordResetForUserId(
           '',
           'Wenn du das nicht erwartest, kannst du diese E-Mail ignorieren.',
         ].join('\n'),
-        html: `<!DOCTYPE html><html lang="de"><body style="font-family:sans-serif;background:#f7f7f7;padding:24px;">
-<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
-  <div style="font-weight:700;font-size:18px;margin-bottom:12px;">Passwort zurücksetzen</div>
-  <p style="color:#6B7280;font-size:15px;line-height:1.6;">Unser Support hat einen Link zum Zurücksetzen deines Passworts ausgelöst. Der Link ist 30 Minuten gültig.</p>
-  <p style="margin:24px 0;"><a href="${link}" style="display:inline-block;background:${BRAND_COLORS.accent};color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;">Neues Passwort vergeben</a></p>
-  <p style="color:#9CA3AF;font-size:12px;word-break:break-all;">${link}</p>
-</div></body></html>`,
+        html: `<!DOCTYPE html><html lang="de"><body style="margin:0;padding:0;background:#f7f7f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<div style="padding:24px 12px;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;">
+    <div style="padding:32px 28px 8px;">
+      <div style="font-weight:700;font-size:20px;color:#1A1A1A;margin-bottom:14px;">Passwort zurücksetzen</div>
+      <p style="color:#6B7280;font-size:15px;line-height:1.7;margin:0 0 24px;">Unser Support hat einen Link zum Zurücksetzen deines Passworts ausgelöst. Der Link ist 30 Minuten gültig.</p>
+      <p style="text-align:center;margin:0 0 28px;">
+        <a href="${link}" style="display:inline-block;background:${BRAND_COLORS.accent};color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:700;font-size:15px;">Neues Passwort vergeben</a>
+      </p>
+    </div>
+    <div style="padding:0 28px 28px;">
+      <div style="background:#f7f7f7;border-radius:8px;padding:14px 16px;">
+        <div style="font-size:11px;line-height:1.55;color:#9CA3AF;">
+          <strong style="color:#6B7280;">Button funktioniert nicht?</strong> Kopiere diesen Link in den Browser:<br />
+          <a href="${link}" style="color:${BRAND_COLORS.accent};text-decoration:none;word-break:break-all;font-size:11px;">${link}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>`,
       }
     )
   } catch (e) {
