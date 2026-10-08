@@ -2,11 +2,9 @@ import { notFound } from 'next/navigation'
 
 import AdminNextLink from '@/components/admin/AdminNextLink'
 import { AdminClaimApproveForm, AdminClaimRejectForm } from '@/components/admin/directory/AdminClaimActionForms'
-import {
-  adminCardClass,
-  adminMutedClass,
-  adminPageTitleClass,
-} from '@/components/admin/adminStyles'
+import { adminBreadcrumbClass, adminCardClass } from '@/components/admin/adminStyles'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import { fetchAdminDirectoryClaimById, type DirectoryClaimStatus } from '@/lib/admin/directoryClaimsData'
 import { formatGermanDateTime } from '@/lib/format'
 
@@ -56,20 +54,20 @@ export default async function AdminDirectoryClaimDetailPage({ params, searchPara
     row.profile_claimed_by_user_id !== row.claimant_user_id
 
   return (
-    <div className="mx-auto w-full max-w-[880px] space-y-6 px-4 py-8 md:px-6">
-      <p className={adminMutedClass}>
-        <AdminNextLink href="/admin" className="text-[#3B82F6] hover:underline">
+    <AppPage className="max-w-[880px]">
+      <p className={adminBreadcrumbClass}>
+        <AdminNextLink href="/admin" className="text-primary hover:underline">
           Admin
         </AdminNextLink>
         {' / '}
-        <AdminNextLink href="/admin/directory/claims" className="text-[#3B82F6] hover:underline">
-          Verzeichnis / Claims
+        <AdminNextLink href="/admin/directory/claims" className="text-primary hover:underline">
+          Claims
         </AdminNextLink>
         {' / '}
         Detail
       </p>
 
-      <h1 className={adminPageTitleClass}>Claim prüfen</h1>
+      <PageHeader title="Claim prüfen" description="Antrag prüfen und annehmen oder ablehnen." />
 
       {loadError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">{loadError}</div>
@@ -205,6 +203,6 @@ export default async function AdminDirectoryClaimDetailPage({ params, searchPara
           ) : null}
         </>
       ) : null}
-    </div>
+    </AppPage>
   )
 }

@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { AppProfileProvider } from '@/context/AppProfileContext'
+import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
 import { SidebarProvider } from '@/context/SidebarContext'
 import { ToastProvider } from '@/context/ToastContext'
 import { ANIDOCS_SHELL_COOKIE } from '@/lib/mobile/shellPreference'
@@ -143,7 +144,9 @@ export default function AppLayoutClient({
 
   return (
     <AppProfileProvider>
-      <ToastProvider>{inner}</ToastProvider>
+      <FeatureFlagsProvider>
+        <ToastProvider>{inner}</ToastProvider>
+      </FeatureFlagsProvider>
     </AppProfileProvider>
   )
 }

@@ -13,6 +13,7 @@ function isAdminNavActive(pathname: string, href: string) {
 /**
  * Mobile: unter /admin keine Kunden-Tab-Bar; kompakte Admin-Navigation + App-Router-children.
  * Desktop nutzt die normale Sidebar (nur Admin-Menüpunkte).
+ * Optik angeglichen an App-Shell (#f8f8f8, dashboard-serif).
  */
 export function AdminAppChromeMobile({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? ''
@@ -34,13 +35,13 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
   }, [])
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f8f8f8] text-[#1B1F23]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#f8f8f8] text-foreground">
       <header
         className="sticky top-0 z-20 shrink-0 border-b border-[#E5E2DC] bg-white/95 backdrop-blur"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}
       >
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <span className="flex items-center gap-2 font-[family-name:var(--font-outfit)] text-[15px] font-semibold tracking-tight text-[#1B1F23]">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+          <span className="dashboard-serif flex items-center gap-2 text-[18px] font-medium tracking-[-0.02em] text-foreground">
             <span
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-[13px] font-bold text-[#1b1f23]"
               aria-hidden
@@ -54,7 +55,7 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
           </Link>
         </div>
         <nav
-          className="flex gap-1 overflow-x-auto border-t border-[#F0EEEA] px-2 py-2"
+          className="flex gap-1 overflow-x-auto border-t border-[#F0EEEA] px-2 py-2 md:px-4"
           aria-label="Admin-Navigation"
         >
           {ADMIN_APP_NAV_LINKS.map((l) => {
@@ -68,7 +69,7 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
                   'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold transition',
                   active
                     ? 'bg-[rgba(82,183,136,.12)] text-[#2d8a63]'
-                    : 'text-[#6B7280] hover:bg-[rgba(0,0,0,.04)] hover:text-[#1B1F23]',
+                    : 'text-text-secondary hover:bg-[rgba(0,0,0,.04)] hover:text-foreground',
                 ].join(' ')}
               >
                 {l.label}
@@ -82,7 +83,7 @@ export function AdminAppChromeMobile({ children }: { children: React.ReactNode }
           })}
         </nav>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-[max(24px,env(safe-area-inset-bottom))] md:px-8">
         {children}
       </div>
     </div>

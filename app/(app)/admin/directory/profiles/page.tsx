@@ -1,5 +1,7 @@
 import AdminNextLink from '@/components/admin/AdminNextLink'
-import { adminCardClass, adminMutedClass, adminPageTitleClass } from '@/components/admin/adminStyles'
+import { adminCardClass } from '@/components/admin/adminStyles'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import { parseAdminDirectoryProfileFlash } from '@/lib/admin/directoryProfileAdminFlash'
 import {
   deClaimStateWithOrigin,
@@ -102,42 +104,31 @@ export default async function AdminDirectoryProfilesPage({ searchParams }: PageP
   const dirOnlyOwners = rows.filter((r) => r.owner_access_scope === 'directory_only').length
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-8 md:px-6">
-      <p className={adminMutedClass}>
-        <AdminNextLink href="/admin" className="text-[#3B82F6] hover:underline">
-          Admin
-        </AdminNextLink>
-        {' / '}
-        Verzeichnis / Profile
-      </p>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className={adminPageTitleClass}>Verzeichnis — Profile</h1>
-          <p className={`${adminMutedClass} mt-1 max-w-[720px]`}>
-            Übersicht mit Verifizierung, Top-Quellen und Vollständigkeit. Detailansicht für Steuerung und Aktionen.
-          </p>
-          {flash ? (
-            <div
-              className={`mt-3 max-w-[720px] rounded-xl border px-4 py-3 text-[13px] ${
-                flash.kind === 'ok'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
-                  : 'border-amber-200 bg-amber-50 text-amber-950'
-              }`}
-            >
-              <span className="font-medium">{flash.msg}</span>
-            </div>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-2 self-start">
+    <AppPage>
+      <PageHeader
+        title="Verzeichnis — Profile"
+        description="Übersicht mit Verifizierung, Top-Quellen und Vollständigkeit."
+        actions={
           <AdminNextLink
             href="/admin/directory/claims"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
           >
             Claims
           </AdminNextLink>
+        }
+      />
+
+      {flash ? (
+        <div
+          className={`rounded-xl border px-4 py-3 text-[13px] ${
+            flash.kind === 'ok'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+              : 'border-amber-200 bg-amber-50 text-amber-950'
+          }`}
+        >
+          <span className="font-medium">{flash.msg}</span>
         </div>
-      </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <div className={`${adminCardClass} p-4`}>
@@ -268,6 +259,6 @@ export default async function AdminDirectoryProfilesPage({ searchParams }: PageP
           </tbody>
         </table>
       </div>
-    </div>
+    </AppPage>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useFeatureFlags } from '@/context/FeatureFlagsContext'
 import { useVoiceRecording } from '@/hooks/useVoiceRecording'
 import { speechToText } from '@/lib/speechToText'
 import { formatTherapyDocumentation, type TherapyType } from '@/lib/aiFormatter'
@@ -31,6 +32,7 @@ export default function VoiceRecorder({
   buttonLabel = 'Befund einsprechen',
   buttonClassName,
 }: VoiceRecorderProps) {
+  const { has: hasFeature, loading: flagsLoading } = useFeatureFlags()
   const { state, errorMessage, startRecording, stopRecording, reset } =
     useVoiceRecording()
   const [isProcessing, setIsProcessing] = useState(false)
@@ -80,6 +82,10 @@ export default function VoiceRecorder({
     startRecording,
     stopRecording,
   ])
+
+  if (!flagsLoading && !hasFeature('ai_assistant')) {
+    return null
+  }
 
   return (
     <div className={`voice-recorder flex flex-col gap-2 ${className}`}>

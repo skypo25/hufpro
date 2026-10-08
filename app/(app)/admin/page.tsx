@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { billingBucketLabel, fetchAdminGlobalCounts } from '@/lib/admin/data'
 import { formatGermanDateTime } from '@/lib/format'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import {
   adminCardClass,
-  adminMutedClass,
-  adminPageTitleClass,
   adminSectionHeaderClass,
+  adminSectionTitleClass,
 } from '@/components/admin/adminStyles'
 
 export const dynamic = 'force-dynamic'
@@ -54,33 +55,33 @@ export default async function AdminDashboardPage() {
   const maxProf = data?.professionBars?.[0]?.[1] ?? 1
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className={adminPageTitleClass}>Admin-Dashboard</h1>
-          <p className={`${adminMutedClass} mt-1`}>Stand: {now}</p>
-        </div>
-        <div className="flex flex-wrap gap-2 self-start">
-          <Link
-            href="/admin/users"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
-          >
-            Nutzerübersicht
-          </Link>
-          <Link
-            href="/admin/directory/claims"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
-          >
-            Verzeichnis · Claims
-          </Link>
-          <Link
-            href="/admin/directory/profiles"
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[12px] font-semibold text-[#1B1F23] shadow-sm transition hover:border-[#9CA3AF]"
-          >
-            Verzeichnis · Profile
-          </Link>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="Admin"
+        description={`Interne Übersicht · Stand ${now}`}
+        actions={
+          <>
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
+            >
+              Nutzerübersicht
+            </Link>
+            <Link
+              href="/admin/directory/claims"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
+            >
+              Verzeichnis · Claims
+            </Link>
+            <Link
+              href="/admin/directory/profiles"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-3 py-2 text-[13px] font-medium text-[#1B1F23] transition hover:border-[#9CA3AF]"
+            >
+              Verzeichnis · Profile
+            </Link>
+          </>
+        }
+      />
 
       {loadError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">
@@ -107,9 +108,7 @@ export default async function AdminDashboardPage() {
             <div className={`min-h-0 lg:col-span-2 ${adminCardClass}`}>
               <div className={adminSectionHeaderClass}>
                 <i className="bi bi-pie-chart-fill text-[15px] text-primary" aria-hidden />
-                <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
-                  Berufsgruppen (Settings)
-                </h2>
+                <h2 className={adminSectionTitleClass}>Berufsgruppen (Settings)</h2>
               </div>
               <div className="space-y-2 px-5 py-4">
                 {data.professionBars.length === 0 ? (
@@ -134,9 +133,7 @@ export default async function AdminDashboardPage() {
             <div className={adminCardClass}>
               <div className={adminSectionHeaderClass}>
                 <i className="bi bi-database-fill text-[15px] text-primary" aria-hidden />
-                <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
-                  Nutzungsdaten
-                </h2>
+                <h2 className={adminSectionTitleClass}>Nutzungsdaten</h2>
               </div>
               <div className="divide-y divide-[#F0EEEA] px-5 py-1">
                 <div className="flex justify-between gap-3 py-2.5 text-[13px]">
@@ -159,9 +156,7 @@ export default async function AdminDashboardPage() {
             <div className={adminCardClass}>
               <div className={adminSectionHeaderClass}>
                 <i className="bi bi-person-plus-fill text-[15px] text-primary" aria-hidden />
-                <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
-                  Neue Registrierungen
-                </h2>
+                <h2 className={adminSectionTitleClass}>Neue Registrierungen</h2>
                 <Link href="/admin/users" className="ml-auto text-[11px] font-semibold text-primary hover:underline">
                   Alle
                 </Link>
@@ -189,9 +184,7 @@ export default async function AdminDashboardPage() {
             <div className={adminCardClass}>
               <div className={adminSectionHeaderClass}>
                 <i className="bi bi-lightning-charge-fill text-[15px] text-[#F97316]" aria-hidden />
-                <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
-                  Stripe Webhooks (Audit)
-                </h2>
+                <h2 className={adminSectionTitleClass}>Stripe Webhooks (Audit)</h2>
               </div>
               <div className="space-y-2 px-5 py-4">
                 {data.webhookError ? (
@@ -231,6 +224,6 @@ export default async function AdminDashboardPage() {
           </div>
         </>
       ) : null}
-    </div>
+    </AppPage>
   )
 }

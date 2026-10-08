@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase-client'
 import { canUseMobilePhotoDebugPanel } from '@/lib/mobile/mobilePhotoDebugAccess'
 import PhotoGridDebugSheet from '@/components/mobile/PhotoGridDebugSheet'
 import { useBottomSheetDrag } from '@/components/mobile/useBottomSheetDrag'
+import { useFeatureFlags } from '@/context/FeatureFlagsContext'
 
 const MENU_ITEMS = [
-  { href: '/invoices', title: 'Rechnungen', sub: 'Übersicht, schreiben, versenden', icon: 'bi-receipt', color: 'green' },
+  { href: '/invoices', title: 'Rechnungen', sub: 'Übersicht, schreiben, versenden', icon: 'bi-receipt', color: 'green', flag: 'invoices' as const },
   { href: '/settings', title: 'Mein Betrieb', sub: 'Betriebsdaten, Rechnungen, Preise', icon: 'bi-building-fill', color: 'green' },
   { href: '/settings', title: 'Benachrichtigungen', sub: 'Erinnerungen, Push, E-Mail', icon: 'bi-bell-fill', color: 'blue' },
   { href: '/settings', title: 'Vorlagen & Textbausteine', sub: 'Rechnungstexte, Dokumentation', icon: 'bi-file-text-fill', color: 'purple' },
@@ -23,6 +24,7 @@ type Props = {
 
 export default function MobileMoreSheet({ open, onClose }: Props) {
   const router = useRouter()
+  const { has: hasFeature } = useFeatureFlags()
   const [user, setUser] = useState<{ email?: string; name?: string; initials: string } | null>(null)
   const [photoDebugOpen, setPhotoDebugOpen] = useState(false)
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -145,7 +147,7 @@ export default function MobileMoreSheet({ open, onClose }: Props) {
 
         {/* Menu */}
         <div className="px-3 py-2">
-          {MENU_ITEMS.map((item) => (
+          {MENU_ITEMS.filter((item) => !('flag' in item) || hasFeature(item.flag)).map((item) => (
             <button
               key={item.title}
               type="button"

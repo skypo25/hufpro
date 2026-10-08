@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAppAccess } from '@/lib/billing/requireAppAccess'
+import { userHasFeature } from '@/lib/admin/featureFlags'
+import { isAdminUserId } from '@/lib/admin/config'
 
 type TherapyType = 'huf' | 'physio' | 'osteo' | 'heilpraktiker'
 
@@ -20,6 +22,13 @@ const THERAPY_LABELS: Record<TherapyType, string> = {
 export async function POST(request: Request) {
   const gate = await requireAppAccess({ mode: 'write' })
   if (!gate.ok) return gate.response
+
+  if (!isAdminUserId(gate.userId) && !(await userHasFeature(gate.userId, 'ai_assistant'))) {
+    return NextResponse.json(
+      { error: 'KI-Assistent ist für diesen Account deaktiviert.' },
+      { status: 403 }
+    )
+  }
 
   let rawText: string
   let therapyType: TherapyType

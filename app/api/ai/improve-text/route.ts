@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { isAdminUserId } from '@/lib/admin/config'
+import { userHasFeature } from '@/lib/admin/featureFlags'
 import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 
 /**
@@ -10,6 +12,13 @@ import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 export async function POST(request: Request) {
   const gate = await requireAppAccess({ mode: 'write' })
   if (!gate.ok) return gate.response
+
+  if (!isAdminUserId(gate.userId) && !(await userHasFeature(gate.userId, 'ai_assistant'))) {
+    return NextResponse.json(
+      { error: 'KI-Assistent ist für diesen Account deaktiviert.' },
+      { status: 403 }
+    )
+  }
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {

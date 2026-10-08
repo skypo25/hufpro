@@ -1,4 +1,6 @@
 import AppLayoutClient from '@/components/AppLayoutClient'
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner'
+import { getActiveImpersonation } from '@/lib/admin/impersonation'
 import { directoryPublicPaketFromUserMetadata } from '@/lib/directory/public/appBaseUrl'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
@@ -50,14 +52,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
+  const impersonation = await getActiveImpersonation()
+
   return (
-    <AppLayoutClient
-      accessScope={accessScope}
-      readOnlyBanner={readOnlyBanner}
-      directoryInternChrome={directoryInternChrome}
-      directoryInternPaket={directoryInternPaket}
-    >
-      {children}
-    </AppLayoutClient>
+    <>
+      {impersonation ? <ImpersonationBanner targetEmail={impersonation.targetEmail} /> : null}
+      <AppLayoutClient
+        accessScope={accessScope}
+        readOnlyBanner={readOnlyBanner}
+        directoryInternChrome={directoryInternChrome}
+        directoryInternPaket={directoryInternPaket}
+      >
+        {children}
+      </AppLayoutClient>
+    </>
   )
 }

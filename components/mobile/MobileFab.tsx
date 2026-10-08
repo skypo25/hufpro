@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useAppProfile } from '@/context/AppProfileContext'
+import { useFeatureFlags } from '@/context/FeatureFlagsContext'
 import { newAnimalFabLabel } from '@/lib/appProfile'
 
 function IconFabPlus() {
@@ -16,14 +17,18 @@ function IconFabPlus() {
 
 export default function MobileFab() {
   const { profile } = useAppProfile()
+  const { has: hasFeature } = useFeatureFlags()
   const fabItems = useMemo(
-    () => [
-      { href: '/appointments/new', label: 'Neuer Termin' },
-      { href: '/invoices/new', label: 'Neue Rechnung' },
-      { href: '/customers/new', label: 'Neuer Kunde' },
-      { href: '/animals/new', label: newAnimalFabLabel(profile.terminology) },
-    ],
-    [profile.terminology]
+    () =>
+      [
+        { href: '/appointments/new', label: 'Neuer Termin' },
+        ...(hasFeature('invoices')
+          ? [{ href: '/invoices/new', label: 'Neue Rechnung' }]
+          : []),
+        { href: '/customers/new', label: 'Neuer Kunde' },
+        { href: '/animals/new', label: newAnimalFabLabel(profile.terminology) },
+      ],
+    [profile.terminology, hasFeature]
   )
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)

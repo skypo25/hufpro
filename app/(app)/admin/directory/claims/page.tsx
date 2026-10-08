@@ -1,9 +1,7 @@
 import AdminNextLink from '@/components/admin/AdminNextLink'
-import {
-  adminCardClass,
-  adminMutedClass,
-  adminPageTitleClass,
-} from '@/components/admin/adminStyles'
+import { adminCardClass } from '@/components/admin/adminStyles'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import { fetchAdminDirectoryClaimsList, type DirectoryClaimStatus } from '@/lib/admin/directoryClaimsData'
 import { formatGermanDateTime } from '@/lib/format'
 
@@ -57,37 +55,24 @@ export default async function AdminDirectoryClaimsPage({ searchParams }: PagePro
     ].join(' ')
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] space-y-6 px-4 py-8 md:px-6">
-      <p className={adminMutedClass}>
-        <AdminNextLink href="/admin" className="text-[#3B82F6] hover:underline">
-          Admin
-        </AdminNextLink>
-        {' / '}
-        <AdminNextLink href="/admin/directory/profiles" className="text-[#3B82F6] hover:underline">
-          Verzeichnis / Profile
-        </AdminNextLink>
-        {' / '}
-        Claims
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className={adminPageTitleClass}>Directory — Profil-Claims</h1>
-          <p className={`${adminMutedClass} mt-1 max-w-[640px]`}>
-            Review offener Anträge. Aktionen laufen serverseitig mit Service Role; nur Admins (wie bisher).
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <AdminNextLink href="/admin/directory/claims" className={filterLinkClass(filter === 'all')}>
-            Alle ({rows.length})
-          </AdminNextLink>
-          <AdminNextLink href="/admin/directory/claims?filter=pending" className={filterLinkClass(filter === 'pending')}>
-            Offen ({pendingCount})
-          </AdminNextLink>
-          <AdminNextLink href="/admin/directory/claims?filter=done" className={filterLinkClass(filter === 'done')}>
-            Erledigt
-          </AdminNextLink>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        title="Verzeichnis — Claims"
+        description="Review offener Anträge. Aktionen laufen serverseitig mit Service Role."
+        actions={
+          <>
+            <AdminNextLink href="/admin/directory/claims" className={filterLinkClass(filter === 'all')}>
+              Alle ({rows.length})
+            </AdminNextLink>
+            <AdminNextLink href="/admin/directory/claims?filter=pending" className={filterLinkClass(filter === 'pending')}>
+              Offen ({pendingCount})
+            </AdminNextLink>
+            <AdminNextLink href="/admin/directory/claims?filter=done" className={filterLinkClass(filter === 'done')}>
+              Erledigt
+            </AdminNextLink>
+          </>
+        }
+      />
 
       {loadError ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">
@@ -160,6 +145,6 @@ export default async function AdminDirectoryClaimsPage({ searchParams }: PagePro
           </tbody>
         </table>
       </div>
-    </div>
+    </AppPage>
   )
 }

@@ -1,5 +1,13 @@
 import AdminNextLink from '@/components/admin/AdminNextLink'
-import { adminCardClass, adminMutedClass, adminPageTitleClass, adminSectionHeaderClass } from '@/components/admin/adminStyles'
+import {
+  adminBreadcrumbClass,
+  adminCardClass,
+  adminMutedClass,
+  adminSectionHeaderClass,
+  adminSectionTitleClass,
+} from '@/components/admin/adminStyles'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import {
   adminActivateManualTop,
   adminApprovePendingClaimForProfile,
@@ -69,25 +77,27 @@ export default function AdminDirectoryProfileDetail({
   const ls = p.listing_status
 
   return (
-    <div className="mx-auto w-full max-w-[960px] space-y-6 px-4 py-8 md:px-6">
-      <p className={adminMutedClass}>
-        <AdminNextLink href="/admin" className="text-[#3B82F6] hover:underline">
+    <AppPage className="max-w-[960px]">
+      <p className={adminBreadcrumbClass}>
+        <AdminNextLink href="/admin" className="text-primary hover:underline">
           Admin
         </AdminNextLink>
         {' / '}
-        <AdminNextLink href="/admin/directory/profiles" className="text-[#3B82F6] hover:underline">
-          Verzeichnis / Profile
+        <AdminNextLink href="/admin/directory/profiles" className="text-primary hover:underline">
+          Profile
         </AdminNextLink>
         {' / '}
-        <span className="text-[#6B7280]">{p.display_name}</span>
+        <span>{p.display_name}</span>
       </p>
 
-      <div>
-        <h1 className={adminPageTitleClass}>Verzeichnisprofil</h1>
-        <p className={`${adminMutedClass} mt-1`}>
-          {p.display_name} · <span className="font-mono text-[11px]">/behandler/{p.slug}</span>
-        </p>
-      </div>
+      <PageHeader
+        title="Verzeichnisprofil"
+        description={
+          <>
+            {p.display_name} · <span className="font-mono text-[12px]">/behandler/{p.slug}</span>
+          </>
+        }
+      />
 
       {flash ? (
         <div
@@ -103,7 +113,7 @@ export default function AdminDirectoryProfileDetail({
 
       <section className={`${adminCardClass} border-l-4 border-l-[#2563EB]`}>
         <div className={adminSectionHeaderClass}>
-          <h2 className="text-[14px] font-semibold text-[#1B1F23]">Öffentliches Verzeichnis (/behandler)</h2>
+          <h2 className={adminSectionTitleClass}>Öffentliches Verzeichnis (/behandler)</h2>
         </div>
         <div className="space-y-3 px-5 py-4 text-[13px] leading-relaxed text-[#374151]">
           <p>
@@ -148,7 +158,7 @@ export default function AdminDirectoryProfileDetail({
       {/* A) Status & Sichtbarkeit */}
       <section className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
-          <h2 className="text-[14px] font-semibold text-[#1B1F23]">Status &amp; Sichtbarkeit</h2>
+          <h2 className={adminSectionTitleClass}>Status &amp; Sichtbarkeit</h2>
         </div>
         <div className="space-y-4 px-5 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -286,7 +296,7 @@ export default function AdminDirectoryProfileDetail({
       {/* Top */}
       <section className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
-          <h2 className="text-[14px] font-semibold text-[#1B1F23]">Top-Profil</h2>
+          <h2 className={adminSectionTitleClass}>Top-Profil</h2>
         </div>
         <div className="space-y-4 px-5 py-4">
           <p className="text-[13px] text-[#4B5563]">
@@ -399,7 +409,7 @@ export default function AdminDirectoryProfileDetail({
       {/* Owner */}
       <section className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
-          <h2 className="text-[14px] font-semibold text-[#1B1F23]">Owner &amp; Zugriff</h2>
+          <h2 className={adminSectionTitleClass}>Owner &amp; Zugriff</h2>
         </div>
         <div className="space-y-4 px-5 py-4">
           {d.owner ? (
@@ -492,7 +502,7 @@ export default function AdminDirectoryProfileDetail({
       {/* Profilinhalt */}
       <section className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
-          <h2 className="text-[14px] font-semibold text-[#1B1F23]">Profilinhalt &amp; Qualität</h2>
+          <h2 className={adminSectionTitleClass}>Profilinhalt &amp; Qualität</h2>
         </div>
         <div className="space-y-4 px-5 py-4">
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2">
@@ -593,10 +603,10 @@ export default function AdminDirectoryProfileDetail({
       </section>
 
       <p className={adminMutedClass}>
-        <AdminNextLink href="/admin/directory/profiles" className="text-[#3B82F6] hover:underline">
+        <AdminNextLink href="/admin/directory/profiles" className="text-primary hover:underline">
           ← Zurück zur Liste
         </AdminNextLink>
       </p>
-    </div>
+    </AppPage>
   )
 }

@@ -16,6 +16,7 @@ import { faDog, faCat, faHorse, faPaw, faWandMagicSparkles } from '@fortawesome/
 import { profilePhotoPathFromIntake } from '@/lib/animals/clinicalIntakeTypes'
 import { signHorseProfileWholeBodyPhotos } from '@/lib/photos/horseProfilePhotos'
 import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
+import { userHasFeature } from '@/lib/admin/featureFlags'
 
 type HorsePageProps = {
   params: Promise<{ id: string }>
@@ -282,6 +283,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
   }
 
   const age = getAgeFromBirthYear(horse.birth_year)
+  const canPhotoCompare = await userHasFeature(user.id, 'photo_compare')
 
   let wholeBodyPhotos: { id: string; imageUrl: string; label: string }[] = []
   if (hasProfileWholeBody) {
@@ -458,7 +460,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 Dokumentationen
               </h2>
               <div className="flex flex-wrap items-center gap-4">
-                {profile.isHufbearbeiter && recordRows.length >= 2 && (
+                {profile.isHufbearbeiter && canPhotoCompare && recordRows.length >= 2 && (
                   <span className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/animals/${horse.id}/records/compare`}

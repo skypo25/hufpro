@@ -15,6 +15,7 @@ import {
   statusBadgeForBucket,
 } from '@/lib/admin/userListDisplay'
 import AdminUsersSortSelect from '@/components/admin/AdminUsersSortSelect'
+import AppPage from '@/components/layout/AppPage'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -71,14 +72,14 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
   if (err) {
     return (
-      <main className="mx-auto w-full max-w-[1280px] space-y-7 pb-10">
+      <AppPage>
         <PageHeader title="Nutzer" description="Admin · interne Übersicht" />
         <EmptyState
           title="Fehler"
           description={err}
           className="border-red-200 bg-red-50"
         />
-      </main>
+      </AppPage>
     )
   }
 
@@ -101,7 +102,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     : []
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] space-y-7 pb-10">
+    <AppPage>
       <PageHeader
         title="Nutzer"
         description={
@@ -439,7 +440,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           ) : null}
         </div>
       </div>
-    </main>
+    </AppPage>
   )
 }
 

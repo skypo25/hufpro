@@ -27,13 +27,18 @@ import { supabase } from '@/lib/supabase-client'
 import { useAppProfile } from '@/context/AppProfileContext'
 import { animalsNavLabel } from '@/lib/appProfile'
 import { useSidebarContext } from '@/context/SidebarContext'
+import { useFeatureFlags } from '@/context/FeatureFlagsContext'
 import { ADMIN_APP_NAV_LINKS } from '@/lib/admin/adminNavLinks'
 
 /** Eingeklappte App-Sidebar: kompaktes Icon (ersetze `public/logo-sidebar-collapsed-white.svg`). */
 const SIDEBAR_LOGO_COLLAPSED = '/logo-sidebar-collapsed-white.svg'
 const SIDEBAR_LOGO_EXPANDED = '/logo-white.svg'
 
-function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
+function buildNavGroups(
+  animalsListLabel: string,
+  animalsIcon: typeof faHorse,
+  showInvoices: boolean
+) {
   return [
     {
       title: 'Allgemein',
@@ -45,7 +50,9 @@ function buildNavGroups(animalsListLabel: string, animalsIcon: typeof faHorse) {
         { label: 'Kunden', href: '/customers', icon: faUsers },
         { label: animalsListLabel, href: '/animals', icon: animalsIcon },
         { label: 'Termine', href: '/calendar', icon: faCalendarDays },
-        { label: 'Rechnungen', href: '/invoices', icon: faFileInvoice },
+        ...(showInvoices
+          ? [{ label: 'Rechnungen', href: '/invoices', icon: faFileInvoice }]
+          : []),
         { label: 'Billing', href: '/billing', icon: faCreditCard },
         { label: 'Suche', href: '/suche', icon: faMagnifyingGlass },
         { label: 'Einstellungen', href: '/settings', icon: faGear },
@@ -113,6 +120,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { isCollapsed, toggleSidebar } = useSidebarContext()
   const { profile } = useAppProfile()
+  const { has: hasFeature } = useFeatureFlags()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [userDisplay, setUserDisplay] = useState<{
     name: string
@@ -180,7 +188,11 @@ export default function Sidebar() {
     if (pathname.startsWith('/admin')) {
       return buildAdminNavGroups(adminUserCount)
     }
-    const base = buildNavGroups(animalsNavLabel(profile.terminology), animalsIcon)
+    const base = buildNavGroups(
+      animalsNavLabel(profile.terminology),
+      animalsIcon,
+      hasFeature('invoices')
+    )
     if (!showAdminNav) return base
     return base.map((group) =>
       group.title === 'System'
@@ -190,7 +202,7 @@ export default function Sidebar() {
           }
         : group
     )
-  }, [pathname, profile.terminology, animalsIcon, showAdminNav, adminUserCount])
+  }, [pathname, profile.terminology, animalsIcon, showAdminNav, adminUserCount, hasFeature])
 
   return (
     <aside

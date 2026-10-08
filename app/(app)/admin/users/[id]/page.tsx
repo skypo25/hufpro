@@ -1,12 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { billingBucketLabel, fetchAdminUserDetail } from '@/lib/admin/data'
+import { isAdminUserId } from '@/lib/admin/config'
+import { isFeatureEnabled } from '@/lib/admin/featureFlagsShared'
 import { formatGermanDate, formatGermanDateTime, formatStorageBytesShort } from '@/lib/format'
 import { formatAdminLastActivity } from '@/lib/admin/lastActivity'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
-import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, toggleAdminUserFlag } from './actions'
+import AdminNextLink from '@/components/admin/AdminNextLink'
+import { deleteUserAccount, endTrialNow, extendTrial, saveAdminUserNote, setUserBan, startImpersonation, toggleAdminUserFlag } from './actions'
 import { BRAND_COLORS } from '@/lib/branding'
 import AppPage from '@/components/layout/AppPage'
 
@@ -147,6 +150,11 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
   const flags = ((adminMeta?.feature_flags ?? {}) as Record<string, unknown>) || {}
   const note = (adminMeta?.admin_note ?? '') as string
   const noteUpdatedAt = adminMeta?.updated_at ? formatGermanDateTime(adminMeta.updated_at) : null
+  const flagAi = isFeatureEnabled(flags, 'ai_assistant')
+  const flagCompare = isFeatureEnabled(flags, 'photo_compare')
+  const flagInvoices = isFeatureEnabled(flags, 'invoices')
+  const flagBeta = isFeatureEnabled(flags, 'beta')
+  const canImpersonate = !isAdminUserId(user.id)
 
   return (
     <AppPage className="pb-12">
@@ -196,7 +204,9 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   ? 'Account konnte nicht geändert werden.'
                   : sp.err === 'delete'
                     ? 'Account konnte nicht gelöscht werden.'
-                : 'Aktion fehlgeschlagen.'}
+                    : sp.err === 'impersonate'
+                      ? 'Support-Ansicht konnte nicht gestartet werden.'
+                      : 'Aktion fehlgeschlagen.'}
           {sp.msg ? <div className="mt-1 text-[13px] text-red-900/80">{sp.msg}</div> : null}
         </section>
       ) : null}
@@ -269,15 +279,18 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                 E-Mail
               </a>
             ) : null}
-            <button
-              type="button"
-              disabled
-              title="Impersonation ist noch nicht angebunden"
-              className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#9CA3AF] opacity-70"
-            >
-              <i className="bi bi-box-arrow-up-right" aria-hidden />
-              Als Nutzer ansehen
-            </button>
+            {canImpersonate ? (
+              <form action={startImpersonation}>
+                <input type="hidden" name="userId" value={user.id} />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
+                >
+                  <i className="bi bi-box-arrow-up-right" aria-hidden />
+                  Als Nutzer ansehen
+                </button>
+              </form>
+            ) : null}
           </div>
         </div>
       </section>
@@ -510,24 +523,37 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   Stripe
                 </a>
               ) : null}
-              <button
-                disabled
-                title="Impersonation folgt als nächster Schritt"
-                className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#9CA3AF] opacity-70"
-              >
-                <i className="bi bi-person-badge-fill" aria-hidden />
-                Als Nutzer einloggen
-              </button>
+              {canImpersonate ? (
+                <form action={startImpersonation}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <button
+                    type="submit"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] hover:border-primary"
+                  >
+                    <i className="bi bi-person-badge-fill" aria-hidden />
+                    Als Nutzer einloggen
+                  </button>
+                </form>
+              ) : null}
             </div>
           </SectionCard>
 
           <SectionCard title="Feature-Flags" bodyClassName="px-[22px] py-[18px]">
+            <p className="mb-3 text-[12px] text-[#6B7280]">
+              Kernfunktionen sind standardmäßig an. Ausschalten deaktiviert sie für diesen Nutzer. Beta nur bei aktivem Schalter.
+            </p>
             <div className="space-y-3">
-              <FlagRow userId={user.id} flag="ai_assistant" title="KI-Textassistent" desc="Voice-to-Text und KI-Verbesserung" on={flags.ai_assistant === true} />
-              <FlagRow userId={user.id} flag="photo_compare" title="Fotovergleich" desc="Vorher/Nachher-Vergleich" on={flags.photo_compare === true} />
-              <FlagRow userId={user.id} flag="invoices" title="Rechnungsmodul" desc="Rechnungserstellung und -versand" on={flags.invoices === true} />
-              <FlagRow userId={user.id} flag="beta" title="Beta-Features" desc="Zugang zu unveröffentlichten Funktionen" on={flags.beta === true} />
+              <FlagRow userId={user.id} flag="ai_assistant" title="KI-Textassistent" desc="Voice-to-Text und KI-Verbesserung" on={flagAi} />
+              <FlagRow userId={user.id} flag="photo_compare" title="Fotovergleich" desc="Vorher/Nachher-Vergleich" on={flagCompare} />
+              <FlagRow userId={user.id} flag="invoices" title="Rechnungsmodul" desc="Rechnungserstellung und -versand" on={flagInvoices} />
+              <FlagRow userId={user.id} flag="beta" title="Beta-Features" desc="Zugang zu unveröffentlichten Funktionen" on={flagBeta} />
             </div>
+            <AdminNextLink
+              href={`/admin/audit?target=${user.id}`}
+              className="mt-4 inline-flex text-[13px] font-medium text-primary hover:underline"
+            >
+              Audit zu diesem Nutzer →
+            </AdminNextLink>
           </SectionCard>
 
           <SectionCard title="Interne Notizen" bodyClassName="px-[22px] py-[18px]">

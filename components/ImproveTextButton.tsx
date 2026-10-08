@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useFeatureFlags } from '@/context/FeatureFlagsContext'
 import { improveText } from '@/lib/aiImproveText'
 
 export type ImproveTextButtonProps = {
@@ -26,6 +27,7 @@ export default function ImproveTextButton({
   className = '',
   buttonClassName,
 }: ImproveTextButtonProps) {
+  const { has: hasFeature, loading: flagsLoading } = useFeatureFlags()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +45,10 @@ export default function ImproveTextButton({
       setLoading(false)
     }
   }, [value, onImproved, animalName, loading, disabled])
+
+  if (!flagsLoading && !hasFeature('ai_assistant')) {
+    return null
+  }
 
   const isDisabled = disabled || loading || !value.trim()
 

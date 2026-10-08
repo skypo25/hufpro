@@ -8,6 +8,7 @@ import AppPage from '@/components/layout/AppPage'
 import ListPagination, { parseListPageParams } from '@/components/ui/ListPagination'
 import { invoiceGrossCentsFromItems, vatFromSettings } from '@/lib/invoices/vat'
 import { getUserSettingsCached } from '@/lib/userSettings/getUserSettingsCached'
+import { requireUserFeature } from '@/lib/admin/requireUserFeature'
 
 type CustomerInvoicesPageProps = {
   params: Promise<{ id: string }>
@@ -41,6 +42,7 @@ function buildPageHref(customerId: string, page: number, perPage: number) {
 }
 
 export default async function CustomerInvoicesPage({ params, searchParams }: CustomerInvoicesPageProps) {
+  await requireUserFeature('invoices')
   const { id: customerId } = await params
   const sp = await searchParams
   const { page: currentPage, perPage: currentPerPage } = parseListPageParams(sp)

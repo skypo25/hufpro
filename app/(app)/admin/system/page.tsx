@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { fetchAdminGlobalCounts } from '@/lib/admin/data'
 import { formatGermanDateTime } from '@/lib/format'
-import { adminCardClass, adminMutedClass, adminPageTitleClass, adminSectionHeaderClass } from '@/components/admin/adminStyles'
+import {
+  adminCardClass,
+  adminSectionHeaderClass,
+  adminSectionTitleClass,
+} from '@/components/admin/adminStyles'
+import AppPage from '@/components/layout/AppPage'
+import PageHeader from '@/components/ui/PageHeader'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { saveDataExportRetention, saveSystemSmtp, testSystemSmtp } from './actions'
 
@@ -33,11 +39,8 @@ export default async function AdminSystemPage(props: {
   const { data: systemSettingsRow } = await db.from('system_settings').select('*').eq('id', 1).maybeSingle()
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className={adminPageTitleClass}>System</h1>
-        <p className={`${adminMutedClass} mt-1`}>Ruhiger Überblick · {now}</p>
-      </div>
+    <AppPage>
+      <PageHeader title="System" description={`Ruhiger Überblick · ${now}`} />
 
       {sp.saved === 'smtp' ? (
         <div className="rounded-xl border border-[rgba(0,109,109,.25)] bg-primary/6 px-4 py-3 text-[13px] text-primary-dark">
@@ -68,7 +71,7 @@ export default async function AdminSystemPage(props: {
         <div className={adminCardClass}>
           <div className={adminSectionHeaderClass}>
             <i className="bi bi-heart-pulse text-[15px] text-primary" aria-hidden />
-            <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+            <h2 className={adminSectionTitleClass}>
               App & Datenhaltung
             </h2>
           </div>
@@ -90,7 +93,7 @@ export default async function AdminSystemPage(props: {
         <div className={adminCardClass}>
           <div className={adminSectionHeaderClass}>
             <i className="bi bi-stripe text-[15px] text-[#635BFF]" aria-hidden />
-            <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+            <h2 className={adminSectionTitleClass}>
               Stripe Webhooks (Audit)
             </h2>
           </div>
@@ -131,7 +134,7 @@ export default async function AdminSystemPage(props: {
       <div className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
           <i className="bi bi-envelope-at-fill text-[15px] text-[#2563EB]" aria-hidden />
-          <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+          <h2 className={adminSectionTitleClass}>
             System SMTP (noreply@anidocs.de)
           </h2>
         </div>
@@ -207,7 +210,7 @@ export default async function AdminSystemPage(props: {
       <div className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
           <i className="bi bi-archive text-[15px] text-primary" aria-hidden />
-          <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+          <h2 className={adminSectionTitleClass}>
             Datenexport (Aufbewahrung)
           </h2>
         </div>
@@ -255,7 +258,7 @@ export default async function AdminSystemPage(props: {
       <div className={adminCardClass}>
         <div className={adminSectionHeaderClass}>
           <i className="bi bi-info-circle-fill text-[15px] text-[#3B82F6]" aria-hidden />
-          <h2 className="font-[family-name:var(--font-outfit)] text-[14px] font-semibold text-[#1B1F23]">
+          <h2 className={adminSectionTitleClass}>
             Hinweise
           </h2>
         </div>
@@ -275,7 +278,7 @@ export default async function AdminSystemPage(props: {
           </p>
         </div>
       </div>
-    </div>
+    </AppPage>
   )
 }
 

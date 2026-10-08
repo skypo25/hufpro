@@ -2,10 +2,15 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { requireAdmin } from '@/lib/admin/requireAdmin'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { logAdminAuditEvent } from '@/lib/admin/audit'
 import { getStripe } from '@/lib/stripe/stripe'
+import { isFeatureEnabled, type AdminFeatureFlagKey } from '@/lib/admin/featureFlagsShared'
+import { isAdminUserId } from '@/lib/admin/config'
+import { IMPERSONATION_COOKIE } from '@/lib/admin/impersonation'
 
 function backTo(userId: string, q: Record<string, string> = {}) {
   const p = new URLSearchParams(q)
@@ -73,8 +78,9 @@ export async function toggleAdminUserFlag(formData: FormData) {
   const row = rowRes.data ?? null
 
   const flags = ((row?.feature_flags ?? {}) as Record<string, unknown>) || {}
-  const current = flags[key]
-  const next = current === true ? false : true
+  const keyTyped = key as AdminFeatureFlagKey
+  const currentlyOn = isFeatureEnabled(flags, keyTyped)
+  const next = !currentlyOn
   flags[key] = next
 
   const { error } = await db.from('admin_user_meta').upsert(
@@ -391,5 +397,94 @@ export async function deleteUserAccount(formData: FormData) {
 
   revalidatePath('/admin/users')
   redirect('/admin/users?saved=deleted')
+}
+
+/** Startet eine Magic-Link-Session als Zielnutzer (Admin-Session wird ersetzt). */
+export async function startImpersonation(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=impersonate')
+  const admin = await requireAdmin()
+  if (admin.userId === userId) {
+    redirect(backTo(userId, { err: 'impersonate', msg: 'Du bist bereits dieser Nutzer.' }))
+  }
+  if (isAdminUserId(userId)) {
+    redirect(backTo(userId, { err: 'impersonate', msg: 'Andere Admins können nicht impersoniert werden.' }))
+  }
+
+  const db = createSupabaseServiceRoleClient()
+  const { data: userRes, error: userErr } = await db.auth.admin.getUserById(userId)
+  if (userErr || !userRes.user?.email) {
+    redirect(backTo(userId, { err: 'impersonate', msg: safeErr(userErr?.message ?? 'Keine E-Mail') }))
+  }
+
+  const { data: linkRes, error: linkErr } = await db.auth.admin.generateLink({
+    type: 'magiclink',
+    email: userRes.user.email,
+  })
+  if (linkErr || !linkRes?.properties?.action_link) {
+    redirect(
+      backTo(userId, {
+        err: 'impersonate',
+        msg: safeErr(linkErr?.message ?? 'Magic-Link fehlgeschlagen'),
+      })
+    )
+  }
+
+  const cookieStore = await cookies()
+  cookieStore.set(
+    IMPERSONATION_COOKIE,
+    JSON.stringify({
+      adminId: admin.userId,
+      adminEmail: admin.email,
+      targetId: userId,
+      targetEmail: userRes.user.email,
+      startedAt: new Date().toISOString(),
+    }),
+    {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 4,
+      secure: process.env.NODE_ENV === 'production',
+    }
+  )
+
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'impersonation.start',
+    metadata: { targetEmail: userRes.user.email },
+  })
+
+  redirect(linkRes.properties.action_link)
+}
+
+export async function endImpersonation() {
+  const cookieStore = await cookies()
+  const raw = cookieStore.get(IMPERSONATION_COOKIE)?.value
+  let adminId: string | null = null
+  let targetId: string | null = null
+  try {
+    if (raw) {
+      const parsed = JSON.parse(raw) as { adminId?: string; targetId?: string }
+      adminId = parsed.adminId ?? null
+      targetId = parsed.targetId ?? null
+    }
+  } catch {
+    // ignore
+  }
+
+  cookieStore.delete(IMPERSONATION_COOKIE)
+
+  const supabase = await createSupabaseServerClient()
+  await supabase.auth.signOut()
+
+  await logAdminAuditEvent({
+    actorUserId: adminId,
+    targetUserId: targetId,
+    action: 'impersonation.end',
+  })
+
+  redirect('/login?hint=impersonation_ended')
 }
 
