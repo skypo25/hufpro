@@ -55,10 +55,12 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
       const msg = (err as { error?: { message?: string } }).error?.message ?? response.statusText
-      return NextResponse.json(
-        { error: `Spracherkennung fehlgeschlagen: ${msg}` },
-        { status: 502 }
-      )
+      console.error('OpenAI transcription failed:', msg)
+      // Keine Key-/Provider-Details an Clients leaken
+      const clientMsg = /api key|incorrect|invalid/i.test(msg)
+        ? 'Spracherkennung ist serverseitig nicht konfiguriert. Bitte OPENAI_API_KEY prüfen.'
+        : 'Spracherkennung fehlgeschlagen. Bitte erneut versuchen.'
+      return NextResponse.json({ error: clientMsg }, { status: 502 })
     }
 
     const data = (await response.json()) as { text?: string }
