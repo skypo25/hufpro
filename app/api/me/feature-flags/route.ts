@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import {
   ADMIN_FEATURE_FLAG_KEYS,
   getUserFeatureFlagsCached,
   isFeatureEnabled,
   type AdminFeatureFlagKey,
 } from '@/lib/admin/featureFlags'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 /** Client-lesbare Feature-Flags des eingeloggten Nutzers (Service-Role Meta). */
 export async function GET() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getSupabaseAndUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const flags = await getUserFeatureFlagsCached(user.id)
@@ -24,7 +21,6 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    flags,
     enabled,
     keys: ADMIN_FEATURE_FLAG_KEYS,
   })

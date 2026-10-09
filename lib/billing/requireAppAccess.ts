@@ -1,7 +1,6 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import type { User } from '@supabase/supabase-js'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import {
   canAccessApp,
@@ -10,6 +9,7 @@ import {
 } from '@/lib/billing/state'
 import { isAdminUserId } from '@/lib/admin/config'
 import type { BillingAccountRow, BillingState } from '@/lib/billing/types'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 export type AppAccessOk = {
   ok: true
@@ -33,10 +33,7 @@ export async function requireAppAccess(opts?: {
   mode?: 'read' | 'write'
 }): Promise<AppAccessOk | AppAccessDenied> {
   const mode = opts?.mode ?? 'write'
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { supabase, user } = await getSupabaseAndUser()
 
   if (!user) {
     return {
