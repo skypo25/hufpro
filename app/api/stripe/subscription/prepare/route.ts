@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { requireEnv } from '@/lib/env'
 import { getStripe } from '@/lib/stripe/stripe'
@@ -12,6 +11,7 @@ import {
   isAppTrialEnded,
   resolveSubscriptionPaymentSecrets,
 } from '@/lib/stripe/subscriptionPaymentSecrets'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 function trialEndUnixFromIso(iso: string | null | undefined): number | undefined {
   if (!iso) return undefined
@@ -23,11 +23,13 @@ function trialEndUnixFromIso(iso: string | null | undefined): number | undefined
 }
 
 export async function POST() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user } = await getSupabaseAndUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() || null
 
   const priceId = requireEnv('STRIPE_PRICE_ID_MONTHLY')
   const supabaseAdmin = createSupabaseServiceRoleClient()
@@ -183,6 +185,7 @@ export async function POST() {
         completed: true as const,
         subscriptionId: subscription.id,
         customerId,
+        publishableKey,
       })
     }
     return NextResponse.json({ error: 'Zahlung konnte nicht initialisiert werden.' }, { status: 500 })
@@ -211,6 +214,7 @@ export async function POST() {
     intentType: secrets.intentType,
     subscriptionId: subscription.id,
     customerId,
+    publishableKey,
   })
 }
 

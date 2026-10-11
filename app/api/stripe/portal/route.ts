@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 export async function POST() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user } = await getSupabaseAndUser()
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Nicht angemeldet. Bitte in der App erneut anmelden.' },
+      { status: 401 },
+    )
   }
 
   const appUrl = getAppUrl()

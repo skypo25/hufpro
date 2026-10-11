@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import { requireEnv } from '@/lib/env'
 import { runExclusiveAppSubscriptionCheckout } from '@/lib/billing/stripeSubscriptionExclusive.server'
 import { getAppUrl, getStripe } from '@/lib/stripe/stripe'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 type CheckoutBody = {
   /** Nach erfolgreichem Checkout: Billing (Standard) oder Verzeichnis-App-Einstieg. */
@@ -13,8 +13,8 @@ type CheckoutBody = {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user } = await getSupabaseAndUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

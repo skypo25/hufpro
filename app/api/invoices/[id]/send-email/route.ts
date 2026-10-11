@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isValidEmail, sendMail } from '@/lib/email'
 import { fetchInvoicePdfData } from '@/lib/pdf/invoiceData'
 import InvoicePdfDocument from '@/components/pdf/InvoicePdfDocument'
@@ -7,6 +6,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { embedZugferdIntoPdf } from '@/lib/einvoice/zugferd'
 import { requireAppAccess } from '@/lib/billing/requireAppAccess'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,7 +53,8 @@ export async function POST(
   const gate = await requireAppAccess({ mode: 'write' })
   if (!gate.ok) return gate.response
 
-  const supabase = await createSupabaseServerClient()
+  // Bearer (Flutter) + Cookie (PWA) — nicht createSupabaseServerClient (nur Cookies).
+  const { supabase } = await getSupabaseAndUser()
   const user = gate.user
   if (!user) {
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
