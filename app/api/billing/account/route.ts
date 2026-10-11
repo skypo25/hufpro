@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
-import { requireUserSession } from '@/lib/auth/requireUserSession.server'
 import { ensureBillingAccountRow } from '@/lib/billing/supabaseBilling'
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 export async function GET() {
-  const session = await requireUserSession()
-  if (!session.ok) return session.response
-  const { user, supabase } = session
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user, supabase } = await getSupabaseAndUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+  }
 
   const { data: row1, error: err1 } = await supabase
     .from('billing_accounts')
