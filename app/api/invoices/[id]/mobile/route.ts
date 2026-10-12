@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { fetchInvoicePdfData } from '@/lib/pdf/invoiceData'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user, supabase } = await getSupabaseAndUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+  }
 
   const data = await fetchInvoicePdfData(supabase, user.id, id)
   if (!data) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
@@ -21,10 +21,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .single()
 
   const status = (invRow as { status?: string } | null)?.status ?? 'draft'
-  if (status === 'draft') {
-    return NextResponse.json({ redirectTo: `/invoices/${id}/edit` })
-  }
 
+  // Flutter: immer Vorschau-Daten; kein Redirect (PWA-Edit-Link).
   return NextResponse.json({
     data,
     status,
