@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { fetchInvoicePdfData } from "@/lib/pdf/invoiceData"
 import InvoicePdfDocument from "@/components/pdf/InvoicePdfDocument"
 import { embedZugferdIntoPdf } from "@/lib/einvoice/zugferd"
+import { getSupabaseAndUser } from "@/lib/supabase-auth"
 import { renderToBuffer } from "@react-pdf/renderer"
 import React from "react"
 
@@ -12,8 +12,8 @@ export const runtime = "nodejs"
 type RouteParams = { params: Promise<{ id: string }> }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Cookie (PWA) + Bearer (Flutter)
+  const { user, supabase } = await getSupabaseAndUser()
 
   if (!user) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 })
