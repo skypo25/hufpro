@@ -4,7 +4,7 @@ import { fetchInvoicePdfData } from '@/lib/pdf/invoiceData'
 import InvoicePdfDocument from '@/components/pdf/InvoicePdfDocument'
 import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
-import { embedZugferdIntoPdf } from '@/lib/einvoice/zugferd'
+import { buildInvoicePdfBuffer } from '@/lib/einvoice/zugferd'
 import { requireAppAccess } from '@/lib/billing/requireAppAccess'
 import { getSupabaseAndUser } from '@/lib/supabase-auth'
 
@@ -67,10 +67,16 @@ export async function POST(
 
   let isTest = false
   let testTo = ''
+  let zugferdOverride: boolean | undefined
   try {
-    const body = (await request.json().catch(() => ({}))) as { test?: boolean; to?: string }
+    const body = (await request.json().catch(() => ({}))) as {
+      test?: boolean
+      to?: string
+      zugferd?: boolean
+    }
     isTest = body.test === true
     testTo = typeof body.to === 'string' ? body.to.trim() : ''
+    if (typeof body.zugferd === 'boolean') zugferdOverride = body.zugferd
   } catch {
     // kein Body
   }
@@ -85,7 +91,9 @@ export async function POST(
 
   const { data: invRow, error: invErr } = await supabase
     .from('invoices')
-    .select('id, customer_id, status, invoice_number, invoice_date, payment_due_date, sent_at')
+    .select(
+      'id, customer_id, status, invoice_number, invoice_date, payment_due_date, sent_at, zugferd_enabled',
+    )
     .eq('id', invoiceId)
     .eq('user_id', user.id)
     .single()
@@ -169,11 +177,20 @@ export async function POST(
     return NextResponse.json({ error: 'PDF-Daten konnten nicht geladen werden.' }, { status: 404 })
   }
 
-  // PDF erzeugen (wie /invoices/[id]/pdf)
+  const withZugferd =
+    typeof zugferdOverride === 'boolean'
+      ? zugferdOverride
+      : (invRow as { zugferd_enabled?: boolean }).zugferd_enabled === true
+
+  // PDF erzeugen (wie /invoices/[id]/pdf) — ZUGFeRD nur wenn aktiv
   const element = React.createElement(InvoicePdfDocument, { data: pdfData })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfBuffer = await renderToBuffer(element as any)
-  const pdfWithZugferd = await embedZugferdIntoPdf(Buffer.from(pdfBuffer), pdfData)
+  const pdfFinal = await buildInvoicePdfBuffer(
+    Buffer.from(pdfBuffer),
+    pdfData,
+    withZugferd,
+  )
 
   const filename = `Rechnung-${pdfData.invoiceNumber}.pdf`
   const customerName =
@@ -467,7 +484,7 @@ export async function POST(
         attachments: [
           {
             filename,
-            content: pdfWithZugferd,
+            content: pdfFinal,
             contentType: 'application/pdf',
           },
         ],

@@ -19,7 +19,7 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
   const { data: invRow } = await supabase
     .from('invoices')
-    .select('customer_id, status')
+    .select('customer_id, status, zugferd_enabled')
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
@@ -31,6 +31,16 @@ export default async function InvoiceDetailPage({ params }: InvoiceDetailPagePro
 
   const customerId = (invRow as { customer_id?: string } | null)?.customer_id
   const backHref = customerId ? `/customers/${customerId}/invoices` : '/customers'
+  const zugferdEnabled =
+    (invRow as { zugferd_enabled?: boolean } | null)?.zugferd_enabled === true
 
-  return <InvoiceDetailView data={data} backHref={backHref} invoiceId={id} status={status} />
+  return (
+    <InvoiceDetailView
+      data={data}
+      backHref={backHref}
+      invoiceId={id}
+      status={status}
+      initialZugferdEnabled={zugferdEnabled}
+    />
+  )
 }

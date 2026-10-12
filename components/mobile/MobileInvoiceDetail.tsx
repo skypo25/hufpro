@@ -10,6 +10,7 @@ export default function MobileInvoiceDetail({ invoiceId }: { invoiceId: string }
   const router = useRouter()
   const [data, setData] = useState<InvoicePdfData | null>(null)
   const [status, setStatus] = useState('sent')
+  const [zugferdEnabled, setZugferdEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function MobileInvoiceDetail({ invoiceId }: { invoiceId: string }
         }
         setData((json as { data: InvoicePdfData }).data)
         setStatus((json as { status: string }).status)
+        setZugferdEnabled((json as { zugferdEnabled?: boolean }).zugferdEnabled === true)
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Laden fehlgeschlagen')
@@ -51,7 +53,13 @@ export default function MobileInvoiceDetail({ invoiceId }: { invoiceId: string }
 
   return (
     <div className="pb-4">
-      <InvoiceDetailView data={data} backHref="/invoices" invoiceId={invoiceId} status={status} />
+      <InvoiceDetailView
+        data={data}
+        backHref="/invoices"
+        invoiceId={invoiceId}
+        status={status}
+        initialZugferdEnabled={zugferdEnabled}
+      />
     </div>
   )
 }

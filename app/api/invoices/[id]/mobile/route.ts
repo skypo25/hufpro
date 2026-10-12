@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: invRow } = await supabase
     .from('invoices')
-    .select('customer_id, status')
+    .select('customer_id, status, zugferd_enabled')
     .eq('id', id)
     .eq('user_id', user.id)
     .single()
@@ -27,5 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     data,
     status,
     customerId: (invRow as { customer_id?: string } | null)?.customer_id ?? null,
+    zugferdEnabled:
+      (invRow as { zugferd_enabled?: boolean } | null)?.zugferd_enabled === true,
   })
 }

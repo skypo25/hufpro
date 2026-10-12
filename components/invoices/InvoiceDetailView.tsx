@@ -55,9 +55,17 @@ type InvoiceDetailViewProps = {
   backHref: string
   invoiceId: string
   status: string
+  /** Pro Rechnung: ZUGFeRD EN 16931 einbetten */
+  initialZugferdEnabled?: boolean
 }
 
-export default function InvoiceDetailView({ data, backHref, invoiceId, status }: InvoiceDetailViewProps) {
+export default function InvoiceDetailView({
+  data,
+  backHref,
+  invoiceId,
+  status,
+  initialZugferdEnabled = false,
+}: InvoiceDetailViewProps) {
   const { showToast } = useToast()
   const { seller, buyer, items, netCents, taxCents, taxRatePercent, totalCents } = data
   const sellerName = seller.companyName?.trim() || seller.name
@@ -70,6 +78,30 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
 
   const [sending, setSending] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [zugferdEnabled, setZugferdEnabled] = useState(initialZugferdEnabled)
+  const [zugferdSaving, setZugferdSaving] = useState(false)
+
+  const handleZugferdToggle = async (next: boolean) => {
+    setZugferdEnabled(next)
+    setZugferdSaving(true)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/zugferd`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setZugferdEnabled(!next)
+        throw new Error((json as { error?: string }).error || 'Speichern fehlgeschlagen')
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'ZUGFeRD-Einstellung fehlgeschlagen', 'error')
+    } finally {
+      setZugferdSaving(false)
+    }
+  }
 
   const handlePdfDownload = async () => {
     if (pdfLoading) return
@@ -134,7 +166,24 @@ export default function InvoiceDetailView({ data, backHref, invoiceId, status }:
             {statusLabel}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors ${
+              zugferdEnabled
+                ? 'border-primary/40 bg-primary/10 text-primary-dark'
+                : 'border-[#E5E2DC] bg-white text-[#1B1F23]'
+            }`}
+            title="E-Rechnung: strukturiertes XML (EN 16931) im PDF"
+          >
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[var(--primary,#006D6D)]"
+              checked={zugferdEnabled}
+              disabled={zugferdSaving || status === 'cancelled'}
+              onChange={(e) => void handleZugferdToggle(e.target.checked)}
+            />
+            ZUGFeRD
+          </label>
           <button
             type="button"
             onClick={() => window.print()}

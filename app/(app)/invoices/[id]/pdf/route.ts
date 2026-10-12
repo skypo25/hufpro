@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { fetchInvoicePdfData } from "@/lib/pdf/invoiceData"
 import InvoicePdfDocument from "@/components/pdf/InvoicePdfDocument"
-import { embedZugferdIntoPdf } from "@/lib/einvoice/zugferd"
+import { buildInvoicePdfBuffer } from "@/lib/einvoice/zugferd"
 import { getSupabaseAndUser } from "@/lib/supabase-auth"
 import { renderToBuffer } from "@react-pdf/renderer"
 import React from "react"
@@ -27,15 +27,28 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Rechnung nicht gefunden" }, { status: 404 })
   }
 
+  const { data: invMeta } = await supabase
+    .from("invoices")
+    .select("zugferd_enabled")
+    .eq("id", invoiceId)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  const url = new URL(request.url)
+  let withZugferd = invMeta?.zugferd_enabled === true
+  if (url.searchParams.has("zugferd")) {
+    withZugferd = url.searchParams.get("zugferd") !== "0"
+  }
+
   const element = React.createElement(InvoicePdfDocument, { data })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfBuffer = await renderToBuffer(element as any)
-  const url = new URL(request.url)
-  const withZugferd = url.searchParams.get("zugferd") !== "0"
-  const finalPdfBuffer = withZugferd
-    ? await embedZugferdIntoPdf(Buffer.from(pdfBuffer), data)
-    : Buffer.from(pdfBuffer)
+  const finalPdfBuffer = await buildInvoicePdfBuffer(
+    Buffer.from(pdfBuffer),
+    data,
+    withZugferd,
+  )
   const pdfUint8 = new Uint8Array(finalPdfBuffer)
 
   const disposition = url.searchParams.get("preview") === "1" ? "inline" : "attachment"
@@ -47,6 +60,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${disposition}; filename="${filename}"`,
       "Cache-Control": "private, no-cache",
+      "X-AniDocs-Zugferd": withZugferd ? "1" : "0",
     },
   })
 }
