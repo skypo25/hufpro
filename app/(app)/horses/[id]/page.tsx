@@ -5,6 +5,7 @@ import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListFo
 import WholeBodyPhotoSwitcher from '@/components/photos/WholeBodyPhotoSwitcher'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
 import { deriveAppProfile, animalsNavLabel, animalSingularLabel } from '@/lib/appProfile'
+import { documentationModuleLabel } from '@/lib/modules/labels'
 import AppPage from '@/components/layout/AppPage'
 import {
   formatAnimalTypeLabel,
@@ -490,6 +491,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                 <thead>
                   <tr>
                     <th>Datum und Uhrzeit</th>
+                    <th>Modul</th>
                     <th>Fotos</th>
                     <th>Geändert</th>
                     <th className="text-right">Aktion</th>
@@ -509,6 +511,16 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
                             ].filter(Boolean).join(' · ')}
                           </span>
                         </div>
+                      </td>
+
+                      <td>
+                        <span className="inline-flex rounded-full bg-[rgba(82,183,136,.1)] px-2.5 py-1 text-[12px] font-medium text-primary">
+                          {documentationModuleLabel({
+                            documentationModule: record.documentationModule,
+                            documentationKind: record.documentationKind,
+                            therapyDiscipline: record.therapyDiscipline,
+                          })}
+                        </span>
                       </td>
 
                       <td>
@@ -540,7 +552,7 @@ export default async function HorseDetailPage({ params }: HorsePageProps) {
 
                   {recordRows.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="py-10 text-center text-sm text-[#6B7280]">
+                      <td colSpan={5} className="py-10 text-center text-sm text-[#6B7280]">
                         Noch keine Dokumentationen vorhanden.
                       </td>
                     </tr>

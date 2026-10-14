@@ -17,6 +17,10 @@ export type HorseRecordListRecord = {
   created_at: string | null
   updated_at: string | null
   doc_number: string | null
+  /** Für gemeinsame Tierakte: Modulkennzeichnung */
+  documentationKind?: 'hoof' | 'therapy' | null
+  therapyDiscipline?: string | null
+  documentationModule?: string | null
 }
 
 export type HorseRecordListRow = {
@@ -37,6 +41,8 @@ type DocListRow = {
   metadata: unknown
   created_at: string
   updated_at: string
+  documentation_kind?: string | null
+  therapy_discipline?: string | null
 }
 
 type HoofListRow = {
@@ -123,7 +129,9 @@ export async function loadRecordListForHorseView(
       .returns<HoofListRow[]>(),
     supabase
       .from('documentation_records')
-      .select('id, session_date, doc_number, metadata, created_at, updated_at')
+      .select(
+        'id, session_date, doc_number, metadata, created_at, updated_at, documentation_kind, therapy_discipline'
+      )
       .eq('animal_id', horseId)
       .eq('user_id', userId)
       .returns<DocListRow[]>(),
@@ -157,6 +165,10 @@ export async function loadRecordListForHorseView(
     const updatedAt = doc ? doc.updated_at : hoof.updated_at
     const docNumber = doc ? (doc.doc_number ?? null) : null
 
+    const metaMod =
+      doc?.metadata && typeof doc.metadata === 'object'
+        ? (doc.metadata as { documentation_module?: string }).documentation_module
+        : null
     const record: HorseRecordListRecord = {
       id: hoof.id,
       horse_id: hoof.horse_id,
@@ -164,6 +176,9 @@ export async function loadRecordListForHorseView(
       created_at: createdAt,
       updated_at: updatedAt,
       doc_number: docNumber ?? null,
+      documentationKind: (doc?.documentation_kind as 'hoof' | 'therapy' | null | undefined) ?? null,
+      therapyDiscipline: doc?.therapy_discipline ?? null,
+      documentationModule: metaMod ?? null,
     }
 
     merged.push({
