@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 import {
   getEnabledDocumentationModules,
   listUserDocumentationModuleRows,
@@ -16,12 +16,10 @@ export const revalidate = 0
 /**
  * Effektive Modulrechte + erlaubte Tierarten für den eingeloggten Nutzer.
  * Lesend — Client darf nicht schreiben.
+ * Auth: Cookie (PWA) oder Bearer (Flutter).
  */
 export async function GET() {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getSupabaseAndUser()
   if (!user) {
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   }
