@@ -22,6 +22,7 @@ import '../../widgets/native_dictation_field.dart';
 import '../animals/animal_detail_screen.dart';
 import '../animals/animals_repository.dart';
 import '../../widgets/annotation_overlay.dart';
+import 'body_map_editor.dart';
 import 'hoof_photo_wizard_screen.dart';
 import 'photo_annotator_screen.dart';
 import 'photo_process.dart';
@@ -133,6 +134,9 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
   bool _progressOpen = true;
 
   String? _horseMeta;
+  String _animalType = 'horse';
+  final _bodyMapMarkers = <BodyMapMarkerData>[];
+  bool _bodyMapOpen = false;
   bool _loading = true;
   bool _saving = false;
   bool _improving = false;
@@ -181,10 +185,16 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
           .map((s) => s.trim())
           .where((s) => s.isNotEmpty)
           .join(' · ');
+      final animalRaw = '${horse?['animal_type'] ?? ''}'.trim().toLowerCase();
+      final animalType = switch (animalRaw) {
+        'dog' || 'cat' || 'small' || 'other' => animalRaw,
+        _ => 'horse',
+      };
       if (!mounted) return;
       setState(() {
         _lastVisit = last;
         _horseMeta = meta.isEmpty ? null : meta;
+        _animalType = animalType;
         _loading = false;
       });
     } catch (_) {
@@ -536,6 +546,18 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
               'general_treatment': _generalTreatment.text.trim(),
             },
         },
+        if (therapy)
+          'therapy_payload': {
+            'schema_version': 1,
+            'module_id': resolvedModuleId,
+            'animal_type': _animalType,
+            'body_map': {
+              'animal': const {'horse', 'dog', 'cat'}.contains(_animalType)
+                  ? _animalType
+                  : 'horse',
+              'markers': [for (final m in _bodyMapMarkers) m.toJson()],
+            },
+          },
         'metadata': {
           'legacy_hoof_record_id': hoofId,
           'source': 'flutter_mobile',
@@ -739,6 +761,14 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
                   _hoofsCard(),
                   const SizedBox(height: 12),
                   _photosCard(),
+                  const SizedBox(height: 12),
+                ],
+                if (therapy &&
+                    (moduleDef?.supportsBodyMap ?? false) &&
+                    (_animalType == 'horse' ||
+                        _animalType == 'dog' ||
+                        _animalType == 'cat')) ...[
+                  _bodyMapCard(),
                   const SizedBox(height: 12),
                 ],
                 _measuresCard(therapy: therapy),
@@ -1502,6 +1532,41 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
           child: Icon(icon, size: 14, color: Colors.white),
         ),
       ),
+    );
+  }
+
+  Widget _bodyMapCard() {
+    final mapAnimal = (_animalType == 'dog' || _animalType == 'cat')
+        ? _animalType
+        : 'horse';
+    return _sectionCard(
+      icon: TablerIcons.mapPin,
+      title: 'Körperkarte',
+      hint: _bodyMapMarkers.isEmpty
+          ? 'optional'
+          : '${_bodyMapMarkers.length} Markierung(en)',
+      onHeaderTap: () => setState(() => _bodyMapOpen = !_bodyMapOpen),
+      trailing: Icon(
+        _bodyMapOpen ? TablerIcons.chevronDown : TablerIcons.chevronRight,
+        size: 18,
+        color: AniDocsColors.muted,
+      ),
+      child: _bodyMapOpen
+          ? BodyMapEditor(
+              animalType: mapAnimal,
+              markers: _bodyMapMarkers,
+              onChanged: (next) {
+                setState(() {
+                  _bodyMapMarkers
+                    ..clear()
+                    ..addAll(next);
+                });
+              },
+            )
+          : TextButton(
+              onPressed: () => setState(() => _bodyMapOpen = true),
+              child: const Text('Körperkarte öffnen'),
+            ),
     );
   }
 
