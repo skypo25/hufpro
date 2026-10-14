@@ -11,6 +11,7 @@ import '../../core/ai/speech_service.dart';
 import '../../core/app_profile.dart';
 import '../../core/app_profile_provider.dart';
 import '../../core/modules/catalog.dart';
+import '../../core/modules/therapy_templates.dart';
 import '../../core/offline/offline_errors.dart';
 import '../../core/offline/online_check.dart';
 import '../../core/supabase.dart';
@@ -125,8 +126,10 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
 
   final _summary = TextEditingController();
   final _notes = TextEditingController();
-  final _recommendations = TextEditingController(); // therapy
+  final _recommendations = TextEditingController(); // therapy / legacy
   final _generalTreatment = TextEditingController();
+  final _therapyFields = <String, TextEditingController>{};
+  final _therapySectionOpen = <String, bool>{};
 
   final _shots = <String, CapturedShot>{};
   final _annotationsBySlot = <String, Map<String, dynamic>>{};
@@ -148,12 +151,23 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
     _bootstrap();
   }
 
+  TextEditingController _therapyCtrl(String id) {
+    return _therapyFields.putIfAbsent(id, TextEditingController.new);
+  }
+
+  bool _isTherapySectionOpen(String id, {required bool defaultOpen}) {
+    return _therapySectionOpen[id] ?? defaultOpen;
+  }
+
   @override
   void dispose() {
     _summary.dispose();
     _notes.dispose();
     _recommendations.dispose();
     _generalTreatment.dispose();
+    for (final c in _therapyFields.values) {
+      c.dispose();
+    }
     for (final h in _hoofs.values) {
       h.dispose();
     }
@@ -438,8 +452,31 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
       _date.month,
       _date.day,
     ).toIso8601String().split('T').first;
-    final summary = _summary.text.trim();
-    final recommendations = _recommendations.text.trim();
+
+    final therapySectionsMap = <String, String>{
+      for (final e in _therapyFields.entries)
+        if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
+    };
+    String therapySummaryFallback() {
+      for (final v in therapySectionsMap.values) {
+        if (v.isNotEmpty) return v;
+      }
+      return _summary.text.trim();
+    }
+
+    final summary = therapy
+        ? (therapySectionsMap['session_notes'] ??
+                therapySectionsMap['chief_complaint'] ??
+                therapySummaryFallback())
+            .trim()
+        : _summary.text.trim();
+    final recommendations = therapy
+        ? (therapySectionsMap['recommendations'] ??
+                therapySectionsMap['interventions'] ??
+                therapySectionsMap['treatment_plan'] ??
+                _recommendations.text.trim())
+            .trim()
+        : _recommendations.text.trim();
     final hoofsJson = [for (final e in _hoofs.entries) e.value.toJson(e.key)];
 
     String wrapHtml(String text) {
@@ -551,6 +588,7 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
             'schema_version': 1,
             'module_id': resolvedModuleId,
             'animal_type': _animalType,
+            'sections': therapySectionsMap,
             'body_map': {
               'animal': const {'horse', 'dog', 'cat'}.contains(_animalType)
                   ? _animalType
@@ -763,16 +801,25 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
                   _photosCard(),
                   const SizedBox(height: 12),
                 ],
-                if (therapy &&
-                    (moduleDef?.supportsBodyMap ?? false) &&
-                    (_animalType == 'horse' ||
-                        _animalType == 'dog' ||
-                        _animalType == 'cat')) ...[
-                  _bodyMapCard(),
+                if (therapy) ...[
+                  _therapyModuleBadge(
+                    moduleDef?.label ?? 'Therapie',
+                  ),
+                  const SizedBox(height: 12),
+                  ..._therapySectionCards(
+                    moduleId: moduleId ?? 'heilpraktik',
+                  ),
+                  if ((moduleDef?.supportsBodyMap ?? false) &&
+                      (_animalType == 'horse' ||
+                          _animalType == 'dog' ||
+                          _animalType == 'cat')) ...[
+                    _bodyMapCard(),
+                    const SizedBox(height: 12),
+                  ],
+                ] else ...[
+                  _measuresCard(therapy: false),
                   const SizedBox(height: 12),
                 ],
-                _measuresCard(therapy: therapy),
-                const SizedBox(height: 12),
                 _notesCard(),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
@@ -1533,6 +1580,157 @@ class _RecordCreateScreenState extends ConsumerState<RecordCreateScreen> {
         ),
       ),
     );
+  }
+
+  Widget _therapyModuleBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: AniDocsColors.card(),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AniDocsColors.accentLight,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              label,
+              style: AniDocsText.fieldLabel(color: AniDocsColors.accentDark),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Therapie-Dokumentation',
+              style: AniDocsText.fieldHelper(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _therapySectionCards({required String moduleId}) {
+    final sections = therapySectionsForModule(
+      moduleId: moduleId,
+      animalType: _animalType,
+    );
+    final out = <Widget>[];
+    for (var i = 0; i < sections.length; i++) {
+      final section = sections[i];
+      final open = _isTherapySectionOpen(
+        section.id,
+        defaultOpen: i < 2,
+      );
+      out.add(
+        _sectionCard(
+          icon: TablerIcons.clipboardText,
+          title: section.title,
+          hint: section.optional ? 'optional' : null,
+          onHeaderTap: () => setState(() {
+            _therapySectionOpen[section.id] = !open;
+          }),
+          trailing: Icon(
+            open ? TablerIcons.chevronDown : TablerIcons.chevronRight,
+            size: 18,
+            color: AniDocsColors.muted,
+          ),
+          child: open
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final field in section.fields) ...[
+                      Text(field.label, style: AniDocsText.fieldLabel()),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _therapyCtrl(field.id),
+                        minLines: 3,
+                        maxLines: 8,
+                        decoration: InputDecoration(
+                          hintText: field.hint ?? 'Text eingeben…',
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: VoiceRecorderButton(
+                              animalName: widget.horseName,
+                              buttonLabel: 'Einsprechen',
+                              onResult: (text) {
+                                final c = _therapyCtrl(field.id);
+                                setState(() {
+                                  if (c.text.trim().isEmpty) {
+                                    c.text = text;
+                                  } else {
+                                    c.text = '${c.text.trim()}\n\n$text';
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _improving
+                                  ? null
+                                  : () => _improveTherapyField(field.id),
+                              icon: _improving
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(TablerIcons.sparkles, size: 18),
+                              label: const Text('KI'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (field != section.fields.last)
+                        const SizedBox(height: 16),
+                    ],
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
+      );
+      out.add(const SizedBox(height: 12));
+    }
+    return out;
+  }
+
+  Future<void> _improveTherapyField(String fieldId) async {
+    final c = _therapyCtrl(fieldId);
+    final raw = c.text.trim();
+    if (raw.isEmpty || _improving) return;
+    setState(() => _improving = true);
+    try {
+      final profile = watchAppProfile(ref);
+      final text = await SpeechService.formatDocumentation(
+        rawText: raw,
+        therapyType: therapyAiTypeForProfile(profile),
+        animalName: widget.horseName,
+      );
+      if (!mounted) return;
+      if (text.isNotEmpty) setState(() => c.text = text);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(RegExp(r'^Bad state: '), ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _improving = false);
+    }
   }
 
   Widget _bodyMapCard() {
