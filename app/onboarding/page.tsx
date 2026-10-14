@@ -167,6 +167,17 @@ export default function OnboardingPage() {
       { onConflict: 'user_id' }
     )
 
+    // Serverseitige einmalige Modulfreischaltung (idempotent; Client kann Rechte nicht erweitern)
+    try {
+      await fetch('/api/onboarding/grant-modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ professions: pList }),
+      })
+    } catch {
+      /* Onboarding nicht blockieren — Admin kann Module nachtragen */
+    }
+
     // Fallback falls DB-Trigger kein billing_accounts angelegt hat → 14-Tage-Trial sicherstellen
     try {
       await fetch('/api/billing/account')

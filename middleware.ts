@@ -12,6 +12,7 @@ import {
 import { BILLING_ACCOUNT_COLUMNS } from '@/lib/billing/billingAccountSelect'
 import { getBillingState, canAccessApp } from '@/lib/billing/state'
 import type { BillingAccountRow } from '@/lib/billing/types'
+import { isDirectoryPublicEnabled } from '@/lib/features/publicFlags'
 
 /** `public/directory/*` (Hero, Kategorie-SVGs): gleicher URL-Prefix wie geschützte App-Routen unter `/directory/…`. */
 function isDirectoryPublicStaticAsset(pathname: string): boolean {
@@ -65,6 +66,22 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+
+  // Öffentliches Behandlerverzeichnis vorübergehend deaktiviert (Code/Daten bleiben).
+  // Reaktivierung: DIRECTORY_PUBLIC_ENABLED=true bzw. NEXT_PUBLIC_DIRECTORY_PUBLIC_ENABLED=true
+  if (!isDirectoryPublicEnabled()) {
+    const isBehandlerPublic =
+      pathname === '/behandler' || pathname.startsWith('/behandler/')
+    const isDirectoryPublicApi =
+      pathname.startsWith('/api/directory/public') ||
+      pathname.startsWith('/api/public/directory')
+    if (isBehandlerPublic || isDirectoryPublicApi) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+  }
 
   const adminIds = (process.env.ADMIN_USER_IDS ?? '')
     .split(',')

@@ -30,8 +30,14 @@ export type HoofRecordMirrorInput = {
   appointment_id?: string | null
 }
 
-/** Wie Backfill: leer → hufbearbeiter */
+/** Wie Backfill: leer → hufbearbeiter. Unterstützt auch Onboarding-Arrays. */
 export function normalizeProfession(value: unknown): string {
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      if (typeof v === 'string' && v.trim()) return v.trim()
+    }
+    return 'hufbearbeiter'
+  }
   const s = typeof value === 'string' ? value.trim() : ''
   return s || 'hufbearbeiter'
 }
@@ -46,6 +52,18 @@ export function deriveTherapyDiscipline(profession: string): TherapyDiscipline |
   if (profession === 'osteopath') return 'osteo'
   if (profession === 'tierheilpraktiker') return 'heilpraktik'
   return 'other'
+}
+
+/** Explizites Modul überschreibt Profession-Ableitung. */
+export function kindAndDisciplineFromModule(moduleId: string | null | undefined): {
+  kind: DocumentationKind
+  discipline: TherapyDiscipline | null
+} | null {
+  if (moduleId === 'hoof') return { kind: 'hoof', discipline: null }
+  if (moduleId === 'physio') return { kind: 'therapy', discipline: 'physio' }
+  if (moduleId === 'osteo') return { kind: 'therapy', discipline: 'osteo' }
+  if (moduleId === 'heilpraktik') return { kind: 'therapy', discipline: 'heilpraktik' }
+  return null
 }
 
 export function deriveSessionType(recordType: string | null): SessionType | null {
@@ -75,9 +93,20 @@ function asJsonArray(value: unknown): unknown[] {
 
 export function buildHoofPayload(row: HoofRecordMirrorInput): Record<string, unknown> {
   const hoofs = asJsonArray(row.hoofs_json)
-  const checklist = asJsonArray(row.checklist_json)
+  let checklist: unknown[] = []
+  let general_treatment: string | null = null
+  const rawChecklist = row.checklist_json
+  if (rawChecklist && typeof rawChecklist === 'object' && !Array.isArray(rawChecklist)) {
+    const o = rawChecklist as Record<string, unknown>
+    if (typeof o.general_treatment === 'string' && o.general_treatment.trim()) {
+      general_treatment = o.general_treatment.trim()
+    }
+    checklist = Array.isArray(o.items) ? o.items : []
+  } else {
+    checklist = asJsonArray(rawChecklist)
+  }
   return {
-    schema_version: 1,
+    schema_version: 2,
     general: {
       general_condition: row.general_condition,
       gait: row.gait,
@@ -86,6 +115,7 @@ export function buildHoofPayload(row: HoofRecordMirrorInput): Record<string, unk
     },
     hoofs,
     checklist,
+    general_treatment,
   }
 }
 

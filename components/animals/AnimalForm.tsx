@@ -84,6 +84,8 @@ type Props = {
   customers: AnimalFormCustomerOption[]
   initialCustomerId?: string
   initialData?: AnimalFormInitialData
+  /** Aus Modul-Entitlements; default: alle Typen */
+  allowedAnimalTypes?: AnimalType[]
   deleteAction?: () => void | Promise<void>
   deleteLabel?: string
   deleteConfirmText?: string
@@ -303,11 +305,14 @@ function horseRowHasStableLocation(row: StableRow | null | undefined): boolean {
   )
 }
 
+const ALL_ANIMAL_TYPES: AnimalType[] = ['dog', 'cat', 'horse', 'small', 'other']
+
 export default function AnimalForm({
   customers,
   initialCustomerId,
   mode = 'create',
   initialData,
+  allowedAnimalTypes,
   deleteAction,
   deleteLabel,
   deleteConfirmText,
@@ -318,13 +323,20 @@ export default function AnimalForm({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const offeredTypes =
+    allowedAnimalTypes && allowedAnimalTypes.length > 0
+      ? allowedAnimalTypes
+      : ALL_ANIMAL_TYPES
+
   const [customerId, setCustomerId] = useState(
     initialData?.customerId ?? initialCustomerId ?? ''
   )
 
-  const [animalType, setAnimalType] = useState<AnimalType>(
-    initialData?.animalType ?? 'dog'
-  )
+  const [animalType, setAnimalType] = useState<AnimalType>(() => {
+    const initial = initialData?.animalType
+    if (initial && offeredTypes.includes(initial)) return initial
+    return offeredTypes[0] ?? 'dog'
+  })
   const [name, setName] = useState(initialData?.name ?? '')
   const [breed, setBreed] = useState(initialData?.breed ?? '')
   const [sex, setSex] = useState(initialData?.sex ?? '')
@@ -679,6 +691,29 @@ export default function AnimalForm({
             stable_drive_time: null,
           }
 
+    if (mode === 'create' && !offeredTypes.includes(animalType)) {
+      setSaving(false)
+      setError('Diese Tierart ist mit deinen Dokumentationsmodulen nicht erlaubt.')
+      return
+    }
+
+    if (mode === 'create') {
+      try {
+        const resMods = await fetch('/api/me/documentation-modules')
+        if (resMods.ok) {
+          const json = (await resMods.json()) as { animalTypes?: string[] }
+          const serverAllowed = json.animalTypes ?? []
+          if (serverAllowed.length > 0 && !serverAllowed.includes(animalType)) {
+            setSaving(false)
+            setError('Diese Tierart ist serverseitig nicht freigeschaltet.')
+            return
+          }
+        }
+      } catch {
+        /* Netzfehler: Insert versuchen; DB-Trigger folgen später */
+      }
+    }
+
     const payload = {
       customer_id: customerId,
       animal_type: animalType,
@@ -842,11 +877,13 @@ export default function AnimalForm({
 
       <CollapsibleSection title="Tierart" icon={<i className="bi bi-tag-fill" />} opt="Die Auswahl passt das Formular an">
         <div className="grid min-w-0 grid-cols-5 gap-2 max-[900px]:grid-cols-3">
-          <TierCard t="dog" icon={faDog} label="Hund" />
-          <TierCard t="cat" icon={faCat} label="Katze" />
-          <TierCard t="horse" icon={faHorse} label="Pferd" />
-          <TierCard t="small" icon={faPaw} label="Kleintier" />
-          <TierCard t="other" icon={faWandMagicSparkles} label="Sonstiges" />
+          {offeredTypes.includes('dog') ? <TierCard t="dog" icon={faDog} label="Hund" /> : null}
+          {offeredTypes.includes('cat') ? <TierCard t="cat" icon={faCat} label="Katze" /> : null}
+          {offeredTypes.includes('horse') ? <TierCard t="horse" icon={faHorse} label="Pferd" /> : null}
+          {offeredTypes.includes('small') ? <TierCard t="small" icon={faPaw} label="Kleintier" /> : null}
+          {offeredTypes.includes('other') ? (
+            <TierCard t="other" icon={faWandMagicSparkles} label="Sonstiges" />
+          ) : null}
         </div>
       </CollapsibleSection>
 

@@ -1,11 +1,16 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import HorseForm from '@/components/horses/HorseForm'
 import { emptyHorseFormData } from '@/components/horses/horseFormDefaults'
 import AnimalForm from '@/components/animals/AnimalForm'
-import { deriveAppProfile, animalsNavLabel, newAnimalButtonLabel } from '@/lib/appProfile'
+import { deriveAppProfile, newAnimalButtonLabel } from '@/lib/appProfile'
 import AppPage from '@/components/layout/AppPage'
+import { getEnabledDocumentationModulesCached } from '@/lib/modules/entitlements.server'
+import {
+  allowedAnimalTypesForEnabledModules,
+  filterAnimalTypesByFocus,
+} from '@/lib/modules/animalCreatePolicy'
+import type { AnimalType } from '@/components/animals/AnimalForm'
 
 type NewHorsePageProps = {
   searchParams: Promise<{
@@ -34,6 +39,13 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
   const settings = settingsRow?.settings as Record<string, unknown> | undefined
   const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
   const term = profile.terminology
+  const { enabled } = await getEnabledDocumentationModulesCached(user.id)
+  const allowedTypes = filterAnimalTypesByFocus(
+    allowedAnimalTypesForEnabledModules(enabled),
+    typeof settings?.animal_focus === 'string' ? settings.animal_focus : profile.animalFocus
+  ) as AnimalType[]
+  const onlyHorse = allowedTypes.length === 1 && allowedTypes[0] === 'horse'
+  const needsTypeChoice = allowedTypes.length > 1
 
   const { data: customers, error } = await supabase
     .from('customers')
@@ -65,9 +77,13 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
         </p>
       </div>
 
-      {profile.requiresAnimalTypeChoice ? (
-        <AnimalForm customers={customers || []} initialCustomerId={customerId || ''} />
-      ) : (
+      {needsTypeChoice ? (
+        <AnimalForm
+          customers={customers || []}
+          initialCustomerId={customerId || ''}
+          allowedAnimalTypes={allowedTypes}
+        />
+      ) : onlyHorse || allowedTypes.includes('horse') ? (
         <HorseForm
           mode="create"
           customers={customers || []}
@@ -75,6 +91,12 @@ export default async function NewHorsePage({ searchParams }: NewHorsePageProps) 
             ...emptyHorseFormData,
             customerId: customerId || '',
           }}
+        />
+      ) : (
+        <AnimalForm
+          customers={customers || []}
+          initialCustomerId={customerId || ''}
+          allowedAnimalTypes={allowedTypes.length > 0 ? allowedTypes : ['dog', 'cat', 'small', 'other']}
         />
       )}
     </AppPage>

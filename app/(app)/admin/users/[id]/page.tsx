@@ -8,6 +8,7 @@ import { formatAdminLastActivity } from '@/lib/admin/lastActivity'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase-service'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionCard from '@/components/ui/SectionCard'
+import AdminConfirmForm from '@/components/admin/AdminConfirmForm'
 import AdminFlashToast from '@/components/admin/AdminFlashToast'
 import AdminNextLink from '@/components/admin/AdminNextLink'
 import AdminPendingSubmitButton from '@/components/admin/AdminPendingSubmitButton'
@@ -23,8 +24,11 @@ import {
   sendPasswordReset,
   setUserBan,
   toggleAdminUserFlag,
+  toggleDocumentationModule,
 } from './actions'
 import AppPage from '@/components/layout/AppPage'
+import { listModuleDefinitions } from '@/lib/modules/catalog'
+import { listUserDocumentationModuleRows } from '@/lib/modules/entitlements.server'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,6 +170,17 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
   const flagInvoices = isFeatureEnabled(flags, 'invoices')
   const flagBeta = isFeatureEnabled(flags, 'beta')
   const canImpersonate = !isAdminUserId(user.id)
+
+  let documentationModules: { module_id: string; enabled: boolean }[] = []
+  try {
+    documentationModules = await listUserDocumentationModuleRows(user.id)
+  } catch {
+    documentationModules = listModuleDefinitions().map((m) => ({
+      module_id: m.id,
+      enabled: false,
+    }))
+  }
+  const moduleLabel = Object.fromEntries(listModuleDefinitions().map((m) => [m.id, m.label]))
 
   const quickActionClass =
     'inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E2DC] bg-white px-4 py-2.5 text-[14px] font-medium text-[#1B1F23] transition hover:border-primary hover:bg-primary/5 active:scale-[0.98]'
@@ -445,7 +460,10 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                     Periodenend-Kündigung widerrufen
                   </button>
                 </form>
-                <form action={cancelSubscriptionNow}>
+                <AdminConfirmForm
+                  action={cancelSubscriptionNow}
+                  confirmMessage="Abo wirklich sofort kündigen? Der Zugang endet umgehend — nicht erst zum Periodenende."
+                >
                   <input type="hidden" name="userId" value={user.id} />
                   <button
                     type="submit"
@@ -453,7 +471,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
                   >
                     Abo sofort kündigen
                   </button>
-                </form>
+                </AdminConfirmForm>
                 <form action={grantCompAccessDays} className="flex gap-2">
                   <input type="hidden" name="userId" value={user.id} />
                   <select
@@ -562,9 +580,28 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             </div>
           </SectionCard>
 
+          <SectionCard title="Dokumentationsmodule" bodyClassName="px-[22px] py-[18px]">
+            <p className="mb-3 text-[12px] text-[#6B7280]">
+              Freischaltung steuert, welche Dokumentationsarten der Nutzer neu anlegen darf. Bestehende Dokumentationen bleiben lesbar.
+              Nach Deaktivierung sind neue Docs und Bearbeitungen des Moduls gesperrt.
+            </p>
+            <div className="space-y-3">
+              {documentationModules.map((row) => (
+                <ModuleEntitlementRow
+                  key={row.module_id}
+                  userId={user.id}
+                  moduleId={row.module_id}
+                  title={moduleLabel[row.module_id] ?? row.module_id}
+                  on={row.enabled}
+                />
+              ))}
+            </div>
+          </SectionCard>
+
           <SectionCard title="Feature-Flags" bodyClassName="px-[22px] py-[18px]">
             <p className="mb-3 text-[12px] text-[#6B7280]">
               Kernfunktionen sind standardmäßig an. Ausschalten deaktiviert sie für diesen Nutzer. Beta nur bei aktivem Schalter.
+              Getrennt von Dokumentationsmodulen.
             </p>
             <div className="space-y-3">
               <FlagRow userId={user.id} flag="ai_assistant" title="KI-Textassistent" desc="Voice-to-Text und KI-Verbesserung" on={flagAi} />
@@ -717,6 +754,43 @@ function StorageBar(props: { label: string; valueLabel: string; pct: number; ton
         <div className={`h-full rounded ${fill}`} style={{ width: `${clamp(props.pct, 0, 100)}%` }} />
       </div>
       <div className="min-w-[90px] text-right text-[13px] font-semibold text-[#1B1F23]">{props.valueLabel}</div>
+    </div>
+  )
+}
+
+function ModuleEntitlementRow(props: {
+  userId: string
+  moduleId: string
+  title: string
+  on: boolean
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-[#E5E2DC] pb-3 last:border-b-0 last:pb-0">
+      <div>
+        <div className="text-[14px] font-medium text-[#1B1F23]">{props.title}</div>
+        <div className="mt-0.5 text-[12px] text-[#6B7280]">{props.moduleId}</div>
+      </div>
+      <form action={toggleDocumentationModule} className="shrink-0">
+        <input type="hidden" name="userId" value={props.userId} />
+        <input type="hidden" name="moduleId" value={props.moduleId} />
+        <input type="hidden" name="enable" value={props.on ? '0' : '1'} />
+        <button
+          type="submit"
+          className={[
+            'h-[22px] w-[44px] rounded-full border border-[#E5E2DC] transition',
+            props.on ? 'bg-primary' : 'bg-[#D1D5DB]',
+          ].join(' ')}
+          title={props.on ? 'Deaktivieren' : 'Aktivieren'}
+          aria-label={`${props.title} ${props.on ? 'deaktivieren' : 'aktivieren'}`}
+        >
+          <span
+            className={[
+              'block h-[18px] w-[18px] rounded-full bg-white shadow-sm transition',
+              props.on ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            ].join(' ')}
+          />
+        </button>
+      </form>
     </div>
   )
 }

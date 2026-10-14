@@ -10,7 +10,9 @@ import { listLiveSubscriptions } from '@/lib/billing/stripeSubscriptionExclusive
 import { syncBillingSubscriptionFromStripeForUser } from '@/lib/billing/syncSubscriptionFromStripe.server'
 import { createAndSendPasswordResetForUserId } from '@/lib/auth/passwordReset.server'
 import { isFeatureEnabled, type AdminFeatureFlagKey } from '@/lib/admin/featureFlagsShared'
-import { prepareEndImpersonation } from '@/lib/admin/impersonation'
+import { prepareEndImpersonation, setImpersonationExchangeCookie } from '@/lib/admin/impersonation'
+import { isDocumentationModuleId } from '@/lib/modules/catalog'
+import { setUserDocumentationModule } from '@/lib/modules/entitlements.server'
 
 function backTo(userId: string, q: Record<string, string> = {}) {
   const p = new URLSearchParams(q)
@@ -103,6 +105,39 @@ export async function toggleAdminUserFlag(formData: FormData) {
 
   revalidatePath(`/admin/users/${userId}`)
   redirect(backTo(userId, { saved: 'flag' }))
+}
+
+export async function toggleDocumentationModule(formData: FormData) {
+  const userId = readUserId(formData)
+  if (!userId) redirect('/admin/users?err=module')
+  const admin = await requireAdmin()
+  const moduleIdRaw = String(formData.get('moduleId') ?? '').trim()
+  if (!isDocumentationModuleId(moduleIdRaw)) {
+    redirect(backTo(userId, { err: 'module', msg: 'Unbekanntes Modul' }))
+  }
+  const enableRaw = String(formData.get('enable') ?? '').trim()
+  const enabled = enableRaw === '1' || enableRaw === 'true'
+
+  try {
+    await setUserDocumentationModule({
+      userId,
+      moduleId: moduleIdRaw,
+      enabled,
+      adminUserId: admin.userId,
+    })
+  } catch (e) {
+    redirect(backTo(userId, { err: 'module', msg: safeErr(e) }))
+  }
+
+  await logAdminAuditEvent({
+    actorUserId: admin.userId,
+    targetUserId: userId,
+    action: 'documentation_module.toggle',
+    metadata: { moduleId: moduleIdRaw, enabled },
+  })
+
+  revalidatePath(`/admin/users/${userId}`)
+  redirect(backTo(userId, { saved: 'module' }))
 }
 
 export async function extendTrial(formData: FormData) {
@@ -642,8 +677,10 @@ export async function deleteUserAccount(formData: FormData) {
 export async function endImpersonation() {
   const result = await prepareEndImpersonation()
   if (!result.ok) redirect(result.redirectTo)
-  redirect(
-    `/auth/impersonate?token_hash=${encodeURIComponent(result.tokenHash)}&next=${encodeURIComponent(result.next)}`
-  )
+  await setImpersonationExchangeCookie({
+    tokenHash: result.tokenHash,
+    next: result.next,
+  })
+  redirect('/auth/impersonate')
 }
 

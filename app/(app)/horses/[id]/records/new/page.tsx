@@ -1,18 +1,21 @@
 import { redirect } from 'next/navigation'
 import RecordCreateForm from '@/components/records/RecordCreateForm'
-import TherapyRecordForm from '@/components/records/TherapyRecordForm'
+import TherapyModuleRecordForm from '@/components/records/TherapyModuleRecordForm'
+import ModulePicker from '@/components/modules/ModulePicker'
 import { createRecord } from '@/app/(app)/horses/[id]/records/actions'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { SLOT_LABELS } from '@/lib/photos/photoTypes'
-import { deriveAppProfile } from '@/lib/appProfile'
-import { professionToTherapyAiType } from '@/lib/professionToTherapyType'
 import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListForHorseView'
 import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
-import {
-  findDocumentationForAppointment,
-  loadAppointmentDocContext,
-} from '@/lib/documentation/appointmentLink'
+import { loadAppointmentDocContext } from '@/lib/documentation/appointmentLink'
 import AppPage from '@/components/layout/AppPage'
+import { getEnabledDocumentationModulesCached } from '@/lib/modules/entitlements.server'
+import {
+  isDocumentationModuleId,
+  MODULE_CATALOG,
+} from '@/lib/modules/catalog'
+import { resolveModulesForAnimal } from '@/lib/modules/resolve'
+import type { DocumentationModuleId } from '@/lib/modules/types'
 
 type NewRecordPageProps = {
   params: Promise<{
@@ -20,6 +23,7 @@ type NewRecordPageProps = {
   }>
   searchParams: Promise<{
     appointmentId?: string
+    module?: string
   }>
 }
 
@@ -29,6 +33,7 @@ type HorseRow = {
   breed: string | null
   sex: string | null
   birth_year: number | null
+  animal_type?: string | null
   special_notes: string | null
   notes: string | null
   stable_name: string | null
@@ -63,7 +68,7 @@ function isWholeBodySlot(photoType: string | null | undefined): boolean {
 
 export default async function NewHoofRecordPage({ params, searchParams }: NewRecordPageProps) {
   const { id } = await params
-  const { appointmentId: appointmentIdParam } = await searchParams
+  const { appointmentId: appointmentIdParam, module: moduleParam } = await searchParams
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -72,14 +77,7 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
 
   if (!user) redirect('/login')
 
-  const { data: settingsRow } = await supabase
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const settings = settingsRow?.settings as Record<string, unknown> | undefined
-  const profile = deriveAppProfile(settings?.profession, settings?.animal_focus)
+  const { enabled: enabledModules } = await getEnabledDocumentationModulesCached(user.id)
 
   const { data: horseRow } = await supabase
     .from('horses')
@@ -90,6 +88,7 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
         breed,
         sex,
         birth_year,
+        animal_type,
         special_notes,
         notes,
         stable_name,
@@ -164,7 +163,11 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
       }
     }
 
-    if (profile.docType !== 'therapy') {
+    // Ersttermin-Fotokontext nur für Hufmodul relevant
+    const loadHoofErstterminContext =
+      (isDocumentationModuleId(moduleParam) && moduleParam === 'hoof') ||
+      (!moduleParam && enabledModules.includes('hoof'))
+    if (loadHoofErstterminContext) {
       const oldestRow = list.recordRows[list.recordRows.length - 1].record
       const oldestId = oldestRow.id
       erstterminRecordDate = oldestRow.record_date
@@ -229,15 +232,7 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
   let appointmentId: string | null = null
 
   if (appointmentIdParam) {
-    const existing = await findDocumentationForAppointment(
-      supabase,
-      user.id,
-      appointmentIdParam,
-      id
-    )
-    if (existing) {
-      redirect(`/animals/${existing.animalId}/records/${existing.recordId}`)
-    }
+    // Mehrere Dokumentationen pro Termin erlaubt — nicht automatisch zur ersten bestehenden springen.
     const ctx = await loadAppointmentDocContext(supabase, user.id, id, appointmentIdParam)
     if (ctx) {
       appointmentId = ctx.appointmentId
@@ -259,17 +254,81 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
       }
     : null
 
-  if (profile.docType === 'therapy') {
-    const therapyAiType = professionToTherapyAiType(profile.profession)
+  // Optionales Modul am Termin (Vorauswahl, blockiert keine weiteren Module)
+  let preferredModule: DocumentationModuleId | null = null
+  if (appointmentIdParam) {
+    const { data: apt } = await supabase
+      .from('appointments')
+      .select('documentation_module')
+      .eq('id', appointmentIdParam)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (isDocumentationModuleId(apt?.documentation_module)) {
+      preferredModule = apt.documentation_module
+    }
+  }
+
+  const animalType = horseRow?.animal_type ?? 'horse'
+  const resolved = resolveModulesForAnimal(enabledModules, animalType, preferredModule)
+
+  if (resolved.status === 'none') {
     return (
       <AppPage>
-        <TherapyRecordForm
+        <div className="rounded-2xl border border-[#E5E2DC] bg-white p-6">
+          <h1 className="text-lg font-semibold text-[#1B1F23]">Keine passende Dokumentation</h1>
+          <p className="mt-2 text-[14px] text-[#6B7280]">
+            Für diese Tierart ist kein freigeschaltetes Dokumentationsmodul verfügbar. Bitte wende dich an den
+            Support, wenn du ein weiteres Modul benötigst.
+          </p>
+        </div>
+      </AppPage>
+    )
+  }
+
+  let selectedModule: DocumentationModuleId | null = null
+  if (isDocumentationModuleId(moduleParam) && resolved.candidates.includes(moduleParam)) {
+    selectedModule = moduleParam
+  } else if (resolved.status === 'single') {
+    selectedModule = resolved.moduleId
+  } else if (resolved.status === 'choice') {
+    return (
+      <AppPage>
+        <ModulePicker
+          horseId={id}
+          candidates={resolved.candidates}
+          appointmentId={appointmentId}
+          preferredModule={preferredModule}
+        />
+      </AppPage>
+    )
+  }
+
+  if (!selectedModule) {
+    return (
+      <AppPage>
+        <ModulePicker
+          horseId={id}
+          candidates={resolved.candidates}
+          appointmentId={appointmentId}
+          preferredModule={preferredModule}
+        />
+      </AppPage>
+    )
+  }
+
+  const moduleDef = MODULE_CATALOG[selectedModule]
+
+  if (moduleDef.documentationKind === 'therapy') {
+    return (
+      <AppPage>
+        <TherapyModuleRecordForm
           horse={therapyHorse}
+          animalType={animalType}
+          moduleId={selectedModule}
           defaultRecordDate={recordDate}
           defaultRecordType={recordType}
           appointmentId={appointmentId}
           lastRecord={lastRecord}
-          therapyAiType={therapyAiType}
           saveAction={createRecord}
         />
       </AppPage>

@@ -40,6 +40,9 @@ export default function AppointmentForm({
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialData.customerId)
   const [selectedHorseIds, setSelectedHorseIds] = useState<string[]>(initialData.selectedHorseIds)
   const [appointmentType, setAppointmentType] = useState(initialData.appointmentType)
+  const [documentationModule, setDocumentationModule] = useState<
+    'hoof' | 'physio' | 'osteo' | 'heilpraktik' | ''
+  >(initialData.documentationModule ?? '')
   const [appointmentDate, setAppointmentDate] = useState(initialData.appointmentDate)
   const [appointmentTime, setAppointmentTime] = useState(initialData.appointmentTime)
   const [duration, setDuration] = useState(initialData.duration)
@@ -172,6 +175,7 @@ export default function AppointmentForm({
           status,
           duration_minutes: durationMinutes,
           reminder_minutes_before: nextReminder,
+          documentation_module: documentationModule || null,
           user_id: user.id,
         })
         .select('id')
@@ -226,6 +230,7 @@ export default function AppointmentForm({
           status,
           duration_minutes: durationMinutes,
           reminder_minutes_before: nextReminder,
+          documentation_module: documentationModule || null,
           ...(clearReminderSent
             ? { reminder_email_sent_at: null, reminder_email_error: null }
             : {}),
@@ -394,6 +399,27 @@ export default function AppointmentForm({
               value={appointmentType}
               onChange={setAppointmentType}
             />
+            <div className="form-group mt-5">
+              <label className="form-label">Behandlungsmodul (optional)</label>
+              <select
+                className="input"
+                value={documentationModule}
+                onChange={(e) =>
+                  setDocumentationModule(
+                    e.target.value as 'hoof' | 'physio' | 'osteo' | 'heilpraktik' | ''
+                  )
+                }
+              >
+                <option value="">Keine Vorauswahl</option>
+                <option value="hoof">Hufbearbeitung</option>
+                <option value="physio">Tierphysiotherapie</option>
+                <option value="osteo">Tierosteopathie</option>
+                <option value="heilpraktik">Tierheilpraktik</option>
+              </select>
+              <p className="mt-1 text-[12px] text-[#9CA3AF]">
+                Vorauswahl beim Dokumentieren — weitere Module am selben Termin bleiben möglich.
+              </p>
+            </div>
           </div>
         </div>
 

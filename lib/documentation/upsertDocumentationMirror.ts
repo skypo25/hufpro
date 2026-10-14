@@ -1,11 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   buildDocumentationRowPayload,
+  kindAndDisciplineFromModule,
   normalizeProfession,
   type HoofRecordMirrorInput,
 } from '@/lib/documentation/deriveDocumentationFromHoof'
 
 export type MirrorResult = { ok: true } | { ok: false; error: string }
+
+export type MirrorOptions = {
+  /** Explizites Dokumentationsmodul (hoof|physio|osteo|heilpraktik) */
+  documentationModule?: string | null
+  /** Strukturierte Therapie-/Körperkarten-Daten */
+  therapyPayloadOverride?: Record<string, unknown> | null
+}
 
 function rowFromUnknown(row: Record<string, unknown>): HoofRecordMirrorInput | null {
   const id = row.id
@@ -43,7 +51,8 @@ function rowFromUnknown(row: Record<string, unknown>): HoofRecordMirrorInput | n
 export async function upsertDocumentationMirrorFromHoofRow(
   supabase: SupabaseClient,
   hoofRowRaw: Record<string, unknown>,
-  settings: Record<string, unknown> | null | undefined
+  settings: Record<string, unknown> | null | undefined,
+  options?: MirrorOptions
 ): Promise<MirrorResult> {
   const hoofRow = rowFromUnknown(hoofRowRaw)
   if (!hoofRow) {
@@ -52,6 +61,20 @@ export async function upsertDocumentationMirrorFromHoofRow(
 
   const profession = normalizeProfession(settings?.profession)
   const payload = buildDocumentationRowPayload(hoofRow, profession)
+  const fromModule = kindAndDisciplineFromModule(options?.documentationModule ?? null)
+  if (fromModule) {
+    payload.documentation_kind = fromModule.kind
+    payload.therapy_discipline = fromModule.discipline
+    if (fromModule.kind === 'therapy') {
+      payload.hoof_payload = null
+      payload.therapy_payload = options?.therapyPayloadOverride ?? payload.therapy_payload
+    }
+  } else if (options?.therapyPayloadOverride) {
+    payload.therapy_payload = {
+      ...(payload.therapy_payload ?? {}),
+      ...options.therapyPayloadOverride,
+    }
+  }
 
   const { data: existing, error: selectError } = await supabase
     .from('documentation_records')
@@ -71,6 +94,9 @@ export async function upsertDocumentationMirrorFromHoofRow(
     ...payload.metadata,
     ...(payload.metadata.appointment_id || existingAppointmentId
       ? { appointment_id: payload.metadata.appointment_id || existingAppointmentId }
+      : {}),
+    ...(options?.documentationModule
+      ? { documentation_module: options.documentationModule }
       : {}),
   }
 

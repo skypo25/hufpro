@@ -10,6 +10,9 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isUuid } from '@/lib/documentation/appointmentLink'
 import { upsertDocumentationMirrorFromHoofRow } from '@/lib/documentation/upsertDocumentationMirror'
 import { deleteDocumentationPhotosMirroringHoofRows } from '@/lib/documentation/mirrorDocumentationPhotos'
+import { getEnabledDocumentationModulesCached } from '@/lib/modules/entitlements.server'
+import { isDocumentationModuleId } from '@/lib/modules/catalog'
+import { canCreateDocumentationForModule } from '@/lib/modules/resolve'
 
 export type CreateRecordResult = { recordId: string } | { error: string }
 
@@ -45,9 +48,49 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
   const record_type = record_typeRaw || null
   const appointmentIdRaw = String(formData.get('appointment_id') || '').trim()
   const appointment_id = isUuid(appointmentIdRaw) ? appointmentIdRaw : null
+  const documentationModuleRaw = String(formData.get('documentation_module') || '').trim()
+  const documentationModule = isDocumentationModuleId(documentationModuleRaw)
+    ? documentationModuleRaw
+    : null
+  const therapyPayloadRaw = String(formData.get('therapy_payload_json') || '').trim()
+  const therapyPayloadOverride = therapyPayloadRaw
+    ? (() => {
+        try {
+          return JSON.parse(therapyPayloadRaw) as Record<string, unknown>
+        } catch {
+          return null
+        }
+      })()
+    : null
 
   if (!horseId) {
     return { error: 'Pferd fehlt. Bitte die Seite neu laden und erneut versuchen.' }
+  }
+
+  const { data: horseMeta } = await supabase
+    .from('horses')
+    .select('animal_type')
+    .eq('id', horseId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const { enabled } = await getEnabledDocumentationModulesCached(user.id)
+  const moduleForCreate = documentationModule ?? (enabled.length === 1 ? enabled[0]! : null)
+  if (moduleForCreate) {
+    if (
+      !canCreateDocumentationForModule({
+        enabledModules: enabled,
+        moduleId: moduleForCreate,
+        animalType: horseMeta?.animal_type,
+      })
+    ) {
+      return {
+        error:
+          'Dieses Dokumentationsmodul ist nicht freigeschaltet oder nicht für die Tierart erlaubt.',
+      }
+    }
+  } else if (enabled.length === 0) {
+    return { error: 'Kein Dokumentationsmodul freigeschaltet.' }
   }
 
   const fullPayload = {
@@ -132,7 +175,11 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
   const mirror = await upsertDocumentationMirrorFromHoofRow(
     supabase,
     { ...hoofForMirror, appointment_id },
-    settingsJson
+    settingsJson,
+    {
+      documentationModule: moduleForCreate,
+      therapyPayloadOverride,
+    }
   )
   if (!mirror.ok) {
     const { error: delErr } = await supabase.from('hoof_records').delete().eq('id', data.id).eq('user_id', user.id)
@@ -163,6 +210,30 @@ export async function updateRecord(
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  // Deaktiviertes Modul: bestehende Docs nicht mehr bearbeiten (lesen/PDF bleiben erlaubt)
+  const { data: docMeta } = await supabase
+    .from('documentation_records')
+    .select('metadata, therapy_discipline, documentation_kind')
+    .eq('user_id', user.id)
+    .eq('animal_id', horseId)
+    .filter('metadata->>legacy_hoof_record_id', 'eq', recordId)
+    .maybeSingle()
+  const metaMod =
+    docMeta?.metadata && typeof docMeta.metadata === 'object'
+      ? (docMeta.metadata as { documentation_module?: string }).documentation_module
+      : null
+  let editModule = isDocumentationModuleId(metaMod) ? metaMod : null
+  if (!editModule && docMeta?.documentation_kind === 'hoof') editModule = 'hoof'
+  if (!editModule && docMeta?.therapy_discipline === 'physio') editModule = 'physio'
+  if (!editModule && docMeta?.therapy_discipline === 'osteo') editModule = 'osteo'
+  if (!editModule && docMeta?.therapy_discipline === 'heilpraktik') editModule = 'heilpraktik'
+  if (editModule) {
+    const { enabled } = await getEnabledDocumentationModulesCached(user.id)
+    if (!enabled.includes(editModule)) {
+      throw new Error('Dieses Modul ist deaktiviert — Bearbeitung nicht erlaubt.')
+    }
+  }
 
   const record_date = (formData.get('record_date') as string) || null
   const summary_notes = (formData.get('summary_notes') as string) ?? ''

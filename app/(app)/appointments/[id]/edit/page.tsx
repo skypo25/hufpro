@@ -105,7 +105,7 @@ export default async function EditAppointmentPage({
 
   const { data: appointment, error: appointmentError } = await supabase
     .from('appointments')
-    .select('id, customer_id, appointment_date, notes, type, status, duration_minutes, reminder_minutes_before')
+    .select('id, customer_id, appointment_date, notes, type, status, duration_minutes, reminder_minutes_before, documentation_module')
     .eq('id', id)
     .eq('user_id', user.id)
     .single<AppointmentRow>()
@@ -244,6 +244,13 @@ export default async function EditAppointmentPage({
     customerId: appointment.customer_id || '',
     selectedHorseIds,
     appointmentType: appointment.type || 'Regeltermin',
+    documentationModule:
+      appointment.documentation_module === 'hoof' ||
+      appointment.documentation_module === 'physio' ||
+      appointment.documentation_module === 'osteo' ||
+      appointment.documentation_module === 'heilpraktik'
+        ? appointment.documentation_module
+        : null,
     appointmentDate: toDateInputValue(appointment.appointment_date),
     appointmentTime: toTimeInputValue(appointment.appointment_date),
     duration: minutesToDurationLabelDesktop(appointment.duration_minutes),

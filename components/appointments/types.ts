@@ -51,6 +51,8 @@ export type AppointmentFormInitialData = {
   status: 'Bestätigt' | 'Vorgeschlagen' | 'Warteliste'
   /** Minuten vor Terminbeginn; null = keine Erinnerung */
   reminderMinutesBefore: number | null
+  /** Optionale Vorauswahl Dokumentationsmodul */
+  documentationModule?: 'hoof' | 'physio' | 'osteo' | 'heilpraktik' | null
 }
 
 export type AppointmentFormProps = {
