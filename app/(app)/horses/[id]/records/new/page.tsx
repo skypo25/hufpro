@@ -9,13 +9,16 @@ import { loadRecordListForHorseView } from '@/lib/documentation/loadRecordListFo
 import { loadRecordDetailFromDocumentation } from '@/lib/documentation/loadRecordForDetailView'
 import { loadAppointmentDocContext } from '@/lib/documentation/appointmentLink'
 import AppPage from '@/components/layout/AppPage'
-import { getEnabledDocumentationModulesCached } from '@/lib/modules/entitlements.server'
+import { getEnabledDocumentationModules } from '@/lib/modules/entitlements.server'
 import {
   isDocumentationModuleId,
   MODULE_CATALOG,
 } from '@/lib/modules/catalog'
 import { resolveModulesForAnimal } from '@/lib/modules/resolve'
 import type { DocumentationModuleId } from '@/lib/modules/types'
+
+/** Modulwahl hängt an frischen Entitlements — nie statisch cachen. */
+export const dynamic = 'force-dynamic'
 
 type NewRecordPageProps = {
   params: Promise<{
@@ -77,7 +80,7 @@ export default async function NewHoofRecordPage({ params, searchParams }: NewRec
 
   if (!user) redirect('/login')
 
-  const { enabled: enabledModules } = await getEnabledDocumentationModulesCached(user.id)
+  const { enabled: enabledModules } = await getEnabledDocumentationModules(user.id)
 
   const { data: horseRow } = await supabase
     .from('horses')

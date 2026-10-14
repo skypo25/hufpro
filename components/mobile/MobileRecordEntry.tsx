@@ -58,8 +58,9 @@ export default function MobileRecordEntry({ horseId, recordId, mode = 'create' }
       setLoading(true)
       setError(null)
       try {
+        // 1) API: Legacy-Migration (Service Role). 2) RLS-Tabelle: frische Quelle der Wahrheit.
         const [modsRes, horseRes] = await Promise.all([
-          fetch('/api/me/documentation-modules'),
+          fetch('/api/me/documentation-modules', { cache: 'no-store' }),
           supabase
             .from('horses')
             .select(
@@ -70,7 +71,18 @@ export default function MobileRecordEntry({ horseId, recordId, mode = 'create' }
         ])
         if (!modsRes.ok) throw new Error('Module konnten nicht geladen werden.')
         const modsJson = (await modsRes.json()) as { enabled?: string[] }
-        const enabledList = (modsJson.enabled ?? []).filter(isDocumentationModuleId)
+        const fromApi = (modsJson.enabled ?? []).filter(isDocumentationModuleId)
+
+        const { data: modRows } = await supabase
+          .from('user_documentation_modules')
+          .select('module_id, enabled')
+        const fromDb = (modRows ?? [])
+          .filter(
+            (r) => Boolean(r.enabled) && isDocumentationModuleId(r.module_id)
+          )
+          .map((r) => r.module_id as DocumentationModuleId)
+
+        const enabledList = fromDb.length > 0 ? fromDb : fromApi
         if (cancelled) return
         setEnabled(enabledList)
 

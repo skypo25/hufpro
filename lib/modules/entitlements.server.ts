@@ -100,17 +100,24 @@ export async function ensureLegacyModulesMigrated(userId: string): Promise<Effec
   return loadEnabledModules(userId)
 }
 
-export const getEnabledDocumentationModulesCached = cache(
-  async (userId: string): Promise<EffectiveModules> => {
-    return ensureLegacyModulesMigrated(userId)
-  }
-)
+/**
+ * Frische Lesung (API/Client). Nicht mit React.cache wrappen — sonst können
+ * Route-Handler Module fälschlich über Requests hinweg „sticky“ halten.
+ */
+export async function getEnabledDocumentationModules(
+  userId: string
+): Promise<EffectiveModules> {
+  return ensureLegacyModulesMigrated(userId)
+}
+
+/** Deduplizierung nur innerhalb eines RSC-Requests (Seiten-Render). */
+export const getEnabledDocumentationModulesCached = cache(getEnabledDocumentationModules)
 
 export async function userHasDocumentationModule(
   userId: string,
   moduleId: DocumentationModuleId
 ): Promise<boolean> {
-  const { enabled } = await getEnabledDocumentationModulesCached(userId)
+  const { enabled } = await getEnabledDocumentationModules(userId)
   return enabled.includes(moduleId)
 }
 
