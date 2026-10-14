@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_profile_provider.dart';
+import '../../core/modules/catalog.dart';
+import '../../core/modules/modules_provider.dart';
 import '../../core/supabase.dart';
 import '../../theme/anidocs_colors.dart';
 import '../settings/settings_repository.dart';
@@ -24,6 +26,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final Set<String> _professions = {};
   String? _animalFocus;
   bool _saving = false;
+  List<String> _grantedModuleLabels = const [];
   late final String _trialEnd;
 
   static const _professionOptions = <_Option>[
@@ -150,11 +153,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       });
 
       // Serverseitige einmalige Modulfreischaltung (idempotent).
+      var grantedLabels = <String>[];
       try {
-        await AniDocsApi.postJson('/api/onboarding/grant-modules', {
+        final grant = await AniDocsApi.postJson('/api/onboarding/grant-modules', {
           'professions': pList,
         });
-      } catch (_) {}
+        final fromApi = (grant['grantedLabels'] as List?)
+            ?.whereType<String>()
+            .toList();
+        final fromIds = (grant['granted'] as List?)
+            ?.whereType<String>()
+            .map((id) => moduleCatalog[id]?.label ?? id)
+            .toList();
+        grantedLabels = (fromApi != null && fromApi.isNotEmpty)
+            ? fromApi
+            : (fromIds ?? const []);
+      } catch (_) {
+        // Fallback: lokal aus Profession ableiten (Anzeige).
+        grantedLabels = modulesFromProfessions(pList)
+            .map((id) => moduleCatalog[id]?.label ?? id)
+            .toList();
+        if (grantedLabels.isEmpty) {
+          grantedLabels = [moduleCatalog['hoof']!.label];
+        }
+      }
 
       // Fallback Trial-Konto (wie PWA) — Fehler nicht blockierend.
       try {
@@ -164,9 +186,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // Provider erst bei „Los geht's“ invalidieren, sonst verschwindet Schritt 3.
       ref.invalidate(appProfileProvider);
       ref.invalidate(settingsProvider);
+      ref.invalidate(documentationModulesProvider);
 
       if (!mounted) return;
       setState(() {
+        _grantedModuleLabels = grantedLabels;
         _step = 3;
         _saving = false;
       });
@@ -367,6 +391,68 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             textAlign: TextAlign.center,
           ),
         ),
+        if (_grantedModuleLabels.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E2DC)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Freigeschaltete Dokumentation',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AniDocsColors.foreground,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ..._grantedModuleLabels.map(
+                  (label) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: AniDocsColors.accent,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF374151),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_grantedModuleLabels.length >= 2)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Bei mehreren Modulen wählst du die Behandlungsart beim Anlegen.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AniDocsColors.muted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 22),
         ...const [
           ('📋', 'Dokumentationen in unter 30 Sekunden'),

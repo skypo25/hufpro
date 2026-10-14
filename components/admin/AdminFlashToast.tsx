@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext'
 
 const SAVED_MESSAGES: Record<string, string> = {
   flag: 'Feature-Flag aktualisiert.',
+  module: 'Dokumentationsmodul aktualisiert.',
   note: 'Notiz gespeichert.',
   trial: 'Trial verlängert.',
   trial_end: 'Trial beendet.',
@@ -21,6 +22,7 @@ const SAVED_MESSAGES: Record<string, string> = {
 
 const ERR_MESSAGES: Record<string, string> = {
   flag: 'Feature-Flag konnte nicht gespeichert werden.',
+  module: 'Dokumentationsmodul konnte nicht geändert werden.',
   note: 'Notiz konnte nicht gespeichert werden.',
   trial: 'Trial konnte nicht aktualisiert werden.',
   ban: 'Account konnte nicht geändert werden.',

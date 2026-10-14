@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { getSupabaseAndUser } from '@/lib/supabase-auth'
 import { grantModulesFromOnboardingOnce } from '@/lib/modules/entitlements.server'
+import { MODULE_CATALOG } from '@/lib/modules/catalog'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * Einmalige Modulfreischaltung nach Onboarding.
  * Idempotent — erneuter Aufruf vergibt keine zusätzlichen Rechte.
+ * Auth: Cookie (PWA) oder Bearer (Flutter).
  */
 export async function POST(request: Request) {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { supabase, user } = await getSupabaseAndUser()
   if (!user) {
     return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   }
@@ -44,9 +45,11 @@ export async function POST(request: Request) {
       userId: user.id,
       professions: professionsValue,
     })
+    const labels = result.granted.map((id) => MODULE_CATALOG[id]?.label ?? id)
     return NextResponse.json({
       ok: true,
       granted: result.granted,
+      grantedLabels: labels,
       skipped: result.skipped,
     })
   } catch (e) {

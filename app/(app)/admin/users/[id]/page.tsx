@@ -585,12 +585,28 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             </div>
           </SectionCard>
 
-          <SectionCard title="Dokumentationsmodule" bodyClassName="px-[22px] py-[18px]">
+          <SectionCard
+            title="Dokumentationsmodule"
+            right={
+              <span className="text-[12px] text-[#9CA3AF]">
+                Aktiv: {documentationModules.filter((r) => r.enabled).length}/
+                {documentationModules.length}
+              </span>
+            }
+            bodyClassName="px-[22px] py-[18px]"
+          >
             <p className="mb-3 text-[12px] text-[#6B7280]">
               Freischaltung steuert, welche Dokumentationsarten der Nutzer neu anlegen darf. Bestehende Dokumentationen bleiben lesbar.
               Nach Deaktivierung sind neue Docs und Bearbeitungen des Moduls gesperrt.
               Beim ersten Öffnen werden Module einmalig aus dem Onboarding-Profil übernommen — danach gelten nur noch diese Schalter.
             </p>
+            {profession ? (
+              <p className="mb-3 rounded-lg bg-[#F8F7F4] px-3 py-2 text-[12px] text-[#6B7280]">
+                Onboarding-Beruf:{' '}
+                <span className="font-medium text-[#1B1F23]">{profession}</span>
+                {' · '}≥2 aktive Module → Auswahl beim Anlegen einer Doku.
+              </p>
+            ) : null}
             <div className="space-y-3">
               {documentationModules.map((row) => (
                 <ModuleEntitlementRow
