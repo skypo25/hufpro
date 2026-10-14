@@ -38,20 +38,6 @@ import ImproveTextButton from '@/components/ImproveTextButton'
 import { processVoiceCommand, applyVoiceCommand } from '@/lib/voiceCommands'
 import MobileCameraCapture from '@/components/mobile/MobileCameraCapture'
 import PhotoAnnotator from '@/components/photos/PhotoAnnotator'
-import HoofFreeTextFields from '@/components/records/HoofFreeTextFields'
-import ImproveTextPreviewButton from '@/components/records/ImproveTextPreviewButton'
-import type { HoofState as SharedHoofState, HoofKey as SharedHoofKey } from '@/lib/hoofs'
-import {
-  createInitialHoofs,
-  parseHoofsFromJson,
-  parseGeneralTreatment,
-  hoofCaptureStatus,
-  hoofCaptureStatusLabel,
-  markHoofUnauffaellig,
-  hoofHasOverwriteRisk,
-  computeHoofOverallStatus,
-  hoofOverallStatusLabel,
-} from '@/lib/hoofs'
 
 // ─── HTML helpers ────────────────────────────────────────────────────────────
 
@@ -82,7 +68,12 @@ type Horse = {
   customers?: { name: string | null } | { name: string | null }[] | null
 }
 
-type HoofState = SharedHoofState
+type HoofState = {
+  toe_alignment: string
+  heel_balance: string
+  frog_condition: string
+  sole_condition: string
+}
 
 type StagedPhoto = {
   slot: PhotoSlotKey
@@ -103,16 +94,37 @@ type ExistingPhoto = {
 
 type Mode = 'create' | 'edit'
 
-const HOOF_KEYS = ['vl', 'vr', 'hl', 'hr'] as const satisfies readonly SharedHoofKey[]
-type HoofKey = SharedHoofKey
-const HOOF_LABELS: Record<HoofKey, string> = {
-  vl: 'VL — Vorne Links',
-  vr: 'VR — Vorne Rechts',
-  hl: 'HL — Hinten Links',
-  hr: 'HR — Hinten Rechts',
+const HOOF_STD: HoofState = {
+  toe_alignment: 'gerade',
+  heel_balance: 'normal',
+  frog_condition: 'gesund',
+  sole_condition: 'stabil',
 }
 
-const HOOF_EMPTY = createInitialHoofs()
+const HOOF_EMPTY: HoofState = {
+  toe_alignment: '',
+  heel_balance: '',
+  frog_condition: '',
+  sole_condition: '',
+}
+
+const HOOF_KEYS = ['vl', 'vr', 'hl', 'hr'] as const
+type HoofKey = typeof HOOF_KEYS[number]
+const HOOF_LABELS: Record<HoofKey, string> = { vl: 'VL — Vorne Links', vr: 'VR — Vorne Rechts', hl: 'HL — Hinten Links', hr: 'HR — Hinten Rechts' }
+
+// Slot-Keys aus photoTypes – müssen mit Desktop/Detail übereinstimmen (VL_solar, VL_lateral, …)
+
+function hoofStatus(h: HoofState): 'ok' | 'warn' | 'critical' | 'empty' {
+  const isEmpty = !h.toe_alignment && !h.heel_balance && !h.frog_condition && !h.sole_condition
+  if (isEmpty) return 'empty'
+  if (h.frog_condition === 'faulig') return 'critical'
+  const isStd =
+    (h.toe_alignment === HOOF_STD.toe_alignment || h.toe_alignment === '') &&
+    (h.heel_balance === 'normal' || h.heel_balance === 'ausgeglichen' || h.heel_balance === '') &&
+    (h.frog_condition === HOOF_STD.frog_condition || h.frog_condition === '') &&
+    (h.sole_condition === HOOF_STD.sole_condition || h.sole_condition === '')
+  return isStd ? 'ok' : 'warn'
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return '–'
@@ -132,26 +144,32 @@ function HorseIcon() {
 // ─── Hoof Accordion Item ──────────────────────────────────────────────────────
 
 function HoofAccordionItem({
-  label,
-  state,
-  onChange,
-  animalName,
+  label, state, onChange,
 }: {
   label: string
   state: HoofState
   onChange: (next: Partial<HoofState>) => void
-  animalName?: string
 }) {
   const [open, setOpen] = useState(false)
-  const st = hoofCaptureStatus(state)
-  const badgeCls =
-    st === 'befund' ? 'ha-badge warn' : st === 'empty' ? 'ha-badge empty' : 'ha-badge ok'
-  const badgeTxt = hoofCaptureStatusLabel(st)
-  const dotCls =
-    st === 'befund' ? 'ha-dot warn' : st === 'empty' ? 'ha-dot empty' : 'ha-dot ok'
+  const st = hoofStatus(state)
+  const badgeCls = st === 'critical' ? 'ha-badge crit' : st === 'warn' ? 'ha-badge warn' : st === 'empty' ? 'ha-badge empty' : 'ha-badge ok'
+  const badgeTxt = st === 'critical' ? 'Problematisch' : st === 'warn' ? 'Abweichung' : st === 'empty' ? 'Keine Angabe' : 'Unauffällig'
+  const dotCls = st === 'critical' ? 'ha-dot crit' : st === 'warn' ? 'ha-dot warn' : st === 'empty' ? 'ha-dot empty' : 'ha-dot ok'
+
+  function mini(field: keyof HoofState, value: string, isDefault: boolean) {
+    const active = state[field] === value
+    const cls = active
+      ? (isDefault ? 'hc-mini on-default' : field === 'frog_condition' && value === 'faulig' ? 'hc-mini on-critical' : 'hc-mini on-deviation')
+      : 'hc-mini'
+    return (
+      <button key={value} type="button" className={cls} onClick={() => onChange({ [field]: value })}>
+        {value}
+      </button>
+    )
+  }
 
   return (
-    <div className={`ha-item${open ? ' open' : ''}${st === 'befund' ? ' has-deviation' : ''}`}>
+    <div className={`ha-item${open ? ' open' : ''}${st !== 'ok' ? ' has-deviation' : ''}`}>
       <div className="ha-header" onClick={() => setOpen(!open)}>
         <span className={dotCls} />
         <span className="ha-title">{label}</span>
@@ -161,12 +179,37 @@ function HoofAccordionItem({
         </svg>
       </div>
       <div className="ha-body">
-        <HoofFreeTextFields
-          compact
-          hoof={state}
-          onChange={onChange}
-          animalName={animalName}
-        />
+        <div className="hc-field">
+          <span className="hc-field-label">Zehe</span>
+          <div className="hc-field-chips">
+            {mini('toe_alignment', 'gerade', true)}
+            {mini('toe_alignment', 'medial', false)}
+            {mini('toe_alignment', 'lateral', false)}
+          </div>
+        </div>
+        <div className="hc-field">
+          <span className="hc-field-label">Trachten</span>
+          <div className="hc-field-chips">
+            {mini('heel_balance', 'normal', true)}
+            {mini('heel_balance', 'untergeschoben', false)}
+            {mini('heel_balance', 'ungleich', false)}
+          </div>
+        </div>
+        <div className="hc-field">
+          <span className="hc-field-label">Strahl</span>
+          <div className="hc-field-chips">
+            {mini('frog_condition', 'gesund', true)}
+            {mini('frog_condition', 'faulig', false)}
+          </div>
+        </div>
+        <div className="hc-field">
+          <span className="hc-field-label">Sohle</span>
+          <div className="hc-field-chips">
+            {mini('sole_condition', 'stabil', true)}
+            {mini('sole_condition', 'dünn', false)}
+          </div>
+        </div>
+        <p className="speed-hint">Nur Abweichungen antippen — Standard ist bereits gesetzt</p>
       </div>
     </div>
   )
@@ -402,8 +445,9 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
   const [summaryText, setSummaryText] = useState('')
   const [internalNotes, setInternalNotes] = useState('')
 
-  const [hoofs, setHoofs] = useState<Record<HoofKey, HoofState>>(() => createInitialHoofs())
-  const [generalTreatment, setGeneralTreatment] = useState('')
+  const [hoofs, setHoofs] = useState<Record<HoofKey, HoofState>>({
+    vl: { ...HOOF_EMPTY }, vr: { ...HOOF_EMPTY }, hl: { ...HOOF_EMPTY }, hr: { ...HOOF_EMPTY },
+  })
 
   // ── Photos ──
   const [stagedPhotos, setStagedPhotos] = useState<Partial<Record<PhotoSlotKey, StagedPhoto>>>({})
@@ -439,23 +483,15 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
     if (form.hornQuality) setHornQuality(String(form.hornQuality))
     if (form.summaryText) setSummaryText(String(form.summaryText))
     if (form.notesText) setInternalNotes(String(form.notesText ?? ''))
-    if (form.hoofs) {
-      if (Array.isArray(form.hoofs)) {
-        setHoofs(parseHoofsFromJson(form.hoofs))
-      } else if (typeof form.hoofs === 'object') {
-        const h = form.hoofs as Record<string, unknown>
-        const next = createInitialHoofs()
-        for (const k of HOOF_KEYS) {
-          const row = h[k]
-          if (row && typeof row === 'object') {
-            next[k] = { ...next[k], ...(row as Partial<HoofState>), hoof_position: k }
-          }
+    if (form.hoofs && typeof form.hoofs === 'object') {
+      const h = form.hoofs as Record<string, HoofState>
+      const next: Record<HoofKey, HoofState> = { vl: { ...HOOF_EMPTY }, vr: { ...HOOF_EMPTY }, hl: { ...HOOF_EMPTY }, hr: { ...HOOF_EMPTY } }
+      for (const k of HOOF_KEYS) {
+        if (h[k] && typeof h[k] === 'object') {
+          next[k] = { ...HOOF_EMPTY, ...(h[k] as HoofState) }
         }
-        setHoofs(next)
       }
-    }
-    if (typeof form.generalTreatment === 'string') {
-      setGeneralTreatment(form.generalTreatment)
+      setHoofs(next)
     }
     if (form.annotationsBySlot && typeof form.annotationsBySlot === 'object') {
       setAnnotationsBySlot(form.annotationsBySlot as Partial<Record<PhotoSlotKey, AnnotationsData>>)
@@ -476,7 +512,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
 
   // ── Persist draft on form change (debounced) ──
   const buildFormSnapshot = useCallback(() => {
-    const hoofsJson = HOOF_KEYS.map((k) => ({ ...hoofs[k], hoof_position: k }))
+    const hoofsJson = HOOF_KEYS.map((k) => ({ hoof_position: k, ...hoofs[k] }))
     return {
       recordDate,
       generalCondition,
@@ -487,14 +523,13 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
       recommendationText: '',
       notesText: internalNotes,
       hoofs: hoofsJson,
-      checklist: [] as string[],
-      generalTreatment,
+      checklist: [],
       stagedPhotos: Object.fromEntries(
         Object.entries(stagedPhotos).filter(([, p]) => !!p).map(([s, p]) => [s, p ? { blob: p.blob, width: p.width, height: p.height } : null])
       ) as Record<string, { blob: Blob; width: number; height: number }>,
       annotationsBySlot,
     }
-  }, [recordDate, generalCondition, gait, handlingBehavior, hornQuality, summaryText, internalNotes, hoofs, generalTreatment, stagedPhotos, annotationsBySlot])
+  }, [recordDate, generalCondition, gait, handlingBehavior, hornQuality, summaryText, internalNotes, hoofs, stagedPhotos, annotationsBySlot])
 
   useEffect(() => {
     if (draftLoading || isEdit) return
@@ -597,12 +632,20 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
           if (rec.handling_behavior) setHandlingBehavior(rec.handling_behavior)
           if (rec.horn_quality) setHornQuality(rec.horn_quality)
           if (rec.notes) setInternalNotes(rec.notes)
-          if (rec.hoofs_json) {
-            setHoofs(parseHoofsFromJson(rec.hoofs_json))
-          }
-          const payload = (rec as { hoof_payload?: unknown }).hoof_payload
-          if (payload) {
-            setGeneralTreatment(parseGeneralTreatment(payload))
+          if (rec.hoofs_json && Array.isArray(rec.hoofs_json)) {
+            const next: Record<HoofKey, HoofState> = { vl: { ...HOOF_EMPTY }, vr: { ...HOOF_EMPTY }, hl: { ...HOOF_EMPTY }, hr: { ...HOOF_EMPTY } }
+            for (const h of rec.hoofs_json as { hoof_position?: string; toe_alignment?: string; heel_balance?: string; frog_condition?: string; sole_condition?: string }[]) {
+              const k = h.hoof_position as HoofKey
+              if (HOOF_KEYS.includes(k)) {
+                next[k] = {
+                  toe_alignment: h.toe_alignment ?? '',
+                  heel_balance: h.heel_balance ?? '',
+                  frog_condition: h.frog_condition ?? '',
+                  sole_condition: h.sole_condition ?? '',
+                }
+              }
+            }
+            setHoofs(next)
           }
         }
 
@@ -684,12 +727,16 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
   }, [horseId, recordId, isEdit, appointmentId, router])
 
   // ── Computed hoof status ──
-  const overallStatus = useMemo(() => computeHoofOverallStatus(hoofs), [hoofs])
+  const overallStatus = useMemo(() => {
+    const statuses = HOOF_KEYS.map((k) => hoofStatus(hoofs[k]))
+    if (statuses.includes('empty')) return 'empty'
+    if (statuses.includes('critical')) return 'critical'
+    if (statuses.includes('warn')) return 'warn'
+    return 'ok'
+  }, [hoofs])
 
-  const allDefault = useMemo(
-    () => HOOF_KEYS.every((k) => hoofCaptureStatus(hoofs[k]) === 'unauffaellig'),
-    [hoofs]
-  )
+  const allDefault = useMemo(() =>
+    HOOF_KEYS.every((k) => hoofStatus(hoofs[k]) === 'ok'), [hoofs])
 
   // ── Photo upload ──
   const handlePhotoSelect = useCallback(async (slot: PhotoSlotKey, file: File) => {
@@ -774,7 +821,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
       return
     }
     try {
-      const hoofsJson = HOOF_KEYS.map((k) => ({ ...hoofs[k], hoof_position: k }))
+      const hoofsJson = HOOF_KEYS.map((k) => ({ hoof_position: k, ...hoofs[k] }))
       const fd = new FormData()
       fd.set('horse_id', horseId)
       fd.set('record_date', recordDate)
@@ -785,12 +832,6 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
       fd.set('handling_behavior', handlingBehavior)
       fd.set('horn_quality', hornQuality)
       fd.set('hoofs_json', JSON.stringify(hoofsJson))
-      fd.set(
-        'checklist_json',
-        JSON.stringify({
-          general_treatment: generalTreatment.trim() || undefined,
-        })
-      )
       fd.set('record_type', recordType || (isErsttermin ? 'Ersttermin' : 'Regeltermin'))
       fd.set('documentation_module', 'hoof')
       if (appointmentId) fd.set('appointment_id', appointmentId)
@@ -855,7 +896,7 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
 
   // Progress steps
   const gcDone = !!(generalCondition || gait || handlingBehavior || hornQuality)
-  const hoofDone = HOOF_KEYS.every((k) => hoofCaptureStatus(hoofs[k]) !== 'empty')
+  const hoofDone = HOOF_KEYS.every((k) => hoofStatus(hoofs[k]) !== 'empty')
   const photoDone = Object.keys(stagedPhotos).length > 0 || existingPhotos.length > 0
   const summaryDone = !!summaryText.trim()
   const steps = [
@@ -1014,24 +1055,14 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
               <span className="mrf-s-icon"><i className="bi bi-search" /></span>
               Hufbefund pro Huf
             </div>
-            <span className="mrf-s-hint">Freitext</span>
+            <span className="mrf-s-hint">Nur Abweichungen</span>
           </div>
           <div className="mrf-s-body">
+            {/* Reset button */}
             <button
               type="button"
               className={`reset-btn${allDefault ? ' active' : ''}`}
-              onClick={() => {
-                const risk = HOOF_KEYS.some((k) => hoofHasOverwriteRisk(hoofs[k]))
-                if (risk && !window.confirm('Vorhandene Befunde überschreiben und alle Hufe als unauffällig markieren?')) {
-                  return
-                }
-                setHoofs({
-                  vl: markHoofUnauffaellig(hoofs.vl),
-                  vr: markHoofUnauffaellig(hoofs.vr),
-                  hl: markHoofUnauffaellig(hoofs.hl),
-                  hr: markHoofUnauffaellig(hoofs.hr),
-                })
-              }}
+              onClick={() => setHoofs({ vl: { ...HOOF_STD }, vr: { ...HOOF_STD }, hl: { ...HOOF_STD }, hr: { ...HOOF_STD } })}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={18} height={18}>
                 <polyline points="20 6 9 17 4 12" />
@@ -1039,55 +1070,25 @@ export default function MobileRecordForm({ horseId, recordId, mode = 'create', a
               Alle Hufe unauffällig
             </button>
 
-            <div
-              className={`auto-status ${
-                overallStatus === 'problematisch'
-                  ? 'red'
-                  : overallStatus === 'nicht_erfasst'
-                    ? 'gray'
-                    : overallStatus === 'unauffaellig'
-                      ? 'green'
-                      : 'yellow'
-              }`}
-            >
+            {/* Auto status */}
+            <div className={`auto-status ${overallStatus === 'critical' ? 'red' : overallStatus === 'warn' ? 'yellow' : overallStatus === 'empty' ? 'gray' : 'green'}`}>
               <span className="as-dot" />
-              <span>{hoofOverallStatusLabel(overallStatus)}</span>
-              {overallStatus !== 'nicht_erfasst' && (
-                <span className="as-hint">· Automatisch erkannt</span>
-              )}
+              <span>
+                {overallStatus === 'critical' ? 'Problematisch' : overallStatus === 'warn' ? 'Behandlungsbedürftig' : overallStatus === 'empty' ? 'Noch nicht erfasst' : 'Unauffällig'}
+              </span>
+              {overallStatus !== 'empty' && <span className="as-hint">· Automatisch erkannt</span>}
             </div>
 
+            {/* Accordion */}
             <div className="hoof-accordion">
               {HOOF_KEYS.map((k) => (
                 <HoofAccordionItem
                   key={k}
                   label={HOOF_LABELS[k]}
                   state={hoofs[k]}
-                  animalName={horse?.name ?? undefined}
-                  onChange={(next) =>
-                    setHoofs((prev) => ({ ...prev, [k]: { ...prev[k], ...next } }))
-                  }
+                  onChange={(next) => setHoofs((prev) => ({ ...prev, [k]: { ...prev[k], ...next } }))}
                 />
               ))}
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              <label className="hc-field-label">Allgemeine Behandlungsmaßnahmen</label>
-              <textarea
-                className="mrf-textarea"
-                style={{ minHeight: 72, width: '100%', marginTop: 6 }}
-                placeholder="Maßnahmen, die mehrere oder alle Hufe betreffen ..."
-                value={generalTreatment}
-                onChange={(e) => setGeneralTreatment(e.target.value)}
-                rows={3}
-              />
-              <div style={{ marginTop: 8 }}>
-                <ImproveTextPreviewButton
-                  value={generalTreatment}
-                  animalName={horse?.name ?? undefined}
-                  onApply={setGeneralTreatment}
-                />
-              </div>
             </div>
           </div>
         </div>
