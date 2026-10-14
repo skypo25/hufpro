@@ -1,21 +1,16 @@
 'use client'
 
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { safeNextPath } from '@/lib/auth/safeNextPath'
 import { supabase } from '@/lib/supabase-client'
 
 /**
- * Session-Wechsel per Magic-Link-Token (Impersonation starten oder Admin wiederherstellen).
+ * Session-Wechsel: holt token_hash einmalig per API (httpOnly Cookie), nie aus der URL.
  */
 function ImpersonateInner() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const nextPath = safeNextPath(searchParams.get('next'), '/dashboard')
-  const restoringAdmin = nextPath.startsWith('/admin')
-  const [message, setMessage] = useState(
-    restoringAdmin ? 'Admin-Sitzung wird wiederhergestellt…' : 'Support-Ansicht wird geladen…'
-  )
+  const [message, setMessage] = useState('Sitzung wird vorbereitet…')
   const started = useRef(false)
 
   useEffect(() => {
@@ -23,22 +18,37 @@ function ImpersonateInner() {
     started.current = true
 
     async function run() {
-      const tokenHash = searchParams.get('token_hash')?.trim()
-      if (!tokenHash) {
-        setMessage('Token fehlt.')
+      const res = await fetch('/api/admin/impersonate/exchange', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = (await res.json().catch(() => null)) as {
+        tokenHash?: string
+        next?: string
+        error?: string
+      } | null
+
+      if (!res.ok || !data?.tokenHash) {
+        setMessage('Sitzungswechsel fehlgeschlagen.')
         router.replace('/login?error=impersonate')
         return
       }
 
+      const nextPath = safeNextPath(data.next ?? null, '/dashboard')
+      const restoringAdmin = nextPath.startsWith('/admin')
+      setMessage(
+        restoringAdmin ? 'Admin-Sitzung wird wiederhergestellt…' : 'Support-Ansicht wird geladen…'
+      )
+
       await supabase.auth.signOut({ scope: 'local' })
 
       let result = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
+        token_hash: data.tokenHash,
         type: 'magiclink',
       })
       if (result.error) {
         result = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
+          token_hash: data.tokenHash,
           type: 'email',
         })
       }
@@ -58,7 +68,7 @@ function ImpersonateInner() {
     }
 
     void run()
-  }, [router, searchParams, nextPath, restoringAdmin])
+  }, [router])
 
   return (
     <div
