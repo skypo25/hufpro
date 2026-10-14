@@ -28,7 +28,10 @@ import {
 } from './actions'
 import AppPage from '@/components/layout/AppPage'
 import { listModuleDefinitions } from '@/lib/modules/catalog'
-import { listUserDocumentationModuleRows } from '@/lib/modules/entitlements.server'
+import {
+  ensureLegacyModulesMigrated,
+  listUserDocumentationModuleRows,
+} from '@/lib/modules/entitlements.server'
 
 export const dynamic = 'force-dynamic'
 
@@ -173,6 +176,8 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
 
   let documentationModules: { module_id: string; enabled: boolean }[] = []
   try {
+    // Einmalige Legacy-Übernahme anzeigen, damit „alles aus“ nicht „noch nie gesetzt“ meint.
+    await ensureLegacyModulesMigrated(user.id)
     documentationModules = await listUserDocumentationModuleRows(user.id)
   } catch {
     documentationModules = listModuleDefinitions().map((m) => ({
@@ -584,6 +589,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Prop
             <p className="mb-3 text-[12px] text-[#6B7280]">
               Freischaltung steuert, welche Dokumentationsarten der Nutzer neu anlegen darf. Bestehende Dokumentationen bleiben lesbar.
               Nach Deaktivierung sind neue Docs und Bearbeitungen des Moduls gesperrt.
+              Beim ersten Öffnen werden Module einmalig aus dem Onboarding-Profil übernommen — danach gelten nur noch diese Schalter.
             </p>
             <div className="space-y-3">
               {documentationModules.map((row) => (

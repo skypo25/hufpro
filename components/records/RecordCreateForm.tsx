@@ -911,6 +911,7 @@ export default function RecordCreateForm({
       <div className="space-y-5 xl:col-start-1 xl:row-start-2 min-w-0">
         <div className="hidden" aria-hidden>
           <input type="hidden" name="record_type" value={defaultRecordType} />
+          <input type="hidden" name="documentation_module" value="hoof" />
           {appointmentId ? <input type="hidden" name="appointment_id" value={appointmentId} /> : null}
           {isEdit ? (
             <input type="hidden" name="record_date" value={recordDate} />

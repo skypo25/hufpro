@@ -75,22 +75,22 @@ export async function createRecord(formData: FormData): Promise<CreateRecordResu
     .maybeSingle()
 
   const { enabled } = await getEnabledDocumentationModulesCached(user.id)
+  // Exakt ein freigeschaltetes Modul darf implizit gelten; sonst muss das Formular module mitsenden.
   const moduleForCreate = documentationModule ?? (enabled.length === 1 ? enabled[0]! : null)
-  if (moduleForCreate) {
-    if (
-      !canCreateDocumentationForModule({
-        enabledModules: enabled,
-        moduleId: moduleForCreate,
-        animalType: horseMeta?.animal_type,
-      })
-    ) {
-      return {
-        error:
-          'Dieses Dokumentationsmodul ist nicht freigeschaltet oder nicht für die Tierart erlaubt.',
-      }
+  if (
+    !moduleForCreate ||
+    !canCreateDocumentationForModule({
+      enabledModules: enabled,
+      moduleId: moduleForCreate,
+      animalType: horseMeta?.animal_type,
+    })
+  ) {
+    return {
+      error:
+        enabled.length === 0
+          ? 'Kein Dokumentationsmodul freigeschaltet.'
+          : 'Dieses Dokumentationsmodul ist nicht freigeschaltet oder nicht für die Tierart erlaubt.',
     }
-  } else if (enabled.length === 0) {
-    return { error: 'Kein Dokumentationsmodul freigeschaltet.' }
   }
 
   const fullPayload = {
