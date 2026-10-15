@@ -20,8 +20,14 @@ export type RecordDetailHoofRecord = {
   handling_behavior?: string | null
   horn_quality?: string | null
   hoofs_json?: unknown
+  /** Aus hoof_payload / checklist_json — allgemeine Behandlungsmaßnahmen */
+  checklist_json?: unknown
   record_type?: string | null
   doc_number?: string | null
+  documentation_kind?: string | null
+  therapy_discipline?: string | null
+  therapy_payload?: unknown
+  metadata?: unknown
 }
 
 export type RecordDetailHoofPhoto = {
@@ -42,6 +48,8 @@ type DocRow = {
   internal_notes: string | null
   doc_number: string | null
   hoof_payload: unknown
+  therapy_payload: unknown
+  therapy_discipline: string | null
   metadata: unknown
   created_at: string
   updated_at: string
@@ -62,11 +70,15 @@ function extractHoofPayload(payload: unknown): {
     horn_quality: string | null
   }
   hoofs: unknown
+  checklist: unknown
+  general_treatment: string | null
 } | null {
   if (!payload || typeof payload !== 'object') return null
   const p = payload as {
     general?: Record<string, unknown>
     hoofs?: unknown
+    checklist?: unknown
+    general_treatment?: unknown
   }
   const g = p.general && typeof p.general === 'object' ? p.general : {}
   return {
@@ -77,6 +89,11 @@ function extractHoofPayload(payload: unknown): {
       horn_quality: typeof g.horn_quality === 'string' ? g.horn_quality : null,
     },
     hoofs: Array.isArray(p.hoofs) ? p.hoofs : [],
+    checklist: p.checklist ?? null,
+    general_treatment:
+      typeof p.general_treatment === 'string' && p.general_treatment.trim()
+        ? p.general_treatment.trim()
+        : null,
   }
 }
 
@@ -111,8 +128,15 @@ export function mapDocumentationRowToRecordDetail(
     handling_behavior: general.handling_behavior,
     horn_quality: general.horn_quality,
     hoofs_json: payloadParsed?.hoofs ?? [],
+    checklist_json: payloadParsed?.general_treatment
+      ? { general_treatment: payloadParsed.general_treatment }
+      : payloadParsed?.checklist ?? null,
     record_type: parseMetadataLegacyRecordType(row.metadata),
     doc_number: row.doc_number,
+    documentation_kind: row.documentation_kind ?? null,
+    therapy_discipline: row.therapy_discipline ?? null,
+    therapy_payload: row.therapy_payload ?? null,
+    metadata: row.metadata ?? null,
   }
 }
 
@@ -148,10 +172,11 @@ export async function loadRecordDetailFromDocumentation(
   horseId: string,
   recordId: string
 ): Promise<LoadRecordDetailFromDocumentationResult> {
-  const { data: docRow, error: docErr } = await supabase
+  // Primär: URL = legacy hoof_records.id. Fallback: URL = documentation_records.id (Flutter).
+  let { data: docRow, error: docErr } = await supabase
     .from('documentation_records')
     .select(
-      'id, animal_id, session_date, summary_html, recommendations_html, internal_notes, doc_number, hoof_payload, metadata, created_at, updated_at, documentation_kind'
+      'id, animal_id, session_date, summary_html, recommendations_html, internal_notes, doc_number, hoof_payload, therapy_payload, therapy_discipline, metadata, created_at, updated_at, documentation_kind'
     )
     .filter('metadata->>legacy_hoof_record_id', 'eq', recordId)
     .eq('user_id', userId)
@@ -160,6 +185,21 @@ export async function loadRecordDetailFromDocumentation(
 
   if (docErr) {
     return { ok: false, reason: `documentation_records: ${docErr.message}` }
+  }
+  if (!docRow) {
+    const byId = await supabase
+      .from('documentation_records')
+      .select(
+        'id, animal_id, session_date, summary_html, recommendations_html, internal_notes, doc_number, hoof_payload, therapy_payload, therapy_discipline, metadata, created_at, updated_at, documentation_kind'
+      )
+      .eq('id', recordId)
+      .eq('user_id', userId)
+      .eq('animal_id', horseId)
+      .maybeSingle()
+    if (byId.error) {
+      return { ok: false, reason: `documentation_records: ${byId.error.message}` }
+    }
+    docRow = byId.data
   }
   if (!docRow) {
     return { ok: false, reason: 'no_documentation_row' }

@@ -9,7 +9,11 @@ import {
 } from "@react-pdf/renderer"
 import type { Styles } from "@react-pdf/renderer"
 type Style = Styles[string]
-import type { RecordPdfData, RecordPdfHoof } from "@/lib/pdf/types"
+import type {
+  RecordPdfBodyMapMarker,
+  RecordPdfData,
+  RecordPdfHoof,
+} from "@/lib/pdf/types"
 import { BRAND_COLORS } from "@/lib/branding"
 import {
   SLOT_SOLAR,
@@ -492,8 +496,16 @@ function formatGermanDateLong(ds: string | null | undefined): string {
 
 const HOOF_STANDARD = { toe: "gerade", heel: ["normal", "ausgeglichen"], sole: "stabil", frog: "gesund" }
 
-function hoofStatus(h: RecordPdfHoof): "ok" | "warn" | "critical" {
+function hoofHasFreeText(h: RecordPdfHoof): boolean {
+  return !!(h.findingText?.trim() || h.treatmentText?.trim() || h.markedUnauffaellig)
+}
+
+function hoofStatus(h: RecordPdfHoof): "ok" | "warn" | "critical" | "empty" {
   if (h.frogCondition === "faulig") return "critical"
+  if (h.markedUnauffaellig) return "ok"
+  if (h.findingText?.trim() || h.treatmentText?.trim()) return "warn"
+  const hasChips = !!(h.toeAlignment || h.heelBalance || h.soleCondition || h.frogCondition)
+  if (!hasChips) return "empty"
   const ok =
     (!h.toeAlignment || h.toeAlignment === HOOF_STANDARD.toe) &&
     (!h.heelBalance || HOOF_STANDARD.heel.includes(h.heelBalance)) &&
@@ -502,11 +514,17 @@ function hoofStatus(h: RecordPdfHoof): "ok" | "warn" | "critical" {
   return ok ? "ok" : "warn"
 }
 
-function overallStatus(hoofs: RecordPdfHoof[]): "ok" | "warn" | "critical" {
-  if (!hoofs.length) return "ok"
+function overallStatus(hoofs: RecordPdfHoof[]): "ok" | "warn" | "critical" | "empty" {
+  if (!hoofs.length) return "empty"
+  if (hoofs.every((h) => hoofStatus(h) === "empty")) return "empty"
   if (hoofs.some((h) => hoofStatus(h) === "critical")) return "critical"
   if (hoofs.some((h) => hoofStatus(h) === "warn")) return "warn"
-  return "ok"
+  if (hoofs.every((h) => hoofStatus(h) === "ok")) return "ok"
+  return "warn"
+}
+
+function usesFreeTextDocs(hoofs: RecordPdfHoof[]): boolean {
+  return hoofs.some(hoofHasFreeText)
 }
 
 type DotColor = "green" | "yellow" | "red" | "neutral"
@@ -625,12 +643,34 @@ function PageFooter({
 // ─── Main ─────────────────────────────────────────────────────────────────────
 type Props = { data: RecordPdfData }
 
+function bodyMapMarkerColor(type: string): string {
+  if (type === "pain") return "#EF4444"
+  if (type === "treatment") return "#3B82F6"
+  if (type === "note") return "#EAB308"
+  return C.brand
+}
+
+function groupBodyMapByView(markers: RecordPdfBodyMapMarker[]) {
+  const map = new Map<string, { label: string; markers: RecordPdfBodyMapMarker[] }>()
+  for (const m of markers) {
+    const cur = map.get(m.view) ?? { label: m.viewLabel, markers: [] }
+    cur.markers.push(m)
+    map.set(m.view, cur)
+  }
+  return [...map.entries()]
+}
+
 export default function RecordPdfDocument({ data }: Props) {
   const { horse, customer, seller, record, photos } = data
 
   const photoMap = Object.fromEntries(photos.map((p) => [p.photoType, p.dataUrl]))
+  const therapy = record.therapy ?? null
+  const isTherapy = Boolean(
+    therapy &&
+      (therapy.sections.length > 0 || therapy.bodyMapMarkers.length > 0)
+  )
   const ov = overallStatus(record.hoofs)
-  const hasHoofData = record.hoofs.length > 0
+  const hasHoofData = !isTherapy && record.hoofs.length > 0
   const allOk = hasHoofData && ov === "ok"
 
   const sellerName = seller.companyName || seller.name
@@ -659,20 +699,27 @@ export default function RecordPdfDocument({ data }: Props) {
     .filter(Boolean)
     .join(", ")
 
-  const hasGeneralData = !!(record.generalCondition || record.gait || record.handlingBehavior || record.hornQuality)
+  const hasGeneralData = !isTherapy && !!(record.generalCondition || record.gait || record.handlingBehavior || record.hornQuality)
   // Strip HTML tags + &nbsp; before checking – catches empty <p><br></p> etc.
-  const hasSummary = !!(record.summaryNotes
+  const hasSummary = !isTherapy && !!(record.summaryNotes
     ?.replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/gi, '')
     .trim())
+  const showPhotoPage = !isTherapy || photos.length > 0
 
-  const totalPages     = hasSummary ? 3 : 2
+  const therapySectionCount =
+    (therapy?.sections.length ?? 0) +
+    ((therapy?.bodyMapMarkers.length ?? 0) > 0 ? 1 : 0)
   const sectionOffset  = hasGeneralData ? 1 : 0
-  // Section numbers on page 1
-  const secHoofNum     = sectionOffset + 1
   // Section numbers for standalone pages
   const secMassnahmenNum  = sectionOffset + 2
-  const secFotoNum        = hasSummary ? sectionOffset + 3 : sectionOffset + 2
+  const secFotoNum        = isTherapy
+    ? therapySectionCount + 1
+    : hasSummary
+      ? sectionOffset + 3
+      : sectionOffset + 2
+  const totalPages =
+    (hasSummary ? 1 : 0) + (showPhotoPage ? 1 : 0) + 1
 
   return (
     <Document>
@@ -705,7 +752,9 @@ export default function RecordPdfDocument({ data }: Props) {
         <View style={s.reportTitle}>
           <Text style={s.reportH1}>Befundbericht — {horse.name}</Text>
           <Text style={s.reportSubtitle}>
-            Dokumentation der Hufbearbeitung vom {formatGermanDateLong(record.recordDate)}
+            {isTherapy
+              ? `${therapy!.moduleLabel} vom ${formatGermanDateLong(record.recordDate)}`
+              : `Dokumentation der Hufbearbeitung vom ${formatGermanDateLong(record.recordDate)}`}
           </Text>
         </View>
 
@@ -732,6 +781,79 @@ export default function RecordPdfDocument({ data }: Props) {
               <Text style={bannerTextStyle}>{bannerTitle}</Text>
               <Text style={[s.bannerSub, { color: bannerSubColor }]}>{bannerSub}</Text>
             </View>
+          </View>
+        )}
+
+        {/* THERAPIE: Abschnitte + Körperkarte */}
+        {isTherapy &&
+          therapy!.sections.map((section, si) => (
+            <View key={section.title} style={s.section} wrap={false}>
+              <View style={s.sectionTitle}>
+                <Text style={s.sectionNum}>{si + 1}.</Text>
+                <Text style={s.sectionLabel}>{section.title}</Text>
+              </View>
+              {section.fields.map((field) => (
+                <View key={field.label} style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 8, color: C.textLight, marginBottom: 2 }}>
+                    {field.label}
+                  </Text>
+                  <Text style={s.empfehlungText}>{field.value}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+
+        {isTherapy && therapy!.bodyMapMarkers.length > 0 && (
+          <View style={s.section}>
+            <View style={s.sectionTitle}>
+              <Text style={s.sectionNum}>{therapy!.sections.length + 1}.</Text>
+              <Text style={s.sectionLabel}>Körperkarte</Text>
+            </View>
+            {groupBodyMapByView(therapy!.bodyMapMarkers).map(([view, group]) => (
+              <View key={view} style={{ marginBottom: 10 }} wrap={false}>
+                <Text style={{ fontSize: 9, color: C.textSecondary, marginBottom: 4 }}>
+                  {group.label} · {group.markers.length} Markierung(en)
+                </Text>
+                <View
+                  style={{
+                    height: 90,
+                    borderWidth: 1,
+                    borderColor: C.border,
+                    borderRadius: 6,
+                    backgroundColor: C.bgSubtle,
+                    position: "relative",
+                    marginBottom: 6,
+                  }}
+                >
+                  {group.markers.map((m) => (
+                    <View
+                      key={`${m.view}-${m.x}-${m.y}`}
+                      style={{
+                        position: "absolute",
+                        left: `${Math.max(0, Math.min(100, m.x * 100))}%`,
+                        top: `${Math.max(0, Math.min(100, m.y * 100))}%`,
+                        width: 8,
+                        height: 8,
+                        marginLeft: -4,
+                        marginTop: -4,
+                        borderRadius: 4,
+                        backgroundColor: bodyMapMarkerColor(m.markerType),
+                      }}
+                    />
+                  ))}
+                </View>
+                {group.markers.map((m, mi) => {
+                  const line =
+                    [m.findingText, m.treatmentText].filter(Boolean).join(" · ") ||
+                    m.markerType
+                  return (
+                    <Text key={`txt-${view}-${mi}`} style={{ fontSize: 9, marginBottom: 2 }}>
+                      {mi + 1}. {line}
+                    </Text>
+                  )
+                })}
+              </View>
+            ))}
           </View>
         )}
 
@@ -788,7 +910,49 @@ export default function RecordPdfDocument({ data }: Props) {
               <Text style={s.sectionNum}>{sectionOffset + 1}.</Text>
               <Text style={s.sectionLabel}>Hufbefund</Text>
             </View>
-            {allOk ? (
+            {usesFreeTextDocs(record.hoofs) ? (
+              <View style={{ gap: 10 }}>
+                {record.hoofs.map((hoof) => {
+                  const st = hoofStatus(hoof)
+                  if (st === "empty") return null
+                  const badgeTxt =
+                    st === "critical"
+                      ? "Kritisch"
+                      : st === "ok"
+                        ? "Unauffällig"
+                        : "Befund vorhanden"
+                  return (
+                    <View key={hoof.position} style={s.hoofCard} wrap={false}>
+                      <View style={s.hoofCardHeader}>
+                        <Text style={s.hoofCardPos}>{HOOF_LABELS[hoof.position]}</Text>
+                        <Text style={st === "ok" ? s.badgeOk : s.badgeWarn}>{badgeTxt}</Text>
+                      </View>
+                      <View style={s.hoofCardBody}>
+                        {!!hoof.findingText?.trim() && (
+                          <View style={s.hoofRow}>
+                            <Text style={s.hoofRowLabel}>Befund</Text>
+                            <Text style={s.hoofRowValueNormal}>{hoof.findingText}</Text>
+                          </View>
+                        )}
+                        {!!hoof.treatmentText?.trim() && (
+                          <View style={s.hoofRowLast}>
+                            <Text style={s.hoofRowLabel}>Behandlung</Text>
+                            <Text style={s.hoofRowValueNormal}>{hoof.treatmentText}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  )
+                })}
+                {!!record.generalTreatment?.trim() && (
+                  <View style={s.hoofCompact}>
+                    <Text style={s.hoofCompactText}>
+                      Allgemeine Behandlungsmaßnahmen: {record.generalTreatment}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : allOk ? (
               <View style={s.hoofCompact}>
                 <Text style={s.hoofCompactText}>
                   ✓  Alle {record.hoofs.length} Hufe unauffällig. Zehe gerade, Trachten normal, Strahl gesund, Sohle stabil.
@@ -861,8 +1025,9 @@ export default function RecordPdfDocument({ data }: Props) {
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          SEITE 2 oder 3 – Fotodokumentation (immer eigene Seite)
+          SEITE 2 oder 3 – Fotodokumentation
       ═══════════════════════════════════════════════════════ */}
+      {showPhotoPage && (
       <Page size="A4" style={s.page}>
         <View style={s.headerCompact}>
           <View style={s.headerCompactLogoRow}>
@@ -883,53 +1048,69 @@ export default function RecordPdfDocument({ data }: Props) {
             <Text style={s.sectionLabel}>Fotodokumentation</Text>
           </View>
 
-          <Text style={s.imgRowLabelFirst}>Sohlenansicht (Solar)</Text>
-          <View style={s.photoGrid}>
-            {SLOT_SOLAR.map((slot) => {
-              const url   = photoMap[slot]
-              const label = SLOT_LABELS[slot] ?? slot
-              return (
-                <View key={slot} style={s.photoSlot}>
-                  {url ? (
-                    <>
-                      <Image src={url} style={s.photoImage} />
-                      <Text style={s.photoCaption}>{label} — {formatGermanDate(record.recordDate)}</Text>
-                    </>
-                  ) : (
-                    <View style={s.photoPlaceholder}>
-                      <Text style={s.photoPlaceholderText}>{label}</Text>
-                    </View>
-                  )}
+          {isTherapy ? (
+            <View style={s.photoGrid}>
+              {photos.map((p) => (
+                <View key={p.photoType} style={s.photoSlot}>
+                  <Image src={p.dataUrl} style={s.photoImage} />
+                  <Text style={s.photoCaption}>
+                    {p.label} — {formatGermanDate(record.recordDate)}
+                  </Text>
                 </View>
-              )
-            })}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <>
+              <Text style={s.imgRowLabelFirst}>Sohlenansicht (Solar)</Text>
+              <View style={s.photoGrid}>
+                {SLOT_SOLAR.map((slot) => {
+                  const url   = photoMap[slot]
+                  const label = SLOT_LABELS[slot] ?? slot
+                  return (
+                    <View key={slot} style={s.photoSlot}>
+                      {url ? (
+                        <>
+                          <Image src={url} style={s.photoImage} />
+                          <Text style={s.photoCaption}>{label} — {formatGermanDate(record.recordDate)}</Text>
+                        </>
+                      ) : (
+                        <View style={s.photoPlaceholder}>
+                          <Text style={s.photoPlaceholderText}>{label}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )
+                })}
+              </View>
 
-          <Text style={s.imgRowLabel}>Seitenansicht (Lateral)</Text>
-          <View style={s.photoGrid}>
-            {SLOT_LATERAL.map((slot) => {
-              const url   = photoMap[slot]
-              const label = SLOT_LABELS[slot] ?? slot
-              return (
-                <View key={slot} style={s.photoSlot}>
-                  {url ? (
-                    <>
-                      <Image src={url} style={s.photoImage} />
-                      <Text style={s.photoCaption}>{label} — {formatGermanDate(record.recordDate)}</Text>
-                    </>
-                  ) : (
-                    <View style={s.photoPlaceholder}>
-                      <Text style={s.photoPlaceholderText}>{label}</Text>
+              <Text style={s.imgRowLabel}>Seitenansicht (Lateral)</Text>
+              <View style={s.photoGrid}>
+                {SLOT_LATERAL.map((slot) => {
+                  const url   = photoMap[slot]
+                  const label = SLOT_LABELS[slot] ?? slot
+                  return (
+                    <View key={slot} style={s.photoSlot}>
+                      {url ? (
+                        <>
+                          <Image src={url} style={s.photoImage} />
+                          <Text style={s.photoCaption}>{label} — {formatGermanDate(record.recordDate)}</Text>
+                        </>
+                      ) : (
+                        <View style={s.photoPlaceholder}>
+                          <Text style={s.photoPlaceholderText}>{label}</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
-              )
-            })}
-          </View>
+                  )
+                })}
+              </View>
+            </>
+          )}
         </View>
 
         <PageFooter seller={seller} recordDate={record.recordDate} pageLabel={`Seite ${totalPages} von ${totalPages}`} />
       </Page>
+      )}
     </Document>
   )
 }

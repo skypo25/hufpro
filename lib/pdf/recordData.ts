@@ -10,7 +10,15 @@ import {
   loadRecordListForHorseView,
   getPreviousVisitRecordDateFromMergedList,
 } from "@/lib/documentation/loadRecordListForHorseView"
-import type { RecordPdfData, RecordPdfHoof, RecordPdfPhoto, RecordPdfSeller } from "./types"
+import { BODY_MAP_VIEWS } from "@/lib/modules/bodyMapTemplates"
+import { parseTherapyDisplay } from "@/lib/modules/therapyPayloadDisplay"
+import type {
+  RecordPdfData,
+  RecordPdfHoof,
+  RecordPdfPhoto,
+  RecordPdfSeller,
+  RecordPdfTherapy,
+} from "./types"
 
 type HorseRow = {
   id: string
@@ -85,15 +93,77 @@ function parseHoofsJson(raw: unknown): RecordPdfHoof[] {
         (h) => h?.hoof_position === pos
       )
       if (!item) return null
+      const finding =
+        (typeof item.finding_text === 'string' && item.finding_text.trim()) ||
+        (typeof item.notes === 'string' && item.notes.trim()) ||
+        null
+      const treatment =
+        typeof item.treatment_text === 'string' && item.treatment_text.trim()
+          ? item.treatment_text.trim()
+          : null
       return {
         position: pos,
         toeAlignment: (item.toe_alignment as string | null) ?? null,
         heelBalance: (item.heel_balance as string | null) ?? null,
         soleCondition: (item.sole_condition as string | null) ?? null,
         frogCondition: (item.frog_condition as string | null) ?? null,
+        findingText: finding,
+        treatmentText: treatment,
+        markedUnauffaellig:
+          item.marked_unauffaellig === true ||
+          finding === 'Keine Auffälligkeiten festgestellt.',
       } satisfies RecordPdfHoof
     })
     .filter((h): h is RecordPdfHoof => h !== null)
+}
+
+function parseGeneralTreatmentFromChecklist(raw: unknown): string | null {
+  if (!raw) return null
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const t = (raw as { general_treatment?: unknown }).general_treatment
+    if (typeof t === 'string' && t.trim()) return t.trim()
+  }
+  return null
+}
+
+function therapyFromRecord(r: {
+  therapy_payload?: unknown
+  documentation_kind?: string | null
+  therapy_discipline?: string | null
+  metadata?: unknown
+}): RecordPdfTherapy | null {
+  const display = parseTherapyDisplay({
+    therapyPayload: r.therapy_payload,
+    documentationKind: r.documentation_kind,
+    therapyDiscipline: r.therapy_discipline,
+    metadata: r.metadata,
+  })
+  if (!display) return null
+  const isTherapy =
+    r.documentation_kind === 'therapy' ||
+    display.sections.length > 0 ||
+    (display.bodyMap?.markers.length ?? 0) > 0
+  if (!isTherapy) return null
+
+  const viewLabel = (view: string) =>
+    BODY_MAP_VIEWS.find((v) => v.id === view)?.label ?? view
+
+  return {
+    moduleLabel: display.moduleLabel,
+    sections: display.sections.map((s) => ({
+      title: s.title,
+      fields: s.fields.map((f) => ({ label: f.label, value: f.value })),
+    })),
+    bodyMapMarkers: (display.bodyMap?.markers ?? []).map((m) => ({
+      view: m.view,
+      viewLabel: viewLabel(m.view),
+      x: m.x,
+      y: m.y,
+      markerType: m.markerType,
+      findingText: m.findingText,
+      treatmentText: m.treatmentText,
+    })),
+  }
 }
 
 export function sellerFromSettings(s: Record<string, unknown> | null): RecordPdfSeller {
@@ -226,7 +296,8 @@ export async function fetchRecordPdfData(
     }))
     const photos = await buildPdfPhotosFromPaths(supabase, photoRowsForPdf)
 
-    const hoofs = parseHoofsJson(r.hoofs_json)
+    const therapy = therapyFromRecord(r)
+    const hoofs = therapy ? [] : parseHoofsJson(r.hoofs_json)
 
     return {
       horse: {
@@ -246,15 +317,19 @@ export async function fetchRecordPdfData(
       seller,
       record: {
         recordDate: r.record_date,
-        recordType: r.record_type ?? null,
+        recordType: therapy?.moduleLabel ?? r.record_type ?? null,
         docNumber: r.doc_number ?? buildDocNumber(recordId, r.record_date),
         lastRecordDate,
-        generalCondition: r.general_condition ?? null,
-        gait: r.gait ?? null,
-        handlingBehavior: r.handling_behavior ?? null,
-        hornQuality: r.horn_quality ?? null,
+        generalCondition: therapy ? null : r.general_condition ?? null,
+        gait: therapy ? null : r.gait ?? null,
+        handlingBehavior: therapy ? null : r.handling_behavior ?? null,
+        hornQuality: therapy ? null : r.horn_quality ?? null,
         hoofs,
-        summaryNotes: r.hoof_condition ?? null,
+        generalTreatment: therapy
+          ? null
+          : parseGeneralTreatmentFromChecklist(r.checklist_json),
+        summaryNotes: therapy ? null : r.hoof_condition ?? null,
+        therapy,
       },
       photos,
     }
@@ -278,7 +353,7 @@ export async function fetchRecordPdfData(
   let extended: Partial<HoofRecordRow> = {}
   const { data: extRow } = await supabase
     .from("hoof_records")
-    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json")
+    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json")
     .eq("id", recordId)
     .eq("horse_id", horseId)
     .eq("user_id", userId)
@@ -321,6 +396,9 @@ export async function fetchRecordPdfData(
       handlingBehavior: extended.handling_behavior ?? null,
       hornQuality: extended.horn_quality ?? null,
       hoofs,
+      generalTreatment: parseGeneralTreatmentFromChecklist(
+        (extended as { checklist_json?: unknown }).checklist_json
+      ),
       summaryNotes: recordBase.hoof_condition ?? null,
     },
     photos,
@@ -383,7 +461,8 @@ export async function fetchRecordHtmlExportPayload(
       photo_type: p.photo_type,
     }))
     const photoHrefByType = buildPhotoHrefByType(photoRows, pathToZipRel)
-    const hoofs = parseHoofsJson(r.hoofs_json)
+    const therapy = therapyFromRecord(r)
+    const hoofs = therapy ? [] : parseHoofsJson(r.hoofs_json)
 
     return {
       horse: {
@@ -403,15 +482,21 @@ export async function fetchRecordHtmlExportPayload(
       seller,
       record: {
         recordDate: r.record_date,
-        recordType: r.record_type ?? null,
+        recordType: therapy?.moduleLabel ?? r.record_type ?? null,
         docNumber: r.doc_number ?? buildDocNumber(recordId, r.record_date),
         lastRecordDate,
-        generalCondition: r.general_condition ?? null,
-        gait: r.gait ?? null,
-        handlingBehavior: r.handling_behavior ?? null,
-        hornQuality: r.horn_quality ?? null,
+        generalCondition: therapy ? null : r.general_condition ?? null,
+        gait: therapy ? null : r.gait ?? null,
+        handlingBehavior: therapy ? null : r.handling_behavior ?? null,
+        hornQuality: therapy ? null : r.horn_quality ?? null,
         hoofs,
-        summaryNotes: r.hoof_condition ?? null,
+        generalTreatment: therapy
+          ? null
+          : parseGeneralTreatmentFromChecklist(
+              (r as { checklist_json?: unknown }).checklist_json
+            ),
+        summaryNotes: therapy ? null : r.hoof_condition ?? null,
+        therapy,
       },
       photoHrefByType,
     }
@@ -430,7 +515,7 @@ export async function fetchRecordHtmlExportPayload(
   let extended: Partial<HoofRecordRow> = {}
   const { data: extRow } = await supabase
     .from("hoof_records")
-    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json")
+    .select("general_condition, gait, handling_behavior, horn_quality, hoofs_json, checklist_json")
     .eq("id", recordId)
     .eq("horse_id", horseId)
     .eq("user_id", userId)
@@ -473,6 +558,9 @@ export async function fetchRecordHtmlExportPayload(
       handlingBehavior: extended.handling_behavior ?? null,
       hornQuality: extended.horn_quality ?? null,
       hoofs,
+      generalTreatment: parseGeneralTreatmentFromChecklist(
+        (extended as { checklist_json?: unknown }).checklist_json
+      ),
       summaryNotes: recordBase.hoof_condition ?? null,
     },
     photoHrefByType,

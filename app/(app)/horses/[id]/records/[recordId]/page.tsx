@@ -18,8 +18,10 @@ import {
   revalidateHoofCompareForHorse,
 } from '@/lib/cache/tags'
 import PhotoLightbox from '@/components/photos/PhotoLightbox'
+import TherapyRecordDetailBlocks from '@/components/records/TherapyRecordDetailBlocks'
 import { sanitizeUserHtml } from '@/lib/sanitizeUserHtml'
 import { shouldSkipAppRecordDetailSsr } from '@/lib/mobile/shouldSkipAppRecordDetailSsr'
+import { parseTherapyDisplay } from '@/lib/modules/therapyPayloadDisplay'
 
 type RecordDetailPageProps = {
   params: Promise<{ id: string; recordId: string }>
@@ -52,6 +54,9 @@ type HoofData = {
   heel_balance: string | null
   sole_condition: string | null
   frog_condition: string | null
+  finding_text?: string | null
+  treatment_text?: string | null
+  marked_unauffaellig?: boolean
 }
 
 function getRelation<T>(v: T | T[] | null): T | null {
@@ -91,8 +96,12 @@ function parseHoofsJson(json: unknown): HoofData[] {
 // ─── Status helpers ───────────────────────────────────────────────────────────
 const HOOF_STD = { toe: 'gerade', heel: ['normal', 'ausgeglichen'], sole: 'stabil', frog: 'gesund' }
 
-function singleHoofStatus(h: HoofData): 'ok' | 'warn' | 'critical' {
+function singleHoofStatus(h: HoofData): 'ok' | 'warn' | 'critical' | 'empty' {
   if (h.frog_condition === 'faulig') return 'critical'
+  if (h.marked_unauffaellig) return 'ok'
+  if ((h.finding_text ?? '').trim() || (h.treatment_text ?? '').trim()) return 'warn'
+  const hasChips = !!(h.toe_alignment || h.heel_balance || h.sole_condition || h.frog_condition)
+  if (!hasChips) return 'empty'
   const ok =
     (!h.toe_alignment  || h.toe_alignment  === HOOF_STD.toe)  &&
     (!h.heel_balance   || HOOF_STD.heel.includes(h.heel_balance)) &&
@@ -202,11 +211,13 @@ function HoofCard({ hoof }: { hoof: HoofData }) {
   }
   const badgeMap = {
     ok:       { label: 'Unauffällig', cls: 'bg-[#DCFCE7] text-[#166534]' },
-    warn:     { label: 'Abweichung',  cls: 'bg-[#FEF3C7] text-[#92400E]' },
+    warn:     { label: 'Befund vorhanden',  cls: 'bg-[#FEF3C7] text-[#92400E]' },
     critical: { label: 'Kritisch',    cls: 'bg-[#FEE2E2] text-[#991B1B]' },
+    empty:    { label: 'Nicht erfasst', cls: 'bg-[#F3F4F6] text-[#6B7280]' },
   }
   const cardBorder = st === 'critical' ? 'border-[#FCA5A5]' : st === 'warn' ? 'border-[#FDE68A]' : 'border-[#E5E2DC]'
   const badge = badgeMap[st]
+  const hasFreeText = !!(hoof.finding_text?.trim() || hoof.treatment_text?.trim() || hoof.marked_unauffaellig)
   const rows: Array<{ label: string; field: keyof HoofData }> = [
     { label: 'Zehe',     field: 'toe_alignment' },
     { label: 'Trachten', field: 'heel_balance' },
@@ -224,7 +235,22 @@ function HoofCard({ hoof }: { hoof: HoofData }) {
         </span>
       </div>
       <div className="px-4 py-2">
-        {rows.map(({ label, field }, i) => {
+        {hasFreeText ? (
+          <>
+            {!!hoof.finding_text?.trim() && (
+              <div className="border-b border-[#F5F3F0] py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Befund</div>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[#1B1F23]">{hoof.finding_text}</p>
+              </div>
+            )}
+            {!!hoof.treatment_text?.trim() && (
+              <div className="py-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Behandlung</div>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-[#1B1F23]">{hoof.treatment_text}</p>
+              </div>
+            )}
+          </>
+        ) : rows.map(({ label, field }, i) => {
           const val = hoof[field] as string | null
           return (
             <div key={field} className={`flex items-center justify-between py-2 ${i < rows.length - 1 ? 'border-b border-[#F5F3F0]' : ''}`}>
@@ -421,16 +447,37 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
   const hoofs     = parseHoofsJson(record.hoofs_json)
   const docNumber = record.doc_number || buildDocNumber(recordId, record.record_date)
 
+  const therapy = parseTherapyDisplay({
+    therapyPayload: record.therapy_payload,
+    documentationKind: record.documentation_kind,
+    therapyDiscipline: record.therapy_discipline,
+    metadata: record.metadata,
+  })
+  const isTherapyDoc =
+    record.documentation_kind === 'therapy' ||
+    Boolean(
+      therapy &&
+        (therapy.sections.length > 0 ||
+          (therapy.bodyMap?.markers.length ?? 0) > 0)
+    )
+
   const photoSlots = [...SLOT_SOLAR, ...SLOT_LATERAL]
   const photoCount = photoSlots.filter((s) => photoMap[s]).length
 
   const deleteRecordForId = deleteRecord.bind(null, horseId, recordId)
 
-  const hasGeneralData = !!(record.general_condition || record.gait || record.handling_behavior || record.horn_quality)
-  const hasSummary     = hasRealContent(record.hoof_condition)
+  const hasGeneralData =
+    !isTherapyDoc &&
+    !!(record.general_condition || record.gait || record.handling_behavior || record.horn_quality)
+  const hasSummary = !isTherapyDoc && hasRealContent(record.hoof_condition)
+  const showHoofPhotos = !isTherapyDoc || photoCount > 0
 
-  // Section numbering
-  let sectionIdx = 0
+  // Section numbering (Therapie-Blöcke zählen eigene Abschnitte mit)
+  let sectionIdx =
+    isTherapyDoc && therapy
+      ? therapy.sections.length +
+        ((therapy.bodyMap?.markers.length ?? 0) > 0 ? 1 : 0)
+      : 0
   const nextSection = () => { sectionIdx++; return sectionIdx }
 
   return (
@@ -466,6 +513,10 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_296px]">
         {/* ── Left column ── */}
         <div className="space-y-5">
+
+          {isTherapyDoc && therapy ? (
+            <TherapyRecordDetailBlocks therapy={therapy} sectionStart={1} />
+          ) : null}
 
           {/* Section 1: Allgemeiner Eindruck */}
           {hasGeneralData && (
@@ -543,42 +594,63 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
           })()}
 
           {/* Section 3: Fotodokumentation */}
-          <SectionCard
-            title={`${nextSection()}. Fotodokumentation`}
-            titleRight={
-              <span className="text-[12px] text-[#9CA3AF]">
-                {photoCount} von {photoSlots.length} Fotos
-              </span>
-            }
-          >
-            <div className="p-5 space-y-5">
-              {/* Solar */}
-              <div>
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9CA3AF]">
-                  Sohlenansicht (Solar)
-                </p>
-                <div className="grid grid-cols-4 gap-2.5">
-                  {SLOT_SOLAR.map((slot) => (
-                    <PhotoSlot key={slot} label={SLOT_LABELS[slot] ?? slot} signedUrl={photoMap[slot] ?? null} meta={photoMetaMap[slot] ?? null} />
-                  ))}
-                </div>
+          {showHoofPhotos && (
+            <SectionCard
+              title={`${nextSection()}. Fotodokumentation`}
+              titleRight={
+                <span className="text-[12px] text-[#9CA3AF]">
+                  {isTherapyDoc
+                    ? `${photoCount} Foto${photoCount === 1 ? '' : 's'}`
+                    : `${photoCount} von ${photoSlots.length} Fotos`}
+                </span>
+              }
+            >
+              <div className="p-5 space-y-5">
+                {isTherapyDoc ? (
+                  photoCount === 0 ? (
+                    <p className="text-center text-[13px] text-[#C4BFB8]">Noch keine Fotos aufgenommen</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                      {Object.entries(photoMap).map(([slot, url]) => (
+                        <PhotoSlot
+                          key={slot}
+                          label={SLOT_LABELS[slot] ?? slot}
+                          signedUrl={url}
+                          meta={photoMetaMap[slot] ?? null}
+                        />
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div>
+                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9CA3AF]">
+                        Sohlenansicht (Solar)
+                      </p>
+                      <div className="grid grid-cols-4 gap-2.5">
+                        {SLOT_SOLAR.map((slot) => (
+                          <PhotoSlot key={slot} label={SLOT_LABELS[slot] ?? slot} signedUrl={photoMap[slot] ?? null} meta={photoMetaMap[slot] ?? null} />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9CA3AF]">
+                        Seitenansicht (Lateral)
+                      </p>
+                      <div className="grid grid-cols-4 gap-2.5">
+                        {SLOT_LATERAL.map((slot) => (
+                          <PhotoSlot key={slot} label={SLOT_LABELS[slot] ?? slot} signedUrl={photoMap[slot] ?? null} meta={photoMetaMap[slot] ?? null} />
+                        ))}
+                      </div>
+                    </div>
+                    {photoCount === 0 && (
+                      <p className="text-center text-[13px] text-[#C4BFB8]">Noch keine Fotos aufgenommen</p>
+                    )}
+                  </>
+                )}
               </div>
-              {/* Lateral */}
-              <div>
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9CA3AF]">
-                  Seitenansicht (Lateral)
-                </p>
-                <div className="grid grid-cols-4 gap-2.5">
-                  {SLOT_LATERAL.map((slot) => (
-                    <PhotoSlot key={slot} label={SLOT_LABELS[slot] ?? slot} signedUrl={photoMap[slot] ?? null} meta={photoMetaMap[slot] ?? null} />
-                  ))}
-                </div>
-              </div>
-              {photoCount === 0 && (
-                <p className="text-center text-[13px] text-[#C4BFB8]">Noch keine Fotos aufgenommen</p>
-              )}
-            </div>
-          </SectionCard>
+            </SectionCard>
+          )}
 
           {/* Section 4: Maßnahmen & Beobachtungen */}
           {hasSummary && (
@@ -632,7 +704,14 @@ export default async function RecordDetailPage({ params }: RecordDetailPageProps
             </div>
             <div className="divide-y divide-[#F0EDEA]">
               <SidebarRow label="Datum"     value={formatGermanDate(record.record_date)} />
-              <SidebarRow label="Terminart" value={record.record_type ?? 'Regeltermin'} />
+              <SidebarRow
+                label="Terminart"
+                value={
+                  isTherapyDoc && therapy
+                    ? therapy.moduleLabel
+                    : (record.record_type ?? 'Regeltermin')
+                }
+              />
               {customer?.name && (
                 <SidebarRow label="Besitzer/in" value={customer.name} />
               )}

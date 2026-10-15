@@ -39,6 +39,35 @@ export type RecordPdfHoof = {
   heelBalance: string | null
   soleCondition: string | null
   frogCondition: string | null
+  findingText: string | null
+  treatmentText: string | null
+  markedUnauffaellig: boolean
+}
+
+export type RecordPdfTherapyField = {
+  label: string
+  value: string
+}
+
+export type RecordPdfTherapySection = {
+  title: string
+  fields: RecordPdfTherapyField[]
+}
+
+export type RecordPdfBodyMapMarker = {
+  view: string
+  viewLabel: string
+  x: number
+  y: number
+  markerType: string
+  findingText: string
+  treatmentText: string
+}
+
+export type RecordPdfTherapy = {
+  moduleLabel: string
+  sections: RecordPdfTherapySection[]
+  bodyMapMarkers: RecordPdfBodyMapMarker[]
 }
 
 export type RecordPdfRecord = {
@@ -51,7 +80,10 @@ export type RecordPdfRecord = {
   handlingBehavior: string | null
   hornQuality: string | null
   hoofs: RecordPdfHoof[]
+  generalTreatment: string | null
   summaryNotes: string | null
+  /** Nur bei Therapie-Dokumentationen (physio/osteo/heilpraktik) */
+  therapy?: RecordPdfTherapy | null
 }
 
 export type RecordPdfPhoto = {
